@@ -1,0 +1,18 @@
+{
+  "name": "famplanner-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Day-1 placeholder — Backend Dev 1 / Backend Dev 2 replace this with the real Express + TypeScript scaffold.",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}
