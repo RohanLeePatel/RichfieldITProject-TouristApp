@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  fullName  String
+  createdAt DateTime @default(now())
+
+  trips     Trip[]
+}
+
+model Trip {
+  id          Int             @id @default(autoincrement())
+  title       String
+  destination String
+  startDate   DateTime?
+  endDate     DateTime?
+  budget      Float?
+  notes       String?
+  createdAt   DateTime        @default(now())
+
+  userId      Int
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Relation: One trip can have many itinerary items
+  itinerary   ItineraryItem[]
+}
+
+model ItineraryItem {
+  id          Int       @id @default(autoincrement())
+  title       String    // e.g., "Hike Up Table Mountain"
+  location    String?   // e.g., "Kirstenbosch Gate"
+  dayNumber   Int?      // e.g., Day 1, Day 2
+  startTime   String?   // e.g., "09:00 AM"
+  cost        Float?    // e.g., 350.00
+  notes       String?
+  createdAt   DateTime  @default(now())
+
+  // Foreign Key linking back to Trip
+  tripId      Int
+  trip        Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
