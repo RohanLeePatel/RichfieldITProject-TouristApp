@@ -1,7 +1,7 @@
 python
+fastapi
 deep-translator
 python-dotenv
-fastapi
 python-multipart
 requests
 detectlanguage
