@@ -1,13 +1,12 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
-
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from ocr.ocr import run_ocr
 from translation.live_translation import translate_text
 from schemas.translation import TranslationResponse
+from config.auth import verify_secretKey
 
 router = APIRouter()
 
-
-@router.post("/ocr", response_model=TranslationResponse)
+@router.post("/ocr", response_model=TranslationResponse, dependencies=[Depends(verify_secretKey)])
 async def ocr_and_translate(image: UploadFile = File(...)):
     try:
         image_bytes = await image.read()
