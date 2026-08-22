@@ -1,3 +1,5 @@
-python 3.14.7
-pytesseract - https://github.com/UB-Mannheim/tesseract/wiki #not sure if using anymore
-deep-translator - # Switched to using this library for translation tasks
+fastapi
+python-multipart
+requests
+detectlanguage
+deep-translator
