@@ -1,11 +1,21 @@
 import os
 import detectlanguage
-from deep_translator import GoogleTranslator
+import requests
 
 detectlanguage.configuration.api_key = os.environ.get("detectlanguageAPIKey")
 
+DEEPL_API_KEY = os.environ.get("deepLAPIKey")
 
-def translate_text(text: str) -> dict:
+DEEPL_API_URL = (
+    "https://api-free.deepl.com/v2/translate"
+    if DEEPL_API_KEY and DEEPL_API_KEY.endswith(":fx")
+    else "https://api.deepl.com/v2/translate"
+)
+
+
+def translate_text(text: str, target_lang: str | None = None) -> dict:
+
+    target_lang = (target_lang or "EN").upper()
 
     if len(text) < 3:
         return {
@@ -20,8 +30,22 @@ def translate_text(text: str) -> dict:
     except Exception:
         pass
 
+    if not DEEPL_API_KEY:
+        return {
+            "detected_lang": detected_lang,
+            "translation": None,
+            "message": "Translation error: deepLAPIKey is not configured.",
+        }
+
     try:
-        translated_text = GoogleTranslator(source="auto", target="en").translate(text)
+        response = requests.post(
+            DEEPL_API_URL,
+            headers={"Authorization": f"DeepL-Auth-Key {DEEPL_API_KEY}"},
+            data={"text": text, "target_lang": target_lang},
+            timeout=10,
+        )
+        response.raise_for_status()
+        translated_text = response.json()["translations"][0]["text"]
     except Exception as e:
         return {
             "detected_lang": detected_lang,
