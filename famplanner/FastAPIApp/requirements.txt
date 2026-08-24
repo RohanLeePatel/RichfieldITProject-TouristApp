@@ -2,4 +2,3 @@ fastapi
 python-multipart
 requests
 detectlanguage
-deep-translator
