@@ -13,7 +13,9 @@ DEEPL_API_URL = (
 )
 
 
-def translate_text(text: str) -> dict:
+def translate_text(text: str, target_lang: str | None = None) -> dict:
+
+    target_lang = (target_lang or "EN").upper()
 
     if len(text) < 3:
         return {
@@ -39,7 +41,7 @@ def translate_text(text: str) -> dict:
         response = requests.post(
             DEEPL_API_URL,
             headers={"Authorization": f"DeepL-Auth-Key {DEEPL_API_KEY}"},
-            data={"text": text, "target_lang": "EN"},
+            data={"text": text, "target_lang": target_lang},
             timeout=10,
         )
         response.raise_for_status()
