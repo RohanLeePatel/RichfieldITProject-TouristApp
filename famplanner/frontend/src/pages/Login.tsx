@@ -19,22 +19,47 @@ import { Link, useNavigate } from "react-router-dom";
 
 import "../styles/auth.css";
 
+// TanStack Query login hook
+import { useLogin } from "../hooks/useLogin";
+
 export default function Login() {
+  // =====================================================
+  // STATE
+  // =====================================================
+
   const [showPassword, setShowPassword] = useState(false);
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const navigate = useNavigate();
 
   // =====================================================
-  // LOGIN
-  // Temporary testing version
-  // No real authentication yet
+  // LOGIN MUTATION
   // =====================================================
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const loginMutation = useLogin();
+
+  // =====================================================
+  // LOGIN SUBMIT
+  // =====================================================
+
+  const handleSubmit = (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
     e.preventDefault();
 
-    // For now, simply take the user to the dashboard.
-    navigate("/dashboard");
+    loginMutation.mutate(
+      {
+        email,
+        password,
+      },
+      {
+        onSuccess: () => {
+          navigate("/dashboard");
+        },
+      }
+    );
   };
 
   return (
@@ -339,6 +364,10 @@ export default function Login() {
                   type="email"
                   placeholder="you@example.com"
                   autoComplete="email"
+                  value={email}
+                  onChange={(e) =>
+                    setEmail(e.target.value)
+                  }
                   required
                 />
 
@@ -380,6 +409,10 @@ export default function Login() {
                   }
                   placeholder="Enter your password"
                   autoComplete="current-password"
+                  value={password}
+                  onChange={(e) =>
+                    setPassword(e.target.value)
+                  }
                   required
                 />
 
@@ -431,19 +464,45 @@ export default function Login() {
 
 
             {/* =================================================
+                ERROR MESSAGE
+            ================================================= */}
+
+            {loginMutation.isError && (
+              <div
+                style={{
+                  marginTop: "10px",
+                  marginBottom: "5px",
+                  color: "#e05252",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                }}
+              >
+                {loginMutation.error instanceof Error
+                  ? loginMutation.error.message
+                  : "Unable to sign in. Please try again."}
+              </div>
+            )}
+
+
+            {/* =================================================
                 LOGIN BUTTON
             ================================================= */}
 
             <button
               type="submit"
               className="travel-button"
+              disabled={loginMutation.isPending}
             >
 
               <span>
-                Start planning
+                {loginMutation.isPending
+                  ? "Signing in..."
+                  : "Start planning"}
               </span>
 
-              <ArrowRight size={18} />
+              {!loginMutation.isPending && (
+                <ArrowRight size={18} />
+              )}
 
             </button>
 
@@ -479,7 +538,9 @@ export default function Login() {
             <button
               type="button"
               onClick={() => {
-                console.log("Google login - testing only");
+                console.log(
+                  "Google login - frontend testing only"
+                );
               }}
             >
 
@@ -497,7 +558,9 @@ export default function Login() {
             <button
               type="button"
               onClick={() => {
-                console.log("Apple login - testing only");
+                console.log(
+                  "Apple login - frontend testing only"
+                );
               }}
             >
 

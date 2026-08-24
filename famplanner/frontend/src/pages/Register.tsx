@@ -7,197 +7,210 @@ import {
   Mail,
   LockKeyhole,
   Plane,
-  Map,
   Users,
   Sparkles,
+  Map,
   MapPin,
   Send,
   Heart,
-  User,
 } from "lucide-react";
 
 import { Link, useNavigate } from "react-router-dom";
 
+import { useRegister } from "../hooks/useRegister";
+
 import "../styles/auth.css";
 
 export default function Register() {
-
-  const [showPassword, setShowPassword] =
-    useState(false);
-
-  const [showConfirm, setShowConfirm] =
-    useState(false);
-
   const navigate = useNavigate();
 
+  /*
+   * =====================================================
+   * FORM STATE
+   * =====================================================
+   */
 
-  // =====================================================
-  // REGISTER
-  // Temporary testing version
-  // No real account creation yet
-  // =====================================================
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
-  const handleSubmit = (
-    e: React.FormEvent<HTMLFormElement>
-  ) => {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const [passwordError, setPasswordError] = useState("");
+
+  /*
+   * =====================================================
+   * TANSTACK QUERY
+   * =====================================================
+   */
+
+  const registerMutation = useRegister();
+
+  /*
+   * =====================================================
+   * REGISTER
+   * =====================================================
+   */
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // For now, simply take the user to the dashboard.
-    navigate("/dashboard");
+    setPasswordError("");
 
+    /*
+     * Check passwords
+     */
+
+    if (password !== confirmPassword) {
+      setPasswordError("Passwords do not match.");
+      return;
+    }
+
+    /*
+     * Check password length
+     */
+
+    if (password.length < 6) {
+      setPasswordError(
+        "Password must be at least 6 characters."
+      );
+
+      return;
+    }
+
+    /*
+     * Send registration to TanStack Query
+     */
+
+    registerMutation.mutate(
+      {
+        name,
+        email,
+        password,
+      },
+      {
+        onSuccess: () => {
+          navigate("/dashboard");
+        },
+      }
+    );
   };
-
 
   return (
     <div className="auth-page">
 
-
       {/* =====================================================
-          LEFT SIDE — FAMPLANNER TRAVEL EXPERIENCE
+          LEFT SIDE
       ===================================================== */}
 
       <section className="travel-panel">
 
-
-        {/* Decorative background */}
-
         <div className="hero-overlay" />
 
         <div className="hero-dots" />
-
-
-        {/* Decorative circles */}
 
         <div className="travel-circle travel-circle-one" />
 
         <div className="travel-circle travel-circle-two" />
 
 
-        {/* ===================================================
+        {/* =====================================================
             LOGO
-        =================================================== */}
+        ===================================================== */}
 
         <div className="logo">
 
           <div className="logo-icon">
-
             <Plane size={20} />
-
           </div>
 
           <span className="logo-word">
-
-            Fam
-            <span className="logo-blue">
-              Planner
-            </span>
-
+            Fam<span className="logo-blue">Planner</span>
           </span>
 
         </div>
 
 
-        {/* ===================================================
+        {/* =====================================================
             MAIN CONTENT
-        =================================================== */}
+        ===================================================== */}
 
         <div className="travel-content">
-
-
-          {/* Badge */}
 
           <div className="mini-badge">
 
             <Sparkles size={14} />
 
-            START YOUR ADVENTURE
+            SMART FAMILY TRAVEL
 
           </div>
 
 
-          {/* Heading */}
-
           <h1>
 
-            More trips.
+            Your family.
 
             <br />
 
-            More laughter.
+            Your journey.
 
             <br />
 
             <span>
-              More memories.
+              Your memories.
             </span>
 
           </h1>
 
 
-          {/* Description */}
-
           <p>
-
-            Bring your family together and make planning
-            your next adventure easier, smarter and more enjoyable.
-
+            Create your FamPlanner account and start
+            planning unforgettable family adventures.
           </p>
 
 
-          {/* =================================================
+          {/* =====================================================
               FEATURES
-          ================================================= */}
+          ===================================================== */}
 
           <div className="travel-features">
-
-
-            {/* Feature 1 */}
 
             <div className="travel-feature">
 
               <div className="feature-icon teal">
-
                 <Users size={16} />
-
               </div>
 
               <span>
-                Bring everyone together
+                Plan together
               </span>
 
             </div>
 
-
-            {/* Feature 2 */}
 
             <div className="travel-feature">
 
               <div className="feature-icon blue">
-
                 <Map size={16} />
-
               </div>
 
               <span>
-                Discover amazing places
+                Discover together
               </span>
 
             </div>
 
 
-            {/* Feature 3 */}
-
             <div className="travel-feature">
 
               <div className="feature-icon purple">
-
                 <Sparkles size={16} />
-
               </div>
 
               <span>
-                Make every trip count
+                Travel smarter
               </span>
 
             </div>
@@ -207,19 +220,16 @@ export default function Register() {
         </div>
 
 
-        {/* ===================================================
+        {/* =====================================================
             JOURNEY DECORATION
-        =================================================== */}
+        ===================================================== */}
 
         <div className="journey-decoration">
-
 
           <div className="journey-location">
 
             <div className="journey-pin">
-
               <MapPin size={20} />
-
             </div>
 
             <span>
@@ -233,9 +243,7 @@ export default function Register() {
 
 
           <div className="journey-plane">
-
             <Plane size={17} />
-
           </div>
 
 
@@ -245,9 +253,7 @@ export default function Register() {
           <div className="journey-location">
 
             <div className="journey-pin">
-
               <MapPin size={20} />
-
             </div>
 
             <span>
@@ -259,9 +265,9 @@ export default function Register() {
         </div>
 
 
-        {/* ===================================================
+        {/* =====================================================
             FOOTER
-        =================================================== */}
+        ===================================================== */}
 
         <div className="travel-footer">
 
@@ -286,13 +292,10 @@ export default function Register() {
 
 
       {/* =====================================================
-          RIGHT SIDE — REGISTER PANEL
+          RIGHT SIDE
       ===================================================== */}
 
       <section className="auth-panel">
-
-
-        {/* Decorative background */}
 
         <div className="panel-dots" />
 
@@ -301,16 +304,16 @@ export default function Register() {
         <div className="panel-glow" />
 
 
-        {/* ===================================================
+        {/* =====================================================
             REGISTER CARD
-        =================================================== */}
+        ===================================================== */}
 
-        <div className="auth-card register-card">
+        <div className="auth-card">
 
 
-          {/* =================================================
-              PLANE DECORATION
-          ================================================= */}
+          {/* =====================================================
+              DECORATIVE PLANE
+          ===================================================== */}
 
           <div className="doodle-plane">
 
@@ -321,7 +324,7 @@ export default function Register() {
             >
 
               <path
-                d="M4,50 C 24,54 34,26 62,14"
+                d="M4,50 C24,54 34,26 62,14"
                 stroke="currentColor"
                 strokeWidth="1.6"
                 strokeDasharray="1 7"
@@ -338,18 +341,20 @@ export default function Register() {
           </div>
 
 
-          {/* Card icon */}
+          {/* =====================================================
+              CARD ICON
+          ===================================================== */}
 
           <div className="logo-icon card-variant">
 
-            <Sparkles size={20} />
+            <Plane size={21} />
 
           </div>
 
 
-          {/* =================================================
+          {/* =====================================================
               TITLE
-          ================================================= */}
+          ===================================================== */}
 
           <div className="auth-title">
 
@@ -358,86 +363,53 @@ export default function Register() {
             </span>
 
             <h2>
-              Let's start planning.
+              Start your journey.
             </h2>
 
             <p>
-              Create your FamPlanner account and start
-              your next adventure.
+              Create your account and start planning
+              your next family adventure.
             </p>
 
           </div>
 
 
-          {/* =================================================
+          {/* =====================================================
               REGISTER FORM
-          ================================================= */}
+          ===================================================== */}
 
           <form onSubmit={handleSubmit}>
 
+            {/* NAME */}
 
-            {/* =================================================
-                FIRST + LAST NAME
-            ================================================= */}
+            <div className="input-group">
 
-            <div className="name-fields">
+              <label htmlFor="register-name">
+                Full name
+              </label>
 
+              <div className="input-box">
 
-              {/* FIRST NAME */}
+                <Users size={18} />
 
-              <div className="input-group">
-
-                <label htmlFor="first-name">
-                  First name
-                </label>
-
-                <div className="input-box">
-
-                  <User size={17} />
-
-                  <input
-                    id="first-name"
-                    type="text"
-                    placeholder="First name"
-                    autoComplete="given-name"
-                    required
-                  />
-
-                </div>
-
-              </div>
-
-
-              {/* LAST NAME */}
-
-              <div className="input-group">
-
-                <label htmlFor="last-name">
-                  Last name
-                </label>
-
-                <div className="input-box">
-
-                  <User size={17} />
-
-                  <input
-                    id="last-name"
-                    type="text"
-                    placeholder="Last name"
-                    autoComplete="family-name"
-                    required
-                  />
-
-                </div>
+                <input
+                  id="register-name"
+                  type="text"
+                  placeholder="Your full name"
+                  autoComplete="name"
+                  value={name}
+                  onChange={(e) =>
+                    setName(e.target.value)
+                  }
+                  required
+                />
 
               </div>
 
             </div>
 
 
-            {/* =================================================
-                EMAIL
-            ================================================= */}
+            {/* EMAIL */}
 
             <div className="input-group">
 
@@ -454,6 +426,10 @@ export default function Register() {
                   type="email"
                   placeholder="you@example.com"
                   autoComplete="email"
+                  value={email}
+                  onChange={(e) =>
+                    setEmail(e.target.value)
+                  }
                   required
                 />
 
@@ -462,9 +438,7 @@ export default function Register() {
             </div>
 
 
-            {/* =================================================
-                PASSWORD
-            ================================================= */}
+            {/* PASSWORD */}
 
             <div className="input-group">
 
@@ -485,9 +459,12 @@ export default function Register() {
                   }
                   placeholder="Create a password"
                   autoComplete="new-password"
+                  value={password}
+                  onChange={(e) =>
+                    setPassword(e.target.value)
+                  }
                   required
                 />
-
 
                 <button
                   type="button"
@@ -515,13 +492,11 @@ export default function Register() {
             </div>
 
 
-            {/* =================================================
-                CONFIRM PASSWORD
-            ================================================= */}
+            {/* CONFIRM PASSWORD */}
 
             <div className="input-group">
 
-              <label htmlFor="confirm-password">
+              <label htmlFor="register-confirm-password">
                 Confirm password
               </label>
 
@@ -530,32 +505,37 @@ export default function Register() {
                 <LockKeyhole size={18} />
 
                 <input
-                  id="confirm-password"
+                  id="register-confirm-password"
                   type={
-                    showConfirm
+                    showConfirmPassword
                       ? "text"
                       : "password"
                   }
-                  placeholder="Repeat your password"
+                  placeholder="Confirm your password"
                   autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) =>
+                    setConfirmPassword(e.target.value)
+                  }
                   required
                 />
-
 
                 <button
                   type="button"
                   className="password-toggle"
                   aria-label={
-                    showConfirm
+                    showConfirmPassword
                       ? "Hide password"
                       : "Show password"
                   }
                   onClick={() =>
-                    setShowConfirm(!showConfirm)
+                    setShowConfirmPassword(
+                      !showConfirmPassword
+                    )
                   }
                 >
 
-                  {showConfirm ? (
+                  {showConfirmPassword ? (
                     <EyeOff size={18} />
                   ) : (
                     <Eye size={18} />
@@ -569,43 +549,33 @@ export default function Register() {
 
 
             {/* =================================================
-                TERMS
+                PASSWORD ERROR
             ================================================= */}
 
-            <label className="terms-row">
+            {passwordError && (
+              <p
+                className="auth-error"
+                role="alert"
+              >
+                {passwordError}
+              </p>
+            )}
 
-              <input
-                type="checkbox"
-                required
-              />
 
-              <span>
+            {/* =================================================
+                TANSTACK ERROR
+            ================================================= */}
 
-                I agree to the{" "}
-
-                <a
-                  href="#"
-                  onClick={(e) =>
-                    e.preventDefault()
-                  }
-                >
-                  Terms of Service
-                </a>
-
-                {" "}and{" "}
-
-                <a
-                  href="#"
-                  onClick={(e) =>
-                    e.preventDefault()
-                  }
-                >
-                  Privacy Policy
-                </a>
-
-              </span>
-
-            </label>
+            {registerMutation.isError && (
+              <p
+                className="auth-error"
+                role="alert"
+              >
+                {registerMutation.error instanceof Error
+                  ? registerMutation.error.message
+                  : "Registration failed. Please try again."}
+              </p>
+            )}
 
 
             {/* =================================================
@@ -615,30 +585,104 @@ export default function Register() {
             <button
               type="submit"
               className="travel-button"
+              disabled={registerMutation.isPending}
             >
 
               <span>
-                Create my account
+                {registerMutation.isPending
+                  ? "Creating account..."
+                  : "Create account"}
               </span>
 
-              <ArrowRight size={18} />
+              {!registerMutation.isPending && (
+                <ArrowRight size={18} />
+              )}
 
             </button>
 
           </form>
 
 
-          {/* ===================================================
+          {/* =====================================================
+              DIVIDER
+          ===================================================== */}
+
+          <div className="divider">
+
+            <span />
+
+            <p>
+              or continue with
+            </p>
+
+            <span />
+
+          </div>
+
+
+          {/* =====================================================
+              SOCIAL BUTTONS
+          ===================================================== */}
+
+          <div className="social-buttons">
+
+            <button
+              type="button"
+              onClick={() => {
+                console.log(
+                  "Google registration - testing only"
+                );
+              }}
+            >
+
+              <span className="google-g">
+                G
+              </span>
+
+              Google
+
+            </button>
+
+
+            <button
+              type="button"
+              onClick={() => {
+                console.log(
+                  "Apple registration - testing only"
+                );
+              }}
+            >
+
+              <svg
+                className="apple-mark"
+                width="15"
+                height="15"
+                viewBox="0 0 384 512"
+                fill="currentColor"
+              >
+
+                <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z" />
+
+              </svg>
+
+              Apple
+
+            </button>
+
+          </div>
+
+
+          {/* =====================================================
               LOGIN LINK
-          =================================================== */}
+          ===================================================== */}
 
           <div className="signup-text">
 
             <span>
-              Already have an account?
+              Already have a FamPlanner account?
             </span>
 
-            <Link to="/">
+            <Link to="/login">
 
               Sign in
 
@@ -649,9 +693,9 @@ export default function Register() {
           </div>
 
 
-          {/* ===================================================
-              SECURITY MESSAGE
-          =================================================== */}
+          {/* =====================================================
+              SECURITY
+          ===================================================== */}
 
           <div className="safe-message">
 
