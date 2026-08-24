@@ -1,35 +1,10 @@
-export interface LoginData {
-  email: string;
-  password: string;
-  rememberMe?: boolean;
-}
-
-export interface RegisterData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-}
-
-export interface User {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-}
-
-export interface AuthResponse {
-  user: User;
-  token: string;
-}
-
 const USERS_KEY = "famplanner_users";
 
 /* =========================================================
    HELPERS
 ========================================================= */
 
-function getUsers(): User[] {
+function getUsers() {
   const storedUsers = localStorage.getItem(USERS_KEY);
 
   if (!storedUsers) {
@@ -43,7 +18,7 @@ function getUsers(): User[] {
   }
 }
 
-function saveUsers(users: User[]) {
+function saveUsers(users) {
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
 }
 
@@ -51,9 +26,8 @@ function saveUsers(users: User[]) {
    REGISTER
 ========================================================= */
 
-export async function registerUser(
-  data: RegisterData
-): Promise<AuthResponse> {
+export async function registerUser(data) {
+  // Simulate a small API delay
   await new Promise((resolve) => setTimeout(resolve, 800));
 
   const users = getUsers();
@@ -69,7 +43,7 @@ export async function registerUser(
     );
   }
 
-  const newUser: User = {
+  const newUser = {
     id: crypto.randomUUID(),
     firstName: data.firstName,
     lastName: data.lastName,
@@ -80,6 +54,7 @@ export async function registerUser(
 
   saveUsers(updatedUsers);
 
+  // Frontend-only mock token
   const token = `frontend-token-${newUser.id}`;
 
   return {
@@ -92,9 +67,8 @@ export async function registerUser(
    LOGIN
 ========================================================= */
 
-export async function loginUser(
-  data: LoginData
-): Promise<AuthResponse> {
+export async function loginUser(data) {
+  // Simulate a small API delay
   await new Promise((resolve) => setTimeout(resolve, 800));
 
   const users = getUsers();
@@ -112,13 +86,12 @@ export async function loginUser(
   }
 
   /*
-   * FRONTEND-ONLY NOTE:
+   * FRONTEND-ONLY AUTHENTICATION
    *
-   * Passwords are not being securely stored because
-   * there is no backend yet.
+   * There is currently no backend.
+   * Passwords are therefore NOT securely stored or verified.
    *
-   * This is only mock authentication for frontend
-   * development.
+   * This is mock authentication for frontend development.
    */
 
   const token = `frontend-token-${user.id}`;

@@ -17,39 +17,27 @@ import {
 
 import { Link, useNavigate } from "react-router-dom";
 
-import "../styles/auth.css";
-
-// TanStack Query login hook
 import { useLogin } from "../hooks/useLogin";
 
+import "../styles/auth.css";
+
 export default function Login() {
-  // =====================================================
-  // STATE
-  // =====================================================
-
   const [showPassword, setShowPassword] = useState(false);
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const navigate = useNavigate();
 
-  // =====================================================
-  // LOGIN MUTATION
-  // =====================================================
+  const {
+    mutate: loginUser,
+    isPending,
+    error,
+  } = useLogin();
 
-  const loginMutation = useLogin();
-
-  // =====================================================
-  // LOGIN SUBMIT
-  // =====================================================
-
-  const handleSubmit = (
-    e: React.FormEvent<HTMLFormElement>
-  ) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
 
-    loginMutation.mutate(
+    loginUser(
       {
         email,
         password,
@@ -65,24 +53,17 @@ export default function Login() {
   return (
     <div className="auth-page">
 
-      {/* =====================================================
-          LEFT SIDE — FAMPLANNER TRAVEL EXPERIENCE
-      ===================================================== */}
+      {/* LEFT SIDE */}
 
       <section className="travel-panel">
 
-        {/* Decorative background */}
         <div className="hero-overlay" />
         <div className="hero-dots" />
 
-        {/* Decorative circles */}
         <div className="travel-circle travel-circle-one" />
         <div className="travel-circle travel-circle-two" />
 
-
-        {/* =====================================================
-            LOGO
-        ===================================================== */}
+        {/* LOGO */}
 
         <div className="logo">
 
@@ -96,103 +77,59 @@ export default function Login() {
 
         </div>
 
-
-        {/* =====================================================
-            MAIN CONTENT
-        ===================================================== */}
+        {/* MAIN CONTENT */}
 
         <div className="travel-content">
 
-          {/* Badge */}
           <div className="mini-badge">
-
             <Sparkles size={14} />
-
             SMART FAMILY TRAVEL
-
           </div>
 
-
-          {/* Heading */}
           <h1>
-
             Your family.
-
             <br />
-
             Your journey.
-
             <br />
-
-            <span>
-              Your memories.
-            </span>
-
+            <span>Your memories.</span>
           </h1>
 
-
-          {/* Description */}
           <p>
             Plan unforgettable family adventures, organize every
             detail and enjoy the journey together.
           </p>
 
-
-          {/* =====================================================
-              FEATURES
-          ===================================================== */}
-
           <div className="travel-features">
 
-            {/* Feature 1 */}
             <div className="travel-feature">
-
               <div className="feature-icon teal">
                 <Users size={16} />
               </div>
 
-              <span>
-                Plan together
-              </span>
-
+              <span>Plan together</span>
             </div>
 
-
-            {/* Feature 2 */}
             <div className="travel-feature">
-
               <div className="feature-icon blue">
                 <Map size={16} />
               </div>
 
-              <span>
-                Discover together
-              </span>
-
+              <span>Discover together</span>
             </div>
 
-
-            {/* Feature 3 */}
             <div className="travel-feature">
-
               <div className="feature-icon purple">
                 <Sparkles size={16} />
               </div>
 
-              <span>
-                Travel smarter
-              </span>
-
+              <span>Travel smarter</span>
             </div>
 
           </div>
 
         </div>
 
-
-        {/* =====================================================
-            JOURNEY DECORATION
-        ===================================================== */}
+        {/* JOURNEY */}
 
         <div className="journey-decoration">
 
@@ -202,23 +139,17 @@ export default function Login() {
               <MapPin size={20} />
             </div>
 
-            <span>
-              HOME
-            </span>
+            <span>HOME</span>
 
           </div>
 
-
           <div className="journey-path" />
-
 
           <div className="journey-plane">
             <Plane size={17} />
           </div>
 
-
           <div className="journey-path" />
-
 
           <div className="journey-location">
 
@@ -226,63 +157,42 @@ export default function Login() {
               <MapPin size={20} />
             </div>
 
-            <span>
-              EVERYWHERE
-            </span>
+            <span>EVERYWHERE</span>
 
           </div>
 
         </div>
 
-
-        {/* =====================================================
-            FOOTER
-        ===================================================== */}
+        {/* FOOTER */}
 
         <div className="travel-footer">
 
-          <span>
-            © 2026 FamPlanner
-          </span>
+          <span>© 2026 FamPlanner</span>
 
           <span className="footer-message">
-
             Plan better. Travel happier.
 
             <Heart
               size={13}
               fill="currentColor"
             />
-
           </span>
 
         </div>
 
       </section>
 
-
-      {/* =====================================================
-          RIGHT SIDE — LOGIN PANEL
-      ===================================================== */}
+      {/* RIGHT SIDE */}
 
       <section className="auth-panel">
 
-        {/* Decorative background */}
         <div className="panel-dots" />
         <div className="panel-blob" />
         <div className="panel-glow" />
 
-
-        {/* =====================================================
-            LOGIN CARD
-        ===================================================== */}
-
         <div className="auth-card">
 
-
-          {/* ===================================================
-              CARD PLANE DECORATION
-          =================================================== */}
+          {/* PLANE */}
 
           <div className="doodle-plane">
 
@@ -291,7 +201,6 @@ export default function Login() {
               viewBox="0 0 74 56"
               fill="none"
             >
-
               <path
                 d="M4,50 C 24,54 34,26 62,14"
                 stroke="currentColor"
@@ -299,7 +208,6 @@ export default function Login() {
                 strokeDasharray="1 7"
                 strokeLinecap="round"
               />
-
             </svg>
 
             <Send
@@ -309,18 +217,13 @@ export default function Login() {
 
           </div>
 
+          {/* ICON */}
 
-          {/* Card icon */}
           <div className="logo-icon card-variant">
-
             <Plane size={21} />
-
           </div>
 
-
-          {/* ===================================================
-              TITLE
-          =================================================== */}
+          {/* TITLE */}
 
           <div className="auth-title">
 
@@ -339,13 +242,9 @@ export default function Login() {
 
           </div>
 
-
-          {/* ===================================================
-              LOGIN FORM
-          =================================================== */}
+          {/* FORM */}
 
           <form onSubmit={handleSubmit}>
-
 
             {/* EMAIL */}
 
@@ -375,7 +274,6 @@ export default function Login() {
 
             </div>
 
-
             {/* PASSWORD */}
 
             <div className="input-group">
@@ -388,13 +286,14 @@ export default function Login() {
 
                 <a
                   href="#"
-                  onClick={(e) => e.preventDefault()}
+                  onClick={(e) =>
+                    e.preventDefault()
+                  }
                 >
                   Forgot password?
                 </a>
 
               </div>
-
 
               <div className="input-box">
 
@@ -416,9 +315,6 @@ export default function Login() {
                   required
                 />
 
-
-                {/* Show / Hide password */}
-
                 <button
                   type="button"
                   className="password-toggle"
@@ -431,23 +327,18 @@ export default function Login() {
                     setShowPassword(!showPassword)
                   }
                 >
-
                   {showPassword ? (
                     <EyeOff size={18} />
                   ) : (
                     <Eye size={18} />
                   )}
-
                 </button>
 
               </div>
 
             </div>
 
-
-            {/* =================================================
-                REMEMBER ME
-            ================================================= */}
+            {/* REMEMBER */}
 
             <label className="remember-row">
 
@@ -462,45 +353,35 @@ export default function Login() {
 
             </label>
 
+            {/* ERROR */}
 
-            {/* =================================================
-                ERROR MESSAGE
-            ================================================= */}
-
-            {loginMutation.isError && (
-              <div
+            {error && (
+              <p
                 style={{
-                  marginTop: "10px",
-                  marginBottom: "5px",
                   color: "#e05252",
                   fontSize: "12px",
-                  fontWeight: 600,
+                  marginBottom: "10px",
                 }}
               >
-                {loginMutation.error instanceof Error
-                  ? loginMutation.error.message
-                  : "Unable to sign in. Please try again."}
-              </div>
+                {error.message || "Login failed"}
+              </p>
             )}
 
-
-            {/* =================================================
-                LOGIN BUTTON
-            ================================================= */}
+            {/* LOGIN */}
 
             <button
               type="submit"
               className="travel-button"
-              disabled={loginMutation.isPending}
+              disabled={isPending}
             >
 
               <span>
-                {loginMutation.isPending
+                {isPending
                   ? "Signing in..."
                   : "Start planning"}
               </span>
 
-              {!loginMutation.isPending && (
+              {!isPending && (
                 <ArrowRight size={18} />
               )}
 
@@ -508,60 +389,44 @@ export default function Login() {
 
           </form>
 
-
-          {/* ===================================================
-              DIVIDER
-          =================================================== */}
+          {/* DIVIDER */}
 
           <div className="divider">
 
             <span />
 
-            <p>
-              or continue with
-            </p>
+            <p>or continue with</p>
 
             <span />
 
           </div>
 
-
-          {/* ===================================================
-              SOCIAL LOGIN
-          =================================================== */}
+          {/* SOCIAL */}
 
           <div className="social-buttons">
 
-
-            {/* Google */}
-
             <button
               type="button"
-              onClick={() => {
+              onClick={() =>
                 console.log(
-                  "Google login - frontend testing only"
-                );
-              }}
+                  "Google login - testing only"
+                )
+              }
             >
-
               <span className="google-g">
                 G
               </span>
 
               Google
-
             </button>
-
-
-            {/* Apple */}
 
             <button
               type="button"
-              onClick={() => {
+              onClick={() =>
                 console.log(
-                  "Apple login - frontend testing only"
-                );
-              }}
+                  "Apple login - testing only"
+                )
+              }
             >
 
               <svg
@@ -582,10 +447,7 @@ export default function Login() {
 
           </div>
 
-
-          {/* ===================================================
-              REGISTER LINK
-          =================================================== */}
+          {/* REGISTER */}
 
           <div className="signup-text">
 
@@ -603,10 +465,7 @@ export default function Login() {
 
           </div>
 
-
-          {/* ===================================================
-              SECURITY MESSAGE
-          =================================================== */}
+          {/* SECURITY */}
 
           <div className="safe-message">
 
