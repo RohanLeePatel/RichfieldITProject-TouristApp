@@ -4,16 +4,23 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
 
+// Import Middlewares
+const errorHandler = require('./src/middleware/errorMiddleware');
+
+// Import Routes
 const authRoutes = require('./src/routes/auth');
+const groupRoutes = require('./src/routes/groups');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Standard Middlewares
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(morgan('dev'));
 
+// Health Check Route
 app.get('/', (req, res) => {
   res.json({
     status: 'online',
@@ -22,19 +29,14 @@ app.get('/', (req, res) => {
   });
 });
 
-// Mount Core Auth Routes
+// API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/groups', groupRoutes);
 
-// Global Error Handler
-app.use((err, req, res, next) => {
-  console.error(err);
-  const status = err.statusCode || 500;
-  res.status(status).json({
-    message: err.message || 'Internal Server Error',
-    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
-  });
-});
+// Global Error Handler (Must remain after all routes)
+app.use(errorHandler);
 
+// Start Server
 app.listen(PORT, () => {
   console.log(`Core Platform Backend listening on port ${PORT}`);
 });
