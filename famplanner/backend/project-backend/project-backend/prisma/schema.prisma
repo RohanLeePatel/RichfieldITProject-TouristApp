@@ -1,0 +1,244 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// -------------------------------------------------------------
+// 1. AUTHENTICATION, USERS & PROFILES
+// -------------------------------------------------------------
+
+model User {
+  id                Int                @id @default(autoincrement())
+  email             String             @unique
+  passwordHash      String
+  fullName          String
+  avatarUrl         String?
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  deletedAt         DateTime?
+
+  preferences       UserPreference?
+  groupMemberships  TravelGroupMember[]
+  sentInvitations   Invitation[]       @relation("SenderInvitations")
+  tripMemberships   TripMember[]
+  notifications     Notification[]
+  pushSubscriptions PushSubscription[]
+  activityLogs      ActivityLog[]
+
+  @@index([email])
+}
+
+model UserPreference {
+  id                Int      @id @default(autoincrement())
+  userId            Int      @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currency          String   @default("ZAR")
+  language          String   @default("en")
+  theme             String   @default("system")
+  emailAlerts       Boolean  @default(true)
+  pushAlerts        Boolean  @default(true)
+  updatedAt         DateTime @updatedAt
+}
+
+// -------------------------------------------------------------
+// 2. TRAVEL GROUPS, ROLES & INVITATIONS
+// -------------------------------------------------------------
+
+model TravelGroup {
+  id          Int                 @id @default(autoincrement())
+  name        String
+  description String?
+  inviteCode  String?             @unique
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  deletedAt   DateTime?
+
+  members     TravelGroupMember[]
+  invitations Invitation[]
+  trips       Trip[]
+}
+
+model TravelGroupMember {
+  id            Int         @id @default(autoincrement())
+  travelGroupId Int
+  travelGroup   TravelGroup @relation(fields: [travelGroupId], references: [id], onDelete: Cascade)
+  userId        Int
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role          String      @default("MEMBER") // "OWNER", "ADMIN", "MEMBER", "VIEWER"
+  joinedAt      DateTime    @default(now())
+
+  @@unique([travelGroupId, userId])
+  @@index([travelGroupId])
+  @@index([userId])
+}
+
+model Invitation {
+  id            Int         @id @default(autoincrement())
+  travelGroupId Int
+  travelGroup   TravelGroup @relation(fields: [travelGroupId], references: [id], onDelete: Cascade)
+  inviterId     Int
+  inviter       User        @relation("SenderInvitations", fields: [inviterId], references: [id], onDelete: Cascade)
+  email         String
+  token         String      @unique
+  status        String      @default("PENDING") // "PENDING", "ACCEPTED", "DECLINED", "EXPIRED"
+  expiresAt     DateTime
+  createdAt     DateTime    @default(now())
+
+  @@index([token])
+  @@index([email])
+}
+
+// -------------------------------------------------------------
+// 3. TRIPS, LIFECYCLE & MEMBERS
+// -------------------------------------------------------------
+
+model Trip {
+  id            Int               @id @default(autoincrement())
+  travelGroupId Int
+  travelGroup   TravelGroup       @relation(fields: [travelGroupId], references: [id], onDelete: Cascade)
+  title         String
+  description   String?
+  startDate     DateTime?
+  endDate       DateTime?
+  status        String            @default("PLANNING") // "PLANNING", "CONFIRMED", "ONGOING", "COMPLETED", "CANCELLED"
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  deletedAt     DateTime?
+
+  members       TripMember[]
+  destinations  TripDestination[]
+  activityLogs  ActivityLog[]
+
+  @@index([travelGroupId])
+  @@index([status])
+}
+
+model TripMember {
+  id        Int      @id @default(autoincrement())
+  tripId    Int
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("COLLABORATOR") // "ORGANIZER", "COLLABORATOR", "VIEWER"
+  joinedAt  DateTime @default(now())
+
+  @@unique([tripId, userId])
+  @@index([tripId])
+  @@index([userId])
+}
+
+// -------------------------------------------------------------
+// 4. DESTINATIONS, GEOGRAPHY & TAGS
+// -------------------------------------------------------------
+
+model Country {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique // ISO Alpha-2 (e.g. "ZA", "FR")
+  name      String   @unique
+  cities    City[]
+}
+
+model City {
+  id           Int           @id @default(autoincrement())
+  countryId    Int
+  country      Country       @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  name         String
+  destinations Destination[]
+
+  @@index([countryId])
+}
+
+model Destination {
+  id               Int                   @id @default(autoincrement())
+  cityId           Int
+  city             City                  @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  name             String
+  description      String?
+  latitude         Float?
+  longitude        Float?
+  estimatedCost    Float?
+  tags             DestinationTagMapping[]
+  tripDestinations TripDestination[]
+
+  @@index([cityId])
+}
+
+model DestinationTag {
+  id           Int                     @id @default(autoincrement())
+  name         String                  @unique
+  destinations DestinationTagMapping[]
+}
+
+model DestinationTagMapping {
+  destinationId Int
+  destination   Destination    @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  tagId         Int
+  tag           DestinationTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([destinationId, tagId])
+}
+
+model TripDestination {
+  id            Int         @id @default(autoincrement())
+  tripId        Int
+  trip          Trip        @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  destinationId Int
+  destination   Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  orderIndex    Int         @default(0)
+  scheduledDay  Int?
+  notes         String?
+  createdAt     DateTime    @default(now())
+
+  @@index([tripId])
+  @@index([orderIndex])
+}
+
+// -------------------------------------------------------------
+// 5. NOTIFICATIONS, PUSH & AUDIT LOGS
+// -------------------------------------------------------------
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("INFO") // "INVITE", "TRIP_UPDATE", "ALERT", "INFO"
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model ActivityLog {
+  id         Int      @id @default(autoincrement())
+  tripId     Int?
+  trip       Trip?    @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action     String
+  entityType String   // "TRIP", "GROUP", "DESTINATION"
+  entityId   Int?
+  details    String?
+  createdAt  DateTime @default(now())
+
+  @@index([tripId])
+  @@index([userId])
+}
