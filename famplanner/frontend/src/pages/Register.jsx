@@ -98,8 +98,8 @@ export default function Register() {
           </div>
 
           <span className="logo-word">
-            Fam<span className="logo-blue">
-              Planner
+            Rom<span className="logo-blue">
+              io
             </span>
           </span>
 
@@ -132,7 +132,7 @@ export default function Register() {
           </h1>
 
           <p>
-            Create your FamPlanner account and start
+            Create your Roamio account and start
             organizing unforgettable family adventures.
           </p>
 
@@ -183,7 +183,7 @@ export default function Register() {
         <div className="travel-footer">
 
           <span>
-            © 2026 FamPlanner
+            © 2026 Roamio
           </span>
 
           <span className="footer-message">
@@ -228,7 +228,7 @@ export default function Register() {
             </span>
 
             <h2>
-              Join FamPlanner
+              Join Roamio
             </h2>
 
             <p>
@@ -451,7 +451,7 @@ export default function Register() {
           <div className="signup-text">
 
             <span>
-              Already have a FamPlanner account?
+              Already have a Roamio account?
             </span>
 
             <Link to="/login">

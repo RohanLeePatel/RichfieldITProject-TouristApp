@@ -1,30 +1,50 @@
 import { create } from "zustand";
 
-export const useAuthStore = create((set) => ({
-  // Current logged-in user
-  user: null,
+const USER_KEY = "user";
+const TOKEN_KEY = "Roamio_token";
 
-  // Authentication status
+export const useAuthStore = create((set) => ({
+  user: null,
   isAuthenticated: false,
 
-  // Login user
   login: (userData) => {
+    localStorage.setItem(
+      USER_KEY,
+      JSON.stringify(userData)
+    );
+
+    localStorage.setItem(
+      TOKEN_KEY,
+      `frontend-token-${userData.id}`
+    );
+
     set({
       user: userData,
       isAuthenticated: true,
     });
   },
 
-  // Register user
   register: (userData) => {
+    localStorage.setItem(
+      USER_KEY,
+      JSON.stringify(userData)
+    );
+
+    localStorage.setItem(
+      TOKEN_KEY,
+      `frontend-token-${userData.id}`
+    );
+
     set({
       user: userData,
       isAuthenticated: true,
     });
   },
 
-  // Logout user
   logout: () => {
+    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(TOKEN_KEY);
+
     set({
       user: null,
       isAuthenticated: false,
