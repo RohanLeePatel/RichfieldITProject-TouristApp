@@ -1,4 +1,4 @@
-const USERS_KEY = "famplanner_users";
+const USERS_KEY = "Roamio_users";
 
 /* =========================================================
    HELPERS

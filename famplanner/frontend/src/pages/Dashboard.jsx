@@ -19,18 +19,58 @@ import {
   Clock3,
   CheckCircle2,
   Globe2,
-  Star,
   Menu,
   X,
+  Languages,
 } from "lucide-react";
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import "../styles/dashboard.css";
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+
   const [mobileMenu, setMobileMenu] = useState(false);
+
+  // =========================================================
+  // USER
+  // =========================================================
+
+  let savedUser = {};
+
+  try {
+    const storedUser = localStorage.getItem("user");
+
+    if (storedUser) {
+      savedUser = JSON.parse(storedUser);
+    }
+  } catch (error) {
+    console.error("Could not read saved user:", error);
+  }
+
+  const userName =
+    savedUser?.name ||
+    savedUser?.firstName ||
+    "Roamio User";
+
+  const firstName =
+    userName.trim().split(" ")[0] || "Roamio";
+
+  const initials =
+    userName
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((word) => word.charAt(0))
+      .join("")
+      .substring(0, 2)
+      .toUpperCase() || "R";
+
+  // =========================================================
+  // TRIPS
+  // =========================================================
 
   const trips = [
     {
@@ -42,6 +82,7 @@ export default function Dashboard() {
       image:
         "https://images.unsplash.com/photo-1580060839134-75a5edca2e99?auto=format&fit=crop&w=1000&q=80",
     },
+
     {
       id: 2,
       title: "Durban Beach Weekend",
@@ -51,6 +92,7 @@ export default function Dashboard() {
       image:
         "https://images.unsplash.com/photo-1569263979104-865ab7cd8d13?auto=format&fit=crop&w=1000&q=80",
     },
+
     {
       id: 3,
       title: "Kruger Family Adventure",
@@ -62,28 +104,94 @@ export default function Dashboard() {
     },
   ];
 
+  // =========================================================
+  // FAMILY
+  // =========================================================
+
   const familyMembers = [
     {
-      name: "Savaan",
+      id: 1,
+      name: userName,
       role: "Trip organizer",
-      initials: "S",
+      initials,
     },
+
     {
+      id: 2,
       name: "Family Member",
       role: "Traveler",
       initials: "F",
     },
+
     {
+      id: 3,
       name: "Family Member",
       role: "Traveler",
       initials: "F",
     },
+
     {
+      id: 4,
       name: "Family Member",
       role: "Traveler",
       initials: "F",
     },
   ];
+
+  // =========================================================
+  // FUNCTIONS
+  // =========================================================
+
+  const closeMobileMenu = () => {
+    setMobileMenu(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+
+    // Current Roamio token
+    localStorage.removeItem("roamio_token");
+
+    // Old FamPlanner token
+    localStorage.removeItem("famplanner_token");
+
+    setMobileMenu(false);
+
+    navigate("/login", {
+      replace: true,
+    });
+  };
+
+  const handleCreateTrip = () => {
+    console.log("Create new trip");
+
+    // Later you can change this to:
+    // navigate("/create-trip");
+  };
+
+  const handleNotification = () => {
+    console.log("Notifications");
+  };
+
+  const handleTripOptions = (tripTitle) => {
+    console.log("Trip options:", tripTitle);
+  };
+
+  const handleAddFamily = () => {
+    console.log("Add family member");
+  };
+
+  const handleInviteFamily = () => {
+    console.log("Invite family member");
+  };
+
+  const handleViewMemories = () => {
+    console.log("View memories");
+  };
+
+  // =========================================================
+  // RETURN
+  // =========================================================
 
   return (
     <div className="dashboard-page">
@@ -92,23 +200,32 @@ export default function Dashboard() {
           SIDEBAR
       ===================================================== */}
 
-      <aside className={`dashboard-sidebar ${mobileMenu ? "sidebar-open" : ""}`}>
+      <aside
+        className={`dashboard-sidebar ${
+          mobileMenu ? "sidebar-open" : ""
+        }`}
+      >
+
+        {/* SIDEBAR TOP */}
 
         <div className="sidebar-top">
 
           <div className="dashboard-logo">
+
             <div className="dashboard-logo-icon">
               <Plane size={20} />
             </div>
 
             <span>
-              Fam<span>Planner</span>
+              Roamio
             </span>
+
           </div>
 
           <button
+            type="button"
             className="mobile-close"
-            onClick={() => setMobileMenu(false)}
+            onClick={closeMobileMenu}
             aria-label="Close menu"
           >
             <X size={20} />
@@ -116,8 +233,7 @@ export default function Dashboard() {
 
         </div>
 
-
-        {/* MAIN NAVIGATION */}
+        {/* YOUR SPACE */}
 
         <div className="sidebar-section">
 
@@ -130,6 +246,7 @@ export default function Dashboard() {
             <Link
               to="/dashboard"
               className="sidebar-link active"
+              onClick={closeMobileMenu}
             >
               <Home size={18} />
               <span>Dashboard</span>
@@ -138,6 +255,7 @@ export default function Dashboard() {
             <Link
               to="/dashboard"
               className="sidebar-link"
+              onClick={closeMobileMenu}
             >
               <Map size={18} />
               <span>My Trips</span>
@@ -150,6 +268,7 @@ export default function Dashboard() {
             <Link
               to="/dashboard"
               className="sidebar-link"
+              onClick={closeMobileMenu}
             >
               <Compass size={18} />
               <span>Explore</span>
@@ -158,6 +277,7 @@ export default function Dashboard() {
             <Link
               to="/dashboard"
               className="sidebar-link"
+              onClick={closeMobileMenu}
             >
               <Users size={18} />
               <span>Family</span>
@@ -166,7 +286,6 @@ export default function Dashboard() {
           </nav>
 
         </div>
-
 
         {/* PLANNING */}
 
@@ -181,6 +300,7 @@ export default function Dashboard() {
             <Link
               to="/dashboard"
               className="sidebar-link"
+              onClick={closeMobileMenu}
             >
               <CalendarDays size={18} />
               <span>Calendar</span>
@@ -189,14 +309,25 @@ export default function Dashboard() {
             <Link
               to="/dashboard"
               className="sidebar-link"
+              onClick={closeMobileMenu}
             >
               <Heart size={18} />
               <span>Memories</span>
             </Link>
 
             <Link
-              to="/dashboard"
+              to="/translator"
               className="sidebar-link"
+              onClick={closeMobileMenu}
+            >
+              <Languages size={18} />
+              <span>Travel Translator</span>
+            </Link>
+
+            <Link
+              to="/settings"
+              className="sidebar-link"
+              onClick={closeMobileMenu}
             >
               <Settings size={18} />
               <span>Settings</span>
@@ -205,7 +336,6 @@ export default function Dashboard() {
           </nav>
 
         </div>
-
 
         {/* SIDEBAR BOTTOM */}
 
@@ -218,49 +348,57 @@ export default function Dashboard() {
             </div>
 
             <div>
-              <strong>Travel smarter</strong>
+
+              <strong>
+                Travel smarter
+              </strong>
+
               <p>
                 Keep your family plans in one place.
               </p>
+
             </div>
 
           </div>
 
-
-          <Link
-            to="/"
+          <button
+            type="button"
             className="sidebar-logout"
+            onClick={handleLogout}
           >
             <LogOut size={17} />
             Sign out
-          </Link>
+          </button>
 
         </div>
 
       </aside>
 
-
-      {/* MOBILE OVERLAY */}
+      {/* =====================================================
+          MOBILE OVERLAY
+      ===================================================== */}
 
       {mobileMenu && (
         <div
           className="mobile-overlay"
-          onClick={() => setMobileMenu(false)}
+          onClick={closeMobileMenu}
         />
       )}
 
-
       {/* =====================================================
-          MAIN AREA
+          MAIN
       ===================================================== */}
 
       <main className="dashboard-main">
 
-        {/* HEADER */}
+        {/* ===================================================
+            HEADER
+        =================================================== */}
 
         <header className="dashboard-header">
 
           <button
+            type="button"
             className="mobile-menu-button"
             onClick={() => setMobileMenu(true)}
             aria-label="Open menu"
@@ -268,37 +406,50 @@ export default function Dashboard() {
             <Menu size={21} />
           </button>
 
-
           <div className="header-date">
 
             <CalendarDays size={16} />
 
             <span>
-              Friday, August 14, 2026
+              Friday, August 28, 2026
             </span>
 
           </div>
 
-
           <div className="header-actions">
 
+            {/* NOTIFICATIONS */}
+
             <button
+              type="button"
               className="header-icon-button"
               title="Notifications"
+              aria-label="Notifications"
+              onClick={handleNotification}
             >
               <Bell size={19} />
+
               <span className="notification-dot" />
             </button>
+
+            {/* PROFILE */}
 
             <div className="header-profile">
 
               <div className="profile-avatar">
-                S
+                {initials}
               </div>
 
               <div className="profile-details">
-                <strong>Savaan</strong>
-                <span>Family planner</span>
+
+                <strong>
+                  {userName}
+                </strong>
+
+                <span>
+                  Roamio
+                </span>
+
               </div>
 
               <ChevronRight size={16} />
@@ -309,13 +460,11 @@ export default function Dashboard() {
 
         </header>
 
-
-        {/* =====================================================
-            PAGE CONTENT
-        ===================================================== */}
+        {/* ===================================================
+            DASHBOARD CONTENT
+        =================================================== */}
 
         <div className="dashboard-content">
-
 
           {/* =================================================
               HERO
@@ -326,28 +475,36 @@ export default function Dashboard() {
             <div className="hero-background" />
 
             <div className="hero-glow hero-glow-one" />
+
             <div className="hero-glow hero-glow-two" />
 
             <div className="hero-flight-path">
+
               <span />
               <span />
               <span />
+
             </div>
-
-
-            {/* HERO CONTENT */}
 
             <div className="hero-content">
 
               <div className="hero-badge">
+
                 <Sparkles size={14} />
+
                 SMART FAMILY TRAVEL
+
               </div>
 
               <h1>
+
                 Good morning,
                 <br />
-                <span>Savaan!</span>
+
+                <span>
+                  {firstName}!
+                </span>
+
               </h1>
 
               <p className="hero-subtitle">
@@ -355,11 +512,15 @@ export default function Dashboard() {
               </p>
 
               <p className="hero-description">
-                Start planning an unforgettable adventure together.
-                Everything you need, all in one place.
+                Start planning an unforgettable adventure
+                together. Everything you need, all in one place.
               </p>
 
-              <button className="hero-button">
+              <button
+                type="button"
+                className="hero-button"
+                onClick={handleCreateTrip}
+              >
 
                 <Plus size={18} />
 
@@ -371,8 +532,7 @@ export default function Dashboard() {
 
             </div>
 
-
-            {/* HERO DECORATION */}
+            {/* HERO VISUAL */}
 
             <div className="hero-visual">
 
@@ -400,12 +560,13 @@ export default function Dashboard() {
 
           </section>
 
-
           {/* =================================================
               STATS
           ================================================= */}
 
           <section className="stats-grid">
+
+            {/* NEXT DESTINATION */}
 
             <div className="stat-card">
 
@@ -414,8 +575,15 @@ export default function Dashboard() {
               </div>
 
               <div className="stat-info">
-                <span>Next destination</span>
-                <strong>Anywhere</strong>
+
+                <span>
+                  Next destination
+                </span>
+
+                <strong>
+                  Anywhere
+                </strong>
+
               </div>
 
               <div className="stat-decoration">
@@ -424,6 +592,7 @@ export default function Dashboard() {
 
             </div>
 
+            {/* TOTAL TRIPS */}
 
             <div className="stat-card">
 
@@ -432,11 +601,19 @@ export default function Dashboard() {
               </div>
 
               <div className="stat-info">
-                <span>Total trips</span>
-                <strong>8</strong>
+
+                <span>
+                  Total trips
+                </span>
+
+                <strong>
+                  8
+                </strong>
+
                 <small>
                   +2 this year
                 </small>
+
               </div>
 
               <div className="stat-decoration">
@@ -445,6 +622,7 @@ export default function Dashboard() {
 
             </div>
 
+            {/* PLACES */}
 
             <div className="stat-card">
 
@@ -453,11 +631,19 @@ export default function Dashboard() {
               </div>
 
               <div className="stat-info">
-                <span>Places visited</span>
-                <strong>14</strong>
+
+                <span>
+                  Places visited
+                </span>
+
+                <strong>
+                  14
+                </strong>
+
                 <small>
                   Across 5 countries
                 </small>
+
               </div>
 
               <div className="stat-decoration">
@@ -466,6 +652,7 @@ export default function Dashboard() {
 
             </div>
 
+            {/* FAMILY */}
 
             <div className="stat-card">
 
@@ -474,11 +661,19 @@ export default function Dashboard() {
               </div>
 
               <div className="stat-info">
-                <span>Family members</span>
-                <strong>5</strong>
+
+                <span>
+                  Family members
+                </span>
+
+                <strong>
+                  5
+                </strong>
+
                 <small>
                   Planning together
                 </small>
+
               </div>
 
               <div className="stat-decoration">
@@ -489,13 +684,11 @@ export default function Dashboard() {
 
           </section>
 
-
           {/* =================================================
-              CONTENT GRID
+              MAIN GRID
           ================================================= */}
 
           <div className="dashboard-grid">
-
 
             {/* =================================================
                 TRIPS
@@ -506,6 +699,7 @@ export default function Dashboard() {
               <div className="section-heading">
 
                 <div>
+
                   <span className="section-eyebrow">
                     YOUR JOURNEYS
                   </span>
@@ -513,6 +707,7 @@ export default function Dashboard() {
                   <h2>
                     Upcoming trips
                   </h2>
+
                 </div>
 
                 <Link
@@ -525,7 +720,6 @@ export default function Dashboard() {
 
               </div>
 
-
               <div className="trip-list">
 
                 {trips.map((trip) => (
@@ -534,6 +728,8 @@ export default function Dashboard() {
                     className="trip-card"
                     key={trip.id}
                   >
+
+                    {/* IMAGE */}
 
                     <div className="trip-image">
 
@@ -549,6 +745,7 @@ export default function Dashboard() {
                             : "planning"
                         }`}
                       >
+
                         {trip.status === "Upcoming" ? (
                           <CheckCircle2 size={13} />
                         ) : (
@@ -556,10 +753,12 @@ export default function Dashboard() {
                         )}
 
                         {trip.status}
+
                       </span>
 
                     </div>
 
+                    {/* INFO */}
 
                     <div className="trip-info">
 
@@ -581,12 +780,22 @@ export default function Dashboard() {
 
                         </div>
 
-                        <button className="trip-more">
+                        <button
+                          type="button"
+                          className="trip-more"
+                          aria-label={`More options for ${trip.title}`}
+                          onClick={() =>
+                            handleTripOptions(
+                              trip.title
+                            )
+                          }
+                        >
+
                           <MoreHorizontal size={19} />
+
                         </button>
 
                       </div>
-
 
                       <div className="trip-footer">
 
@@ -612,21 +821,22 @@ export default function Dashboard() {
 
             </section>
 
-
             {/* =================================================
                 RIGHT COLUMN
             ================================================= */}
 
             <aside className="dashboard-right-column">
 
-
-              {/* FAMILY CARD */}
+              {/* =================================================
+                  FAMILY
+              ================================================= */}
 
               <section className="family-card">
 
                 <div className="section-heading compact">
 
                   <div>
+
                     <span className="section-eyebrow">
                       YOUR CREW
                     </span>
@@ -634,26 +844,33 @@ export default function Dashboard() {
                     <h2>
                       Family
                     </h2>
+
                   </div>
 
-                  <button className="small-add">
+                  <button
+                    type="button"
+                    className="small-add"
+                    aria-label="Add family member"
+                    onClick={handleAddFamily}
+                  >
+
                     <Plus size={16} />
+
                   </button>
 
                 </div>
 
-
                 <div className="family-list">
 
-                  {familyMembers.map((member, index) => (
+                  {familyMembers.map((member) => (
 
                     <div
                       className="family-member"
-                      key={index}
+                      key={member.id}
                     >
 
                       <div
-                        className={`family-avatar avatar-${index + 1}`}
+                        className={`family-avatar avatar-${member.id}`}
                       >
                         {member.initials}
                       </div>
@@ -670,7 +887,7 @@ export default function Dashboard() {
 
                       </div>
 
-                      {index === 0 && (
+                      {member.id === 1 && (
                         <span className="organizer-badge">
                           You
                         </span>
@@ -682,17 +899,25 @@ export default function Dashboard() {
 
                 </div>
 
+                <button
+                  type="button"
+                  className="invite-family"
+                  onClick={handleInviteFamily}
+                >
 
-                <button className="invite-family">
                   <Users size={16} />
+
                   Invite family member
+
                   <ArrowRight size={15} />
+
                 </button>
 
               </section>
 
-
-              {/* MEMORIES CARD */}
+              {/* =================================================
+                  MEMORIES
+              ================================================= */}
 
               <section className="memory-card">
 
@@ -715,25 +940,25 @@ export default function Dashboard() {
                     worth remembering.
                   </p>
 
-                  <button className="memory-button">
+                  <button
+                    type="button"
+                    className="memory-button"
+                    onClick={handleViewMemories}
+                  >
+
                     View memories
+
                     <ArrowRight size={14} />
+
                   </button>
 
                 </div>
-
 
                 <div className="memory-decoration">
 
                   <Heart
                     size={80}
                     strokeWidth={1}
-                  />
-
-                  <Star
-                    className="memory-star"
-                    size={22}
-                    fill="currentColor"
                   />
 
                 </div>
@@ -744,9 +969,8 @@ export default function Dashboard() {
 
           </div>
 
-
           {/* =================================================
-              BOTTOM MOTIVATION
+              BOTTOM MESSAGE
           ================================================= */}
 
           <section className="bottom-message">
@@ -773,7 +997,6 @@ export default function Dashboard() {
             />
 
           </section>
-
 
         </div>
 
