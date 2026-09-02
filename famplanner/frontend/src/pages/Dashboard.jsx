@@ -50,17 +50,30 @@ export default function Dashboard() {
     console.error("Could not read saved user:", error);
   }
 
-  const userName =
+  /*
+   * Get the user's name.
+   *
+   * If no valid name is saved, use the default Roamio name.
+   */
+  let userName =
     savedUser?.name ||
     savedUser?.firstName ||
-    "Roamio User";
+    "";
 
+  if (!userName) {
+    userName = "Roamio User";
+  }
+
+  userName = userName.trim();
+
+  // First name for:
+  // "Good morning, Duran!"
   const firstName =
-    userName.trim().split(" ")[0] || "Roamio";
+    userName.split(/\s+/)[0] || "Roamio";
 
+  // Create initials for profile avatar
   const initials =
     userName
-      .trim()
       .split(/\s+/)
       .filter(Boolean)
       .map((word) => word.charAt(0))
@@ -147,13 +160,11 @@ export default function Dashboard() {
   };
 
   const handleLogout = () => {
+    // Remove current user
     localStorage.removeItem("user");
 
-    // Current Roamio token
+    // Remove current Roamio token
     localStorage.removeItem("roamio_token");
-
-    // Old FamPlanner token
-    localStorage.removeItem("famplanner_token");
 
     setMobileMenu(false);
 
@@ -165,7 +176,7 @@ export default function Dashboard() {
   const handleCreateTrip = () => {
     console.log("Create new trip");
 
-    // Later you can change this to:
+    // Later:
     // navigate("/create-trip");
   };
 
