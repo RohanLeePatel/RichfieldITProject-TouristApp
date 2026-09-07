@@ -1,18 +1,22 @@
 import os
 import detectlanguage
-from deep_translator import GoogleTranslator
+import requests
 
 detectlanguage.configuration.api_key = os.environ.get("detectlanguageAPIKey")
 
-SUPPORTED_LANGUAGES = ["en", "fr", "es", "de", "it", "pt"]
+DEEPL_API_KEY = os.environ.get("deepLAPIKey")
+
+DEEPL_API_URL = (
+    "https://api-free.deepl.com/v2/translate"
+    if DEEPL_API_KEY and DEEPL_API_KEY.endswith(":fx")
+    else "https://api.deepl.com/v2/translate"
+)
 
 
-def translate_text(text: str) -> dict:
-    """
-    Detect the language of `text` and translate to English if supported.
-    Returns a dict with detected_lang, translation, and an optional message
-    explaining why translation didn't happen.
-    """
+def translate_text(text: str, target_lang: str | None = None) -> dict:
+
+    target_lang = (target_lang or "EN").upper()
+
     if len(text) < 3:
         return {
             "detected_lang": None,
@@ -20,25 +24,28 @@ def translate_text(text: str) -> dict:
             "message": "No readable text found.",
         }
 
+    detected_lang = None
     try:
         detected_lang = detectlanguage.detect_code(text)
-    except Exception as e:
-        return {
-            "detected_lang": None,
-            "translation": None,
-            "message": f"Language detection error: {e}",
-        }
+    except Exception:
+        pass
 
-    if detected_lang not in SUPPORTED_LANGUAGES:
+    if not DEEPL_API_KEY:
         return {
             "detected_lang": detected_lang,
             "translation": None,
-            "message": f"Unsupported language: {detected_lang}",
+            "message": "Translation error: deepLAPIKey is not configured.",
         }
 
     try:
-        translator = GoogleTranslator(source=detected_lang, target="en")
-        translated_text = translator.translate(text)
+        response = requests.post(
+            DEEPL_API_URL,
+            headers={"Authorization": f"DeepL-Auth-Key {DEEPL_API_KEY}"},
+            data={"text": text, "target_lang": target_lang},
+            timeout=10,
+        )
+        response.raise_for_status()
+        translated_text = response.json()["translations"][0]["text"]
     except Exception as e:
         return {
             "detected_lang": detected_lang,

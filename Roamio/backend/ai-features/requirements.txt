@@ -4,5 +4,4 @@ uvicorn[standard]
 python-multipart
 requests
 pytesseract
-deep-translator
 detectlanguage
