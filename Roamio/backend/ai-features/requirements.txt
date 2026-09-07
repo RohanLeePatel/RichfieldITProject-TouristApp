@@ -1,0 +1,8 @@
+python
+pytesseract
+deep-translator
+python-dotenv
+fastapi
+python-multipart
+requests
+detectlanguage
