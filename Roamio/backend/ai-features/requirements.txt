@@ -1,8 +1,8 @@
-python
-pytesseract
-deep-translator
-python-dotenv
 fastapi
+pydantic
+uvicorn[standard]
 python-multipart
 requests
+pytesseract
+deep-translator
 detectlanguage
