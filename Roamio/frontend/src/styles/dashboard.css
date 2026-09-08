@@ -1,6 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap");
 
-
 /* =========================================================
    TOKENS
 ========================================================= */
@@ -8,31 +7,21 @@
 :root {
   --dashboard-ink: #142a42;
   --dashboard-ink-light: #29435d;
-
   --dashboard-teal: #16849a;
   --dashboard-teal-light: #23a89e;
   --dashboard-mint: #3ddbc4;
-
   --dashboard-blue: #3b82f6;
   --dashboard-purple: #8b5cf6;
   --dashboard-orange: #f59e0b;
-
   --dashboard-bg: #f2f6f8;
   --dashboard-white: #ffffff;
-
   --dashboard-line: #e4e9ed;
   --dashboard-muted: #71808e;
   --dashboard-faint: #9aa6b1;
-
-  --dashboard-shadow:
-    0 18px 45px rgba(18, 48, 70, 0.08);
-
+  --dashboard-shadow: 0 18px 45px rgba(18, 48, 70, 0.08);
   --dashboard-radius: 20px;
-
-  --dashboard-ease:
-    cubic-bezier(0.16, 1, 0.3, 1);
+  --dashboard-ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
-
 
 /* =========================================================
    RESET
@@ -45,9 +34,7 @@
 .dashboard-page {
   min-height: 100vh;
   width: 100%;
-
   display: flex;
-
   background:
     radial-gradient(
       circle at 85% 0%,
@@ -55,9 +42,7 @@
       transparent 30%
     ),
     var(--dashboard-bg);
-
   color: var(--dashboard-ink);
-
   font-family: "DM Sans", sans-serif;
 }
 
@@ -66,21 +51,19 @@
   font-family: inherit;
 }
 
-
 /* =========================================================
    SIDEBAR
 ========================================================= */
 
 .dashboard-sidebar {
   position: fixed;
-
   left: 0;
   top: 0;
   bottom: 0;
-
   z-index: 100;
 
   width: 255px;
+  height: 100vh;
 
   display: flex;
   flex-direction: column;
@@ -98,8 +81,8 @@
   color: white;
 
   overflow-y: auto;
+  overflow-x: hidden;
 }
-
 
 /* LOGO */
 
@@ -107,25 +90,19 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   padding: 0 10px 28px;
+  flex-shrink: 0;
 }
 
 .dashboard-logo {
   display: flex;
   align-items: center;
-
   gap: 10px;
 
   font-family: "Plus Jakarta Sans", sans-serif;
   font-size: 19px;
   font-weight: 800;
-
   letter-spacing: -0.5px;
-}
-
-.dashboard-logo span span {
-  color: var(--dashboard-mint);
 }
 
 .dashboard-logo-icon {
@@ -135,6 +112,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+
+  flex-shrink: 0;
 
   border-radius: 12px;
 
@@ -149,11 +128,13 @@
     0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
-
-/* SIDEBAR SECTION */
+/* =========================================================
+   SIDEBAR SECTION
+========================================================= */
 
 .sidebar-section {
   margin-bottom: 26px;
+  flex-shrink: 0;
 }
 
 .sidebar-label {
@@ -163,14 +144,12 @@
 
   font-size: 10px;
   font-weight: 800;
-
   letter-spacing: 1.2px;
 }
 
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-
   gap: 4px;
 }
 
@@ -181,7 +160,6 @@
 
   display: flex;
   align-items: center;
-
   gap: 12px;
 
   padding: 0 12px;
@@ -189,7 +167,6 @@
   border-radius: 12px;
 
   color: rgba(255, 255, 255, 0.66);
-
   text-decoration: none;
 
   font-size: 13px;
@@ -207,9 +184,7 @@
 
 .sidebar-link:hover {
   color: white;
-
   background: rgba(255, 255, 255, 0.08);
-
   transform: translateX(2px);
 }
 
@@ -244,30 +219,31 @@
   border-radius: 50%;
 
   color: white;
-
   background: rgba(255, 255, 255, 0.1);
 
   font-size: 10px;
 }
 
-
-/* SIDEBAR BOTTOM */
+/* =========================================================
+   SIDEBAR BOTTOM
+========================================================= */
 
 .sidebar-bottom {
   margin-top: auto;
+  padding-top: 20px;
+
+  flex-shrink: 0;
 }
 
 .sidebar-tip {
   display: flex;
   align-items: flex-start;
-
   gap: 10px;
 
   margin: 0 2px 15px;
   padding: 14px;
 
   border: 1px solid rgba(255, 255, 255, 0.08);
-
   border-radius: 14px;
 
   background: rgba(255, 255, 255, 0.05);
@@ -286,15 +262,12 @@
   border-radius: 9px;
 
   color: var(--dashboard-mint);
-
   background: rgba(61, 219, 196, 0.12);
 }
 
 .sidebar-tip strong {
   display: block;
-
   margin-bottom: 3px;
-
   font-size: 11px;
 }
 
@@ -307,33 +280,53 @@
   line-height: 1.4;
 }
 
+/* SIGN OUT */
+
 .sidebar-logout {
-  height: 42px;
+  width: 100%;
+  height: 44px;
 
   display: flex;
   align-items: center;
-
   gap: 10px;
 
   padding: 0 12px;
 
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 11px;
 
-  color: rgba(255, 255, 255, 0.5);
-
-  text-decoration: none;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.04);
 
   font-size: 12px;
   font-weight: 600;
 
-  transition: all 0.2s ease;
+  cursor: pointer;
+
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.sidebar-logout svg {
+  flex-shrink: 0;
 }
 
 .sidebar-logout:hover {
   color: white;
-  background: rgba(255, 255, 255, 0.07);
+
+  background: rgba(255, 255, 255, 0.1);
+
+  border-color: rgba(255, 255, 255, 0.15);
+
+  transform: translateX(2px);
 }
 
+.sidebar-logout:active {
+  transform: translateX(0);
+}
 
 /* =========================================================
    MAIN
@@ -341,12 +334,9 @@
 
 .dashboard-main {
   width: calc(100% - 255px);
-
   min-height: 100vh;
-
   margin-left: 255px;
 }
-
 
 /* =========================================================
    HEADER
@@ -375,7 +365,6 @@
 .header-date {
   display: flex;
   align-items: center;
-
   gap: 8px;
 
   color: var(--dashboard-muted);
@@ -391,7 +380,6 @@
 .header-actions {
   display: flex;
   align-items: center;
-
   gap: 18px;
 }
 
@@ -409,7 +397,6 @@
   border-radius: 11px;
 
   color: var(--dashboard-ink);
-
   background: white;
 
   cursor: pointer;
@@ -444,7 +431,6 @@
 .header-profile {
   display: flex;
   align-items: center;
-
   gap: 9px;
 
   cursor: pointer;
@@ -476,19 +462,16 @@
 .profile-details {
   display: flex;
   flex-direction: column;
-
   gap: 1px;
 }
 
 .profile-details strong {
   color: var(--dashboard-ink);
-
   font-size: 12px;
 }
 
 .profile-details span {
   color: var(--dashboard-faint);
-
   font-size: 10px;
 }
 
@@ -496,21 +479,18 @@
   color: var(--dashboard-faint);
 }
 
-
 /* =========================================================
    CONTENT
 ========================================================= */
 
 .dashboard-content {
   width: 100%;
-
   max-width: 1500px;
 
   margin: 0 auto;
 
   padding: 30px 38px 40px;
 }
-
 
 /* =========================================================
    HERO
@@ -603,7 +583,6 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-
 /* HERO CONTENT */
 
 .hero-content {
@@ -618,25 +597,21 @@
 
   display: flex;
   align-items: center;
-
   gap: 7px;
 
   margin-bottom: 16px;
   padding: 7px 12px;
 
   border: 1px solid rgba(255, 255, 255, 0.25);
-
   border-radius: 30px;
 
   color: white;
-
   background: rgba(255, 255, 255, 0.1);
 
   backdrop-filter: blur(8px);
 
   font-size: 10px;
   font-weight: 800;
-
   letter-spacing: 1px;
 }
 
@@ -681,7 +656,6 @@
   color: rgba(255, 255, 255, 0.68);
 
   font-size: 12.5px;
-
   line-height: 1.6;
 }
 
@@ -690,7 +664,6 @@
 
   display: inline-flex;
   align-items: center;
-
   gap: 9px;
 
   padding: 0 17px;
@@ -699,7 +672,6 @@
   border-radius: 11px;
 
   color: var(--dashboard-ink);
-
   background: white;
 
   font-size: 12px;
@@ -725,7 +697,6 @@
 .hero-button svg:first-child {
   color: var(--dashboard-teal);
 }
-
 
 /* HERO VISUAL */
 
@@ -771,7 +742,6 @@
   justify-content: center;
 
   border: 1px solid rgba(255, 255, 255, 0.18);
-
   border-radius: 50%;
 
   color: white;
@@ -788,7 +758,8 @@
 
   transform: rotate(-15deg);
 
-  animation: dashboardPlaneFloat 4s ease-in-out infinite;
+  animation:
+    dashboardPlaneFloat 4s ease-in-out infinite;
 }
 
 .floating-pin {
@@ -802,7 +773,6 @@
   justify-content: center;
 
   border: 1px solid rgba(255, 255, 255, 0.2);
-
   border-radius: 50%;
 
   color: white;
@@ -871,7 +841,6 @@
   top: 24px;
 }
 
-
 /* =========================================================
    STATS
 ========================================================= */
@@ -894,7 +863,6 @@
 
   display: flex;
   align-items: center;
-
   gap: 13px;
 
   padding: 18px;
@@ -902,7 +870,6 @@
   overflow: hidden;
 
   border: 1px solid var(--dashboard-line);
-
   border-radius: 17px;
 
   background: white;
@@ -998,7 +965,6 @@
   color: rgba(20, 60, 82, 0.045);
 }
 
-
 /* =========================================================
    MAIN GRID
 ========================================================= */
@@ -1014,7 +980,6 @@
 
   margin-top: 32px;
 }
-
 
 /* =========================================================
    SECTION HEADING
@@ -1041,7 +1006,6 @@
 
   font-size: 9px;
   font-weight: 800;
-
   letter-spacing: 1.2px;
 }
 
@@ -1062,7 +1026,6 @@
 .view-all {
   display: flex;
   align-items: center;
-
   gap: 5px;
 
   color: var(--dashboard-teal);
@@ -1077,7 +1040,6 @@
   text-decoration: underline;
 }
 
-
 /* =========================================================
    TRIPS
 ========================================================= */
@@ -1085,7 +1047,6 @@
 .trip-list {
   display: flex;
   flex-direction: column;
-
   gap: 12px;
 }
 
@@ -1099,7 +1060,6 @@
   overflow: hidden;
 
   border: 1px solid var(--dashboard-line);
-
   border-radius: 17px;
 
   background: white;
@@ -1167,7 +1127,6 @@
 
   display: flex;
   align-items: center;
-
   gap: 5px;
 
   padding: 5px 8px;
@@ -1205,7 +1164,6 @@
 .trip-title-row {
   display: flex;
   justify-content: space-between;
-
   gap: 10px;
 }
 
@@ -1223,7 +1181,6 @@
 .trip-location {
   display: flex;
   align-items: center;
-
   gap: 5px;
 
   color: var(--dashboard-muted);
@@ -1249,7 +1206,6 @@
   border-radius: 8px;
 
   color: var(--dashboard-faint);
-
   background: transparent;
 
   cursor: pointer;
@@ -1257,7 +1213,6 @@
 
 .trip-more:hover {
   color: var(--dashboard-ink);
-
   background: #f3f6f8;
 }
 
@@ -1274,7 +1229,6 @@
 .trip-date {
   display: flex;
   align-items: center;
-
   gap: 6px;
 
   color: var(--dashboard-muted);
@@ -1296,10 +1250,8 @@
 
 .trip-card:hover .trip-footer > svg {
   color: var(--dashboard-teal);
-
   transform: translateX(3px);
 }
-
 
 /* =========================================================
    RIGHT COLUMN
@@ -1308,10 +1260,8 @@
 .dashboard-right-column {
   display: flex;
   flex-direction: column;
-
   gap: 18px;
 }
-
 
 /* =========================================================
    FAMILY CARD
@@ -1321,7 +1271,6 @@
   padding: 20px;
 
   border: 1px solid var(--dashboard-line);
-
   border-radius: var(--dashboard-radius);
 
   background: white;
@@ -1339,11 +1288,9 @@
   justify-content: center;
 
   border: 1px solid var(--dashboard-line);
-
   border-radius: 9px;
 
   color: var(--dashboard-teal);
-
   background: #f8fbfb;
 
   cursor: pointer;
@@ -1362,7 +1309,6 @@
 .family-list {
   display: flex;
   flex-direction: column;
-
   gap: 4px;
 
   margin-top: 5px;
@@ -1371,7 +1317,6 @@
 .family-member {
   display: flex;
   align-items: center;
-
   gap: 10px;
 
   padding: 9px 7px;
@@ -1450,7 +1395,6 @@
   border-radius: 20px;
 
   color: var(--dashboard-teal);
-
   background: #e6f7f4;
 
   font-size: 8px;
@@ -1464,17 +1408,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-
   gap: 7px;
 
   margin-top: 13px;
 
   border: 1px dashed #cfd9df;
-
   border-radius: 10px;
 
   color: var(--dashboard-teal);
-
   background: #fbfdfd;
 
   font-size: 10px;
@@ -1492,10 +1433,8 @@
 
 .invite-family:hover {
   border-color: var(--dashboard-teal);
-
   background: #f2fbfa;
 }
-
 
 /* =========================================================
    MEMORY CARD
@@ -1548,7 +1487,6 @@
   border-radius: 9px;
 
   color: var(--dashboard-mint);
-
   background: rgba(255, 255, 255, 0.1);
 }
 
@@ -1577,24 +1515,20 @@
   color: rgba(255, 255, 255, 0.6);
 
   font-size: 10px;
-
   line-height: 1.5;
 }
 
 .memory-button {
   display: inline-flex;
   align-items: center;
-
   gap: 6px;
 
   margin-top: 13px;
-
   padding: 0;
 
   border: none;
 
   color: white;
-
   background: transparent;
 
   font-size: 10px;
@@ -1618,16 +1552,6 @@
   transform: rotate(-15deg);
 }
 
-.memory-star {
-  position: absolute;
-
-  right: 70px;
-  top: 0;
-
-  color: var(--dashboard-mint);
-}
-
-
 /* =========================================================
    BOTTOM MESSAGE
 ========================================================= */
@@ -1639,7 +1563,6 @@
 
   display: flex;
   align-items: center;
-
   gap: 13px;
 
   margin-top: 25px;
@@ -1648,7 +1571,6 @@
   overflow: hidden;
 
   border: 1px solid #dce8e9;
-
   border-radius: 16px;
 
   background:
@@ -1672,7 +1594,6 @@
   border-radius: 10px;
 
   color: var(--dashboard-teal);
-
   background: #e3f7f3;
 }
 
@@ -1702,9 +1623,8 @@
   transform: rotate(-15deg);
 }
 
-
 /* =========================================================
-   MOBILE
+   MOBILE CONTROLS
 ========================================================= */
 
 .mobile-menu-button,
@@ -1712,7 +1632,6 @@
 .mobile-overlay {
   display: none;
 }
-
 
 /* =========================================================
    ANIMATIONS
@@ -1733,13 +1652,11 @@
   }
 }
 
-
 /* =========================================================
    LARGE DESKTOP
 ========================================================= */
 
 @media (min-width: 1500px) {
-
   .dashboard-content {
     padding-left: 55px;
     padding-right: 55px;
@@ -1747,7 +1664,6 @@
 
   .hero-section {
     min-height: 350px;
-
     padding-left: 60px;
   }
 
@@ -1758,23 +1674,19 @@
   .stats-grid {
     gap: 18px;
   }
-
 }
-
 
 /* =========================================================
    TABLET
 ========================================================= */
 
 @media (max-width: 1150px) {
-
   .dashboard-sidebar {
     width: 225px;
   }
 
   .dashboard-main {
     width: calc(100% - 225px);
-
     margin-left: 225px;
   }
 
@@ -1796,23 +1708,19 @@
 
   .dashboard-right-column {
     display: grid;
-
     grid-template-columns: 1fr 1fr;
   }
 
   .hero-visual {
     opacity: 0.7;
   }
-
 }
-
 
 /* =========================================================
    SMALL TABLET
 ========================================================= */
 
 @media (max-width: 850px) {
-
   .dashboard-sidebar {
     transform: translateX(-100%);
 
@@ -1826,7 +1734,6 @@
 
   .dashboard-main {
     width: 100%;
-
     margin-left: 0;
   }
 
@@ -1846,7 +1753,6 @@
     border-radius: 10px;
 
     color: var(--dashboard-ink);
-
     background: white;
 
     cursor: pointer;
@@ -1864,7 +1770,6 @@
     border-radius: 9px;
 
     color: white;
-
     background: rgba(255, 255, 255, 0.08);
 
     cursor: pointer;
@@ -1892,15 +1797,18 @@
     padding: 20px;
   }
 
+  /* Keep the sign-out button visible when the mobile
+     sidebar is opened. */
+  .dashboard-sidebar.sidebar-open {
+    display: flex;
+  }
 }
-
 
 /* =========================================================
    MOBILE
 ========================================================= */
 
 @media (max-width: 650px) {
-
   .dashboard-header {
     height: 65px;
   }
@@ -1932,7 +1840,6 @@
 
   .hero-content h1 {
     font-size: 39px;
-
     letter-spacing: -1.5px;
   }
 
@@ -1940,7 +1847,6 @@
     width: 100%;
 
     right: 0;
-
     top: 190px;
 
     opacity: 0.55;
@@ -1956,13 +1862,11 @@
 
   .hero-flight-path {
     right: 5%;
-
     width: 300px;
   }
 
   .stats-grid {
     grid-template-columns: 1fr 1fr;
-
     gap: 10px;
   }
 
@@ -1989,16 +1893,13 @@
   .trip-image {
     min-height: 125px;
   }
-
 }
-
 
 /* =========================================================
    SMALL MOBILE
 ========================================================= */
 
 @media (max-width: 450px) {
-
   .dashboard-content {
     padding: 12px;
   }
@@ -2052,8 +1953,22 @@
     padding-right: 50px;
   }
 
-}
+  /* Mobile sidebar */
+  .dashboard-sidebar {
+    width: min(300px, 88vw);
+    padding-bottom: 20px;
+  }
 
+  .sidebar-bottom {
+    margin-top: auto;
+    padding-top: 25px;
+    padding-bottom: 2px;
+  }
+
+  .sidebar-logout {
+    height: 46px;
+  }
+}
 
 /* =========================================================
    ACCESSIBILITY
@@ -2062,17 +1977,14 @@
 .dashboard-page button:focus-visible,
 .dashboard-page a:focus-visible {
   outline: 2px solid var(--dashboard-mint);
-
   outline-offset: 3px;
 }
-
 
 /* =========================================================
    REDUCED MOTION
 ========================================================= */
 
 @media (prefers-reduced-motion: reduce) {
-
   *,
   *::before,
   *::after {
@@ -2080,5 +1992,4 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
-
 }
