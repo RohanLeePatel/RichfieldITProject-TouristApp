@@ -6,16 +6,16 @@ from schemas.recommendations import Candidate, Preferences
 
 
 def check_budget_gate(prefs: Preferences, candidate: Candidate) -> str | None:
-    #Returns an exclusion reason, or None if the candidate passes.
+    # returns why the candidate got excluded, or None if it's fine
     cost_index = candidate.features.cost_index
     if cost_index is None:
-        return None  # No cost data — don't punish for missing enrichment.
+        return None  # no cost data for this one, so don't punish it for that
 
     lower_bound_zar, _ = COST_BAND_ZAR_RANGE[cost_index]
     lower_bound = convert_from_zar(lower_bound_zar, prefs.currency)
     if lower_bound is None:
-        # Rate unavailable — don't gate on a comparison we can't actually
-        # make, same "don't punish for missing data" discipline as above.
+        # couldn't convert currency, so we can't actually compare - same idea as above,
+        # missing data shouldn't get punished
         return None
 
     if lower_bound <= prefs.budget_per_day:
@@ -29,7 +29,7 @@ def check_budget_gate(prefs: Preferences, candidate: Candidate) -> str | None:
 
 
 def check_accessibility_gate(prefs: Preferences, candidate: Candidate) -> str | None:
-    #Returns an exclusion reason, or None if the candidate passes.
+    # same deal - reason for exclusion, or None
     if prefs.accessibility.wheelchair != "required":
         return None
     if candidate.features.accessibility != ACCESSIBILITY_HARD_FAIL_STATE:
@@ -47,7 +47,7 @@ GATES = (check_budget_gate, check_accessibility_gate)
 
 
 def run_gates(prefs: Preferences, candidate: Candidate) -> str | None:
-    #Runs all gates; returns the first exclusion reason hit, or None.
+    # runs through all the gates, stops at the first one that excludes the candidate
     for gate in GATES:
         reason = gate(prefs, candidate)
         if reason is not None:

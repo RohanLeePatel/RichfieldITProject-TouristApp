@@ -1,9 +1,8 @@
 """
-OpenWeather integration: current conditions + forecast for a destination.
+Pulls current weather + forecast for a destination from OpenWeather.
 
-Same discipline as translation/live_translation.py: a missing key or a
-failed call is surfaced as a message on the response, not a raised
-exception the caller has to guess about.
+Like live_translation.py, a missing key or failed request just comes back
+as an error message on the response instead of throwing.
 """
 
 from __future__ import annotations
@@ -53,7 +52,7 @@ def get_weather(city: str, units: str = "metric") -> dict:
             "humidity": current.get("main", {}).get("humidity"),
             "wind_speed": current.get("wind", {}).get("speed"),
         },
-        # Collapse the 3-hourly list to one midday reading per day.
+        # forecast API gives readings every 3 hours, just grab the midday one for each day
         "forecast": [
             {
                 "date": entry["dt_txt"].split(" ")[0],

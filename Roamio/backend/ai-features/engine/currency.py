@@ -1,38 +1,33 @@
 """
-Currency conversion for budget matching.
+Handles converting the ZAR cost bands into whatever currency the user set.
 
-engine/weights.py's COST_BAND_ZAR_RANGE is denominated in ZAR (see that
-module's docstring for why). Preferences.currency lets a user state their
-budget_per_day in any ISO 4217 currency, so before a ZAR-denominated band
-can be compared against it, the band needs converting into that same
-currency via ExchangeRate-API.
+engine/weights.py's COST_BAND_ZAR_RANGE is all in ZAR, but prefs.budget_per_day
+can be in any currency, so this needs to convert before comparing them.
 
-Same discipline as the rest of the engine (see engine/gates.py,
-engine/scorers.py): an unavailable conversion reads as "unknown", never as
-a reason to wrongly gate a candidate in or out. Callers get None back and
-decide how to fail — always open, not closed, consistent with "no cost
-data — don't punish for missing enrichment".
+If the conversion fails for whatever reason (no API key, request failed) it
+returns None and lets the caller decide what to do - same pattern as the rest
+of the engine, missing data shouldn't get treated as a red flag.
 
-Rates are cached in-process for CACHE_TTL_SECONDS. One recommendation
-request scores every candidate's budget dimension plus the budget gate, all
-against the same prefs.currency — without caching that's one HTTP call per
-candidate, and ExchangeRate-API's free tier is a shared 1500 requests/month.
+Rates get cached in memory for a day. Without caching, one recommendation
+request would hit the API once per candidate, and the free tier is only
+1500 requests/month.
 """
 
 from __future__ import annotations
 
 import os
-import time
 
 import requests
 
+from cache_utils import ttl_cache_get, ttl_cache_set
+
 EXCHANGE_RATE_API_KEY = os.environ.get("exchangeRateAPIKey")
 EXCHANGE_RATE_PAIR_URL = "https://v6.exchangerate-api.com/v6/{key}/pair/ZAR/{target}"
-CACHE_TTL_SECONDS = 24 * 60 * 60  # exchange rates don't need to be live-to-the-second for a travel budget estimate
+CACHE_TTL_SECONDS = 24 * 60 * 60  # rates don't need to be up to the second for a travel budget guess
 REQUEST_TIMEOUT_SECONDS = 5
 
-# currency -> (rate, fetched_at_monotonic). Module-level: deliberately
-# shared across requests within one process, not per-request state.
+# currency -> (rate, fetched_at_monotonic). shared across all requests on purpose,
+# not reset per-request
 _rate_cache: dict[str, tuple[float, float]] = {}
 
 
@@ -42,11 +37,9 @@ def get_zar_conversion_rate(target_currency: str) -> float | None:
     if target_currency == "ZAR":
         return 1.0
 
-    cached = _rate_cache.get(target_currency)
+    cached = ttl_cache_get(_rate_cache, target_currency, CACHE_TTL_SECONDS)
     if cached is not None:
-        rate, fetched_at = cached
-        if time.monotonic() - fetched_at < CACHE_TTL_SECONDS:
-            return rate
+        return cached
 
     if not EXCHANGE_RATE_API_KEY:
         return None
@@ -64,7 +57,7 @@ def get_zar_conversion_rate(target_currency: str) -> float | None:
     except Exception:
         return None
 
-    _rate_cache[target_currency] = (rate, time.monotonic())
+    ttl_cache_set(_rate_cache, target_currency, rate)
     return rate
 
 

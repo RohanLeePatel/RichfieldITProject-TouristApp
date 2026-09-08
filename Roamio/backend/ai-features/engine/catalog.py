@@ -1,11 +1,10 @@
 """
-Built-in candidate catalog: lets a caller ask for recommendations by
-preferences alone, without already knowing which countries/cities to score.
+Fallback candidate list so someone can just send preferences without already
+knowing which countries/cities to score.
 
-Backed entirely by data/destinations_seed.json (see
-scripts/enrich_destinations.py) — no live calls here. Country-level
-candidates are synthesized from that same file's per-city `country` field;
-there's no separate country dataset.
+All from data/destinations_seed.json (see scripts/enrich_destinations.py),
+nothing live here. There's no separate country-level dataset - country
+candidates get built on the fly by grouping the cities by their `country` field.
 """
 
 from __future__ import annotations

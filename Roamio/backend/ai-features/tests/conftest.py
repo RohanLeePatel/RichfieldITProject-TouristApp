@@ -1,7 +1,7 @@
 """
-§7 fixtures: ~10 synthetic city-level destinations spanning cheap/expensive,
-accessible/untagged/poor, hot/cold, interest-rich/interest-poor. Deterministic,
-no network (D6 is what makes this possible).
+~10 made-up city destinations covering cheap/expensive, accessible/untagged/poor,
+hot/cold, interest-rich/interest-poor. All fake data, no network calls, so tests
+stay fast and deterministic.
 """
 
 from __future__ import annotations

@@ -43,7 +43,7 @@ def test_budget_converts_non_zar_currency(destinations, prefs_factory, monkeypat
     prefs = prefs_factory(budget_per_day=100, currency="USD")
     result = score_budget(prefs, destinations["cheap_accessible_historic"], "city")
     assert result.evidence["currency"] == "USD"
-    # Band 1's ZAR midpoint (250) converted at 0.055 is 13.75 USD.
+    # band 1's ZAR midpoint (250) at 0.055 conversion rate = 13.75 USD
     assert result.evidence["estimated_daily_cost"] == pytest.approx(13.75)
 
 
@@ -67,7 +67,7 @@ def test_accessibility_no_preference_zeroes_weight(destinations, prefs_factory):
 
 
 def test_accessibility_unknown_is_neutral_not_poor(destinations, prefs_factory):
-    """§9 open risk: sparse tagging must never read as poor."""
+    """sparse tagging should read as neutral, never as poor"""
     prefs = prefs_factory(wheelchair="preferred")
     result = score_accessibility(prefs, destinations["mid_no_climate_data"], "city")
     assert result.value == 0.5
@@ -117,8 +117,7 @@ def test_interests_family_fold_in_only_applies_with_children(destinations, prefs
     candidate = destinations["expensive_accessible_family"]
     no_kids = score_interests(prefs_factory(interests=["family"], children=[]), candidate, "city")
     with_kids = score_interests(prefs_factory(interests=["family"], children=[5]), candidate, "city")
-    # Both hit the same base interest density; the fold-in should only ever
-    # change the value when children are present.
+    # both start from the same base density, fold-in should only change things when there are kids
     assert with_kids.evidence["family_poi_density"] == 0.85
     assert no_kids.value == no_kids.evidence["matched_density"]["family"]
 

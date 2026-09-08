@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-# Per-level dimension weights. Must sum to 1.0 per level — enforced by
-# test_weights.py, not at import time, so a bad edit fails fast in CI
-# rather than at request time.
+# weights per level, need to add up to 1.0 for each level - test_weights.py checks this
+# so a typo here fails the test suite instead of quietly messing up scores
 #
-# Rationale (plan §3): nobody rejects a country because one museum lacks a
-# ramp. Budget/climate/safety dominate high up; interests/accessibility
-# dominate low down, where the user has already committed to a place.
+# basic idea: nobody skips a whole country because one museum has no ramp access.
+# budget/climate/safety matter more at the country level, interests/accessibility
+# matter more once you're picking a specific city
 WEIGHTS: dict[str, dict[str, float]] = {
     "country": {
         "budget": 0.30,
@@ -29,27 +28,24 @@ WEIGHTS: dict[str, dict[str, float]] = {
     },
 }
 
-# Bottom-up blend (§3): country_score = BLEND_SELF * own features
-#                                       + BLEND_CHILDREN * mean(top-N child scores)
-# Prevents dead-end funnels — e.g. ranking a country #1 on cost/climate only
-# for every one of its cities to fail the user's accessibility needs.
+# bottom-up blend: country_score = BLEND_SELF * own features
+#                                 + BLEND_CHILDREN * mean(top-N child scores)
+# without this a country could rank #1 on cost/climate and then every city
+# inside it fails the user's accessibility needs - kind of a dead end
 BLEND_SELF_WEIGHT = 0.7
 BLEND_CHILDREN_WEIGHT = 0.3
 BLEND_TOP_N_CHILDREN = 3
 
-# Manually curated 1..5 cost_index (§2) -> approximate daily cost band, in
-# ZAR, used for the hard budget gate and score_budget. This is a
-# placeholder: the plan never defines a currency-normalised numeric range
-# for the index, and the sample request/Node's Trip.budget model both use
-# ZAR, so ZAR was chosen as the working assumption. When prefs.currency
-# isn't ZAR, engine/currency.py converts these bounds via ExchangeRate-API
-# before either the gate or the scorer compares them to budget_per_day.
+# hand-curated 1..5 cost_index -> rough daily cost band in ZAR, used by the
+# budget gate and score_budget. Went with ZAR here since that's what the sample
+# request and Node's Trip.budget model both use - not based on any real currency
+# spec, just what was already in use. If prefs.currency isn't ZAR, engine/currency.py
+# converts these bounds through ExchangeRate-API before comparing to budget_per_day.
 #
-# Gating on the band's floor, not its ceiling: band 5 is open-ended
-# (2500+), so gating on an infinite ceiling would exclude every band-5
-# candidate regardless of budget. The right question for a hard gate is
-# "is even the cheapest end of this band unaffordable?" — i.e. compare
-# against the floor.
+# gate checks against the floor of the band, not the ceiling - band 5 has no
+# ceiling (2500+) so gating on that would exclude everyone in band 5 no matter
+# their budget. checking the floor answers the actual question: can they even
+# afford the cheapest version of this place
 COST_BAND_ZAR_RANGE: dict[int, tuple[float, float]] = {
     1: (0.0, 500.0),
     2: (500.0, 900.0),
@@ -58,17 +54,14 @@ COST_BAND_ZAR_RANGE: dict[int, tuple[float, float]] = {
     5: (2500.0, float("inf")),
 }
 
-# Accessibility gate (§3): "required" + "poor" is a hard exclude. "unknown"
-# is deliberately NOT excluded — sparse OSM tagging is not evidence of
-# inaccessibility (plan §9 open risk: "Accessibility scoring reads as
-# discriminatory or wrong").
+# accessibility gate: "required" + "poor" gets excluded. "unknown" does NOT
+# get excluded on purpose - a place with barely any OSM tags isn't proof it's
+# actually inaccessible, that would be unfair to places that just aren't well mapped
 ACCESSIBILITY_HARD_FAIL_STATE = "poor"
 
-# score_climate temperature comfort curve. A candidate's monthly average for
-# prefs.climate.travel_month is compared to these target midpoints; distance
-# from the midpoint (clamped to the tolerance) linearly reduces the score.
-# No hard climate gate is implemented (see engine/gates.py docstring) —
-# the plan's draft schema has no explicit numeric range to gate against,
-# only this soft "prefer" enum.
+# climate scoring curve used in score_climate. compares the candidate's average
+# temp for the travel month against these target values, the further off it is
+# (up to the tolerance) the lower the score. there's no hard climate gate, just
+# this soft scoring based on the "prefer" setting
 CLIMATE_TARGET_C: dict[str, float] = {"cold": 10.0, "mild": 20.0, "hot": 30.0}
 CLIMATE_TOLERANCE_C = 15.0

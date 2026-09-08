@@ -1,25 +1,25 @@
 """
-Live Geoapify landmark/POI lookup: place-level half of "travel itinerary
-planning". Unlike engine/pipeline.py's country/city scoring, a single
-landmark doesn't have its own budget/climate/accessibility profile, so this
-doesn't go through the scoring engine — it's a direct geocode + Places
-query, grouped by the interest tags the caller asked for.
+Looks up actual landmarks/POIs near a destination using Geoapify - the
+"what to do once you've picked a place" part of itinerary planning.
 
-Same discipline as engine/currency.py and weather/weather.py: a missing key
-or failed call reads as an explicit error, never a raised exception the
-caller has to guess about. Results are cached in-process (geocoding and
-POIs don't change minute to minute) to stay well under Geoapify's shared
-free-tier daily credit budget (see scripts/enrich_destinations.py).
+This doesn't go through the scoring engine like the country/city stuff in
+engine/pipeline.py - a single landmark doesn't have a budget or climate, so
+it's just a geocode + Places lookup, grouped by whatever interests were asked for.
+
+Same as currency.py and weather.py: if something fails (bad key, no result)
+it comes back as an error message instead of throwing. Results get cached
+in memory since geocoding/POIs barely change, and Geoapify's free tier is
+shared across the whole account (see scripts/enrich_destinations.py).
 """
 
 from __future__ import annotations
 
 import math
 import os
-import time
 
 import requests
 
+from cache_utils import ttl_cache_get, ttl_cache_set
 from landmarks.interest_categories import INTEREST_CATEGORY_MAP
 
 GEOAPIFY_API_KEY = os.environ.get("geoapifyAPIKey")
@@ -29,20 +29,24 @@ REQUEST_TIMEOUT_SECONDS = 10
 CACHE_TTL_SECONDS = 24 * 60 * 60
 PLACES_LIMIT_PER_TAG = 10
 
-# key -> (value, fetched_at_monotonic). Two caches, same pattern as
-# engine/currency.py's _rate_cache — deliberately shared across requests.
+# key -> (value, fetched_at_monotonic), same shape as currency.py's _rate_cache,
+# shared across requests on purpose
 _geocode_cache: dict[tuple[str, int], tuple[tuple[float, float], float]] = {}
 _places_cache: dict[tuple[str, str, int], tuple[list[dict], float]] = {}
 
 
-def _cache_get(cache: dict, key):
-    cached = cache.get(key)
-    if cached is None:
-        return None
-    value, fetched_at = cached
-    if time.monotonic() - fetched_at >= CACHE_TTL_SECONDS:
-        return None
-    return value
+def _fix_mojibake(text: str | None) -> str | None:
+    """some place names come back double-encoded from Geoapify/OSM - a "'"
+    turns into "â€™" because the original UTF-8 bytes got misread as cp1252
+    somewhere upstream. re-encoding as cp1252 then decoding as utf-8 undoes
+    that. safe to run on normal text too since it just falls back unchanged
+    if the bytes aren't valid UTF-8."""
+    if not text:
+        return text
+    try:
+        return text.encode("cp1252").decode("utf-8")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return text
 
 
 def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -57,7 +61,7 @@ def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 def geocode_destination(destination: str, radius_m: int) -> tuple[float, float] | None:
     """Returns (lat, lon) for a destination name, or None if not found/unavailable."""
     cache_key = (destination.lower(), radius_m)
-    cached = _cache_get(_geocode_cache, cache_key)
+    cached = ttl_cache_get(_geocode_cache, cache_key, CACHE_TTL_SECONDS)
     if cached is not None:
         return cached
 
@@ -76,13 +80,13 @@ def geocode_destination(destination: str, radius_m: int) -> tuple[float, float] 
         return None
 
     lon, lat = features[0]["geometry"]["coordinates"]
-    _geocode_cache[cache_key] = ((lat, lon), time.monotonic())
+    ttl_cache_set(_geocode_cache, cache_key, (lat, lon))
     return (lat, lon)
 
 
 def _fetch_places(tag: str, lat: float, lon: float, radius_m: int) -> list[dict]:
     cache_key = (f"{lat:.4f},{lon:.4f}", tag, radius_m)
-    cached = _cache_get(_places_cache, cache_key)
+    cached = ttl_cache_get(_places_cache, cache_key, CACHE_TTL_SECONDS)
     if cached is not None:
         return cached
 
@@ -107,7 +111,7 @@ def _fetch_places(tag: str, lat: float, lon: float, radius_m: int) -> list[dict]
     except Exception:
         return []
 
-    _places_cache[cache_key] = (places, time.monotonic())
+    ttl_cache_set(_places_cache, cache_key, places)
     return places
 
 
@@ -125,11 +129,11 @@ def get_landmarks(destination: str, interests: list[str], radius_m: int = 5000) 
         places = _fetch_places(tag, lat, lon, radius_m)
         landmarks = [
             {
-                "name": p.get("name") or p.get("formatted") or "Unnamed place",
+                "name": _fix_mojibake(p.get("name") or p.get("formatted") or "Unnamed place"),
                 "category": (p.get("categories") or [tag])[0],
                 "lat": p["lat"],
                 "lon": p["lon"],
-                "address": p.get("formatted"),
+                "address": _fix_mojibake(p.get("formatted")),
                 "distance_m": round(_haversine_m(lat, lon, p["lat"], p["lon"])),
             }
             for p in places

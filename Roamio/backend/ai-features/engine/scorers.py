@@ -10,10 +10,9 @@ from engine.weights import (
 )
 from schemas.recommendations import Candidate, Level, Preferences
 
-# Weight given to family_poi_density inside the interests blend, when children
-# are travelling and the candidate has family POI data. Chosen so a strong
-# interest match isn't drowned out by one extra signal, but families with
-# young kids still feel it in the ranking.
+# how much family_poi_density counts toward the interests score when kids are
+# travelling and we actually have family POI data. kept fairly low so it doesn't
+# drown out an otherwise strong interest match, but still nudges the ranking
 FAMILY_FOLD_IN_WEIGHT = 0.25
 
 
@@ -39,17 +38,16 @@ def score_budget(prefs: Preferences, candidate: Candidate, level: Level) -> Dime
         )
 
     lower_bound_zar, upper_bound_zar = COST_BAND_ZAR_RANGE[cost_index]
-    # Band 5 is open-ended; use its floor as the representative cost rather
-    # than an infinite midpoint. Otherwise use the band midpoint.
+    # band 5 has no upper bound, so just use the floor instead of trying to average
+    # with infinity. every other band uses the midpoint like normal.
     representative_zar = (
         lower_bound_zar if upper_bound_zar == float("inf") else (lower_bound_zar + upper_bound_zar) / 2
     )
     representative = convert_from_zar(representative_zar, prefs.currency)
 
     if representative is None:
-        # Rate unavailable (no API key / lookup failed) — same "treated as
-        # neutral" discipline as the cost_index is None case above, not a
-        # reason to crash or silently compare mismatched currencies.
+        # no API key or the lookup failed - same as the cost_index None case above,
+        # just score it neutral instead of crashing or comparing wrong currencies
         return DimensionScore(
             dimension="budget",
             value=0.5,
@@ -61,9 +59,8 @@ def score_budget(prefs: Preferences, candidate: Candidate, level: Level) -> Dime
             ),
         )
 
-    # Cheaper relative to the user's budget scores higher. Gate already
-    # removed anything whose band floor is unaffordable, so this only ranks
-    # among survivors.
+    # cheaper = higher score. the gate already filtered out anything unaffordable,
+    # so this is just ranking whatever's left
     value = _clamp01(1.0 - (representative / prefs.budget_per_day) * 0.5)
 
     return DimensionScore(
@@ -88,8 +85,8 @@ def score_climate(prefs: Preferences, candidate: Candidate, level: Level) -> Dim
     prefer = prefs.climate.prefer
 
     if prefer is None:
-        # "No preference" zeroes the weight — §5. It's not the same as
-        # defaulting to a middle score; this dimension simply doesn't count.
+        # no preference set = weight goes to 0, not a middle score. the dimension
+        # just doesn't count toward the total at all
         return DimensionScore(
             dimension="climate",
             value=0.5,
@@ -178,7 +175,7 @@ def score_accessibility(prefs: Preferences, candidate: Candidate, level: Level) 
     need = prefs.accessibility.wheelchair
 
     if need == "none":
-        # "No preference" zeroes the weight — §5, same rule as climate.
+        # same as climate - no preference means this dimension doesn't count
         return DimensionScore(
             dimension="accessibility",
             value=0.5,
@@ -218,8 +215,8 @@ def score_safety(prefs: Preferences, candidate: Candidate, level: Level) -> Dime
     safety_index = candidate.features.safety_index
 
     if safety_index is None:
-        # No safety data source is wired up yet (see schemas module
-        # docstring, note 1) — read as unknown/neutral, never as unsafe.
+        # don't have a safety data source hooked up yet, so treat as
+        # neutral/unknown rather than assuming it's unsafe
         return DimensionScore(
             dimension="safety",
             value=0.5,

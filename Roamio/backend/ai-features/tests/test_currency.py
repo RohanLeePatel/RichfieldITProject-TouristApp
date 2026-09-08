@@ -1,3 +1,5 @@
+import time
+
 import pytest
 
 import engine.currency as currency
@@ -5,7 +7,7 @@ import engine.currency as currency
 
 @pytest.fixture(autouse=True)
 def _clear_rate_cache():
-    """The rate cache is module-level state — isolate each test from it."""
+    """rate cache is shared module state, so clear it between tests or they'll bleed into each other"""
     currency._rate_cache.clear()
     yield
     currency._rate_cache.clear()
@@ -48,7 +50,7 @@ def test_successful_lookup_converts_and_caches(monkeypatch):
     assert rate == 0.055
     assert currency.convert_from_zar(1000.0, "USD") == 55.0
 
-    # Second call within the TTL must be served from cache, not a new request.
+    # calling again within the TTL should hit the cache, not fire another request
     currency.get_zar_conversion_rate("USD")
     assert len(calls) == 1
 
@@ -79,7 +81,11 @@ def test_network_failure_returns_none(monkeypatch):
 
 def test_expired_cache_entry_triggers_a_refetch(monkeypatch):
     monkeypatch.setattr(currency, "EXCHANGE_RATE_API_KEY", "test-key")
-    currency._rate_cache["USD"] = (0.05, 0.0)  # fetched_at far in the past
+    # fetched_at must be relative to time.monotonic() (counts from boot, not
+    # a fixed epoch) — an absolute 0.0 only reads as "expired" on a machine
+    # that's been up longer than CACHE_TTL_SECONDS, which is not guaranteed.
+    stale_fetched_at = time.monotonic() - currency.CACHE_TTL_SECONDS - 1
+    currency._rate_cache["USD"] = (0.05, stale_fetched_at)
 
     class _Response:
         def raise_for_status(self):

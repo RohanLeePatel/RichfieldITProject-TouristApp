@@ -1,19 +1,16 @@
 """
-§2 demo destination set — deliberately small starter batch (6 cities / 4
-countries) rather than the plan's full 15-30/8-12, per build-session scope.
-Expand this list and re-run enrich_destinations.py to grow the seed set;
-nothing else in the pipeline needs to change.
+Small demo set of destinations - 6 cities across 4 countries, kept small on
+purpose for now instead of the full 15-30 city list we could eventually build.
+Add more cities here and re-run enrich_destinations.py to grow the dataset,
+nothing else needs to change.
 
-cost_index (1-5) is hand-curated (§2: "not available from Geoapify... manual
-seed work") from general knowledge of typical tourist daily spend
-(accommodation + food + activities, per person), rough-converted to ZAR
-band per engine/weights.py COST_BAND_ZAR_RANGE. This is a placeholder
-estimate, not researched pricing data — refine before relying on it for
-anything beyond a demo.
+cost_index (1-5) is just a guess based on general knowledge of typical tourist
+spend per day (accommodation + food + activities), mapped to the ZAR bands in
+engine/weights.py's COST_BAND_ZAR_RANGE. Not actual researched pricing data,
+should get refined before this is used for anything beyond a demo.
 
-radius_m is a single approximate "city core + surrounds" bound for all
-cities, not a per-city-tuned bounding box (§2 allows rect: or circle:,
-tuned per city) — a shortcut for the starter batch.
+radius_m is one rough "city + surrounding area" radius for every city, not
+tuned per city individually - good enough for now, could be more precise later.
 """
 
 CITIES = [

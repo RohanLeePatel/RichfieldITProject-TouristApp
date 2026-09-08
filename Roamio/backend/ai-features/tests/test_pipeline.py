@@ -1,6 +1,7 @@
 """
-§7: ordering tests for realistic personas, gate-exclusion-in-pipeline tests,
-explanation/evidence drift tests, and the bottom-up blend.
+Covers ranking with realistic personas, gate exclusions running through the
+full pipeline, explanation text staying in sync with the evidence, and the
+bottom-up blend.
 """
 
 from engine.pipeline import score_candidates
@@ -12,10 +13,9 @@ from tests.conftest import make_candidate
 
 def test_persona_budget_family_with_wheelchair_user(destinations, prefs_factory):
     """
-    Budget family, wheelchair required, interested in family activities.
-    Expect: poor-accessibility candidates excluded; the accessible,
-    family-friendly candidate should not be excluded, and any surviving
-    'poor' candidate must never outrank it.
+    budget family, needs a wheelchair, into family activities. poor-accessibility
+    places should get excluded, and the accessible family-friendly one should
+    make it through without getting beaten by any surviving 'poor' candidate.
     """
     prefs = prefs_factory(
         budget_per_day=6000, interests=["family"], children=[6, 9], wheelchair="required"
@@ -32,13 +32,12 @@ def test_persona_budget_family_with_wheelchair_user(destinations, prefs_factory)
 
 
 def test_persona_couple_after_nightlife_no_accessibility_need(destinations, prefs_factory):
-    """Couple, no children, no accessibility requirement, nightlife/food interests."""
+    """couple, no kids, no accessibility needs, into nightlife/food"""
     prefs = prefs_factory(budget_per_day=2000, interests=["nightlife", "food"], wheelchair="none")
     candidates = list(destinations.values())
     results, excluded, _ = score_candidates(prefs, "city", candidates)
 
-    # The poor-accessibility nightlife spot must NOT be excluded — no
-    # accessibility requirement was stated.
+    # no accessibility requirement was set, so the poor-accessibility spot should stay in
     excluded_ids = {e.id for e in excluded}
     assert destinations["mid_poor_access_nightlife"].id not in excluded_ids
 
@@ -102,9 +101,9 @@ def test_comparison_line_absent_for_single_result(destinations, prefs_factory):
 
 def test_blend_pulls_score_toward_weak_children(destinations, prefs_factory):
     """
-    A country that looks great on its own features but whose top cities all
-    fail the user's accessibility need should NOT simply out-rank a country
-    with a merely-good own-score and strong, accessible cities.
+    a country that looks great on paper but whose top cities all fail the user's
+    accessibility need shouldn't just win over a country with a decent own-score
+    but actually accessible cities
     """
     prefs = prefs_factory(wheelchair="required", interests=["history"])
 

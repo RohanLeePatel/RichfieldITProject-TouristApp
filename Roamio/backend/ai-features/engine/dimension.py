@@ -1,4 +1,4 @@
-"""DimensionScore (§3): the unit every scorer returns."""
+"""What every scorer function hands back - one dimension's score plus the evidence behind it."""
 
 from __future__ import annotations
 

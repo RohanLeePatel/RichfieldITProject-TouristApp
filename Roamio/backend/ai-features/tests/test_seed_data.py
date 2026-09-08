@@ -1,8 +1,8 @@
 """
-§7-adjacent: the committed seed data (D4) must always validate against the
-frozen contract and be scoreable end-to-end. Catches drift between
-scripts/enrich_destinations.py's output shape and schemas/recommendations.py
-without needing a live Geoapify/Open-Meteo call.
+Makes sure the committed seed data actually validates against our schema and
+can be scored end to end. Catches it if enrich_destinations.py's output shape
+ever drifts from schemas/recommendations.py, without needing to hit the real
+Geoapify/Open-Meteo APIs.
 """
 
 import json
@@ -39,8 +39,8 @@ def test_seed_candidates_score_without_error():
 
 
 def test_seed_sparse_accessibility_never_reads_as_poor():
-    """Regression for the Durban/Windhoek case: 0 tagged POIs must be
-    'unknown', never 'poor' (§9 open risk)."""
+    """catches the Durban/Windhoek case - 0 tagged POIs should read as
+    'unknown', never 'poor'"""
     candidates = _load_seed_candidates()
     for c in candidates:
         if c.features.tagged_total < 5:

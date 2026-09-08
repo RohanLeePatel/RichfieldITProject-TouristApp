@@ -3,5 +3,4 @@ pydantic
 uvicorn[standard]
 python-multipart
 requests
-pytesseract
 detectlanguage

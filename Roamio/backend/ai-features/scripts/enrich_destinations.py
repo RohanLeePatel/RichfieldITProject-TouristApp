@@ -1,38 +1,34 @@
 """
-§2 offline enrichment script — a dev tool, NOT part of the deployed Vercel
-function (D4). Run manually:
+Offline script for building the seed data - not part of the deployed app,
+just something you run by hand when you need to update the dataset:
 
     python scripts/enrich_destinations.py
 
-Pulls POI category counts + accessibility sample (Geoapify) and monthly
-temperature normals (Open-Meteo, keyless) for the cities in cities_seed.py,
-normalizes, and writes committed seed JSON to data/destinations_seed.json
-so the demo never depends on a live key (D4/D5, §9 open risk mitigation).
+Pulls POI counts + a wheelchair-accessibility sample from Geoapify, and
+monthly temperature averages from Open-Meteo, for every city in
+cities_seed.py. Normalizes everything and writes the result to
+data/destinations_seed.json, so the actual app never has to make these calls
+live and doesn't depend on having a working key at request time.
 
-Why Open-Meteo and not OpenWeather here: the project's OpenWeather
-integration (elsewhere in the app) serves *live* current conditions and a
-short-term forecast for a traveler's actual trip — a different feature from
-what this script needs. This script instead needs long-run *historical
-monthly averages* ("what's July usually like in Bangkok?") to score climate
-fit ahead of time, offline, for every seed city. Open-Meteo's archive API
-provides exactly that, for free and without a key, which fits a batch job
-that's re-run whenever the seed set grows (see D4 above). OpenWeather's
-equivalent historical/statistical data sits behind a paid plan. Both APIs
-are in use in this project — OpenWeather for live forecasts, Open-Meteo for
-this enrichment step — they are not interchangeable for this purpose.
+Using Open-Meteo instead of OpenWeather here because they're not really doing
+the same job - OpenWeather (used elsewhere in the app) gives live current
+conditions and short forecasts for an actual trip. This script needs
+historical monthly averages instead ("what's July usually like in Bangkok?")
+to score climate fit ahead of time. Open-Meteo's archive API does exactly
+that for free with no key, which is what a batch job like this needs.
+OpenWeather has similar historical data but it's paid. So both APIs are used
+in this project, just for different things.
 
-Normalisation (§2 "pick one and document which"): interest density per tag
-is min-max normalized against the strongest city *in this seed batch* for
-that tag (count / max_count_for_tag), so the city with the most museums
-scores 1.0 on "history" and the rest scale relative to it. This is
-batch-relative, not an absolute count — re-running with a larger city list
-changes every city's density, which is expected (D4: this script re-runs
-whenever the seed set grows).
+Normalizing interest density: for each tag, we take the count and divide by
+whatever city has the highest count for that tag in this batch, so the city
+with the most museums gets 1.0 on "history" and everyone else scales relative
+to that. This means the numbers are relative to this specific batch of
+cities, not some fixed scale - adding more cities later changes everyone's
+density score, which is expected.
 
-Geoapify's free tier is a shared 3000-credits/day budget across your whole
-account. This script's default 6-city batch costs on the order of a few
-dozen requests; watch your dashboard before scaling to the plan's full
-15-30 city set.
+Geoapify's free tier is 3000 credits/day for the whole account. The default
+6-city batch here uses maybe a few dozen requests, but keep an eye on the
+dashboard before scaling this up to way more cities.
 """
 
 from __future__ import annotations
@@ -44,32 +40,28 @@ from pathlib import Path
 
 import requests
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so "scripts.X" style imports aren't needed
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # lets us import like "scripts.X" without issues
 from landmarks.interest_categories import ACCESSIBILITY_SAMPLE_CATEGORIES, INTEREST_CATEGORY_MAP
 from scripts.cities_seed import CITIES
 
 GEOAPIFY_PLACES_URL = "https://api.geoapify.com/v2/places"
 OPEN_METEO_ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
-PLACES_LIMIT = 500  # Geoapify's hard max (1000 returns 400, verified live) — cap per
-# category per city, relative ranking not a census. Even 500 can still
-# saturate a dense category in a huge city (Bangkok's "food" tag, e.g.);
-# the earlier 100 cap made this far worse — most cities in this starter
-# batch were clipping to 1.0 density on multiple tags, flattening exactly
-# the differentiation normalization exists to produce.
+PLACES_LIMIT = 500  # Geoapify caps at 1000 (tried it, got a 400) - this is per category per
+# city, so it's a relative ranking not a full count anyway. tried 100 before and it was too
+# low - dense categories in big cities (like Bangkok's "food" tag) were all maxing out at
+# 1.0 density, which defeats the whole point of normalizing
 ACCESSIBLE_VALUES = {"yes", "limited"}
-MIN_TAGGED_SAMPLE = 5  # below this, accessibility reads as "unknown" — too sparse to trust (§3)
+MIN_TAGGED_SAMPLE = 5  # fewer tagged POIs than this and accessibility just reads as "unknown"
 SUPPORTED_RATIO = 0.5
 POOR_RATIO = 0.15
-# A full recent year, not a true multi-year "normal" — documented shortcut
-# for the starter batch (see module docstring).
-CLIMATE_YEAR = 2023
+CLIMATE_YEAR = 2023  # just using one recent full year instead of a proper multi-year average
 
 OUTPUT_PATH = Path(__file__).resolve().parent.parent / "data" / "destinations_seed.json"
 
 
 def load_geoapify_key() -> str:
-    # No python-dotenv dependency added just for this dev script — walk up
-    # to the repo root .env and parse it directly.
+    # didn't want to add python-dotenv just for this one script, so just walk
+    # up the folders looking for a .env and read it ourselves
     path = Path(__file__).resolve()
     for parent in path.parents:
         candidate = parent / ".env"
@@ -138,7 +130,7 @@ def fetch_accessibility(api_key: str, lat: float, lon: float, radius_m: int) -> 
     elif ratio <= POOR_RATIO:
         state = "poor"
     else:
-        state = "unknown"  # ambiguous middle — conservative, never guesses "poor" (§9 open risk)
+        state = "unknown"  # ratio's in the ambiguous middle, play it safe and don't guess "poor"
 
     return {"accessibility": state, "accessible_ratio": ratio, "tagged_total": tagged_total}
 
@@ -192,7 +184,7 @@ def normalize(raw_cities: list[dict]) -> list[dict]:
                     "tagged_total": city["accessibility"]["tagged_total"],
                     "cost_index": city["cost_index"],
                     "climate": {"avg_temp_by_month": city["avg_temp_by_month"]},
-                    "safety_index": None,  # no data source yet — see engine/scorers.py
+                    "safety_index": None,  # don't have a source for this yet, see engine/scorers.py
                 },
             }
         )

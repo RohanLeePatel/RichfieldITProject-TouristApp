@@ -10,7 +10,7 @@ def test_budget_gate_excludes_over_budget(destinations, prefs_factory):
 
 
 def test_budget_gate_passes_expensive_band_with_high_budget(destinations, prefs_factory):
-    """Regression: band 5 (open-ended) must not be excluded no matter the budget."""
+    """band 5 has no ceiling so it should never get excluded no matter how high the budget is"""
     prefs = prefs_factory(budget_per_day=10000)
     reason = check_budget_gate(prefs, destinations["expensive_untagged_beach"])
     assert reason is None
@@ -30,7 +30,7 @@ def test_budget_gate_no_cost_data_passes(destinations, prefs_factory):
 
 
 def test_budget_gate_converts_non_zar_currency(destinations, prefs_factory, monkeypatch):
-    """Band 5's ZAR floor (2500) converted to USD at 0.055 is ~137.50."""
+    """band 5's ZAR floor is 2500, converted at 0.055 that's about 137.50 USD"""
     currency._rate_cache.clear()
     monkeypatch.setattr(currency, "EXCHANGE_RATE_API_KEY", "test-key")
     monkeypatch.setattr(
@@ -52,7 +52,7 @@ def test_budget_gate_converts_non_zar_currency(destinations, prefs_factory, monk
 
 
 def test_budget_gate_unavailable_conversion_does_not_gate(destinations, prefs_factory, monkeypatch):
-    """No key / failed lookup must fail open, not wrongly exclude a candidate."""
+    """no key or a failed lookup should fail open, not wrongly exclude someone"""
     currency._rate_cache.clear()
     monkeypatch.setattr(currency, "EXCHANGE_RATE_API_KEY", None)
 
@@ -68,7 +68,7 @@ def test_accessibility_gate_excludes_required_and_poor(destinations, prefs_facto
 
 
 def test_accessibility_gate_does_not_exclude_unknown(destinations, prefs_factory):
-    """§9 open risk: unknown must never be gated out as if it were poor."""
+    """unknown accessibility should never get gated out like it's poor"""
     prefs = prefs_factory(wheelchair="required")
     reason = check_accessibility_gate(prefs, destinations["mid_no_climate_data"])
     assert reason is None
@@ -83,4 +83,4 @@ def test_accessibility_gate_not_applied_when_not_required(destinations, prefs_fa
 def test_run_gates_returns_first_hit(destinations, prefs_factory):
     prefs = prefs_factory(budget_per_day=1, wheelchair="required")
     reason = run_gates(prefs, destinations["expensive_poor_access_historic"])
-    assert reason is not None  # budget gate hits first, per GATES order
+    assert reason is not None  # budget gate should hit first since it's earlier in GATES

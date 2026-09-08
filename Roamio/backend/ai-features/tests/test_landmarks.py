@@ -119,6 +119,42 @@ def test_landmarks_missing_api_key_returns_503(monkeypatch):
     assert response.status_code == 503
 
 
+def test_landmarks_fixes_mojibake_names(client, monkeypatch):
+    import landmarks.landmarks as landmarks_module
+
+    def fake_get(url, params=None, timeout=None):
+        if url == landmarks_module.GEOCODE_URL:
+            return _FakeResponse({"features": [{"geometry": {"coordinates": [18.42, -33.92]}}]})
+        return _FakeResponse(
+            {
+                "features": [
+                    {
+                        "properties": {
+                            # "Company's" mangled the way Geoapify/OSM sometimes returns it.
+                            "name": "Companyâ€™s Garden Resturant",
+                            "lat": -33.9265,
+                            "lon": 18.4166,
+                        }
+                    }
+                ]
+            }
+        )
+
+    monkeypatch.setattr(landmarks_module.requests, "get", fake_get)
+
+    response = client.get(
+        "/landmarks?destination=Cape%20Town&interests=food", headers={"node-secretkey": "test-secret"}
+    )
+    assert response.json()["groups"][0]["landmarks"][0]["name"] == "Company’s Garden Resturant"
+
+
+def test_fix_mojibake_is_noop_on_clean_text():
+    from landmarks.landmarks import _fix_mojibake
+
+    assert _fix_mojibake("Table Mountain") == "Table Mountain"
+    assert _fix_mojibake(None) is None
+
+
 def test_landmarks_requires_at_least_one_interest(client):
     response = client.get(
         "/landmarks?destination=Cape%20Town&interests=", headers={"node-secretkey": "test-secret"}

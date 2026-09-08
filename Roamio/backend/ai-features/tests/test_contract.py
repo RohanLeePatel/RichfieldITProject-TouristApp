@@ -1,5 +1,5 @@
-"""§7: contract tests against the frozen §17 Pydantic models — malformed
-requests must be rejected loudly, not coerced into something plausible."""
+"""Checks that bad requests actually get rejected by the pydantic models
+instead of silently getting coerced into something that looks valid."""
 
 import pytest
 from pydantic import ValidationError

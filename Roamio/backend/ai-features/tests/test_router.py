@@ -1,9 +1,8 @@
 """
-§7: "test the boundary like a real boundary" — exercises POST
-/recommendations through the actual FastAPI app, including the shared-secret
-auth header path (§6). The plan's real deployed-Vercel-URL integration test
-from Node is out of scope here (no deployment yet); this is the local
-equivalent against the app object.
+Hits POST /recommendations through the actual FastAPI app (not just the
+functions directly), auth header included, so we're testing the real
+boundary Node will actually call. Not testing the deployed Vercel URL from
+Node itself here - this is the local equivalent against the app object.
 """
 
 import importlib
@@ -17,9 +16,8 @@ from tests.test_contract import VALID_PAYLOAD
 @pytest.fixture
 def client(monkeypatch):
     monkeypatch.setenv("superSecretKey", "test-secret")
-    # config.auth reads the env var at import time, so force a fresh import
-    # after setting it, and reload the router/app modules that captured the
-    # dependency at import time.
+    # config.auth reads the env var at import time, so it needs a fresh reload
+    # after setting it, and same for the router/app that already imported it
     import config.auth as auth_module
 
     importlib.reload(auth_module)
@@ -70,7 +68,7 @@ def test_recommendations_uses_seed_catalog_when_candidates_omitted(client):
     )
     assert response.status_code == 200
     body = response.json()
-    # Seed catalog has 6 real cities; all should score (budget/interests here don't gate anything out).
+    # seed has 6 cities and nothing here should get gated out
     assert len(body["results"]) + len(body["excluded"]) == 6
 
 
@@ -92,7 +90,7 @@ def test_recommendations_country_level_uses_synthesized_catalog(client):
     )
     assert response.status_code == 200
     body = response.json()
-    # 4 real countries in the seed (South Africa, Namibia, Portugal, Thailand).
+    # 4 countries in the seed data: South Africa, Namibia, Portugal, Thailand
     assert len(body["results"]) + len(body["excluded"]) == 4
     result_ids = {r["id"] for r in body["results"]}
     assert "south-africa" in result_ids

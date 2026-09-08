@@ -7,16 +7,15 @@ NEXT_LEVEL: dict[Level, Level] = {"country": "city", "city": "place"}
 
 
 def blended_score(prefs: Preferences, candidate: Candidate, level: Level, own_score: float) -> tuple[float, dict]:
-    #Returns (blended_score, evidence) for the bottom-up blend.
+    # gives back (blended_score, evidence)
     child_level = NEXT_LEVEL.get(level)
     children = candidate.children[:BLEND_TOP_N_CHILDREN]
 
     if child_level is None or not children:
         return own_score, {"blended": False, "child_count": 0}
 
-    # Import here (not at module top) to avoid a circular import between
-    # engine.pipeline (which calls this) and engine.blend (which needs the
-    # same scoring entry point one level down).
+    # importing here instead of at the top because pipeline.py imports this file too,
+    # so a top-level import would create a circular import
     from engine.pipeline import score_candidate_own
 
     child_scores = [score_candidate_own(prefs, child, child_level)[0] for child in children]

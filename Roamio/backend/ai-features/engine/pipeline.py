@@ -24,9 +24,8 @@ def score_candidate_own(
     total_weight = sum(d.weight for d in dims)
 
     if total_weight <= 0:
-        # Every dimension for this level was zeroed out (e.g. no interests,
-        # no accessibility need, no climate preference, at place level).
-        # Neutral score rather than a divide-by-zero.
+        # can happen if every dimension got zeroed out at this level (no interests picked,
+        # no accessibility need, etc) - just give a neutral score instead of dividing by zero
         breakdown = [
             EvidenceEntry(dimension=d.dimension, value=d.value, weight=0.0, evidence=d.evidence, explanation=d.explanation)
             for d in dims
@@ -63,9 +62,8 @@ def score_candidates(
         final_score, blend_evidence = blended_score(prefs, candidate, level, own_score)
         final_score = max(0.0, min(1.0, final_score))
 
-        # Surface the blend outcome in the breakdown as its own evidence
-        # entry (weight 0 — it's not a scoring dimension, it's provenance)
-        # rather than folding it silently into total_score.
+        # add the blend result as its own entry in the breakdown so it's visible in the
+        # response - weight 0 since it's not an actual scoring dimension, just showing our work
         breakdown = [
             *breakdown,
             EvidenceEntry(
