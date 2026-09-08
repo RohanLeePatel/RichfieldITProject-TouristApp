@@ -1,0 +1,248 @@
+[
+  {
+    "id": "za-cpt",
+    "name": "Cape Town",
+    "country": "South Africa",
+    "features": {
+      "interest_counts": {
+        "history": 91,
+        "nature": 500,
+        "food": 500,
+        "family": 378
+      },
+      "interest_density": {
+        "history": 0.182,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 0.756
+      },
+      "family_poi_density": 0.756,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 17,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 20.3,
+          "2": 20.8,
+          "3": 18.6,
+          "4": 16.5,
+          "5": 14.5,
+          "6": 13.5,
+          "7": 12.2,
+          "8": 13.6,
+          "9": 13.2,
+          "10": 17.4,
+          "11": 18.9,
+          "12": 20.2
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "za-dbn",
+    "name": "Durban",
+    "country": "South Africa",
+    "features": {
+      "interest_counts": {
+        "history": 23,
+        "nature": 201,
+        "food": 170,
+        "family": 22
+      },
+      "interest_density": {
+        "history": 0.046,
+        "nature": 0.402,
+        "food": 0.34,
+        "family": 0.044
+      },
+      "family_poi_density": 0.044,
+      "accessibility": "unknown",
+      "accessible_ratio": null,
+      "tagged_total": 0,
+      "cost_index": 2,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 24.1,
+          "2": 24.1,
+          "3": 23.7,
+          "4": 21.9,
+          "5": 19.2,
+          "6": 17.7,
+          "7": 16.8,
+          "8": 17.7,
+          "9": 19.6,
+          "10": 19.5,
+          "11": 22.4,
+          "12": 22.6
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "na-whk",
+    "name": "Windhoek",
+    "country": "Namibia",
+    "features": {
+      "interest_counts": {
+        "history": 29,
+        "nature": 34,
+        "food": 164,
+        "family": 49
+      },
+      "interest_density": {
+        "history": 0.058,
+        "nature": 0.068,
+        "food": 0.328,
+        "family": 0.098
+      },
+      "family_poi_density": 0.098,
+      "accessibility": "unknown",
+      "accessible_ratio": null,
+      "tagged_total": 0,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 22.5,
+          "2": 22.0,
+          "3": 22.8,
+          "4": 21.1,
+          "5": 17.4,
+          "6": 14.3,
+          "7": 12.9,
+          "8": 17.1,
+          "9": 19.9,
+          "10": 24.4,
+          "11": 24.6,
+          "12": 24.4
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "pt-lis",
+    "name": "Lisbon",
+    "country": "Portugal",
+    "features": {
+      "interest_counts": {
+        "history": 500,
+        "nature": 500,
+        "food": 500,
+        "family": 500
+      },
+      "interest_density": {
+        "history": 1.0,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 1.0
+      },
+      "family_poi_density": 1.0,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 31,
+      "cost_index": 4,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 11.6,
+          "2": 11.1,
+          "3": 14.0,
+          "4": 17.7,
+          "5": 19.0,
+          "6": 21.8,
+          "7": 22.1,
+          "8": 23.8,
+          "9": 21.0,
+          "10": 20.0,
+          "11": 15.6,
+          "12": 12.1
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "pt-opo",
+    "name": "Porto",
+    "country": "Portugal",
+    "features": {
+      "interest_counts": {
+        "history": 315,
+        "nature": 294,
+        "food": 500,
+        "family": 372
+      },
+      "interest_density": {
+        "history": 0.63,
+        "nature": 0.588,
+        "food": 1.0,
+        "family": 0.744
+      },
+      "family_poi_density": 0.744,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 27,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 10.1,
+          "2": 10.3,
+          "3": 12.5,
+          "4": 15.0,
+          "5": 17.4,
+          "6": 19.5,
+          "7": 19.3,
+          "8": 20.9,
+          "9": 19.1,
+          "10": 18.5,
+          "11": 14.2,
+          "12": 10.7
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "th-bkk",
+    "name": "Bangkok",
+    "country": "Thailand",
+    "features": {
+      "interest_counts": {
+        "history": 229,
+        "nature": 472,
+        "food": 500,
+        "family": 142
+      },
+      "interest_density": {
+        "history": 0.458,
+        "nature": 0.944,
+        "food": 1.0,
+        "family": 0.284
+      },
+      "family_poi_density": 0.284,
+      "accessibility": "unknown",
+      "accessible_ratio": 1.0,
+      "tagged_total": 2,
+      "cost_index": 2,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 25.9,
+          "2": 27.2,
+          "3": 28.9,
+          "4": 30.8,
+          "5": 30.8,
+          "6": 28.8,
+          "7": 28.5,
+          "8": 28.4,
+          "9": 27.8,
+          "10": 27.6,
+          "11": 26.8,
+          "12": 27.2
+        }
+      },
+      "safety_index": null
+    }
+  }
+]
