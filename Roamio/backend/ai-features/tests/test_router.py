@@ -59,3 +59,61 @@ def test_recommendations_rejects_malformed_body(client):
         headers={"node-secretkey": "test-secret"},
     )
     assert response.status_code == 422
+
+
+def test_recommendations_uses_seed_catalog_when_candidates_omitted(client):
+    payload = {**VALID_PAYLOAD}
+    del payload["candidates"]
+    del payload["parent_id"]
+    response = client.post(
+        "/recommendations", json=payload, headers={"node-secretkey": "test-secret"}
+    )
+    assert response.status_code == 200
+    body = response.json()
+    # Seed catalog has 6 real cities; all should score (budget/interests here don't gate anything out).
+    assert len(body["results"]) + len(body["excluded"]) == 6
+
+
+def test_recommendations_rejects_omitted_candidates_at_place_level(client):
+    payload = {**VALID_PAYLOAD, "level": "place"}
+    del payload["candidates"]
+    response = client.post(
+        "/recommendations", json=payload, headers={"node-secretkey": "test-secret"}
+    )
+    assert response.status_code == 400
+
+
+def test_recommendations_country_level_uses_synthesized_catalog(client):
+    payload = {**VALID_PAYLOAD, "level": "country"}
+    del payload["candidates"]
+    del payload["parent_id"]
+    response = client.post(
+        "/recommendations", json=payload, headers={"node-secretkey": "test-secret"}
+    )
+    assert response.status_code == 200
+    body = response.json()
+    # 4 real countries in the seed (South Africa, Namibia, Portugal, Thailand).
+    assert len(body["results"]) + len(body["excluded"]) == 4
+    result_ids = {r["id"] for r in body["results"]}
+    assert "south-africa" in result_ids
+
+
+def test_recommendations_city_level_filters_by_parent_country(client):
+    payload = {**VALID_PAYLOAD, "level": "city", "parent_id": "south-africa"}
+    del payload["candidates"]
+    response = client.post(
+        "/recommendations", json=payload, headers={"node-secretkey": "test-secret"}
+    )
+    assert response.status_code == 200
+    body = response.json()
+    result_ids = {r["id"] for r in body["results"]} | {e["id"] for e in body["excluded"]}
+    assert result_ids == {"za-cpt", "za-dbn"}
+
+
+def test_recommendations_city_level_unknown_parent_country_404s(client):
+    payload = {**VALID_PAYLOAD, "level": "city", "parent_id": "atlantis"}
+    del payload["candidates"]
+    response = client.post(
+        "/recommendations", json=payload, headers={"node-secretkey": "test-secret"}
+    )
+    assert response.status_code == 404

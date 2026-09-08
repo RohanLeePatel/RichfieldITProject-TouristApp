@@ -1,4 +1,7 @@
-"""§2 interest -> Geoapify category map, as specified in the plan."""
+"""§2 interest -> Geoapify category map. Lives here (not scripts/) because
+routers/landmarks_router.py imports it on the live request path, and
+scripts/ is documented as dev-tooling not part of the deployed Vercel
+function. scripts/enrich_destinations.py imports this same module."""
 
 INTEREST_CATEGORY_MAP: dict[str, list[str]] = {
     "history": ["tourism.sights", "entertainment.museum"],

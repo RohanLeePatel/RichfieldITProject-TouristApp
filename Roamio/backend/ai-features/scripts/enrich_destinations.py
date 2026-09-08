@@ -45,8 +45,8 @@ from pathlib import Path
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so "scripts.X" style imports aren't needed
+from landmarks.interest_categories import ACCESSIBILITY_SAMPLE_CATEGORIES, INTEREST_CATEGORY_MAP
 from scripts.cities_seed import CITIES
-from scripts.interest_map import ACCESSIBILITY_SAMPLE_CATEGORIES, INTEREST_CATEGORY_MAP
 
 GEOAPIFY_PLACES_URL = "https://api.geoapify.com/v2/places"
 OPEN_METEO_ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"

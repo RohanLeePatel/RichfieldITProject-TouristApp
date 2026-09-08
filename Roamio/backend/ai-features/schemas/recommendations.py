@@ -101,12 +101,15 @@ class RecommendationRequest(BaseModel):
     level: Level
     parent_id: Optional[str] = None
     preferences: Preferences
-    candidates: list[Candidate]
+    # Optional: omit to have the service pick candidates from its own
+    # built-in catalog (engine/catalog.py) based on `level`/`preferences`
+    # alone. Pass explicitly to score a caller-supplied candidate set instead.
+    candidates: Optional[list[Candidate]] = None
 
     @model_validator(mode="after")
-    def _non_empty_candidates(self) -> "RecommendationRequest":
-        if not self.candidates:
-            raise ValueError("candidates must not be empty")
+    def _candidates_not_explicitly_empty(self) -> "RecommendationRequest":
+        if self.candidates is not None and not self.candidates:
+            raise ValueError("candidates must not be empty when provided")
         return self
 
 

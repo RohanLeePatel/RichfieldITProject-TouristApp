@@ -103,10 +103,11 @@ def score_candidates(
     return results, excluded, comparison
 
 
-def build_response(request: RecommendationRequest) -> RecommendationResponse:
-    results, excluded, comparison = score_candidates(
-        request.preferences, request.level, request.candidates
-    )
+def build_response(
+    request: RecommendationRequest, candidates: list[Candidate] | None = None
+) -> RecommendationResponse:
+    candidates = candidates if candidates is not None else request.candidates
+    results, excluded, comparison = score_candidates(request.preferences, request.level, candidates)
     return RecommendationResponse(
         request_id=request.request_id,
         session_id=request.session_id,
