@@ -43,4 +43,36 @@ router.post('/', async (req, res) => {
   }
 });
 
+router.get('/catalog', async (req, res) => {
+  const nodeSecretKey = process.env.superSecretKey;
+
+  if (!nodeSecretKey) {
+    return res.status(500).json({
+      message: 'Recommendation service authentication is not configured.',
+    });
+  }
+
+  try {
+    const response = await fetch(`${aiFeaturesUrl}/recommendations/catalog`, {
+      headers: {
+        'node-secretkey': nodeSecretKey,
+      },
+    });
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        message: data?.detail || 'Recommendation catalog is unavailable.',
+      });
+    }
+
+    return res.json(data);
+  } catch (error) {
+    console.error('Recommendation catalog proxy error:', error);
+    return res.status(502).json({
+      message: 'Could not connect to the recommendation catalog.',
+    });
+  }
+});
+
 module.exports = router;

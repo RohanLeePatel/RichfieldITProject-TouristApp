@@ -8,6 +8,24 @@ from schemas.recommendations import RecommendationRequest, RecommendationRespons
 router = APIRouter()
 
 
+@router.get(
+    "/recommendations/catalog",
+    dependencies=[Depends(verify_secretKey)],
+)
+async def recommendation_catalog() -> dict:
+    countries = load_country_catalog()
+    return {
+        "countries": [
+            {
+                "id": country.id,
+                "name": country.name,
+                "city_count": len(country.children),
+            }
+            for country in sorted(countries, key=lambda item: item.name.lower())
+        ]
+    }
+
+
 @router.post(
     "/recommendations",
     response_model=RecommendationResponse,

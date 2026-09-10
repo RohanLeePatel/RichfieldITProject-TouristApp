@@ -33,6 +33,17 @@ def test_recommendations_requires_auth_header(client):
     assert response.status_code == 422  # FastAPI: missing required header
 
 
+def test_recommendation_catalog_returns_expanded_country_metadata(client):
+    response = client.get(
+        "/recommendations/catalog", headers={"node-secretkey": "test-secret"}
+    )
+    assert response.status_code == 200
+    countries = response.json()["countries"]
+    assert len(countries) >= 50
+    south_africa = next(country for country in countries if country["id"] == "south-africa")
+    assert south_africa["city_count"] >= 20
+
+
 def test_recommendations_rejects_wrong_secret(client):
     response = client.post(
         "/recommendations", json=VALID_PAYLOAD, headers={"node-secretkey": "wrong"}

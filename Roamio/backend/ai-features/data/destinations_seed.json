@@ -1679,5 +1679,2752 @@
       },
       "safety_index": null
     }
+  },
+  {
+    "id": "za-oud",
+    "name": "Oudtshoorn",
+    "country": "South Africa",
+    "features": {
+      "interest_counts": {
+        "history": 2,
+        "nature": 2,
+        "food": 27,
+        "family": 6
+      },
+      "interest_density": {
+        "history": 0.004,
+        "nature": 0.004,
+        "food": 0.054,
+        "family": 0.012
+      },
+      "family_poi_density": 0.012,
+      "accessibility": "unknown",
+      "accessible_ratio": null,
+      "tagged_total": 0,
+      "cost_index": 2,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 24.1,
+          "2": 23.1,
+          "3": 21.5,
+          "4": 18.1,
+          "5": 14.0,
+          "6": 12.6,
+          "7": 11.5,
+          "8": 14.9,
+          "9": 14.7,
+          "10": 17.6,
+          "11": 22.6,
+          "12": 21.7
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "za-plt",
+    "name": "Plettenberg Bay",
+    "country": "South Africa",
+    "features": {
+      "interest_counts": {
+        "history": 4,
+        "nature": 2,
+        "food": 53,
+        "family": 7
+      },
+      "interest_density": {
+        "history": 0.008,
+        "nature": 0.004,
+        "food": 0.106,
+        "family": 0.014
+      },
+      "family_poi_density": 0.014,
+      "accessibility": "unknown",
+      "accessible_ratio": null,
+      "tagged_total": 0,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 20.7,
+          "2": 20.4,
+          "3": 19.4,
+          "4": 16.5,
+          "5": 14.2,
+          "6": 14.0,
+          "7": 11.5,
+          "8": 14.5,
+          "9": 13.1,
+          "10": 15.5,
+          "11": 18.1,
+          "12": 18.6
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "za-mby",
+    "name": "Mossel Bay",
+    "country": "South Africa",
+    "features": {
+      "interest_counts": {
+        "history": 5,
+        "nature": 8,
+        "food": 44,
+        "family": 8
+      },
+      "interest_density": {
+        "history": 0.01,
+        "nature": 0.016,
+        "food": 0.088,
+        "family": 0.016
+      },
+      "family_poi_density": 0.016,
+      "accessibility": "unknown",
+      "accessible_ratio": null,
+      "tagged_total": 0,
+      "cost_index": 2,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 21.3,
+          "2": 20.9,
+          "3": 19.6,
+          "4": 16.8,
+          "5": 14.6,
+          "6": 13.9,
+          "7": 11.8,
+          "8": 14.5,
+          "9": 14.2,
+          "10": 16.4,
+          "11": 19.1,
+          "12": 19.7
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "za-sun",
+    "name": "Sun City",
+    "country": "South Africa",
+    "features": {
+      "interest_counts": {
+        "history": 2,
+        "nature": 1,
+        "food": 5,
+        "family": 2
+      },
+      "interest_density": {
+        "history": 0.004,
+        "nature": 0.002,
+        "food": 0.01,
+        "family": 0.004
+      },
+      "family_poi_density": 0.004,
+      "accessibility": "unknown",
+      "accessible_ratio": null,
+      "tagged_total": 0,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 24.1,
+          "2": 22.0,
+          "3": 22.4,
+          "4": 19.5,
+          "5": 15.8,
+          "6": 13.2,
+          "7": 12.3,
+          "8": 15.7,
+          "9": 21.1,
+          "10": 22.8,
+          "11": 24.2,
+          "12": 24.7
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "za-stl",
+    "name": "St Lucia",
+    "country": "South Africa",
+    "features": {
+      "interest_counts": {
+        "history": 0,
+        "nature": 0,
+        "food": 16,
+        "family": 2
+      },
+      "interest_density": {
+        "history": 0.0,
+        "nature": 0.0,
+        "food": 0.032,
+        "family": 0.004
+      },
+      "family_poi_density": 0.004,
+      "accessibility": "unknown",
+      "accessible_ratio": null,
+      "tagged_total": 0,
+      "cost_index": 2,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 24.8,
+          "2": 24.8,
+          "3": 24.3,
+          "4": 22.6,
+          "5": 20.3,
+          "6": 19.0,
+          "7": 17.5,
+          "8": 19.0,
+          "9": 21.0,
+          "10": 20.7,
+          "11": 23.1,
+          "12": 23.4
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "bw-gbe",
+    "name": "Gaborone",
+    "country": "Botswana",
+    "features": {
+      "interest_counts": {
+        "history": 5,
+        "nature": 34,
+        "food": 68,
+        "family": 17
+      },
+      "interest_density": {
+        "history": 0.01,
+        "nature": 0.068,
+        "food": 0.136,
+        "family": 0.034
+      },
+      "family_poi_density": 0.034,
+      "accessibility": "unknown",
+      "accessible_ratio": null,
+      "tagged_total": 0,
+      "cost_index": 2,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 24.8,
+          "2": 22.9,
+          "3": 22.8,
+          "4": 20.3,
+          "5": 17.7,
+          "6": 14.4,
+          "7": 13.5,
+          "8": 16.9,
+          "9": 22.2,
+          "10": 24.6,
+          "11": 26.2,
+          "12": 26.8
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "zw-vfa",
+    "name": "Victoria Falls",
+    "country": "Zimbabwe",
+    "features": {
+      "interest_counts": {
+        "history": 13,
+        "nature": 9,
+        "food": 59,
+        "family": 4
+      },
+      "interest_density": {
+        "history": 0.026,
+        "nature": 0.018,
+        "food": 0.118,
+        "family": 0.008
+      },
+      "family_poi_density": 0.008,
+      "accessibility": "unknown",
+      "accessible_ratio": null,
+      "tagged_total": 0,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 21.7,
+          "2": 23.0,
+          "3": 23.8,
+          "4": 23.1,
+          "5": 22.3,
+          "6": 20.5,
+          "7": 17.4,
+          "8": 21.1,
+          "9": 26.1,
+          "10": 29.2,
+          "11": 29.6,
+          "12": 26.5
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "zm-lun",
+    "name": "Lusaka",
+    "country": "Zambia",
+    "features": {
+      "interest_counts": {
+        "history": 5,
+        "nature": 15,
+        "food": 238,
+        "family": 8
+      },
+      "interest_density": {
+        "history": 0.01,
+        "nature": 0.03,
+        "food": 0.476,
+        "family": 0.016
+      },
+      "family_poi_density": 0.016,
+      "accessibility": "unknown",
+      "accessible_ratio": null,
+      "tagged_total": 0,
+      "cost_index": 2,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 19.7,
+          "2": 20.8,
+          "3": 20.8,
+          "4": 20.2,
+          "5": 19.8,
+          "6": 18.9,
+          "7": 16.4,
+          "8": 19.1,
+          "9": 24.1,
+          "10": 25.8,
+          "11": 25.1,
+          "12": 24.0
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "mz-mpm",
+    "name": "Maputo",
+    "country": "Mozambique",
+    "features": {
+      "interest_counts": {
+        "history": 21,
+        "nature": 87,
+        "food": 172,
+        "family": 14
+      },
+      "interest_density": {
+        "history": 0.042,
+        "nature": 0.174,
+        "food": 0.344,
+        "family": 0.028
+      },
+      "family_poi_density": 0.028,
+      "accessibility": "unknown",
+      "accessible_ratio": null,
+      "tagged_total": 0,
+      "cost_index": 2,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 25.9,
+          "2": 25.9,
+          "3": 25.4,
+          "4": 24.5,
+          "5": 22.0,
+          "6": 20.6,
+          "7": 18.9,
+          "8": 20.2,
+          "9": 23.3,
+          "10": 22.5,
+          "11": 24.7,
+          "12": 24.9
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "tz-znz",
+    "name": "Zanzibar City",
+    "country": "Tanzania",
+    "features": {
+      "interest_counts": {
+        "history": 18,
+        "nature": 24,
+        "food": 138,
+        "family": 36
+      },
+      "interest_density": {
+        "history": 0.036,
+        "nature": 0.048,
+        "food": 0.276,
+        "family": 0.072
+      },
+      "family_poi_density": 0.072,
+      "accessibility": "unknown",
+      "accessible_ratio": 1.0,
+      "tagged_total": 1,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 28.1,
+          "2": 28.7,
+          "3": 28.0,
+          "4": 26.0,
+          "5": 26.0,
+          "6": 25.1,
+          "7": 24.7,
+          "8": 25.0,
+          "9": 26.1,
+          "10": 26.8,
+          "11": 25.8,
+          "12": 27.4
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "mu-pma",
+    "name": "Port Louis",
+    "country": "Mauritius",
+    "features": {
+      "interest_counts": {
+        "history": 29,
+        "nature": 35,
+        "food": 232,
+        "family": 21
+      },
+      "interest_density": {
+        "history": 0.058,
+        "nature": 0.07,
+        "food": 0.464,
+        "family": 0.042
+      },
+      "family_poi_density": 0.042,
+      "accessibility": "unknown",
+      "accessible_ratio": null,
+      "tagged_total": 0,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 25.8,
+          "2": 26.3,
+          "3": 26.1,
+          "4": 25.8,
+          "5": 24.6,
+          "6": 22.9,
+          "7": 22.8,
+          "8": 22.9,
+          "9": 23.9,
+          "10": 25.0,
+          "11": 25.7,
+          "12": 26.6
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "ma-rak",
+    "name": "Marrakesh",
+    "country": "Morocco",
+    "features": {
+      "interest_counts": {
+        "history": 28,
+        "nature": 122,
+        "food": 500,
+        "family": 16
+      },
+      "interest_density": {
+        "history": 0.056,
+        "nature": 0.244,
+        "food": 1.0,
+        "family": 0.032
+      },
+      "family_poi_density": 0.032,
+      "accessibility": "unknown",
+      "accessible_ratio": 1.0,
+      "tagged_total": 4,
+      "cost_index": 2,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 11.5,
+          "2": 13.0,
+          "3": 19.4,
+          "4": 22.0,
+          "5": 21.6,
+          "6": 26.9,
+          "7": 29.9,
+          "8": 31.8,
+          "9": 24.6,
+          "10": 23.5,
+          "11": 17.7,
+          "12": 13.8
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "ma-cas",
+    "name": "Casablanca",
+    "country": "Morocco",
+    "features": {
+      "interest_counts": {
+        "history": 14,
+        "nature": 228,
+        "food": 500,
+        "family": 49
+      },
+      "interest_density": {
+        "history": 0.028,
+        "nature": 0.456,
+        "food": 1.0,
+        "family": 0.098
+      },
+      "family_poi_density": 0.098,
+      "accessibility": "unknown",
+      "accessible_ratio": 1.0,
+      "tagged_total": 1,
+      "cost_index": 2,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 13.0,
+          "2": 13.3,
+          "3": 15.6,
+          "4": 18.1,
+          "5": 19.0,
+          "6": 22.8,
+          "7": 23.4,
+          "8": 24.4,
+          "9": 21.9,
+          "10": 21.3,
+          "11": 16.6,
+          "12": 14.0
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "sn-dkr",
+    "name": "Dakar",
+    "country": "Senegal",
+    "features": {
+      "interest_counts": {
+        "history": 27,
+        "nature": 65,
+        "food": 500,
+        "family": 28
+      },
+      "interest_density": {
+        "history": 0.054,
+        "nature": 0.13,
+        "food": 1.0,
+        "family": 0.056
+      },
+      "family_poi_density": 0.056,
+      "accessibility": "unknown",
+      "accessible_ratio": 1.0,
+      "tagged_total": 2,
+      "cost_index": 2,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 23.0,
+          "2": 20.1,
+          "3": 22.7,
+          "4": 22.5,
+          "5": 24.2,
+          "6": 26.3,
+          "7": 27.9,
+          "8": 27.6,
+          "9": 27.8,
+          "10": 28.6,
+          "11": 27.3,
+          "12": 25.3
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "gh-acc",
+    "name": "Accra",
+    "country": "Ghana",
+    "features": {
+      "interest_counts": {
+        "history": 17,
+        "nature": 54,
+        "food": 500,
+        "family": 24
+      },
+      "interest_density": {
+        "history": 0.034,
+        "nature": 0.108,
+        "food": 1.0,
+        "family": 0.048
+      },
+      "family_poi_density": 0.048,
+      "accessibility": "unknown",
+      "accessible_ratio": 1.0,
+      "tagged_total": 1,
+      "cost_index": 2,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 27.2,
+          "2": 27.7,
+          "3": 27.8,
+          "4": 28.0,
+          "5": 27.6,
+          "6": 25.8,
+          "7": 25.1,
+          "8": 24.9,
+          "9": 25.3,
+          "10": 26.1,
+          "11": 27.0,
+          "12": 27.7
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "ie-dub",
+    "name": "Dublin",
+    "country": "Ireland",
+    "features": {
+      "interest_counts": {
+        "history": 325,
+        "nature": 500,
+        "food": 500,
+        "family": 461
+      },
+      "interest_density": {
+        "history": 0.65,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 0.922
+      },
+      "family_poi_density": 0.922,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 56,
+      "cost_index": 4,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 6.6,
+          "2": 8.1,
+          "3": 7.7,
+          "4": 9.3,
+          "5": 12.7,
+          "6": 16.3,
+          "7": 15.5,
+          "8": 16.0,
+          "9": 15.4,
+          "10": 12.5,
+          "11": 8.4,
+          "12": 8.3
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "at-vie",
+    "name": "Vienna",
+    "country": "Austria",
+    "features": {
+      "interest_counts": {
+        "history": 500,
+        "nature": 500,
+        "food": 500,
+        "family": 500
+      },
+      "interest_density": {
+        "history": 1.0,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 1.0
+      },
+      "family_poi_density": 1.0,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 62,
+      "cost_index": 4,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 3.3,
+          "2": 3.8,
+          "3": 7.4,
+          "4": 8.5,
+          "5": 14.3,
+          "6": 19.5,
+          "7": 23.2,
+          "8": 21.5,
+          "9": 19.6,
+          "10": 14.4,
+          "11": 6.6,
+          "12": 3.6
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "ch-zrh",
+    "name": "Zurich",
+    "country": "Switzerland",
+    "features": {
+      "interest_counts": {
+        "history": 197,
+        "nature": 348,
+        "food": 500,
+        "family": 500
+      },
+      "interest_density": {
+        "history": 0.394,
+        "nature": 0.696,
+        "food": 1.0,
+        "family": 1.0
+      },
+      "family_poi_density": 1.0,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 93,
+      "cost_index": 5,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 2.5,
+          "2": 2.9,
+          "3": 6.3,
+          "4": 7.9,
+          "5": 13.5,
+          "6": 20.0,
+          "7": 20.1,
+          "8": 20.0,
+          "9": 18.3,
+          "10": 13.0,
+          "11": 5.9,
+          "12": 3.3
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "ch-gva",
+    "name": "Geneva",
+    "country": "Switzerland",
+    "features": {
+      "interest_counts": {
+        "history": 318,
+        "nature": 500,
+        "food": 500,
+        "family": 500
+      },
+      "interest_density": {
+        "history": 0.636,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 1.0
+      },
+      "family_poi_density": 1.0,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 14,
+      "cost_index": 5,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 2.9,
+          "2": 4.1,
+          "3": 7.4,
+          "4": 9.0,
+          "5": 14.4,
+          "6": 20.8,
+          "7": 22.1,
+          "8": 22.8,
+          "9": 19.8,
+          "10": 14.5,
+          "11": 6.7,
+          "12": 4.2
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "cz-prg",
+    "name": "Prague",
+    "country": "Czech Republic",
+    "features": {
+      "interest_counts": {
+        "history": 500,
+        "nature": 500,
+        "food": 500,
+        "family": 500
+      },
+      "interest_density": {
+        "history": 1.0,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 1.0
+      },
+      "family_poi_density": 1.0,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 24,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 3.4,
+          "2": 2.6,
+          "3": 5.9,
+          "4": 7.6,
+          "5": 14.1,
+          "6": 19.2,
+          "7": 22.1,
+          "8": 20.4,
+          "9": 18.7,
+          "10": 13.2,
+          "11": 5.7,
+          "12": 3.3
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "gr-ath",
+    "name": "Athens",
+    "country": "Greece",
+    "features": {
+      "interest_counts": {
+        "history": 500,
+        "nature": 500,
+        "food": 500,
+        "family": 500
+      },
+      "interest_density": {
+        "history": 1.0,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 1.0
+      },
+      "family_poi_density": 1.0,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 33,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 10.4,
+          "2": 8.5,
+          "3": 12.6,
+          "4": 14.5,
+          "5": 18.5,
+          "6": 23.4,
+          "7": 30.3,
+          "8": 28.3,
+          "9": 23.8,
+          "10": 20.7,
+          "11": 16.7,
+          "12": 12.4
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "gr-skg",
+    "name": "Thessaloniki",
+    "country": "Greece",
+    "features": {
+      "interest_counts": {
+        "history": 153,
+        "nature": 500,
+        "food": 500,
+        "family": 212
+      },
+      "interest_density": {
+        "history": 0.306,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 0.424
+      },
+      "family_poi_density": 0.424,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 5,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 7.9,
+          "2": 6.2,
+          "3": 10.2,
+          "4": 12.5,
+          "5": 17.1,
+          "6": 22.2,
+          "7": 28.1,
+          "8": 26.7,
+          "9": 22.4,
+          "10": 18.7,
+          "11": 12.5,
+          "12": 7.8
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "tr-ist",
+    "name": "Istanbul",
+    "country": "Turkey",
+    "features": {
+      "interest_counts": {
+        "history": 378,
+        "nature": 500,
+        "food": 500,
+        "family": 500
+      },
+      "interest_density": {
+        "history": 0.756,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 1.0
+      },
+      "family_poi_density": 1.0,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 11,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 8.5,
+          "2": 6.3,
+          "3": 9.2,
+          "4": 12.1,
+          "5": 15.4,
+          "6": 20.8,
+          "7": 25.5,
+          "8": 26.0,
+          "9": 22.5,
+          "10": 18.2,
+          "11": 14.5,
+          "12": 10.2
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "tr-izm",
+    "name": "Izmir",
+    "country": "Turkey",
+    "features": {
+      "interest_counts": {
+        "history": 193,
+        "nature": 500,
+        "food": 500,
+        "family": 267
+      },
+      "interest_density": {
+        "history": 0.386,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 0.534
+      },
+      "family_poi_density": 0.534,
+      "accessibility": "unknown",
+      "accessible_ratio": 1.0,
+      "tagged_total": 3,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 10.5,
+          "2": 8.4,
+          "3": 12.6,
+          "4": 15.1,
+          "5": 19.4,
+          "6": 24.2,
+          "7": 30.3,
+          "8": 29.6,
+          "9": 26.1,
+          "10": 21.2,
+          "11": 16.3,
+          "12": 13.0
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "hr-dub",
+    "name": "Dubrovnik",
+    "country": "Croatia",
+    "features": {
+      "interest_counts": {
+        "history": 52,
+        "nature": 20,
+        "food": 292,
+        "family": 44
+      },
+      "interest_density": {
+        "history": 0.104,
+        "nature": 0.04,
+        "food": 0.584,
+        "family": 0.088
+      },
+      "family_poi_density": 0.088,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 6,
+      "cost_index": 4,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 8.7,
+          "2": 7.1,
+          "3": 10.8,
+          "4": 12.5,
+          "5": 18.4,
+          "6": 22.5,
+          "7": 26.1,
+          "8": 25.0,
+          "9": 22.9,
+          "10": 18.7,
+          "11": 12.5,
+          "12": 9.4
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "hr-zag",
+    "name": "Zagreb",
+    "country": "Croatia",
+    "features": {
+      "interest_counts": {
+        "history": 190,
+        "nature": 386,
+        "food": 500,
+        "family": 500
+      },
+      "interest_density": {
+        "history": 0.38,
+        "nature": 0.772,
+        "food": 1.0,
+        "family": 1.0
+      },
+      "family_poi_density": 1.0,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 13,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 4.0,
+          "2": 3.2,
+          "3": 7.8,
+          "4": 9.6,
+          "5": 15.4,
+          "6": 20.1,
+          "7": 22.8,
+          "8": 21.8,
+          "9": 19.6,
+          "10": 15.5,
+          "11": 7.4,
+          "12": 3.7
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "dk-cph",
+    "name": "Copenhagen",
+    "country": "Denmark",
+    "features": {
+      "interest_counts": {
+        "history": 326,
+        "nature": 500,
+        "food": 500,
+        "family": 500
+      },
+      "interest_density": {
+        "history": 0.652,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 1.0
+      },
+      "family_poi_density": 1.0,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 17,
+      "cost_index": 5,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 4.0,
+          "2": 3.2,
+          "3": 3.8,
+          "4": 6.7,
+          "5": 11.6,
+          "6": 17.0,
+          "7": 17.0,
+          "8": 16.9,
+          "9": 17.0,
+          "10": 11.0,
+          "11": 5.2,
+          "12": 3.3
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "se-sto",
+    "name": "Stockholm",
+    "country": "Sweden",
+    "features": {
+      "interest_counts": {
+        "history": 261,
+        "nature": 500,
+        "food": 500,
+        "family": 500
+      },
+      "interest_density": {
+        "history": 0.522,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 1.0
+      },
+      "family_poi_density": 1.0,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 14,
+      "cost_index": 4,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 0.3,
+          "2": -0.5,
+          "3": -0.7,
+          "4": 4.3,
+          "5": 11.1,
+          "6": 17.1,
+          "7": 16.8,
+          "8": 16.4,
+          "9": 15.3,
+          "10": 6.5,
+          "11": 1.1,
+          "12": -2.8
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "no-osl",
+    "name": "Oslo",
+    "country": "Norway",
+    "features": {
+      "interest_counts": {
+        "history": 388,
+        "nature": 464,
+        "food": 500,
+        "family": 500
+      },
+      "interest_density": {
+        "history": 0.776,
+        "nature": 0.928,
+        "food": 1.0,
+        "family": 1.0
+      },
+      "family_poi_density": 1.0,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 12,
+      "cost_index": 5,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": -1.8,
+          "2": -0.6,
+          "3": -2.2,
+          "4": 5.0,
+          "5": 11.3,
+          "6": 18.5,
+          "7": 15.7,
+          "8": 15.5,
+          "9": 14.1,
+          "10": 5.4,
+          "11": -0.9,
+          "12": -5.6
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "fi-hel",
+    "name": "Helsinki",
+    "country": "Finland",
+    "features": {
+      "interest_counts": {
+        "history": 318,
+        "nature": 500,
+        "food": 500,
+        "family": 500
+      },
+      "interest_density": {
+        "history": 0.636,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 1.0
+      },
+      "family_poi_density": 1.0,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 50,
+      "cost_index": 4,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": -1.5,
+          "2": -2.0,
+          "3": -1.9,
+          "4": 4.3,
+          "5": 9.8,
+          "6": 15.9,
+          "7": 16.5,
+          "8": 17.3,
+          "9": 15.5,
+          "10": 5.4,
+          "11": 0.7,
+          "12": -3.7
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "is-rey",
+    "name": "Reykjavik",
+    "country": "Iceland",
+    "features": {
+      "interest_counts": {
+        "history": 73,
+        "nature": 64,
+        "food": 330,
+        "family": 500
+      },
+      "interest_density": {
+        "history": 0.146,
+        "nature": 0.128,
+        "food": 0.66,
+        "family": 1.0
+      },
+      "family_poi_density": 1.0,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 10,
+      "cost_index": 5,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": -2.6,
+          "2": 2.2,
+          "3": -2.0,
+          "4": 4.5,
+          "5": 6.5,
+          "6": 9.4,
+          "7": 11.0,
+          "8": 11.7,
+          "9": 8.3,
+          "10": 4.7,
+          "11": 2.5,
+          "12": -1.7
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "pl-krk",
+    "name": "Krakow",
+    "country": "Poland",
+    "features": {
+      "interest_counts": {
+        "history": 467,
+        "nature": 234,
+        "food": 500,
+        "family": 499
+      },
+      "interest_density": {
+        "history": 0.934,
+        "nature": 0.468,
+        "food": 1.0,
+        "family": 0.998
+      },
+      "family_poi_density": 0.998,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 39,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 3.0,
+          "2": 1.5,
+          "3": 5.5,
+          "4": 7.8,
+          "5": 12.9,
+          "6": 17.9,
+          "7": 20.9,
+          "8": 20.7,
+          "9": 18.0,
+          "10": 12.3,
+          "11": 5.1,
+          "12": 1.8
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "hu-bud",
+    "name": "Budapest",
+    "country": "Hungary",
+    "features": {
+      "interest_counts": {
+        "history": 500,
+        "nature": 500,
+        "food": 500,
+        "family": 497
+      },
+      "interest_density": {
+        "history": 1.0,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 0.994
+      },
+      "family_poi_density": 0.994,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 67,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 3.7,
+          "2": 3.2,
+          "3": 7.3,
+          "4": 9.7,
+          "5": 16.2,
+          "6": 20.3,
+          "7": 23.5,
+          "8": 22.9,
+          "9": 20.1,
+          "10": 14.3,
+          "11": 6.2,
+          "12": 1.9
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "id-bli",
+    "name": "Denpasar",
+    "country": "Indonesia",
+    "features": {
+      "interest_counts": {
+        "history": 48,
+        "nature": 81,
+        "food": 500,
+        "family": 43
+      },
+      "interest_density": {
+        "history": 0.096,
+        "nature": 0.162,
+        "food": 1.0,
+        "family": 0.086
+      },
+      "family_poi_density": 0.086,
+      "accessibility": "unknown",
+      "accessible_ratio": null,
+      "tagged_total": 0,
+      "cost_index": 2,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 26.0,
+          "2": 25.6,
+          "3": 26.2,
+          "4": 26.1,
+          "5": 26.2,
+          "6": 25.8,
+          "7": 24.8,
+          "8": 24.3,
+          "9": 24.8,
+          "10": 26.6,
+          "11": 27.1,
+          "12": 27.3
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "id-jak",
+    "name": "Jakarta",
+    "country": "Indonesia",
+    "features": {
+      "interest_counts": {
+        "history": 115,
+        "nature": 500,
+        "food": 500,
+        "family": 131
+      },
+      "interest_density": {
+        "history": 0.23,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 0.262
+      },
+      "family_poi_density": 0.262,
+      "accessibility": "unknown",
+      "accessible_ratio": 1.0,
+      "tagged_total": 1,
+      "cost_index": 2,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 26.2,
+          "2": 25.7,
+          "3": 26.1,
+          "4": 27.2,
+          "5": 27.4,
+          "6": 27.2,
+          "7": 27.2,
+          "8": 27.8,
+          "9": 28.1,
+          "10": 28.9,
+          "11": 27.6,
+          "12": 27.6
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "vn-hcm",
+    "name": "Ho Chi Minh City",
+    "country": "Vietnam",
+    "features": {
+      "interest_counts": {
+        "history": 77,
+        "nature": 500,
+        "food": 500,
+        "family": 67
+      },
+      "interest_density": {
+        "history": 0.154,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 0.134
+      },
+      "family_poi_density": 0.134,
+      "accessibility": "unknown",
+      "accessible_ratio": null,
+      "tagged_total": 0,
+      "cost_index": 2,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 25.9,
+          "2": 27.7,
+          "3": 28.0,
+          "4": 29.8,
+          "5": 28.9,
+          "6": 27.5,
+          "7": 27.1,
+          "8": 27.5,
+          "9": 26.7,
+          "10": 26.8,
+          "11": 26.8,
+          "12": 27.9
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "vn-han",
+    "name": "Hanoi",
+    "country": "Vietnam",
+    "features": {
+      "interest_counts": {
+        "history": 117,
+        "nature": 500,
+        "food": 500,
+        "family": 183
+      },
+      "interest_density": {
+        "history": 0.234,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 0.366
+      },
+      "family_poi_density": 0.366,
+      "accessibility": "unknown",
+      "accessible_ratio": null,
+      "tagged_total": 0,
+      "cost_index": 2,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 16.5,
+          "2": 20.0,
+          "3": 22.4,
+          "4": 25.4,
+          "5": 28.2,
+          "6": 29.1,
+          "7": 30.2,
+          "8": 28.3,
+          "9": 27.4,
+          "10": 26.2,
+          "11": 22.7,
+          "12": 18.8
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "kr-sel",
+    "name": "Seoul",
+    "country": "South Korea",
+    "features": {
+      "interest_counts": {
+        "history": 500,
+        "nature": 500,
+        "food": 500,
+        "family": 500
+      },
+      "interest_density": {
+        "history": 1.0,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 1.0
+      },
+      "family_poi_density": 1.0,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 10,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": -3.5,
+          "2": 0.1,
+          "3": 7.2,
+          "4": 11.9,
+          "5": 17.3,
+          "6": 21.4,
+          "7": 25.1,
+          "8": 25.6,
+          "9": 22.0,
+          "10": 13.7,
+          "11": 4.9,
+          "12": -0.4
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "cn-bjs",
+    "name": "Beijing",
+    "country": "China",
+    "features": {
+      "interest_counts": {
+        "history": 345,
+        "nature": 500,
+        "food": 500,
+        "family": 111
+      },
+      "interest_density": {
+        "history": 0.69,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 0.222
+      },
+      "family_poi_density": 0.222,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 13,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": -2.9,
+          "2": 0.4,
+          "3": 9.1,
+          "4": 14.3,
+          "5": 21.3,
+          "6": 28.3,
+          "7": 28.3,
+          "8": 26.0,
+          "9": 21.5,
+          "10": 14.7,
+          "11": 3.6,
+          "12": -4.0
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "cn-sha",
+    "name": "Shanghai",
+    "country": "China",
+    "features": {
+      "interest_counts": {
+        "history": 184,
+        "nature": 500,
+        "food": 500,
+        "family": 139
+      },
+      "interest_density": {
+        "history": 0.368,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 0.278
+      },
+      "family_poi_density": 0.278,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 8,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 5.0,
+          "2": 6.6,
+          "3": 11.5,
+          "4": 16.2,
+          "5": 21.0,
+          "6": 24.9,
+          "7": 28.5,
+          "8": 27.8,
+          "9": 25.1,
+          "10": 19.3,
+          "11": 13.3,
+          "12": 6.3
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "in-del",
+    "name": "New Delhi",
+    "country": "India",
+    "features": {
+      "interest_counts": {
+        "history": 192,
+        "nature": 500,
+        "food": 500,
+        "family": 191
+      },
+      "interest_density": {
+        "history": 0.384,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 0.382
+      },
+      "family_poi_density": 0.382,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 6,
+      "cost_index": 2,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 12.1,
+          "2": 18.5,
+          "3": 21.9,
+          "4": 27.1,
+          "5": 29.5,
+          "6": 31.1,
+          "7": 29.0,
+          "8": 30.3,
+          "9": 29.0,
+          "10": 25.3,
+          "11": 20.1,
+          "12": 15.3
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "in-mum",
+    "name": "Mumbai",
+    "country": "India",
+    "features": {
+      "interest_counts": {
+        "history": 60,
+        "nature": 500,
+        "food": 500,
+        "family": 234
+      },
+      "interest_density": {
+        "history": 0.12,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 0.468
+      },
+      "family_poi_density": 0.468,
+      "accessibility": "unknown",
+      "accessible_ratio": 1.0,
+      "tagged_total": 1,
+      "cost_index": 2,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 22.6,
+          "2": 25.7,
+          "3": 27.2,
+          "4": 28.7,
+          "5": 29.7,
+          "6": 29.0,
+          "7": 26.4,
+          "8": 26.8,
+          "9": 26.7,
+          "10": 28.0,
+          "11": 27.5,
+          "12": 26.0
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "my-kul",
+    "name": "Kuala Lumpur",
+    "country": "Malaysia",
+    "features": {
+      "interest_counts": {
+        "history": 78,
+        "nature": 500,
+        "food": 500,
+        "family": 491
+      },
+      "interest_density": {
+        "history": 0.156,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 0.982
+      },
+      "family_poi_density": 0.982,
+      "accessibility": "unknown",
+      "accessible_ratio": null,
+      "tagged_total": 0,
+      "cost_index": 2,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 25.9,
+          "2": 26.3,
+          "3": 26.9,
+          "4": 27.6,
+          "5": 28.1,
+          "6": 28.1,
+          "7": 27.3,
+          "8": 27.0,
+          "9": 27.1,
+          "10": 26.6,
+          "11": 26.5,
+          "12": 26.4
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "ph-mnl",
+    "name": "Manila",
+    "country": "Philippines",
+    "features": {
+      "interest_counts": {
+        "history": 477,
+        "nature": 500,
+        "food": 500,
+        "family": 230
+      },
+      "interest_density": {
+        "history": 0.954,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 0.46
+      },
+      "family_poi_density": 0.46,
+      "accessibility": "unknown",
+      "accessible_ratio": 1.0,
+      "tagged_total": 4,
+      "cost_index": 2,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 25.5,
+          "2": 26.3,
+          "3": 27.0,
+          "4": 28.4,
+          "5": 29.1,
+          "6": 28.0,
+          "7": 27.9,
+          "8": 27.8,
+          "9": 27.2,
+          "10": 27.2,
+          "11": 27.5,
+          "12": 27.3
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "lk-cmb",
+    "name": "Colombo",
+    "country": "Sri Lanka",
+    "features": {
+      "interest_counts": {
+        "history": 39,
+        "nature": 119,
+        "food": 500,
+        "family": 82
+      },
+      "interest_density": {
+        "history": 0.078,
+        "nature": 0.238,
+        "food": 1.0,
+        "family": 0.164
+      },
+      "family_poi_density": 0.164,
+      "accessibility": "unknown",
+      "accessible_ratio": null,
+      "tagged_total": 0,
+      "cost_index": 2,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 25.1,
+          "2": 25.6,
+          "3": 26.4,
+          "4": 27.3,
+          "5": 27.3,
+          "6": 27.0,
+          "7": 26.9,
+          "8": 27.0,
+          "9": 26.0,
+          "10": 25.6,
+          "11": 25.5,
+          "12": 25.9
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "jo-amm",
+    "name": "Amman",
+    "country": "Jordan",
+    "features": {
+      "interest_counts": {
+        "history": 47,
+        "nature": 116,
+        "food": 499,
+        "family": 32
+      },
+      "interest_density": {
+        "history": 0.094,
+        "nature": 0.232,
+        "food": 0.998,
+        "family": 0.064
+      },
+      "family_poi_density": 0.064,
+      "accessibility": "unknown",
+      "accessible_ratio": null,
+      "tagged_total": 0,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 9.5,
+          "2": 8.0,
+          "3": 13.1,
+          "4": 16.3,
+          "5": 21.0,
+          "6": 23.9,
+          "7": 27.8,
+          "8": 28.1,
+          "9": 25.8,
+          "10": 21.6,
+          "11": 17.4,
+          "12": 12.5
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "il-tlv",
+    "name": "Tel Aviv",
+    "country": "Israel",
+    "features": {
+      "interest_counts": {
+        "history": 205,
+        "nature": 500,
+        "food": 500,
+        "family": 500
+      },
+      "interest_density": {
+        "history": 0.41,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 1.0
+      },
+      "family_poi_density": 1.0,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 6,
+      "cost_index": 4,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 14.2,
+          "2": 12.9,
+          "3": 16.4,
+          "4": 18.0,
+          "5": 21.6,
+          "6": 24.7,
+          "7": 27.1,
+          "8": 27.9,
+          "9": 26.8,
+          "10": 24.8,
+          "11": 20.8,
+          "12": 16.9
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "om-mct",
+    "name": "Muscat",
+    "country": "Oman",
+    "features": {
+      "interest_counts": {
+        "history": 10,
+        "nature": 53,
+        "food": 500,
+        "family": 22
+      },
+      "interest_density": {
+        "history": 0.02,
+        "nature": 0.106,
+        "food": 1.0,
+        "family": 0.044
+      },
+      "family_poi_density": 0.044,
+      "accessibility": "unknown",
+      "accessible_ratio": 1.0,
+      "tagged_total": 1,
+      "cost_index": 4,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 20.4,
+          "2": 23.0,
+          "3": 25.9,
+          "4": 27.9,
+          "5": 34.3,
+          "6": 35.7,
+          "7": 34.5,
+          "8": 34.0,
+          "9": 32.4,
+          "10": 30.8,
+          "11": 26.2,
+          "12": 23.4
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "us-lax",
+    "name": "Los Angeles",
+    "country": "United States",
+    "features": {
+      "interest_counts": {
+        "history": 231,
+        "nature": 500,
+        "food": 500,
+        "family": 498
+      },
+      "interest_density": {
+        "history": 0.462,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 0.996
+      },
+      "family_poi_density": 0.996,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 5,
+      "cost_index": 5,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 10.9,
+          "2": 11.1,
+          "3": 11.8,
+          "4": 15.1,
+          "5": 16.5,
+          "6": 18.5,
+          "7": 23.0,
+          "8": 23.0,
+          "9": 21.3,
+          "10": 20.4,
+          "11": 16.6,
+          "12": 14.8
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "us-mia",
+    "name": "Miami",
+    "country": "United States",
+    "features": {
+      "interest_counts": {
+        "history": 63,
+        "nature": 319,
+        "food": 500,
+        "family": 143
+      },
+      "interest_density": {
+        "history": 0.126,
+        "nature": 0.638,
+        "food": 1.0,
+        "family": 0.286
+      },
+      "family_poi_density": 0.286,
+      "accessibility": "unknown",
+      "accessible_ratio": 1.0,
+      "tagged_total": 3,
+      "cost_index": 5,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 21.5,
+          "2": 23.4,
+          "3": 23.8,
+          "4": 24.6,
+          "5": 25.5,
+          "6": 26.3,
+          "7": 28.5,
+          "8": 28.7,
+          "9": 27.5,
+          "10": 25.9,
+          "11": 24.0,
+          "12": 21.2
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "us-sfo",
+    "name": "San Francisco",
+    "country": "United States",
+    "features": {
+      "interest_counts": {
+        "history": 305,
+        "nature": 500,
+        "food": 500,
+        "family": 493
+      },
+      "interest_density": {
+        "history": 0.61,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 0.986
+      },
+      "family_poi_density": 0.986,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 17,
+      "cost_index": 5,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 10.2,
+          "2": 8.8,
+          "3": 9.7,
+          "4": 11.1,
+          "5": 12.9,
+          "6": 14.2,
+          "7": 15.4,
+          "8": 17.2,
+          "9": 16.7,
+          "10": 16.9,
+          "11": 13.3,
+          "12": 11.6
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "us-las",
+    "name": "Las Vegas",
+    "country": "United States",
+    "features": {
+      "interest_counts": {
+        "history": 35,
+        "nature": 377,
+        "food": 500,
+        "family": 205
+      },
+      "interest_density": {
+        "history": 0.07,
+        "nature": 0.754,
+        "food": 1.0,
+        "family": 0.41
+      },
+      "family_poi_density": 0.41,
+      "accessibility": "unknown",
+      "accessible_ratio": 1.0,
+      "tagged_total": 1,
+      "cost_index": 4,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 7.3,
+          "2": 9.4,
+          "3": 12.1,
+          "4": 20.5,
+          "5": 25.8,
+          "6": 28.4,
+          "7": 36.6,
+          "8": 31.7,
+          "9": 27.0,
+          "10": 21.9,
+          "11": 14.0,
+          "12": 11.2
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "ca-mon",
+    "name": "Montreal",
+    "country": "Canada",
+    "features": {
+      "interest_counts": {
+        "history": 174,
+        "nature": 500,
+        "food": 500,
+        "family": 500
+      },
+      "interest_density": {
+        "history": 0.348,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 1.0
+      },
+      "family_poi_density": 1.0,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 16,
+      "cost_index": 4,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": -5.0,
+          "2": -6.9,
+          "3": -0.9,
+          "4": 7.2,
+          "5": 13.3,
+          "6": 18.8,
+          "7": 22.3,
+          "8": 19.4,
+          "9": 17.8,
+          "10": 12.3,
+          "11": 1.6,
+          "12": -1.6
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "ca-cal",
+    "name": "Calgary",
+    "country": "Canada",
+    "features": {
+      "interest_counts": {
+        "history": 49,
+        "nature": 500,
+        "food": 500,
+        "family": 500
+      },
+      "interest_density": {
+        "history": 0.098,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 1.0
+      },
+      "family_poi_density": 1.0,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 7,
+      "cost_index": 4,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": -5.0,
+          "2": -6.3,
+          "3": -6.8,
+          "4": 4.0,
+          "5": 14.6,
+          "6": 16.0,
+          "7": 17.2,
+          "8": 17.3,
+          "9": 12.9,
+          "10": 4.4,
+          "11": 0.2,
+          "12": -1.7
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "mx-can",
+    "name": "Cancun",
+    "country": "Mexico",
+    "features": {
+      "interest_counts": {
+        "history": 16,
+        "nature": 500,
+        "food": 342,
+        "family": 10
+      },
+      "interest_density": {
+        "history": 0.032,
+        "nature": 1.0,
+        "food": 0.684,
+        "family": 0.02
+      },
+      "family_poi_density": 0.02,
+      "accessibility": "unknown",
+      "accessible_ratio": 1.0,
+      "tagged_total": 2,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 24.6,
+          "2": 24.8,
+          "3": 25.7,
+          "4": 26.3,
+          "5": 27.3,
+          "6": 28.1,
+          "7": 29.0,
+          "8": 28.6,
+          "9": 27.8,
+          "10": 27.4,
+          "11": 25.7,
+          "12": 24.2
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "mx-pvr",
+    "name": "Puerto Vallarta",
+    "country": "Mexico",
+    "features": {
+      "interest_counts": {
+        "history": 5,
+        "nature": 105,
+        "food": 400,
+        "family": 14
+      },
+      "interest_density": {
+        "history": 0.01,
+        "nature": 0.21,
+        "food": 0.8,
+        "family": 0.028
+      },
+      "family_poi_density": 0.028,
+      "accessibility": "unknown",
+      "accessible_ratio": 1.0,
+      "tagged_total": 2,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 21.5,
+          "2": 21.3,
+          "3": 21.6,
+          "4": 22.7,
+          "5": 25.5,
+          "6": 27.1,
+          "7": 27.9,
+          "8": 27.8,
+          "9": 28.0,
+          "10": 26.9,
+          "11": 26.0,
+          "12": 23.7
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "cr-sjo",
+    "name": "San Jose",
+    "country": "Costa Rica",
+    "features": {
+      "interest_counts": {
+        "history": 138,
+        "nature": 500,
+        "food": 500,
+        "family": 80
+      },
+      "interest_density": {
+        "history": 0.276,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 0.16
+      },
+      "family_poi_density": 0.16,
+      "accessibility": "unknown",
+      "accessible_ratio": 1.0,
+      "tagged_total": 1,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 19.4,
+          "2": 20.0,
+          "3": 19.8,
+          "4": 20.8,
+          "5": 21.4,
+          "6": 20.3,
+          "7": 20.7,
+          "8": 20.5,
+          "9": 20.4,
+          "10": 19.5,
+          "11": 19.9,
+          "12": 20.3
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "co-ctg",
+    "name": "Cartagena",
+    "country": "Colombia",
+    "features": {
+      "interest_counts": {
+        "history": 50,
+        "nature": 361,
+        "food": 500,
+        "family": 28
+      },
+      "interest_density": {
+        "history": 0.1,
+        "nature": 0.722,
+        "food": 1.0,
+        "family": 0.056
+      },
+      "family_poi_density": 0.056,
+      "accessibility": "unknown",
+      "accessible_ratio": null,
+      "tagged_total": 0,
+      "cost_index": 2,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 26.6,
+          "2": 27.0,
+          "3": 27.1,
+          "4": 27.7,
+          "5": 28.3,
+          "6": 28.2,
+          "7": 28.7,
+          "8": 28.6,
+          "9": 28.5,
+          "10": 27.8,
+          "11": 27.5,
+          "12": 28.1
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "pe-lim",
+    "name": "Lima",
+    "country": "Peru",
+    "features": {
+      "interest_counts": {
+        "history": 500,
+        "nature": 500,
+        "food": 500,
+        "family": 259
+      },
+      "interest_density": {
+        "history": 1.0,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 0.518
+      },
+      "family_poi_density": 0.518,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 45,
+      "cost_index": 2,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 21.1,
+          "2": 23.1,
+          "3": 23.6,
+          "4": 23.9,
+          "5": 20.6,
+          "6": 19.1,
+          "7": 18.8,
+          "8": 18.6,
+          "9": 18.3,
+          "10": 18.5,
+          "11": 19.1,
+          "12": 20.6
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "cl-scl",
+    "name": "Santiago",
+    "country": "Chile",
+    "features": {
+      "interest_counts": {
+        "history": 374,
+        "nature": 500,
+        "food": 500,
+        "family": 500
+      },
+      "interest_density": {
+        "history": 0.748,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 1.0
+      },
+      "family_poi_density": 1.0,
+      "accessibility": "unknown",
+      "accessible_ratio": 1.0,
+      "tagged_total": 3,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 21.6,
+          "2": 23.4,
+          "3": 21.6,
+          "4": 17.7,
+          "5": 14.4,
+          "6": 12.8,
+          "7": 12.2,
+          "8": 12.8,
+          "9": 12.3,
+          "10": 14.2,
+          "11": 16.3,
+          "12": 19.9
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "br-sao",
+    "name": "Sao Paulo",
+    "country": "Brazil",
+    "features": {
+      "interest_counts": {
+        "history": 241,
+        "nature": 500,
+        "food": 500,
+        "family": 306
+      },
+      "interest_density": {
+        "history": 0.482,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 0.612
+      },
+      "family_poi_density": 0.612,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 14,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 21.0,
+          "2": 21.8,
+          "3": 21.5,
+          "4": 18.6,
+          "5": 17.4,
+          "6": 15.7,
+          "7": 16.4,
+          "8": 18.2,
+          "9": 21.3,
+          "10": 20.5,
+          "11": 22.4,
+          "12": 22.7
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "br-sal",
+    "name": "Salvador",
+    "country": "Brazil",
+    "features": {
+      "interest_counts": {
+        "history": 96,
+        "nature": 500,
+        "food": 500,
+        "family": 86
+      },
+      "interest_density": {
+        "history": 0.192,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 0.172
+      },
+      "family_poi_density": 0.172,
+      "accessibility": "unknown",
+      "accessible_ratio": 1.0,
+      "tagged_total": 2,
+      "cost_index": 2,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 26.3,
+          "2": 26.6,
+          "3": 26.0,
+          "4": 26.3,
+          "5": 25.1,
+          "6": 24.5,
+          "7": 23.9,
+          "8": 24.2,
+          "9": 24.9,
+          "10": 26.0,
+          "11": 26.8,
+          "12": 26.9
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "ar-bri",
+    "name": "Bariloche",
+    "country": "Argentina",
+    "features": {
+      "interest_counts": {
+        "history": 25,
+        "nature": 80,
+        "food": 128,
+        "family": 32
+      },
+      "interest_density": {
+        "history": 0.05,
+        "nature": 0.16,
+        "food": 0.256,
+        "family": 0.064
+      },
+      "family_poi_density": 0.064,
+      "accessibility": "unknown",
+      "accessible_ratio": null,
+      "tagged_total": 0,
+      "cost_index": 3,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 17.1,
+          "2": 16.5,
+          "3": 13.4,
+          "4": 10.8,
+          "5": 7.2,
+          "6": 4.2,
+          "7": 3.2,
+          "8": 3.3,
+          "9": 4.0,
+          "10": 7.4,
+          "11": 8.6,
+          "12": 13.9
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "nz-akl",
+    "name": "Auckland",
+    "country": "New Zealand",
+    "features": {
+      "interest_counts": {
+        "history": 257,
+        "nature": 500,
+        "food": 500,
+        "family": 500
+      },
+      "interest_density": {
+        "history": 0.514,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 1.0
+      },
+      "family_poi_density": 1.0,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 5,
+      "cost_index": 4,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 19.8,
+          "2": 19.5,
+          "3": 18.0,
+          "4": 17.6,
+          "5": 15.8,
+          "6": 12.9,
+          "7": 12.2,
+          "8": 10.4,
+          "9": 13.6,
+          "10": 14.6,
+          "11": 15.8,
+          "12": 18.7
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "nz-que",
+    "name": "Queenstown",
+    "country": "New Zealand",
+    "features": {
+      "interest_counts": {
+        "history": 10,
+        "nature": 66,
+        "food": 118,
+        "family": 23
+      },
+      "interest_density": {
+        "history": 0.02,
+        "nature": 0.132,
+        "food": 0.236,
+        "family": 0.046
+      },
+      "family_poi_density": 0.046,
+      "accessibility": "unknown",
+      "accessible_ratio": 1.0,
+      "tagged_total": 1,
+      "cost_index": 4,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 18.6,
+          "2": 17.0,
+          "3": 13.3,
+          "4": 11.9,
+          "5": 9.8,
+          "6": 4.5,
+          "7": 4.4,
+          "8": 4.3,
+          "9": 8.2,
+          "10": 8.8,
+          "11": 12.4,
+          "12": 16.0
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "au-bri",
+    "name": "Brisbane",
+    "country": "Australia",
+    "features": {
+      "interest_counts": {
+        "history": 124,
+        "nature": 500,
+        "food": 500,
+        "family": 489
+      },
+      "interest_density": {
+        "history": 0.248,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 0.978
+      },
+      "family_poi_density": 0.978,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 9,
+      "cost_index": 4,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 23.9,
+          "2": 24.1,
+          "3": 24.3,
+          "4": 20.6,
+          "5": 16.1,
+          "6": 15.8,
+          "7": 15.2,
+          "8": 16.8,
+          "9": 18.4,
+          "10": 20.8,
+          "11": 22.1,
+          "12": 25.1
+        }
+      },
+      "safety_index": null
+    }
+  },
+  {
+    "id": "au-per",
+    "name": "Perth",
+    "country": "Australia",
+    "features": {
+      "interest_counts": {
+        "history": 91,
+        "nature": 500,
+        "food": 500,
+        "family": 486
+      },
+      "interest_density": {
+        "history": 0.182,
+        "nature": 1.0,
+        "food": 1.0,
+        "family": 0.972
+      },
+      "family_poi_density": 0.972,
+      "accessibility": "supported",
+      "accessible_ratio": 1.0,
+      "tagged_total": 6,
+      "cost_index": 4,
+      "climate": {
+        "avg_temp_by_month": {
+          "1": 24.3,
+          "2": 24.2,
+          "3": 22.5,
+          "4": 17.5,
+          "5": 15.9,
+          "6": 12.5,
+          "7": 13.5,
+          "8": 13.5,
+          "9": 16.4,
+          "10": 18.8,
+          "11": 22.7,
+          "12": 23.7
+        }
+      },
+      "safety_index": null
+    }
   }
 ]

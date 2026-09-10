@@ -59,3 +59,16 @@ export async function fetchRecommendations(preferences, level, parentId) {
 
   return data;
 }
+
+export async function fetchRecommendationCatalog() {
+  const response = await fetch(
+    `${API_BASE_URL.replace(/\/$/, "")}/api/recommendations/catalog`
+  );
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok || !data || !Array.isArray(data.countries)) {
+    throw new Error("The recommendation catalog is currently unavailable.");
+  }
+
+  return data.countries;
+}

@@ -36,6 +36,7 @@ from __future__ import annotations
 import json
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import requests
@@ -55,6 +56,7 @@ MIN_TAGGED_SAMPLE = 5  # fewer tagged POIs than this and accessibility just read
 SUPPORTED_RATIO = 0.5
 POOR_RATIO = 0.15
 CLIMATE_YEAR = 2023  # just using one recent full year instead of a proper multi-year average
+MAX_WORKERS = 4
 
 OUTPUT_PATH = Path(__file__).resolve().parent.parent / "data" / "destinations_seed.json"
 
@@ -136,7 +138,7 @@ def fetch_accessibility(api_key: str, lat: float, lon: float, radius_m: int) -> 
 
 
 def enrich_city(api_key: str, city: dict) -> dict:
-    print(f"Enriching {city['name']}...")
+    print(f"Enriching {city['name']}...", flush=True)
     interest_counts = {}
     for tag, categories in INTEREST_CATEGORY_MAP.items():
         pois = geoapify_places(api_key, categories, city["lat"], city["lon"], city["radius_m"])
@@ -193,7 +195,8 @@ def normalize(raw_cities: list[dict]) -> list[dict]:
 
 def main() -> None:
     api_key = load_geoapify_key()
-    raw = [enrich_city(api_key, city) for city in CITIES]
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        raw = list(executor.map(lambda city: enrich_city(api_key, city), CITIES))
     seed = normalize(raw)
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)

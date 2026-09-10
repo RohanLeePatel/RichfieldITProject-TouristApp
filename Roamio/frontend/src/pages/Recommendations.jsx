@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -12,7 +12,10 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import { fetchRecommendations } from "../api/recommendations.js";
+import {
+  fetchRecommendationCatalog,
+  fetchRecommendations,
+} from "../api/recommendations.js";
 import "../styles/recommendations.css";
 
 const INTERESTS = ["history", "nature", "food", "family"];
@@ -135,10 +138,36 @@ function RecommendationCard({ recommendation, onSelect }) {
 export default function Recommendations() {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(initialForm);
+  const [countries, setCountries] = useState(
+    COUNTRIES.map((name) => ({ id: slugify(name), name }))
+  );
   const [recommendationData, setRecommendationData] = useState(null);
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    fetchRecommendationCatalog()
+      .then((catalog) => {
+        if (active && catalog.length > 0) {
+          setCountries(catalog);
+          setForm((current) => ({
+            ...current,
+            country: catalog.some((item) => item.name === current.country)
+              ? current.country
+              : catalog[0].name,
+          }));
+        }
+      })
+      .catch(() => {
+        // Keep the bundled list available if the catalog endpoint is temporarily unavailable.
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const updateForm = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -279,7 +308,7 @@ export default function Recommendations() {
                     <label className="wizard-field">
                       Country
                       <select value={form.country} onChange={(event) => updateForm("country", event.target.value)}>
-                        {COUNTRIES.map((country) => <option key={country} value={country}>{country}</option>)}
+                        {countries.map((country) => <option key={country.id} value={country.name}>{country.name} ({country.city_count || 0} cities)</option>)}
                       </select>
                     </label>
                   )}
