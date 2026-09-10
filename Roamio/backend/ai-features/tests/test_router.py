@@ -11,6 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from tests.test_contract import VALID_PAYLOAD
+from engine.catalog import load_city_candidates, load_country_catalog
 
 
 @pytest.fixture
@@ -68,8 +69,7 @@ def test_recommendations_uses_seed_catalog_when_candidates_omitted(client):
     )
     assert response.status_code == 200
     body = response.json()
-    # seed has 6 cities and nothing here should get gated out
-    assert len(body["results"]) + len(body["excluded"]) == 6
+    assert len(body["results"]) + len(body["excluded"]) == len(load_city_candidates())
 
 
 def test_recommendations_rejects_omitted_candidates_at_place_level(client):
@@ -90,8 +90,7 @@ def test_recommendations_country_level_uses_synthesized_catalog(client):
     )
     assert response.status_code == 200
     body = response.json()
-    # 4 countries in the seed data: South Africa, Namibia, Portugal, Thailand
-    assert len(body["results"]) + len(body["excluded"]) == 4
+    assert len(body["results"]) + len(body["excluded"]) == len(load_country_catalog())
     result_ids = {r["id"] for r in body["results"]}
     assert "south-africa" in result_ids
 
@@ -105,7 +104,7 @@ def test_recommendations_city_level_filters_by_parent_country(client):
     assert response.status_code == 200
     body = response.json()
     result_ids = {r["id"] for r in body["results"]} | {e["id"] for e in body["excluded"]}
-    assert result_ids == {"za-cpt", "za-dbn"}
+    assert result_ids == {c.id for c in load_city_candidates(country_id="south-africa")}
 
 
 def test_recommendations_city_level_unknown_parent_country_404s(client):

@@ -21,10 +21,27 @@ const INTERESTS = [
 ];
 
 const COUNTRIES = [
+  { id: "argentina", name: "Argentina" },
+  { id: "australia", name: "Australia" },
+  { id: "brazil", name: "Brazil" },
+  { id: "canada", name: "Canada" },
+  { id: "egypt", name: "Egypt" },
+  { id: "france", name: "France" },
+  { id: "germany", name: "Germany" },
+  { id: "italy", name: "Italy" },
+  { id: "japan", name: "Japan" },
+  { id: "kenya", name: "Kenya" },
+  { id: "mexico", name: "Mexico" },
+  { id: "netherlands", name: "Netherlands" },
   { id: "south-africa", name: "South Africa" },
   { id: "namibia", name: "Namibia" },
   { id: "portugal", name: "Portugal" },
+  { id: "singapore", name: "Singapore" },
+  { id: "spain", name: "Spain" },
   { id: "thailand", name: "Thailand" },
+  { id: "united-arab-emirates", name: "United Arab Emirates" },
+  { id: "united-kingdom", name: "United Kingdom" },
+  { id: "united-states", name: "United States" },
 ];
 
 const initialForm = {
