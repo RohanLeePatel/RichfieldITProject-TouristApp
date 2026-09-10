@@ -22,17 +22,112 @@ import {
   Menu,
   X,
   Languages,
+  CloudSun,
+  Droplets,
+  Wind,
+  RefreshCw,
 } from "lucide-react";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import "../styles/dashboard.css";
+
+// =========================================================
+// WEATHER API
+// =========================================================
+
+const WEATHER_API =
+  "https://api.open-meteo.com/v1/forecast";
+
+// Default weather location for the dashboard.
+// The full Weather page allows the user to search for
+// other South African locations.
+const DEFAULT_WEATHER_LOCATION = {
+  name: "Durban",
+  province: "KwaZulu-Natal",
+  latitude: -29.8587,
+  longitude: 31.0218,
+};
+
+// =========================================================
+// WEATHER HELPER
+// =========================================================
+
+function getDashboardWeatherInfo(code) {
+  if (code === 0) {
+    return {
+      label: "Clear sky",
+    };
+  }
+
+  if (code === 1 || code === 2) {
+    return {
+      label: "Partly cloudy",
+    };
+  }
+
+  if (code === 3) {
+    return {
+      label: "Overcast",
+    };
+  }
+
+  if ([45, 48].includes(code)) {
+    return {
+      label: "Foggy",
+    };
+  }
+
+  if ([51, 53, 55, 56, 57].includes(code)) {
+    return {
+      label: "Drizzle",
+    };
+  }
+
+  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) {
+    return {
+      label: "Rain",
+    };
+  }
+
+  if ([71, 73, 75, 77, 85, 86].includes(code)) {
+    return {
+      label: "Snow",
+    };
+  }
+
+  if ([95, 96, 99].includes(code)) {
+    return {
+      label: "Thunderstorm",
+    };
+  }
+
+  return {
+    label: "Weather",
+  };
+}
+
+// =========================================================
+// DASHBOARD
+// =========================================================
 
 export default function Dashboard() {
   const navigate = useNavigate();
 
   const [mobileMenu, setMobileMenu] = useState(false);
+
+  // =========================================================
+  // WEATHER STATE
+  // =========================================================
+
+  const [weather, setWeather] = useState(null);
+
+  const [weatherLoading, setWeatherLoading] =
+    useState(true);
+
+  const [weatherError, setWeatherError] =
+    useState("");
 
   // =========================================================
   // USER
@@ -47,7 +142,10 @@ export default function Dashboard() {
       savedUser = JSON.parse(storedUser);
     }
   } catch (error) {
-    console.error("Could not read saved user:", error);
+    console.error(
+      "Could not read saved user:",
+      error
+    );
   }
 
   /*
@@ -152,6 +250,62 @@ export default function Dashboard() {
   ];
 
   // =========================================================
+  // WEATHER
+  // =========================================================
+
+  const fetchDashboardWeather = async () => {
+    try {
+      setWeatherLoading(true);
+      setWeatherError("");
+
+      const params = new URLSearchParams({
+        latitude:
+          DEFAULT_WEATHER_LOCATION.latitude,
+
+        longitude:
+          DEFAULT_WEATHER_LOCATION.longitude,
+
+        current:
+          "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m",
+
+        timezone: "auto",
+
+        forecast_days: "1",
+      });
+
+      const response = await fetch(
+        `${WEATHER_API}?${params.toString()}`
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          "Weather request failed."
+        );
+      }
+
+      const data = await response.json();
+
+      setWeather(data);
+    } catch (error) {
+      console.error(
+        "Could not load dashboard weather:",
+        error
+      );
+
+      setWeatherError(
+        "Weather information is currently unavailable."
+      );
+    } finally {
+      setWeatherLoading(false);
+    }
+  };
+
+  // Load weather when Dashboard opens.
+  useEffect(() => {
+    fetchDashboardWeather();
+  }, []);
+
+  // =========================================================
   // FUNCTIONS
   // =========================================================
 
@@ -176,7 +330,7 @@ export default function Dashboard() {
   const handleCreateTrip = () => {
     console.log("Create new trip");
 
-    // Later:
+    // Later connect this to your Create Trip page.
     // navigate("/create-trip");
   };
 
@@ -326,6 +480,19 @@ export default function Dashboard() {
               <span>Memories</span>
             </Link>
 
+            {/* WEATHER */}
+
+            <Link
+              to="/weather"
+              className="sidebar-link"
+              onClick={closeMobileMenu}
+            >
+              <CloudSun size={18} />
+              <span>Weather</span>
+            </Link>
+
+            {/* TRANSLATOR */}
+
             <Link
               to="/translator"
               className="sidebar-link"
@@ -334,6 +501,8 @@ export default function Dashboard() {
               <Languages size={18} />
               <span>Travel Translator</span>
             </Link>
+
+            {/* SETTINGS */}
 
             <Link
               to="/settings"
@@ -923,6 +1092,178 @@ export default function Dashboard() {
                   <ArrowRight size={15} />
 
                 </button>
+
+              </section>
+
+              {/* =================================================
+                  WEATHER
+              ================================================= */}
+
+              <section className="dashboard-weather-card">
+
+                <div className="weather-card-header">
+
+                  <div>
+
+                    <span className="section-eyebrow">
+                      TRAVEL WEATHER
+                    </span>
+
+                    <h2>
+                      Today's weather
+                    </h2>
+
+                  </div>
+
+                  <button
+                    type="button"
+                    className="weather-refresh-button"
+                    onClick={fetchDashboardWeather}
+                    disabled={weatherLoading}
+                    aria-label="Refresh weather"
+                  >
+
+                    <RefreshCw
+                      size={16}
+                      className={
+                        weatherLoading
+                          ? "weather-refresh-spin"
+                          : ""
+                      }
+                    />
+
+                  </button>
+
+                </div>
+
+                {weatherLoading ? (
+
+                  <div className="dashboard-weather-loading">
+
+                    <RefreshCw
+                      size={22}
+                      className="weather-refresh-spin"
+                    />
+
+                    <span>
+                      Loading weather...
+                    </span>
+
+                  </div>
+
+                ) : weatherError ? (
+
+                  <div className="dashboard-weather-error">
+
+                    <CloudSun size={24} />
+
+                    <p>
+                      {weatherError}
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={fetchDashboardWeather}
+                    >
+                      Try again
+                    </button>
+
+                  </div>
+
+                ) : weather ? (
+
+                  <>
+
+                    <div className="dashboard-weather-main">
+
+                      <div className="dashboard-weather-icon">
+                        <CloudSun size={42} />
+                      </div>
+
+                      <div className="dashboard-weather-temperature">
+
+                        <strong>
+                          {Math.round(
+                            weather.current.temperature_2m
+                          )}
+                          °
+                        </strong>
+
+                        <span>
+                          {
+                            getDashboardWeatherInfo(
+                              weather.current.weather_code
+                            ).label
+                          }
+                        </span>
+
+                      </div>
+
+                    </div>
+
+                    <div className="dashboard-weather-location">
+
+                      <MapPin size={15} />
+
+                      <span>
+                        Durban, KwaZulu-Natal
+                      </span>
+
+                    </div>
+
+                    <div className="dashboard-weather-stats">
+
+                      <div>
+
+                        <Droplets size={15} />
+
+                        <span>
+                          Humidity
+                        </span>
+
+                        <strong>
+                          {
+                            weather.current
+                              .relative_humidity_2m
+                          }
+                          %
+                        </strong>
+
+                      </div>
+
+                      <div>
+
+                        <Wind size={15} />
+
+                        <span>
+                          Wind
+                        </span>
+
+                        <strong>
+                          {Math.round(
+                            weather.current.wind_speed_10m
+                          )}{" "}
+                          km/h
+                        </strong>
+
+                      </div>
+
+                    </div>
+
+                    <Link
+                      to="/weather"
+                      className="dashboard-weather-button"
+                    >
+
+                      View full forecast
+
+                      <ArrowRight size={15} />
+
+                    </Link>
+
+                  </>
+
+                ) : null}
 
               </section>
 

@@ -82,9 +82,9 @@
 
   background:
     linear-gradient(
-      135deg,
-      #16849a,
-      #3b82f6
+       140deg,
+      var(--teal-700),
+      var(--teal-500)
     );
 
   box-shadow:

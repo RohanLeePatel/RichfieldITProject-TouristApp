@@ -10,6 +10,7 @@ import Register from "./pages/Register.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Settings from "./pages/Settings.jsx";
 import Translator from "./pages/Translator.jsx";
+import Weather from "./pages/Weather.jsx";
 
 import { useAuthStore } from "./store/authStore.js";
 
@@ -30,6 +31,7 @@ function App() {
     <BrowserRouter>
       <Routes>
 
+        {/* AUTH */}
         <Route
           path="/login"
           element={<Login />}
@@ -40,6 +42,7 @@ function App() {
           element={<Register />}
         />
 
+        {/* DASHBOARD */}
         <Route
           path="/dashboard"
           element={
@@ -49,6 +52,17 @@ function App() {
           }
         />
 
+        {/* WEATHER */}
+        <Route
+          path="/weather"
+          element={
+            <ProtectedRoute>
+              <Weather />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* TRANSLATOR */}
         <Route
           path="/translator"
           element={
@@ -58,6 +72,7 @@ function App() {
           }
         />
 
+        {/* SETTINGS */}
         <Route
           path="/settings"
           element={
@@ -67,6 +82,7 @@ function App() {
           }
         />
 
+        {/* DEFAULT */}
         <Route
           path="/"
           element={
@@ -77,6 +93,7 @@ function App() {
           }
         />
 
+        {/* UNKNOWN ROUTES */}
         <Route
           path="*"
           element={
