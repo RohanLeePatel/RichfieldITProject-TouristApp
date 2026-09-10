@@ -446,6 +446,17 @@ export default function Dashboard() {
               <span>Weather</span>
             </Link>
 
+            {/* RECOMMENDATIONS */}
+
+            <Link
+              to="/recommendations"
+              className="sidebar-link"
+              onClick={closeMobileMenu}
+            >
+              <Sparkles size={18} />
+              <span>Recommendations</span>
+            </Link>
+
             {/* TRANSLATOR */}
 
             <Link

@@ -6,6 +6,7 @@ const swaggerJsdoc = require('swagger-jsdoc');
 
 const authRoutes = require('./routes/auth');
 const tripRoutes = require('./routes/trips');
+const recommendationRoutes = require('./routes/recommendations');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -50,6 +51,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 // Mount Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/trips', tripRoutes);
+app.use('/api/recommendations', recommendationRoutes);
 
 // Health check endpoint
 app.get('/', (req, res) => {
