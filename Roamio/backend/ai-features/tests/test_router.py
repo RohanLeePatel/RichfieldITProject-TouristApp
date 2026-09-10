@@ -49,6 +49,8 @@ def test_recommendations_succeeds_with_correct_secret(client):
     assert body["level"] == "city"
     assert len(body["results"]) == 1
     assert body["results"][0]["id"] == "za-dbn"
+    assert body["results"][0]["name"] == "Durban"
+    assert body["results"][0]["map_url"].startswith("https://www.google.com/maps/search/")
 
 
 def test_recommendations_rejects_malformed_body(client):

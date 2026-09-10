@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ArrowLeft,
+  ArrowRight,
   Check,
-  ChevronDown,
+  ChevronLeft,
+  ExternalLink,
   LoaderCircle,
   MapPin,
   Plane,
@@ -13,99 +15,134 @@ import { Link } from "react-router-dom";
 import { fetchRecommendations } from "../api/recommendations.js";
 import "../styles/recommendations.css";
 
-const INTERESTS = [
-  "history",
-  "nature",
-  "food",
-  "family",
-];
-
+const INTERESTS = ["history", "nature", "food", "family"];
 const COUNTRIES = [
-  { id: "argentina", name: "Argentina" },
-  { id: "australia", name: "Australia" },
-  { id: "brazil", name: "Brazil" },
-  { id: "canada", name: "Canada" },
-  { id: "egypt", name: "Egypt" },
-  { id: "france", name: "France" },
-  { id: "germany", name: "Germany" },
-  { id: "italy", name: "Italy" },
-  { id: "japan", name: "Japan" },
-  { id: "kenya", name: "Kenya" },
-  { id: "mexico", name: "Mexico" },
-  { id: "netherlands", name: "Netherlands" },
-  { id: "south-africa", name: "South Africa" },
-  { id: "namibia", name: "Namibia" },
-  { id: "portugal", name: "Portugal" },
-  { id: "singapore", name: "Singapore" },
-  { id: "spain", name: "Spain" },
-  { id: "thailand", name: "Thailand" },
-  { id: "united-arab-emirates", name: "United Arab Emirates" },
-  { id: "united-kingdom", name: "United Kingdom" },
-  { id: "united-states", name: "United States" },
+  "Argentina", "Australia", "Brazil", "Canada", "Egypt", "France",
+  "Germany", "Italy", "Japan", "Kenya", "Mexico", "Namibia", "Netherlands",
+  "Portugal", "Singapore", "South Africa", "Spain", "Thailand",
+  "United Arab Emirates", "United Kingdom", "United States",
 ];
 
 const initialForm = {
-  level: "city",
-  country: "south-africa",
+  mode: "global",
+  country: "South Africa",
   budget: "1000",
   currency: "ZAR",
+  month: "",
   interests: ["nature", "food"],
   adults: "2",
   children: "",
   wheelchair: "none",
   climate: "",
-  month: "",
   pace: "balanced",
 };
 
-function formatDimension(dimension) {
-  return dimension.replace(/_/g, " ");
+const steps = ["Trip basics", "Interests", "Accessibility & pace", "Review"];
+
+function slugify(value) {
+  return value.toLowerCase().replace(/\s+/g, "-");
 }
 
-function RecommendationCard({ recommendation }) {
+function formatDimension(value) {
+  return value.replace(/_/g, " ");
+}
+
+function buildPreferences(form) {
+  const children = form.children
+    ? form.children
+        .split(",")
+        .map((age) => Number(age.trim()))
+        .filter((age) => Number.isInteger(age) && age >= 0)
+    : [];
+
+  return {
+    budget_per_day: Number(form.budget),
+    currency: form.currency.toUpperCase(),
+    interests: form.interests,
+    travellers: { adults: Number(form.adults), children },
+    accessibility: { wheelchair: form.wheelchair },
+    climate: {
+      ...(form.climate ? { prefer: form.climate } : {}),
+      ...(form.month ? { travel_month: Number(form.month) } : {}),
+    },
+    pace: form.pace,
+  };
+}
+
+function RecommendationCard({ recommendation, onSelect }) {
+  const destinationName = recommendation.name || recommendation.id;
+  const mapUrl =
+    recommendation.map_url ||
+    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+      destinationName
+    )}`;
+  const evidence = recommendation.breakdown
+    ?.filter((entry) => entry.weight > 0)
+    .slice(0, 4);
+
   return (
     <article className="recommendation-card">
-      <div className="recommendation-rank">#{recommendation.rank}</div>
-      <div className="recommendation-card-content">
-        <div className="recommendation-card-heading">
-          <div>
-            <p className="recommendation-card-id">
-              <MapPin size={14} />
-              {recommendation.id}
-            </p>
-            <h3>Recommended destination</h3>
-          </div>
-          <strong>{Math.round(recommendation.total_score * 100)}%</strong>
+      {recommendation.image_url ? (
+        <img
+          className="recommendation-card-image"
+          src={recommendation.image_url}
+          alt={`${destinationName} destination`}
+        />
+      ) : (
+        <div className="recommendation-card-image recommendation-card-image-fallback">
+          <MapPin size={25} />
         </div>
+      )}
+      <div className="recommendation-card-body">
+        <div className="recommendation-card-topline">
+          <span className="recommendation-rank">#{recommendation.rank}</span>
+          <span className="recommendation-score">
+            {Math.round(recommendation.total_score * 100)}% match
+          </span>
+        </div>
+        <h3>{destinationName}</h3>
+        {recommendation.country && (
+          <p className="recommendation-location">
+            <MapPin size={14} /> {recommendation.country}
+          </p>
+        )}
         <p className="recommendation-explanation">
           {recommendation.explanation}
         </p>
-        {recommendation.breakdown?.length > 0 && (
-          <div className="recommendation-evidence">
-            {recommendation.breakdown
-              .filter((entry) => entry.weight > 0)
-              .slice(0, 3)
-              .map((entry) => (
-                <span key={entry.dimension}>
-                  <Check size={13} />
-                  {formatDimension(entry.dimension)}
-                </span>
-              ))}
-          </div>
-        )}
+        <div className="recommendation-evidence">
+          {evidence?.map((entry) => (
+            <span key={entry.dimension}>
+              <Check size={13} />
+              {formatDimension(entry.dimension)}
+            </span>
+          ))}
+        </div>
+        <div className="recommendation-card-actions">
+          <a href={mapUrl} target="_blank" rel="noreferrer">
+            View map <ExternalLink size={14} />
+          </a>
+          {onSelect && (
+            <button type="button" onClick={() => onSelect(recommendation)}>
+              Explore cities <ArrowRight size={14} />
+            </button>
+          )}
+        </div>
       </div>
     </article>
   );
 }
 
 export default function Recommendations() {
+  const [step, setStep] = useState(0);
   const [form, setForm] = useState(initialForm);
   const [recommendationData, setRecommendationData] = useState(null);
+  const [selectedCountry, setSelectedCountry] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const updateForm = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
+    setError("");
   };
 
   const toggleInterest = (interest) => {
@@ -117,56 +154,35 @@ export default function Recommendations() {
     }));
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setError("");
-
-    const budget = Number(form.budget);
-    const adults = Number(form.adults);
-    const children = form.children
-      ? form.children
-          .split(",")
-          .map((age) => Number(age.trim()))
-          .filter((age) => Number.isInteger(age) && age >= 0)
-      : [];
-
-    if (!Number.isFinite(budget) || budget <= 0) {
-      setError("Enter a daily budget greater than zero.");
-      return;
+  const validateStep = () => {
+    if (step === 0) {
+      if (!Number.isFinite(Number(form.budget)) || Number(form.budget) <= 0) {
+        return "Enter a daily budget greater than zero.";
+      }
+      if (!/^[a-z]{3}$/i.test(form.currency)) {
+        return "Currency must be a 3-letter ISO code, such as ZAR.";
+      }
+      if (!Number.isInteger(Number(form.adults)) || Number(form.adults) < 1) {
+        return "Add at least one adult traveller.";
+      }
     }
-
-    if (!Number.isInteger(adults) || adults < 1) {
-      setError("Add at least one adult traveller.");
-      return;
+    if (step === 1 && form.interests.length === 0) {
+      return "Choose at least one interest.";
     }
+    return "";
+  };
 
-    if (!/^[a-z]{3}$/i.test(form.currency)) {
-      setError("Currency must be a 3-letter ISO code, such as ZAR.");
-      return;
-    }
-
+  const submitRecommendations = async (level, parentId) => {
     setLoading(true);
-
+    setError("");
     try {
-      const preferences = {
-        budget_per_day: budget,
-        currency: form.currency.toUpperCase(),
-        interests: form.interests,
-        travellers: { adults, children },
-        accessibility: { wheelchair: form.wheelchair },
-        climate: {
-          ...(form.climate ? { prefer: form.climate } : {}),
-          ...(form.month ? { travel_month: Number(form.month) } : {}),
-        },
-        pace: form.pace,
-      };
-
       const data = await fetchRecommendations(
-        preferences,
-        form.level,
-        form.level === "city" ? form.country : undefined
+        buildPreferences(form),
+        level,
+        parentId
       );
       setRecommendationData(data);
+      setSelectedCountry(null);
     } catch (requestError) {
       setRecommendationData(null);
       setError(
@@ -179,296 +195,187 @@ export default function Recommendations() {
     }
   };
 
+  const handleNext = async () => {
+    const validationError = validateStep();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setError("");
+    if (step < steps.length - 1) {
+      setStep((current) => current + 1);
+      return;
+    }
+    await submitRecommendations(
+      form.mode === "global" ? "country" : "city",
+      form.mode === "country" ? slugify(form.country) : undefined
+    );
+  };
+
+  const exploreCities = async (country) => {
+    setSelectedCountry(country);
+    await submitRecommendations("city", country.id);
+  };
+
+  const resultTitle = recommendationData?.level === "country"
+    ? "Countries that fit your trip"
+    : `Cities in ${selectedCountry?.name || form.country}`;
+  const relaxSuggestions = useMemo(
+    () => recommendationData?.excluded?.slice(0, 3) || [],
+    [recommendationData]
+  );
+
   return (
     <main className="recommendations-page">
       <header className="recommendations-header">
         <Link to="/dashboard" className="recommendations-back-link">
-          <ArrowLeft size={17} />
-          Back to dashboard
+          <ArrowLeft size={17} /> Back to dashboard
         </Link>
         <div className="recommendations-brand">
-          <span>
-            <Plane size={18} />
-          </span>
-          Roamio
+          <span><Plane size={18} /></span> Roamio
         </div>
       </header>
 
       <div className="recommendations-content">
-        <section className="recommendations-intro">
-          <p className="recommendations-eyebrow">
-            <Sparkles size={15} />
-            Personalised travel planning
-          </p>
-          <h1>Find a destination that fits your trip.</h1>
-          <p>
-            Tell us what matters to your group and we&apos;ll rank the best
-            matching destinations from our travel catalogue.
-          </p>
-        </section>
+        {!recommendationData && (
+          <section className="recommendations-intro">
+            <p className="recommendations-eyebrow">
+              <Sparkles size={15} /> Personalised travel planning
+            </p>
+            <h1>Plan a trip that feels made for you.</h1>
+            <p>Answer four quick steps. We&apos;ll explain why each country or city matches your group.</p>
+          </section>
+        )}
 
-        <div className="recommendations-layout">
-          <form className="recommendations-form" onSubmit={handleSubmit}>
-            <div className="form-section">
-              <h2>What are you looking for?</h2>
-              <div className="field-grid">
-                <label>
-                  Recommendation level
-                  <span className="select-wrapper">
-                    <select
-                      value={form.level}
-                      onChange={(event) =>
-                        updateForm("level", event.target.value)
-                      }
-                    >
-                      <option value="city">Cities</option>
-                      <option value="country">Countries</option>
-                    </select>
-                    <ChevronDown size={16} />
-                  </span>
-                </label>
-                {form.level === "city" && (
-                  <label>
-                    Country
-                    <span className="select-wrapper">
-                      <select
-                        value={form.country}
-                        onChange={(event) =>
-                          updateForm("country", event.target.value)
-                        }
-                      >
-                        {COUNTRIES.map((country) => (
-                          <option key={country.id} value={country.id}>
-                            {country.name}
-                          </option>
-                        ))}
+        {!recommendationData && (
+          <section className="wizard-card">
+            <div className="wizard-progress">
+              {steps.map((label, index) => (
+                <div className={`wizard-step ${index <= step ? "active" : ""}`} key={label}>
+                  <span>{index + 1}</span>
+                  {label}
+                </div>
+              ))}
+            </div>
+
+            <div className="wizard-content">
+              {step === 0 && (
+                <>
+                  <h2>Where should we look?</h2>
+                  <p className="wizard-help">Start globally, or tell us which country you already have in mind.</p>
+                  <div className="mode-options">
+                    <button type="button" className={form.mode === "global" ? "mode-option selected" : "mode-option"} onClick={() => updateForm("mode", "global")}>
+                      <Sparkles size={20} />
+                      <strong>Explore globally</strong>
+                      <span>Rank countries around the world.</span>
+                    </button>
+                    <button type="button" className={form.mode === "country" ? "mode-option selected" : "mode-option"} onClick={() => updateForm("mode", "country")}>
+                      <MapPin size={20} />
+                      <strong>I have a country in mind</strong>
+                      <span>Find the best cities in one country.</span>
+                    </button>
+                  </div>
+                  {form.mode === "country" && (
+                    <label className="wizard-field">
+                      Country
+                      <select value={form.country} onChange={(event) => updateForm("country", event.target.value)}>
+                        {COUNTRIES.map((country) => <option key={country} value={country}>{country}</option>)}
                       </select>
-                      <ChevronDown size={16} />
-                    </span>
-                  </label>
-                )}
-              </div>
-            </div>
-
-            <div className="form-section">
-              <h2>Interests</h2>
-              <div className="interest-list">
-                {INTERESTS.map((interest) => (
-                  <button
-                    type="button"
-                    className={`interest-option ${
-                      form.interests.includes(interest) ? "selected" : ""
-                    }`}
-                    key={interest}
-                    onClick={() => toggleInterest(interest)}
-                  >
-                    {form.interests.includes(interest) && <Check size={14} />}
-                    {interest}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="form-section">
-              <h2>Trip preferences</h2>
-              <div className="field-grid">
-                <label>
-                  Daily budget
-                  <input
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={form.budget}
-                    onChange={(event) =>
-                      updateForm("budget", event.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  Currency
-                  <input
-                    maxLength="3"
-                    value={form.currency}
-                    onChange={(event) =>
-                      updateForm("currency", event.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  Adults
-                  <input
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={form.adults}
-                    onChange={(event) =>
-                      updateForm("adults", event.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  Children&apos;s ages
-                  <input
-                    placeholder="e.g. 8, 12"
-                    value={form.children}
-                    onChange={(event) =>
-                      updateForm("children", event.target.value)
-                    }
-                  />
-                </label>
-                <label>
-                  Accessibility
-                  <span className="select-wrapper">
-                    <select
-                      value={form.wheelchair}
-                      onChange={(event) =>
-                        updateForm("wheelchair", event.target.value)
-                      }
-                    >
-                      <option value="none">No specific need</option>
-                      <option value="preferred">Wheelchair preferred</option>
-                      <option value="required">Wheelchair required</option>
-                    </select>
-                    <ChevronDown size={16} />
-                  </span>
-                </label>
-                <label>
-                  Travel pace
-                  <span className="select-wrapper">
-                    <select
-                      value={form.pace}
-                      onChange={(event) =>
-                        updateForm("pace", event.target.value)
-                      }
-                    >
-                      <option value="relaxed">Relaxed</option>
-                      <option value="balanced">Balanced</option>
-                      <option value="packed">Packed</option>
-                    </select>
-                    <ChevronDown size={16} />
-                  </span>
-                </label>
-                <label>
-                  Climate
-                  <span className="select-wrapper">
-                    <select
-                      value={form.climate}
-                      onChange={(event) =>
-                        updateForm("climate", event.target.value)
-                      }
-                    >
-                      <option value="">No preference</option>
-                      <option value="mild">Mild</option>
-                      <option value="hot">Hot</option>
-                      <option value="cold">Cold</option>
-                    </select>
-                    <ChevronDown size={16} />
-                  </span>
-                </label>
-                <label>
-                  Travel month
-                  <span className="select-wrapper">
-                    <select
-                      value={form.month}
-                      onChange={(event) =>
-                        updateForm("month", event.target.value)
-                      }
-                    >
-                      <option value="">Any month</option>
-                      {Array.from({ length: 12 }, (_, index) => (
-                        <option key={index + 1} value={index + 1}>
-                          {new Date(2024, index, 1).toLocaleString("en", {
-                            month: "long",
-                          })}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown size={16} />
-                  </span>
-                </label>
-              </div>
-            </div>
-
-            {error && <p className="recommendations-error">{error}</p>}
-
-            <button
-              type="submit"
-              className="recommendations-submit"
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <LoaderCircle className="recommendations-spinner" size={18} />
-                  Finding matches...
-                </>
-              ) : (
-                <>
-                  <Sparkles size={18} />
-                  Find my recommendations
+                    </label>
+                  )}
+                  <div className="field-grid wizard-fields">
+                    <label className="wizard-field">Daily budget<input type="number" min="1" value={form.budget} onChange={(event) => updateForm("budget", event.target.value)} /></label>
+                    <label className="wizard-field">Currency<input maxLength="3" value={form.currency} onChange={(event) => updateForm("currency", event.target.value)} /></label>
+                    <label className="wizard-field">Adults<input type="number" min="1" value={form.adults} onChange={(event) => updateForm("adults", event.target.value)} /></label>
+                    <label className="wizard-field">Children&apos;s ages<input placeholder="e.g. 8, 12" value={form.children} onChange={(event) => updateForm("children", event.target.value)} /></label>
+                    <label className="wizard-field">Travel month<select value={form.month} onChange={(event) => updateForm("month", event.target.value)}><option value="">Any month</option>{Array.from({ length: 12 }, (_, index) => <option key={index + 1} value={index + 1}>{new Date(2024, index, 1).toLocaleString("en", { month: "long" })}</option>)}</select></label>
+                  </div>
                 </>
               )}
-            </button>
-          </form>
 
-          <section className="recommendations-results" aria-live="polite">
-            {!recommendationData && !loading && (
-              <div className="results-placeholder">
-                <Sparkles size={28} />
-                <h2>Your best matches will appear here.</h2>
-                <p>Complete your preferences and start exploring.</p>
-              </div>
-            )}
-
-            {loading && (
-              <div className="results-placeholder">
-                <LoaderCircle className="recommendations-spinner" size={30} />
-                <h2>Finding your best matches...</h2>
-                <p>Our recommendation engine is comparing destinations.</p>
-              </div>
-            )}
-
-            {recommendationData && !loading && (
-              <>
-                <div className="results-heading">
-                  <div>
-                    <p className="recommendations-eyebrow">
-                      <MapPin size={15} />
-                      {recommendationData.level} recommendations
-                    </p>
-                    <h2>Matches for your trip</h2>
-                  </div>
-                  <span>{recommendationData.results.length} found</span>
-                </div>
-                {recommendationData.results.length === 0 ? (
-                  <div className="results-empty">
-                    No destinations matched every requirement. Try relaxing an
-                    accessibility or climate preference.
-                  </div>
-                ) : (
-                  <div className="recommendation-list">
-                    {recommendationData.results.map((recommendation) => (
-                      <RecommendationCard
-                        key={recommendation.id}
-                        recommendation={recommendation}
-                      />
+              {step === 1 && (
+                <>
+                  <h2>What do you enjoy?</h2>
+                  <p className="wizard-help">Pick the interests that should influence your ranking.</p>
+                  <div className="interest-list">
+                    {INTERESTS.map((interest) => (
+                      <button type="button" className={`interest-option ${form.interests.includes(interest) ? "selected" : ""}`} key={interest} onClick={() => toggleInterest(interest)}>
+                        {form.interests.includes(interest) && <Check size={14} />} {interest}
+                      </button>
                     ))}
                   </div>
-                )}
-                {recommendationData.comparison && (
-                  <p className="recommendation-comparison">
-                    {recommendationData.comparison}
-                  </p>
-                )}
-                {recommendationData.excluded?.length > 0 && (
-                  <p className="recommendation-excluded">
-                    {recommendationData.excluded.length} destination(s) were
-                    excluded by your requirements.
-                  </p>
-                )}
-              </>
-            )}
+                </>
+              )}
+
+              {step === 2 && (
+                <>
+                  <h2>Make it work for your group.</h2>
+                  <p className="wizard-help">These preferences help the engine avoid unsuitable matches.</p>
+                  <div className="field-grid wizard-fields">
+                    <label className="wizard-field">Accessibility<select value={form.wheelchair} onChange={(event) => updateForm("wheelchair", event.target.value)}><option value="none">No specific need</option><option value="preferred">Wheelchair preferred</option><option value="required">Wheelchair required</option></select></label>
+                    <label className="wizard-field">Climate<select value={form.climate} onChange={(event) => updateForm("climate", event.target.value)}><option value="">No preference</option><option value="mild">Mild</option><option value="hot">Hot</option><option value="cold">Cold</option></select></label>
+                    <label className="wizard-field">Travel pace<select value={form.pace} onChange={(event) => updateForm("pace", event.target.value)}><option value="relaxed">Relaxed</option><option value="balanced">Balanced</option><option value="packed">Packed</option></select></label>
+                  </div>
+                </>
+              )}
+
+              {step === 3 && (
+                <>
+                  <h2>Review your trip preferences.</h2>
+                  <p className="wizard-help">You can go back and change anything before we search.</p>
+                  <div className="review-grid">
+                    <div><span>Search</span><strong>{form.mode === "global" ? "Global countries" : `Cities in ${form.country}`}</strong></div>
+                    <div><span>Budget</span><strong>{form.budget} {form.currency.toUpperCase()} per day</strong></div>
+                    <div><span>Travellers</span><strong>{form.adults} adults{form.children ? `, children aged ${form.children}` : ""}</strong></div>
+                    <div><span>Interests</span><strong>{form.interests.join(", ")}</strong></div>
+                    <div><span>Style</span><strong>{form.pace}, {form.climate || "any climate"}</strong></div>
+                  </div>
+                </>
+              )}
+
+              {error && <p className="recommendations-error">{error}</p>}
+              <div className="wizard-actions">
+                {step > 0 && <button type="button" className="secondary-button" onClick={() => { setError(""); setStep((current) => current - 1); }}><ChevronLeft size={17} /> Back</button>}
+                <button type="button" className="recommendations-submit" onClick={handleNext} disabled={loading}>
+                  {loading ? <><LoaderCircle className="recommendations-spinner" size={18} /> Finding matches...</> : <>{step === steps.length - 1 ? "Find my matches" : "Continue"} <ArrowRight size={17} /></>}
+                </button>
+              </div>
+            </div>
           </section>
-        </div>
+        )}
+
+        {recommendationData && (
+          <section className="recommendations-results">
+            <div className="results-heading">
+              <div>
+                <p className="recommendations-eyebrow"><MapPin size={15} /> {recommendationData.level} recommendations</p>
+                <h2>{resultTitle}</h2>
+                <p>Ranked using your saved preferences. You can edit them and search again.</p>
+              </div>
+              <button type="button" className="secondary-button" onClick={() => { setRecommendationData(null); setStep(0); }}><ChevronLeft size={17} /> Edit preferences</button>
+            </div>
+            {recommendationData.results.length === 0 ? (
+              <div className="results-empty">
+                <h3>No exact matches yet.</h3>
+                <p>Try relaxing one of these requirements:</p>
+                <ul>{relaxSuggestions.map((item) => <li key={item.id}>{item.id}: {item.reason}</li>)}</ul>
+                <button type="button" className="recommendations-submit" onClick={() => setRecommendationData(null)}>Edit preferences</button>
+              </div>
+            ) : (
+              <div className="recommendation-list">
+                {recommendationData.results.map((recommendation) => (
+                  <RecommendationCard
+                    key={recommendation.id}
+                    recommendation={recommendation}
+                    onSelect={recommendationData.level === "country" ? exploreCities : undefined}
+                  />
+                ))}
+              </div>
+            )}
+            {recommendationData.comparison && <p className="recommendation-comparison">{recommendationData.comparison}</p>}
+            {recommendationData.excluded?.length > 0 && <p className="recommendation-excluded">{recommendationData.excluded.length} destinations were excluded by your requirements.</p>}
+          </section>
+        )}
       </div>
     </main>
   );

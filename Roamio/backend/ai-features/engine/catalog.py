@@ -56,6 +56,7 @@ def load_country_catalog() -> list[Candidate]:
             Candidate(
                 id=slugify_country(country_name),
                 name=country_name,
+                country=country_name,
                 features={
                     "cost_index": round(sum(cost_indexes) / len(cost_indexes)) if cost_indexes else None,
                     "safety_index": (sum(safety_indexes) / len(safety_indexes)) if safety_indexes else None,

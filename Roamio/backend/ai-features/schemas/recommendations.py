@@ -87,6 +87,8 @@ class CandidateFeatures(BaseModel):
 class Candidate(BaseModel):
     id: str
     name: str
+    country: Optional[str] = None
+    image_url: Optional[str] = None
     features: CandidateFeatures
     # small set of representative children (e.g. a country's top few cities),
     # only used for the bottom-up blend
@@ -128,6 +130,10 @@ class EvidenceEntry(BaseModel):
 
 class RecommendationResult(BaseModel):
     id: str
+    name: str
+    country: Optional[str] = None
+    image_url: Optional[str] = None
+    map_url: str
     rank: int
     total_score: float = Field(ge=0, le=1)
     breakdown: list[EvidenceEntry]

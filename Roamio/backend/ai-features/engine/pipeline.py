@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from urllib.parse import quote_plus
+
 from engine.blend import blended_score
 from engine.explain import build_comparison, build_explanation
 from engine.gates import run_gates
@@ -85,6 +87,10 @@ def score_candidates(
     results = [
         RecommendationResult(
             id=candidate.id,
+            name=candidate.name,
+            country=candidate.country if candidate.country else (candidate.name if level == "country" else None),
+            image_url=candidate.image_url,
+            map_url=f"https://www.google.com/maps/search/?api=1&query={quote_plus(candidate.name)}",
             rank=rank,
             total_score=round(score, 4),
             breakdown=breakdown,
