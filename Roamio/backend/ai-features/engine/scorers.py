@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 from engine.currency import convert_from_zar
 from engine.dimension import DimensionScore
 from engine.weights import (
@@ -141,7 +143,15 @@ def score_interests(prefs: Preferences, candidate: Candidate, level: Level) -> D
         )
 
     matched = {tag: density.get(tag, 0.0) for tag in prefs.interests}
-    interest_value = sum(matched.values()) / len(matched) if matched else 0.0
+    # A geometric mean makes a missing requested interest matter. An option
+    # that only matches one of four interests should not score like one that
+    # matches all four merely because its arithmetic average is acceptable.
+    floor = 0.05
+    interest_value = (
+        1.0
+        if not matched
+        else math.prod(max(value, floor) for value in matched.values()) ** (1 / len(matched))
+    )
 
     value = interest_value
     family_note = ""

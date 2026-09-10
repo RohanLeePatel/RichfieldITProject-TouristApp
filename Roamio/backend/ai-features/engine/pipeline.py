@@ -6,6 +6,7 @@ from engine.blend import blended_score
 from engine.explain import build_comparison, build_explanation
 from engine.gates import run_gates
 from engine.scorers import score_all_dimensions
+from engine.weights import BASE_RELEVANCE_FLOOR, MAX_RESULTS
 from schemas.recommendations import (
     Candidate,
     EvidenceEntry,
@@ -84,6 +85,63 @@ def score_candidates(
 
     scored.sort(key=lambda t: t[1], reverse=True)
 
+    requested_count = len(prefs.interests)
+    relevance_floor = min(
+        0.55,
+        BASE_RELEVANCE_FLOOR
+        + min(requested_count, 3) * 0.02
+        + (0.02 if prefs.climate.prefer else 0.0)
+        + (0.02 if prefs.accessibility.wheelchair != "none" else 0.0),
+    )
+
+    strong_matches: list[tuple[Candidate, float, list[EvidenceEntry]]] = []
+    for candidate, score, breakdown in scored:
+        if len(scored) > MAX_RESULTS[level] and score < relevance_floor:
+            excluded.append(
+                ExcludedCandidate(
+                    id=candidate.id,
+                    reason=(
+                        f"Overall relevance score {score:.0%} was below the "
+                        f"{relevance_floor:.0%} match threshold for these preferences."
+                    ),
+                )
+            )
+        else:
+            strong_matches.append((candidate, score, breakdown))
+
+    # Keep the strongest results, while avoiding a page made up of one repeated
+    # interest when the candidate set offers other well-scoring categories.
+    selected: list[tuple[Candidate, float, list[EvidenceEntry]]] = []
+    remaining = list(strong_matches)
+    max_results = MAX_RESULTS[level]
+    while remaining and len(selected) < max_results:
+        next_index = 0
+        if prefs.interests:
+            selected_tags = [
+                max(
+                    prefs.interests,
+                    key=lambda tag: item[0].features.interest_density.get(tag, 0.0),
+                )
+                for item in selected
+            ]
+            for index, item in enumerate(remaining):
+                dominant = max(
+                    prefs.interests,
+                    key=lambda tag: item[0].features.interest_density.get(tag, 0.0),
+                )
+                if selected_tags.count(dominant) < 2:
+                    next_index = index
+                    break
+        selected.append(remaining.pop(next_index))
+
+    for candidate, score, breakdown in remaining:
+        excluded.append(
+            ExcludedCandidate(
+                id=candidate.id,
+                reason=f"Ranked below the top {max_results} relevant matches.",
+            )
+        )
+
     results = [
         RecommendationResult(
             id=candidate.id,
@@ -96,12 +154,12 @@ def score_candidates(
             breakdown=breakdown,
             explanation=build_explanation(candidate.name, breakdown),
         )
-        for rank, (candidate, score, breakdown) in enumerate(scored, start=1)
+        for rank, (candidate, score, breakdown) in enumerate(selected, start=1)
     ]
 
     comparison = None
-    if len(scored) >= 2:
-        (c1, _, b1), (c2, _, b2) = scored[0], scored[1]
+    if len(selected) >= 2:
+        (c1, _, b1), (c2, _, b2) = selected[0], selected[1]
         comparison = build_comparison(c1.name, b1, c2.name, b2)
 
     return results, excluded, comparison

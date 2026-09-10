@@ -36,6 +36,11 @@ BLEND_SELF_WEIGHT = 0.7
 BLEND_CHILDREN_WEIGHT = 0.3
 BLEND_TOP_N_CHILDREN = 3
 
+# Results are ranked across the full candidate set before these limits are
+# applied. The floor becomes stricter as the user supplies more constraints.
+MAX_RESULTS: dict[str, int] = {"country": 6, "city": 8, "place": 8}
+BASE_RELEVANCE_FLOOR = 0.40
+
 # hand-curated 1..5 cost_index -> rough daily cost band in ZAR, used by the
 # budget gate and score_budget. Went with ZAR here since that's what the sample
 # request and Node's Trip.budget model both use - not based on any real currency

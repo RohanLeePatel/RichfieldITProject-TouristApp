@@ -113,6 +113,13 @@ def test_interests_rich_scores_higher_than_poor(destinations, prefs_factory):
     assert rich.value > poor.value
 
 
+def test_multiple_interests_penalise_partial_matches(destinations, prefs_factory):
+    prefs = prefs_factory(interests=["history", "nature"])
+    full = score_interests(prefs, destinations["mid_safe_interest_rich"], "city")
+    partial = score_interests(prefs, destinations["cheap_accessible_historic"], "city")
+    assert full.value > partial.value
+
+
 def test_interests_family_fold_in_only_applies_with_children(destinations, prefs_factory):
     candidate = destinations["expensive_accessible_family"]
     no_kids = score_interests(prefs_factory(interests=["family"], children=[]), candidate, "city")

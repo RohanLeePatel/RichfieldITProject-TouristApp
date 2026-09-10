@@ -19,6 +19,12 @@ import {
 import "../styles/recommendations.css";
 
 const INTERESTS = ["history", "nature", "food", "family"];
+const INTEREST_LABELS = {
+  history: "History & culture",
+  nature: "Nature & outdoors",
+  food: "Food & cafes",
+  family: "Family attractions",
+};
 const COUNTRIES = [
   "Argentina", "Australia", "Brazil", "Canada", "Egypt", "France",
   "Germany", "Italy", "Japan", "Kenya", "Mexico", "Namibia", "Netherlands",
@@ -37,10 +43,9 @@ const initialForm = {
   children: "",
   wheelchair: "none",
   climate: "",
-  pace: "balanced",
 };
 
-const steps = ["Trip basics", "Interests", "Accessibility & pace", "Review"];
+const steps = ["Trip basics", "Interests", "Accessibility & climate", "Review"];
 
 function slugify(value) {
   return value.toLowerCase().replace(/\s+/g, "-");
@@ -68,7 +73,6 @@ function buildPreferences(form) {
       ...(form.climate ? { prefer: form.climate } : {}),
       ...(form.month ? { travel_month: Number(form.month) } : {}),
     },
-    pace: form.pace,
   };
 }
 
@@ -329,7 +333,7 @@ export default function Recommendations() {
                   <div className="interest-list">
                     {INTERESTS.map((interest) => (
                       <button type="button" className={`interest-option ${form.interests.includes(interest) ? "selected" : ""}`} key={interest} onClick={() => toggleInterest(interest)}>
-                        {form.interests.includes(interest) && <Check size={14} />} {interest}
+                        {form.interests.includes(interest) && <Check size={14} />} {INTEREST_LABELS[interest]}
                       </button>
                     ))}
                   </div>
@@ -339,11 +343,10 @@ export default function Recommendations() {
               {step === 2 && (
                 <>
                   <h2>Make it work for your group.</h2>
-                  <p className="wizard-help">These preferences help the engine avoid unsuitable matches.</p>
+                  <p className="wizard-help">These data-backed preferences help the engine rank suitable matches.</p>
                   <div className="field-grid wizard-fields">
                     <label className="wizard-field">Accessibility<select value={form.wheelchair} onChange={(event) => updateForm("wheelchair", event.target.value)}><option value="none">No specific need</option><option value="preferred">Wheelchair preferred</option><option value="required">Wheelchair required</option></select></label>
                     <label className="wizard-field">Climate<select value={form.climate} onChange={(event) => updateForm("climate", event.target.value)}><option value="">No preference</option><option value="mild">Mild</option><option value="hot">Hot</option><option value="cold">Cold</option></select></label>
-                    <label className="wizard-field">Travel pace<select value={form.pace} onChange={(event) => updateForm("pace", event.target.value)}><option value="relaxed">Relaxed</option><option value="balanced">Balanced</option><option value="packed">Packed</option></select></label>
                   </div>
                 </>
               )}
@@ -357,7 +360,7 @@ export default function Recommendations() {
                     <div><span>Budget</span><strong>{form.budget} {form.currency.toUpperCase()} per day</strong></div>
                     <div><span>Travellers</span><strong>{form.adults} adults{form.children ? `, children aged ${form.children}` : ""}</strong></div>
                     <div><span>Interests</span><strong>{form.interests.join(", ")}</strong></div>
-                    <div><span>Style</span><strong>{form.pace}, {form.climate || "any climate"}</strong></div>
+                    <div><span>Climate</span><strong>{form.climate || "Any climate"}</strong></div>
                   </div>
                 </>
               )}

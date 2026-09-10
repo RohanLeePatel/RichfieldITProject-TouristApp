@@ -56,6 +56,25 @@ def test_persona_tight_budget_excludes_expensive(destinations, prefs_factory):
     assert destinations["expensive_poor_access_historic"].id in excluded_ids
 
 
+def test_results_are_capped_after_ranking(destinations, prefs_factory):
+    prefs = prefs_factory(interests=["history"])
+    results, excluded, _ = score_candidates(prefs, "city", list(destinations.values()) * 2)
+    assert len(results) <= 8
+    assert len(results) + len(excluded) == len(destinations) * 2
+
+
+def test_different_profiles_change_the_winner(destinations, prefs_factory):
+    candidates = [
+        destinations["cheap_accessible_historic"],
+        destinations["expensive_accessible_family"],
+    ]
+    family = prefs_factory(budget_per_day=6000, interests=["family"], children=[6, 9])
+    history = prefs_factory(interests=["history"], children=[])
+    family_results, _, _ = score_candidates(family, "city", candidates)
+    history_results, _, _ = score_candidates(history, "city", candidates)
+    assert family_results[0].id != history_results[0].id
+
+
 # --- Gate exclusion surfaces reasons, ranks are contiguous -------------
 
 
