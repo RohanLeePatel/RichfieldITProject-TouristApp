@@ -19,6 +19,7 @@ import {
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+import { fetchWeather as fetchWeatherFromApi } from "../api/weather";
 import "../styles/weather.css";
 
 // =========================================================
@@ -27,9 +28,6 @@ import "../styles/weather.css";
 
 const GEOCODING_API =
   "https://geocoding-api.open-meteo.com/v1/search";
-
-const WEATHER_API =
-  "https://api.open-meteo.com/v1/forecast";
 
 // =========================================================
 // DEFAULT LOCATION
@@ -49,115 +47,43 @@ const DEFAULT_LOCATION = {
 // =========================================================
 
 function getWeatherInfo(weatherCode) {
-  if (weatherCode === 0) {
-    return {
-      label: "Clear sky",
-      icon: Sun,
-      type: "clear",
-    };
+  const description = String(weatherCode || "").toLowerCase();
+
+  if (description.includes("thunder")) {
+    return { label: "Thunderstorm", icon: CloudRain, type: "storm" };
   }
 
-  if (weatherCode === 1) {
-    return {
-      label: "Mainly clear",
-      icon: Sun,
-      type: "clear",
-    };
+  if (description.includes("snow") || description.includes("sleet")) {
+    return { label: "Snow", icon: Cloud, type: "snow" };
   }
 
-  if (weatherCode === 2) {
+  if (
+    description.includes("rain") ||
+    description.includes("shower") ||
+    description.includes("drizzle")
+  ) {
+    return { label: "Rain", icon: CloudRain, type: "rain" };
+  }
+
+  if (description.includes("fog") || description.includes("mist")) {
+    return { label: "Foggy", icon: Cloud, type: "cloud" };
+  }
+
+  if (description.includes("cloud")) {
     return {
-      label: "Partly cloudy",
+      label: description.includes("overcast")
+        ? "Overcast"
+        : "Partly cloudy",
       icon: CloudSun,
       type: "cloud",
     };
   }
 
-  if (weatherCode === 3) {
+  if (description.includes("clear")) {
     return {
-      label: "Overcast",
-      icon: Cloud,
-      type: "cloud",
-    };
-  }
-
-  if ([45, 48].includes(weatherCode)) {
-    return {
-      label: "Foggy",
-      icon: Cloud,
-      type: "cloud",
-    };
-  }
-
-  if ([51, 53, 55].includes(weatherCode)) {
-    return {
-      label: "Drizzle",
-      icon: CloudRain,
-      type: "rain",
-    };
-  }
-
-  if ([56, 57].includes(weatherCode)) {
-    return {
-      label: "Freezing drizzle",
-      icon: CloudRain,
-      type: "rain",
-    };
-  }
-
-  if ([61, 63, 65].includes(weatherCode)) {
-    return {
-      label: "Rain",
-      icon: CloudRain,
-      type: "rain",
-    };
-  }
-
-  if ([66, 67].includes(weatherCode)) {
-    return {
-      label: "Freezing rain",
-      icon: CloudRain,
-      type: "rain",
-    };
-  }
-
-  if ([71, 73, 75].includes(weatherCode)) {
-    return {
-      label: "Snow",
-      icon: Cloud,
-      type: "snow",
-    };
-  }
-
-  if (weatherCode === 77) {
-    return {
-      label: "Snow grains",
-      icon: Cloud,
-      type: "snow",
-    };
-  }
-
-  if ([80, 81, 82].includes(weatherCode)) {
-    return {
-      label: "Rain showers",
-      icon: CloudRain,
-      type: "rain",
-    };
-  }
-
-  if ([85, 86].includes(weatherCode)) {
-    return {
-      label: "Snow showers",
-      icon: Cloud,
-      type: "snow",
-    };
-  }
-
-  if ([95, 96, 99].includes(weatherCode)) {
-    return {
-      label: "Thunderstorm",
-      icon: CloudRain,
-      type: "storm",
+      label: "Clear sky",
+      icon: Sun,
+      type: "clear",
     };
   }
 
@@ -225,41 +151,12 @@ export default function Weather() {
   // FETCH WEATHER
   // =======================================================
 
-  const fetchWeather = async (
-    latitude,
-    longitude,
-    locationData = location
-  ) => {
+  const fetchWeather = async (locationData = location) => {
     try {
       setLoading(true);
       setError("");
 
-      const params = new URLSearchParams({
-        latitude,
-        longitude,
-
-        current:
-          "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m",
-
-        daily:
-          "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,sunrise,sunset",
-
-        timezone: "auto",
-
-        forecast_days: "7",
-      });
-
-      const response = await fetch(
-        `${WEATHER_API}?${params.toString()}`
-      );
-
-      if (!response.ok) {
-        throw new Error(
-          "Weather request failed."
-        );
-      }
-
-      const data = await response.json();
+      const data = await fetchWeatherFromApi(locationData.name);
 
       setWeather({
         ...data,
@@ -291,6 +188,7 @@ export default function Weather() {
     const query = searchCity.trim();
 
     if (!query) {
+      setError("Enter a destination to search for weather.");
       return;
     }
 
@@ -377,11 +275,7 @@ export default function Weather() {
     setLocationResults([]);
     setError("");
 
-    fetchWeather(
-      selectedLocation.latitude,
-      selectedLocation.longitude,
-      selectedLocation
-    );
+    fetchWeather(selectedLocation);
   };
 
   // =======================================================
@@ -389,11 +283,7 @@ export default function Weather() {
   // =======================================================
 
   const refreshWeather = () => {
-    fetchWeather(
-      location.latitude,
-      location.longitude,
-      location
-    );
+    fetchWeather(location);
   };
 
   // =======================================================
@@ -401,11 +291,7 @@ export default function Weather() {
   // =======================================================
 
   useEffect(() => {
-    fetchWeather(
-      DEFAULT_LOCATION.latitude,
-      DEFAULT_LOCATION.longitude,
-      DEFAULT_LOCATION
-    );
+    fetchWeather(DEFAULT_LOCATION);
   }, []);
 
   // =======================================================
@@ -433,7 +319,7 @@ export default function Weather() {
   const currentWeatherInfo =
     currentWeather
       ? getWeatherInfo(
-          currentWeather.weather_code
+          currentWeather.description
         )
       : null;
 
@@ -737,7 +623,7 @@ export default function Weather() {
 
                   <strong>
                     {Math.round(
-                      currentWeather.temperature_2m
+                      currentWeather.temp
                     )}
                     <sup>
                       °C
@@ -761,7 +647,7 @@ export default function Weather() {
                   Feels like{" "}
                   <strong>
                     {Math.round(
-                      currentWeather.apparent_temperature
+                      currentWeather.feels_like
                     )}
                     °C
                   </strong>
@@ -791,7 +677,7 @@ export default function Weather() {
 
                     <strong>
                       {
-                        currentWeather.relative_humidity_2m
+                        currentWeather.humidity
                       }
                       %
                     </strong>
@@ -812,7 +698,7 @@ export default function Weather() {
 
                     <strong>
                       {Math.round(
-                        currentWeather.wind_speed_10m
+                        currentWeather.wind_speed
                       )}{" "}
                       km/h
                     </strong>
@@ -832,10 +718,7 @@ export default function Weather() {
                     </span>
 
                     <strong>
-                      {
-                        currentWeather.precipitation
-                      }{" "}
-                      mm
+                      Weather data unavailable
                     </strong>
                   </div>
 
@@ -863,7 +746,7 @@ export default function Weather() {
             FORECAST
         ================================================= */}
 
-        {weather?.daily && (
+        {weather?.forecast?.length > 0 && (
           <section className="forecast-section">
 
             <div className="section-heading">
@@ -892,13 +775,12 @@ export default function Weather() {
 
             <div className="forecast-grid">
 
-              {weather.daily.time.map(
-                (date, index) => {
+              {weather.forecast.map(
+                (day, index) => {
 
                   const dayInfo =
                     getWeatherInfo(
-                      weather.daily
-                        .weather_code[index]
+                      day.description
                     );
 
                   const DayIcon =
@@ -914,7 +796,7 @@ export default function Weather() {
                           ? "today"
                           : ""
                       }`}
-                      key={date}
+                      key={`${day.date}-${index}`}
                     >
 
                       {isToday && (
@@ -929,13 +811,13 @@ export default function Weather() {
                           {isToday
                             ? "Today"
                             : getDayName(
-                                date
+                                day.date
                               )}
                         </strong>
 
                         <span>
                           {getShortDate(
-                            date
+                            day.date
                           )}
                         </span>
 
@@ -958,20 +840,14 @@ export default function Weather() {
 
                         <strong>
                           {Math.round(
-                            weather.daily
-                              .temperature_2m_max[
-                              index
-                            ]
+                            day.temp
                           )}
                           °
                         </strong>
 
                         <span>
                           {Math.round(
-                            weather.daily
-                              .temperature_2m_min[
-                              index
-                            ]
+                            day.temp
                           )}
                           °
                         </span>
@@ -983,11 +859,7 @@ export default function Weather() {
                         <Droplets size={12} />
 
                         <span>
-                          {weather.daily
-                            .precipitation_probability_max[
-                            index
-                          ] ?? 0}
-                          %
+                          Forecast
                         </span>
 
                       </div>
@@ -997,13 +869,7 @@ export default function Weather() {
                         <Wind size={12} />
 
                         <span>
-                          {Math.round(
-                            weather.daily
-                              .wind_speed_10m_max[
-                              index
-                            ]
-                          )}{" "}
-                          km/h
+                          data unavailable
                         </span>
 
                       </div>

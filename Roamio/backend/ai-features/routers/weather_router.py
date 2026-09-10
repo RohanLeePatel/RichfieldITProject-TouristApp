@@ -1,13 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 
-from config.auth import verify_secretKey
 from schemas.weather import WeatherResponse
 from weather.weather import get_weather
 
 router = APIRouter()
 
 
-@router.get("/weather/{city}", response_model=WeatherResponse, dependencies=[Depends(verify_secretKey)])
+@router.get("/weather/{city}", response_model=WeatherResponse)
 async def weather(city: str, units: str = Query("metric", pattern="^(metric|imperial)$")):
     result = get_weather(city, units)
     error = result.get("error")

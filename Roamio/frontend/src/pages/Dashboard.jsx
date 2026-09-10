@@ -31,14 +31,12 @@ import {
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import { fetchWeather as fetchWeatherFromApi } from "../api/weather";
 import "../styles/dashboard.css";
 
 // =========================================================
 // WEATHER API
 // =========================================================
-
-const WEATHER_API =
-  "https://api.open-meteo.com/v1/forecast";
 
 // Default weather location for the dashboard.
 // The full Weather page allows the user to search for
@@ -54,57 +52,37 @@ const DEFAULT_WEATHER_LOCATION = {
 // WEATHER HELPER
 // =========================================================
 
-function getDashboardWeatherInfo(code) {
-  if (code === 0) {
-    return {
-      label: "Clear sky",
-    };
+function getDashboardWeatherInfo(description) {
+  const normalizedDescription = String(description || "").toLowerCase();
+
+  if (normalizedDescription.includes("thunder")) {
+    return { label: "Thunderstorm" };
   }
 
-  if (code === 1 || code === 2) {
-    return {
-      label: "Partly cloudy",
-    };
+  if (
+    normalizedDescription.includes("rain") ||
+    normalizedDescription.includes("shower") ||
+    normalizedDescription.includes("drizzle")
+  ) {
+    return { label: "Rain" };
   }
 
-  if (code === 3) {
-    return {
-      label: "Overcast",
-    };
+  if (normalizedDescription.includes("snow")) {
+    return { label: "Snow" };
   }
 
-  if ([45, 48].includes(code)) {
+  if (normalizedDescription.includes("cloud")) {
     return {
-      label: "Foggy",
-    };
-  }
-
-  if ([51, 53, 55, 56, 57].includes(code)) {
-    return {
-      label: "Drizzle",
-    };
-  }
-
-  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) {
-    return {
-      label: "Rain",
-    };
-  }
-
-  if ([71, 73, 75, 77, 85, 86].includes(code)) {
-    return {
-      label: "Snow",
-    };
-  }
-
-  if ([95, 96, 99].includes(code)) {
-    return {
-      label: "Thunderstorm",
+      label: normalizedDescription.includes("overcast")
+        ? "Overcast"
+        : "Partly cloudy",
     };
   }
 
   return {
-    label: "Weather",
+    label: normalizedDescription.includes("clear")
+      ? "Clear sky"
+      : "Weather",
   };
 }
 
@@ -258,32 +236,9 @@ export default function Dashboard() {
       setWeatherLoading(true);
       setWeatherError("");
 
-      const params = new URLSearchParams({
-        latitude:
-          DEFAULT_WEATHER_LOCATION.latitude,
-
-        longitude:
-          DEFAULT_WEATHER_LOCATION.longitude,
-
-        current:
-          "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m",
-
-        timezone: "auto",
-
-        forecast_days: "1",
-      });
-
-      const response = await fetch(
-        `${WEATHER_API}?${params.toString()}`
+      const data = await fetchWeatherFromApi(
+        DEFAULT_WEATHER_LOCATION.name
       );
-
-      if (!response.ok) {
-        throw new Error(
-          "Weather request failed."
-        );
-      }
-
-      const data = await response.json();
 
       setWeather(data);
     } catch (error) {
@@ -1184,7 +1139,7 @@ export default function Dashboard() {
 
                         <strong>
                           {Math.round(
-                            weather.current.temperature_2m
+                            weather.current.temp
                           )}
                           °
                         </strong>
@@ -1192,7 +1147,7 @@ export default function Dashboard() {
                         <span>
                           {
                             getDashboardWeatherInfo(
-                              weather.current.weather_code
+                              weather.current.description
                             ).label
                           }
                         </span>
@@ -1223,8 +1178,7 @@ export default function Dashboard() {
 
                         <strong>
                           {
-                            weather.current
-                              .relative_humidity_2m
+                            weather.current.humidity
                           }
                           %
                         </strong>
@@ -1241,7 +1195,7 @@ export default function Dashboard() {
 
                         <strong>
                           {Math.round(
-                            weather.current.wind_speed_10m
+                            weather.current.wind_speed
                           )}{" "}
                           km/h
                         </strong>

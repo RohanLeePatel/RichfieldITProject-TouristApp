@@ -22,14 +22,9 @@ def client(monkeypatch):
     return TestClient(main_module.app)
 
 
-def test_weather_requires_auth_header(client):
+def test_weather_does_not_require_frontend_secret(client):
     response = client.get("/weather/Durban")
-    assert response.status_code == 422
-
-
-def test_weather_rejects_wrong_secret(client):
-    response = client.get("/weather/Durban", headers={"node-secretkey": "wrong"})
-    assert response.status_code == 401
+    assert response.status_code != 422
 
 
 class _FakeResponse:
@@ -59,7 +54,7 @@ def test_weather_succeeds_with_correct_secret(client, monkeypatch):
 
     monkeypatch.setattr(weather_module.requests, "get", fake_get)
 
-    response = client.get("/weather/Durban", headers={"node-secretkey": "test-secret"})
+    response = client.get("/weather/Durban")
     assert response.status_code == 200
     body = response.json()
     assert body["city"] == "Durban"
@@ -72,7 +67,7 @@ def test_weather_city_not_found_returns_404(client, monkeypatch):
 
     monkeypatch.setattr(weather_module.requests, "get", lambda *a, **k: _FakeResponse({}, status_code=404))
 
-    response = client.get("/weather/Nowhereland", headers={"node-secretkey": "test-secret"})
+    response = client.get("/weather/Nowhereland")
     assert response.status_code == 404
 
 
@@ -93,5 +88,5 @@ def test_weather_missing_api_key_returns_503(monkeypatch):
     importlib.reload(main_module)
     client = TestClient(main_module.app)
 
-    response = client.get("/weather/Durban", headers={"node-secretkey": "test-secret"})
+    response = client.get("/weather/Durban")
     assert response.status_code == 503
