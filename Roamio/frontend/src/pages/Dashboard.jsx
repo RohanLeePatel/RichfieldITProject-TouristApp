@@ -32,6 +32,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { fetchWeather as fetchWeatherFromApi } from "../api/weather";
+import { TOKEN_KEY } from "../api/client";
 import "../styles/dashboard.css";
 
 // =========================================================
@@ -273,7 +274,7 @@ export default function Dashboard() {
     localStorage.removeItem("user");
 
     // Remove current Roamio token
-    localStorage.removeItem("roamio_token");
+    localStorage.removeItem(TOKEN_KEY);
 
     setMobileMenu(false);
 
@@ -283,10 +284,7 @@ export default function Dashboard() {
   };
 
   const handleCreateTrip = () => {
-    console.log("Create new trip");
-
-    // Later connect this to your Create Trip page.
-    // navigate("/create-trip");
+    navigate("/recommendations");
   };
 
   const handleNotification = () => {

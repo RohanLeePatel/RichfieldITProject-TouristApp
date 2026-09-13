@@ -18,6 +18,8 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 
 import { useLogin } from "../hooks/useLogin";
+import { useAuthStore } from "../store/authStore";
+import { TOKEN_KEY } from "../api/client";
 
 import "../styles/auth.css";
 
@@ -27,12 +29,29 @@ export default function Login() {
   const [password, setPassword] = useState("");
 
   const navigate = useNavigate();
+  const devLogin = useAuthStore((state) => state.login);
 
   const {
     mutate: loginUser,
     isPending,
     error,
   } = useLogin();
+
+  // Dev-only bypass: the Node backend has no database configured yet, so
+  // real register/login 500. This skips straight to the dashboard with a
+  // fake, tokenless session so the rest of the app (weather, translator,
+  // recommendations) can still be exercised. Anything needing a real JWT
+  // (trip creation) will still fail until a database is wired up - that's
+  // expected, not something to fake here.
+  const handleDevSkip = () => {
+    // Clear out any stale token from an earlier session (e.g. the old
+    // frontend-only mock login) - a leftover bad JWT would otherwise get
+    // sent and rejected as "Invalid or expired token" on the first
+    // authenticated call.
+    localStorage.removeItem(TOKEN_KEY);
+    devLogin({ id: 0, email: "dev@local", fullName: "Dev User" });
+    navigate("/dashboard");
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -43,23 +62,8 @@ export default function Login() {
         password,
       },
       {
-        onSuccess: (data) => {
-          // Save user information if the backend returns it
-          if (data?.user) {
-            localStorage.setItem(
-              "user",
-              JSON.stringify(data.user)
-            );
-          }
-
-          // Save token if the backend returns one
-          if (data?.token) {
-            localStorage.setItem(
-              "roamio_token",
-              data.token
-            );
-          }
-
+        onSuccess: () => {
+          // useLogin already persisted the user + token via authStore.
           navigate("/dashboard");
         },
       }
@@ -461,6 +465,28 @@ export default function Login() {
             </button>
 
           </form>
+
+          {/* DEV-ONLY: no database is configured yet, so real login 500s.
+              Remove once DATABASE_URL is wired up. */}
+          {import.meta.env.DEV && (
+            <button
+              type="button"
+              onClick={handleDevSkip}
+              style={{
+                width: "100%",
+                marginTop: "10px",
+                padding: "10px",
+                border: "1px dashed #c9772e",
+                borderRadius: "8px",
+                color: "#c9772e",
+                background: "#fff8f0",
+                fontSize: "12px",
+                fontWeight: 700,
+              }}
+            >
+              Skip login (dev only - no database configured)
+            </button>
+          )}
 
           {/* =================================================
               DIVIDER

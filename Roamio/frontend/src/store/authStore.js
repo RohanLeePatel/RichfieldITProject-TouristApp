@@ -1,22 +1,22 @@
 import { create } from "zustand";
 
+import { TOKEN_KEY } from "../api/client";
+
 const USER_KEY = "user";
-const TOKEN_KEY = "Roamio_token";
 
 export const useAuthStore = create((set) => ({
   user: null,
   isAuthenticated: false,
 
-  login: (userData) => {
+  login: (userData, token) => {
     localStorage.setItem(
       USER_KEY,
       JSON.stringify(userData)
     );
 
-    localStorage.setItem(
-      TOKEN_KEY,
-      `frontend-token-${userData.id}`
-    );
+    if (token) {
+      localStorage.setItem(TOKEN_KEY, token);
+    }
 
     set({
       user: userData,
@@ -24,16 +24,15 @@ export const useAuthStore = create((set) => ({
     });
   },
 
-  register: (userData) => {
+  register: (userData, token) => {
     localStorage.setItem(
       USER_KEY,
       JSON.stringify(userData)
     );
 
-    localStorage.setItem(
-      TOKEN_KEY,
-      `frontend-token-${userData.id}`
-    );
+    if (token) {
+      localStorage.setItem(TOKEN_KEY, token);
+    }
 
     set({
       user: userData,

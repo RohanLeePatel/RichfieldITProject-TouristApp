@@ -232,6 +232,61 @@
   background: #e9faf7;
 }
 
+.interest-group {
+  margin-bottom: 18px;
+}
+
+.interest-group-label {
+  margin: 0 0 8px;
+  color: #71808e;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+}
+
+.landmark-group {
+  margin-bottom: 22px;
+}
+
+.landmark-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.landmark-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid #dce4e8;
+  border-radius: 10px;
+  background: #fbfcfd;
+  cursor: pointer;
+}
+
+.landmark-item input {
+  margin-top: 3px;
+}
+
+.landmark-item span {
+  display: grid;
+  gap: 3px;
+  font-size: 13px;
+}
+
+.landmark-item small {
+  color: #71808e;
+  font-size: 11px;
+}
+
+.landmark-item.selected {
+  border-color: #23a89e;
+  background: #f0fbf9;
+}
+
 .review-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -310,6 +365,12 @@
   justify-content: space-between;
   gap: 18px;
   margin-bottom: 24px;
+}
+
+.results-heading-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .results-heading h2 {
@@ -468,7 +529,8 @@
   .mode-options,
   .recommendation-list,
   .field-grid,
-  .review-grid {
+  .review-grid,
+  .landmark-list {
     grid-template-columns: 1fr;
   }
 

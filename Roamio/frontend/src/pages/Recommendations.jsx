@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -15,16 +15,60 @@ import { Link } from "react-router-dom";
 import {
   fetchRecommendationCatalog,
   fetchRecommendations,
+  fetchLandmarks,
 } from "../api/recommendations.js";
+import { createTrip, addItineraryItem, deleteTrip } from "../api/trips.js";
 import "../styles/recommendations.css";
 
-const INTERESTS = ["history", "nature", "food", "family"];
-const INTEREST_LABELS = {
-  history: "History & culture",
-  nature: "Nature & outdoors",
-  food: "Food & cafes",
-  family: "Family attractions",
-};
+// Specific tags the user can pick, grouped under the 4 broad dimensions the
+// scoring engine actually knows about (engine/weights.py). The broad group
+// key is what gets sent as `preferences.interests`; the specific tag ids are
+// what get passed straight through to /landmarks once a city is chosen.
+const INTEREST_GROUPS = [
+  {
+    key: "nature",
+    label: "Nature & outdoors",
+    tags: [
+      { id: "parks", label: "Parks" },
+      { id: "hiking", label: "Hiking" },
+      { id: "beaches", label: "Beaches" },
+      { id: "waterparks", label: "Waterparks" },
+    ],
+  },
+  {
+    key: "history",
+    label: "History & culture",
+    tags: [
+      { id: "museums", label: "Museums" },
+      { id: "historic_sites", label: "Historic sites" },
+    ],
+  },
+  {
+    key: "food",
+    label: "Food & drink",
+    tags: [
+      { id: "restaurants", label: "Restaurants" },
+      { id: "cafes", label: "Cafes" },
+      { id: "street_food", label: "Street food" },
+    ],
+  },
+  {
+    key: "family",
+    label: "Family & kids",
+    tags: [
+      { id: "theme_parks", label: "Theme parks" },
+      { id: "zoos_aquariums", label: "Zoos & aquariums" },
+      { id: "playgrounds", label: "Playgrounds" },
+    ],
+  },
+];
+
+const TAG_TO_GROUP = Object.fromEntries(
+  INTEREST_GROUPS.flatMap((group) =>
+    group.tags.map((tag) => [tag.id, group.key])
+  )
+);
+
 const COUNTRIES = [
   "Argentina", "Australia", "Brazil", "Canada", "Egypt", "France",
   "Germany", "Italy", "Japan", "Kenya", "Mexico", "Namibia", "Netherlands",
@@ -38,7 +82,7 @@ const initialForm = {
   budget: "1000",
   currency: "ZAR",
   month: "",
-  interests: ["nature", "food"],
+  interests: ["parks", "restaurants"],
   adults: "2",
   children: "",
   wheelchair: "none",
@@ -63,10 +107,14 @@ function buildPreferences(form) {
         .filter((age) => Number.isInteger(age) && age >= 0)
     : [];
 
+  const broadInterests = [
+    ...new Set(form.interests.map((tag) => TAG_TO_GROUP[tag]).filter(Boolean)),
+  ];
+
   return {
     budget_per_day: Number(form.budget),
     currency: form.currency.toUpperCase(),
-    interests: form.interests,
+    interests: broadInterests,
     travellers: { adults: Number(form.adults), children },
     accessibility: { wheelchair: form.wheelchair },
     climate: {
@@ -76,7 +124,7 @@ function buildPreferences(form) {
   };
 }
 
-function RecommendationCard({ recommendation, onSelect }) {
+function RecommendationCard({ recommendation, onSelect, selectLabel }) {
   const destinationName = recommendation.name || recommendation.id;
   const mapUrl =
     recommendation.map_url ||
@@ -130,7 +178,7 @@ function RecommendationCard({ recommendation, onSelect }) {
           </a>
           {onSelect && (
             <button type="button" onClick={() => onSelect(recommendation)}>
-              Explore cities <ArrowRight size={14} />
+              {selectLabel} <ArrowRight size={14} />
             </button>
           )}
         </div>
@@ -140,6 +188,11 @@ function RecommendationCard({ recommendation, onSelect }) {
 }
 
 export default function Recommendations() {
+  // wizard -> collecting preferences
+  // results -> ranked countries or cities
+  // landmarks -> a trip was created for the chosen city, pick stops for it
+  // done -> itinerary saved
+  const [stage, setStage] = useState("wizard");
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(initialForm);
   const [countries, setCountries] = useState(
@@ -147,8 +200,21 @@ export default function Recommendations() {
   );
   const [recommendationData, setRecommendationData] = useState(null);
   const [selectedCountry, setSelectedCountry] = useState(null);
+  const [selectedCity, setSelectedCity] = useState(null);
+  const [trip, setTrip] = useState(null);
+  const [landmarksData, setLandmarksData] = useState(null);
+  const [selectedLandmarks, setSelectedLandmarks] = useState(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // Bumped on every async action below; a response is only applied if it's
+  // still the most recent one requested, so an earlier, slower request
+  // (e.g. exploring a country, then quickly switching to another) can't
+  // land after a newer one and overwrite it with stale results.
+  const requestIdRef = useRef(0);
+  // Stack of previous "results" views (country list before drilling into a
+  // city, city list before picking one) so the back button can restore them
+  // without an extra fetch. Empty means the only way back is the wizard.
+  const [resultsHistory, setResultsHistory] = useState([]);
 
   useEffect(() => {
     let active = true;
@@ -178,12 +244,12 @@ export default function Recommendations() {
     setError("");
   };
 
-  const toggleInterest = (interest) => {
+  const toggleInterest = (tagId) => {
     setForm((current) => ({
       ...current,
-      interests: current.interests.includes(interest)
-        ? current.interests.filter((item) => item !== interest)
-        : [...current.interests, interest],
+      interests: current.interests.includes(tagId)
+        ? current.interests.filter((item) => item !== tagId)
+        : [...current.interests, tagId],
     }));
   };
 
@@ -205,7 +271,8 @@ export default function Recommendations() {
     return "";
   };
 
-  const submitRecommendations = async (level, parentId) => {
+  const submitRecommendations = async (level, parentId, country = null) => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError("");
     try {
@@ -214,9 +281,12 @@ export default function Recommendations() {
         level,
         parentId
       );
+      if (requestId !== requestIdRef.current) return; // superseded by a newer request
       setRecommendationData(data);
-      setSelectedCountry(null);
+      setSelectedCountry(country);
+      setStage("results");
     } catch (requestError) {
+      if (requestId !== requestIdRef.current) return;
       setRecommendationData(null);
       setError(
         requestError instanceof Error
@@ -224,7 +294,7 @@ export default function Recommendations() {
           : "Recommendations are currently unavailable."
       );
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) setLoading(false);
     }
   };
 
@@ -239,15 +309,150 @@ export default function Recommendations() {
       setStep((current) => current + 1);
       return;
     }
+    // A fresh search from the wizard starts a new drill-down, not a
+    // continuation of whatever was explored before.
+    setResultsHistory([]);
     await submitRecommendations(
       form.mode === "global" ? "country" : "city",
-      form.mode === "country" ? slugify(form.country) : undefined
+      form.mode === "country" ? slugify(form.country) : undefined,
+      form.mode === "country" ? { id: slugify(form.country), name: form.country } : null
     );
   };
 
-  const exploreCities = async (country) => {
-    setSelectedCountry(country);
-    await submitRecommendations("city", country.id);
+  const exploreCities = (country) => {
+    setResultsHistory((current) => [
+      ...current,
+      { data: recommendationData, selectedCountry },
+    ]);
+    return submitRecommendations("city", country.id, country);
+  };
+
+  // Picking a city ends the exploratory part of the flow: start a real trip
+  // for it, then load landmarks matching the user's specific interest tags
+  // so they can build the first itinerary stops right here.
+  const selectCity = async (city) => {
+    if (loading) return;
+    const requestId = ++requestIdRef.current;
+    setLoading(true);
+    setError("");
+    try {
+      // Bare city names are ambiguous ("Lima" alone geocodes to Lima, Ohio
+      // as easily as Lima, Peru) - include the country we already know from
+      // the recommendation so /landmarks searches the right place.
+      const destinationLabel = city.country ? `${city.name}, ${city.country}` : city.name;
+      const createdTrip = await createTrip({
+        title: `${city.name} Trip`,
+        destination: destinationLabel,
+        budget: Number(form.budget) * 7,
+      });
+      const landmarks = await fetchLandmarks(destinationLabel, form.interests);
+      if (requestId !== requestIdRef.current) return;
+      setResultsHistory((current) => [
+        ...current,
+        { data: recommendationData, selectedCountry },
+      ]);
+      setTrip(createdTrip);
+      setSelectedCity(city);
+      setLandmarksData(landmarks);
+      setSelectedLandmarks(new Set());
+      setStage("landmarks");
+    } catch (requestError) {
+      if (requestId !== requestIdRef.current) return;
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Could not start this trip. Please try again."
+      );
+    } finally {
+      if (requestId === requestIdRef.current) setLoading(false);
+    }
+  };
+
+  // Restores the previous results view (a country list, or a city list)
+  // with no extra fetch. Falls back to the wizard when there's nothing
+  // earlier to go back to.
+  const goBackToResults = () => {
+    requestIdRef.current++; // invalidate any in-flight fetch for the view we're leaving
+    if (resultsHistory.length === 0) {
+      editPreferences();
+      return;
+    }
+    const previous = resultsHistory[resultsHistory.length - 1];
+    setResultsHistory((current) => current.slice(0, -1));
+    setRecommendationData(previous.data);
+    setSelectedCountry(previous.selectedCountry);
+    setStage("results");
+  };
+
+  // Leaving the landmarks step abandons the trip that was created for that
+  // city, so a changed mind doesn't leave a half-built draft trip behind.
+  const goBackFromLandmarks = async () => {
+    requestIdRef.current++;
+    const abandonedTripId = trip?.id;
+    setTrip(null);
+    setSelectedCity(null);
+    setLandmarksData(null);
+    setSelectedLandmarks(new Set());
+    goBackToResults();
+    if (abandonedTripId) {
+      try {
+        await deleteTrip(abandonedTripId);
+      } catch {
+        // best-effort cleanup - not worth blocking navigation over
+      }
+    }
+  };
+
+  const toggleLandmark = (key) => {
+    setSelectedLandmarks((current) => {
+      const next = new Set(current);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
+  const finishTrip = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const chosen = [];
+      landmarksData?.groups.forEach((group) => {
+        group.landmarks.forEach((landmark) => {
+          if (selectedLandmarks.has(`${group.interest}|${landmark.name}`)) {
+            chosen.push(landmark);
+          }
+        });
+      });
+
+      await Promise.all(
+        chosen.map((landmark) =>
+          addItineraryItem(trip.id, {
+            title: landmark.name,
+            location: landmark.address || undefined,
+          })
+        )
+      );
+      setStage("done");
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Could not save your itinerary. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const editPreferences = () => {
+    setRecommendationData(null);
+    setResultsHistory([]);
+    setStep(0);
+    setStage("wizard");
   };
 
   const resultTitle = recommendationData?.level === "country"
@@ -270,7 +475,7 @@ export default function Recommendations() {
       </header>
 
       <div className="recommendations-content">
-        {!recommendationData && (
+        {stage === "wizard" && (
           <section className="recommendations-intro">
             <p className="recommendations-eyebrow">
               <Sparkles size={15} /> Personalised travel planning
@@ -280,7 +485,7 @@ export default function Recommendations() {
           </section>
         )}
 
-        {!recommendationData && (
+        {stage === "wizard" && (
           <section className="wizard-card">
             <div className="wizard-progress">
               {steps.map((label, index) => (
@@ -329,14 +534,24 @@ export default function Recommendations() {
               {step === 1 && (
                 <>
                   <h2>What do you enjoy?</h2>
-                  <p className="wizard-help">Pick the interests that should influence your ranking.</p>
-                  <div className="interest-list">
-                    {INTERESTS.map((interest) => (
-                      <button type="button" className={`interest-option ${form.interests.includes(interest) ? "selected" : ""}`} key={interest} onClick={() => toggleInterest(interest)}>
-                        {form.interests.includes(interest) && <Check size={14} />} {INTEREST_LABELS[interest]}
-                      </button>
-                    ))}
-                  </div>
+                  <p className="wizard-help">Pick everything that should influence your ranking - the more specific, the better your match.</p>
+                  {INTEREST_GROUPS.map((group) => (
+                    <div key={group.key} className="interest-group">
+                      <h4 className="interest-group-label">{group.label}</h4>
+                      <div className="interest-list">
+                        {group.tags.map((tag) => (
+                          <button
+                            type="button"
+                            className={`interest-option ${form.interests.includes(tag.id) ? "selected" : ""}`}
+                            key={tag.id}
+                            onClick={() => toggleInterest(tag.id)}
+                          >
+                            {form.interests.includes(tag.id) && <Check size={14} />} {tag.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </>
               )}
 
@@ -359,7 +574,7 @@ export default function Recommendations() {
                     <div><span>Search</span><strong>{form.mode === "global" ? "Global countries" : `Cities in ${form.country}`}</strong></div>
                     <div><span>Budget</span><strong>{form.budget} {form.currency.toUpperCase()} per day</strong></div>
                     <div><span>Travellers</span><strong>{form.adults} adults{form.children ? `, children aged ${form.children}` : ""}</strong></div>
-                    <div><span>Interests</span><strong>{form.interests.join(", ")}</strong></div>
+                    <div><span>Interests</span><strong>{form.interests.map((tag) => formatDimension(tag)).join(", ")}</strong></div>
                     <div><span>Climate</span><strong>{form.climate || "Any climate"}</strong></div>
                   </div>
                 </>
@@ -376,7 +591,7 @@ export default function Recommendations() {
           </section>
         )}
 
-        {recommendationData && (
+        {stage === "results" && recommendationData && (
           <section className="recommendations-results">
             <div className="results-heading">
               <div>
@@ -384,14 +599,22 @@ export default function Recommendations() {
                 <h2>{resultTitle}</h2>
                 <p>Ranked using your saved preferences. You can edit them and search again.</p>
               </div>
-              <button type="button" className="secondary-button" onClick={() => { setRecommendationData(null); setStep(0); }}><ChevronLeft size={17} /> Edit preferences</button>
+              <div className="results-heading-actions">
+                <button type="button" className="secondary-button" onClick={goBackToResults}>
+                  <ChevronLeft size={17} />
+                  {resultsHistory.length > 0 ? "Back" : "Edit preferences"}
+                </button>
+                {resultsHistory.length > 0 && (
+                  <button type="button" className="secondary-button" onClick={editPreferences}>Start over</button>
+                )}
+              </div>
             </div>
             {recommendationData.results.length === 0 ? (
               <div className="results-empty">
                 <h3>No exact matches yet.</h3>
                 <p>Try relaxing one of these requirements:</p>
                 <ul>{relaxSuggestions.map((item) => <li key={item.id}>{item.id}: {item.reason}</li>)}</ul>
-                <button type="button" className="recommendations-submit" onClick={() => setRecommendationData(null)}>Edit preferences</button>
+                <button type="button" className="recommendations-submit" onClick={editPreferences}>Edit preferences</button>
               </div>
             ) : (
               <div className="recommendation-list">
@@ -399,13 +622,86 @@ export default function Recommendations() {
                   <RecommendationCard
                     key={recommendation.id}
                     recommendation={recommendation}
-                    onSelect={recommendationData.level === "country" ? exploreCities : undefined}
+                    onSelect={
+                      recommendationData.level === "country"
+                        ? exploreCities
+                        : recommendationData.level === "city"
+                        ? selectCity
+                        : undefined
+                    }
+                    selectLabel={
+                      recommendationData.level === "country"
+                        ? "Explore cities"
+                        : loading
+                        ? "Starting trip..."
+                        : "Start a trip here"
+                    }
                   />
                 ))}
               </div>
             )}
             {recommendationData.comparison && <p className="recommendation-comparison">{recommendationData.comparison}</p>}
             {recommendationData.excluded?.length > 0 && <p className="recommendation-excluded">{recommendationData.excluded.length} destinations were excluded by your requirements.</p>}
+            {error && <p className="recommendations-error">{error}</p>}
+          </section>
+        )}
+
+        {stage === "landmarks" && (
+          <section className="recommendations-results">
+            <div className="results-heading">
+              <div>
+                <p className="recommendations-eyebrow"><Sparkles size={15} /> place recommendations</p>
+                <h2>Things to do in {selectedCity?.name}</h2>
+                <p>Pick a few to add straight into your new trip&apos;s itinerary.</p>
+              </div>
+              <button type="button" className="secondary-button" onClick={goBackFromLandmarks} disabled={loading}>
+                <ChevronLeft size={17} /> Not this city
+              </button>
+            </div>
+            {landmarksData?.groups.map((group) => (
+              <div key={group.interest} className="landmark-group">
+                <h4 className="interest-group-label">{formatDimension(group.interest)}</h4>
+                <p className="wizard-help">{group.explanation}</p>
+                {group.landmarks.length === 0 ? (
+                  <p className="wizard-help">No {formatDimension(group.interest)} spots found nearby.</p>
+                ) : (
+                  <div className="landmark-list">
+                    {group.landmarks.map((landmark) => {
+                      const key = `${group.interest}|${landmark.name}`;
+                      const checked = selectedLandmarks.has(key);
+                      return (
+                        <label key={key} className={`landmark-item ${checked ? "selected" : ""}`}>
+                          <input type="checkbox" checked={checked} onChange={() => toggleLandmark(key)} />
+                          <span>
+                            <strong>{landmark.name}</strong>
+                            {landmark.address && <small>{landmark.address}</small>}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
+            {error && <p className="recommendations-error">{error}</p>}
+            <div className="wizard-actions">
+              <button type="button" className="recommendations-submit" onClick={finishTrip} disabled={loading}>
+                {loading ? <><LoaderCircle className="recommendations-spinner" size={18} /> Saving...</> : <>Add to trip & finish <ArrowRight size={17} /></>}
+              </button>
+            </div>
+          </section>
+        )}
+
+        {stage === "done" && (
+          <section className="recommendations-results">
+            <p className="recommendations-eyebrow"><Check size={15} /> Trip created</p>
+            <h2>Your trip to {selectedCity?.name} is ready.</h2>
+            <p className="wizard-help">
+              We saved {selectedLandmarks.size} stop{selectedLandmarks.size === 1 ? "" : "s"} to your itinerary. You can keep adding to it from the dashboard.
+            </p>
+            <div className="wizard-actions">
+              <Link to="/dashboard" className="recommendations-submit">Back to dashboard <ArrowRight size={17} /></Link>
+            </div>
           </section>
         )}
       </div>
