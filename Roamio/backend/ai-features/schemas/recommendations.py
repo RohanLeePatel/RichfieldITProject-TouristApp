@@ -142,6 +142,8 @@ class RecommendationResult(BaseModel):
 
 class ExcludedCandidate(BaseModel):
     id: str
+    name: str
+    country: Optional[str] = None
     reason: str
 
 

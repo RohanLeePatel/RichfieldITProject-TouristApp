@@ -58,7 +58,9 @@ def score_candidates(
     for candidate in candidates:
         reason = run_gates(prefs, candidate)
         if reason is not None:
-            excluded.append(ExcludedCandidate(id=candidate.id, reason=reason))
+            excluded.append(
+                ExcludedCandidate(id=candidate.id, name=candidate.name, country=candidate.country, reason=reason)
+            )
             continue
 
         own_score, breakdown = score_candidate_own(prefs, candidate, level)
@@ -100,6 +102,8 @@ def score_candidates(
             excluded.append(
                 ExcludedCandidate(
                     id=candidate.id,
+                    name=candidate.name,
+                    country=candidate.country,
                     reason=(
                         f"Overall relevance score {score:.0%} was below the "
                         f"{relevance_floor:.0%} match threshold for these preferences."
@@ -138,6 +142,8 @@ def score_candidates(
         excluded.append(
             ExcludedCandidate(
                 id=candidate.id,
+                name=candidate.name,
+                country=candidate.country,
                 reason=f"Ranked below the top {max_results} relevant matches.",
             )
         )

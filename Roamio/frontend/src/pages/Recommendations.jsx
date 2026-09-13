@@ -319,6 +319,11 @@ export default function Recommendations() {
     );
   };
 
+  // Excluded destinations only carry {id, name, country, reason} - enough to
+  // still drill into them if the user wants to override the engine's call.
+  const selectExcluded = (level, item) =>
+    level === "country" ? exploreCities(item) : selectCity(item);
+
   const exploreCities = (country) => {
     setResultsHistory((current) => [
       ...current,
@@ -627,7 +632,7 @@ export default function Recommendations() {
               <div className="results-empty">
                 <h3>No exact matches yet.</h3>
                 <p>Try relaxing one of these requirements:</p>
-                <ul>{relaxSuggestions.map((item) => <li key={item.id}>{item.id}: {item.reason}</li>)}</ul>
+                <ul>{relaxSuggestions.map((item) => <li key={item.id}>{item.name}: {item.reason}</li>)}</ul>
                 <button type="button" className="recommendations-submit" onClick={editPreferences}>Edit preferences</button>
               </div>
             ) : (
@@ -655,8 +660,36 @@ export default function Recommendations() {
               </div>
             )}
             {recommendationData.comparison && <p className="recommendation-comparison">{recommendationData.comparison}</p>}
-            {requirementExclusions.length > 0 && <p className="recommendation-excluded">{requirementExclusions.length} destination{requirementExclusions.length === 1 ? "" : "s"} were excluded by your requirements.</p>}
-            {rankedOutCount > 0 && <p className="recommendation-excluded">{rankedOutCount} more scored well too, but only the top {recommendationData.results.length} are shown.</p>}
+            {recommendationData.excluded?.length > 0 && (
+              <details className="excluded-dropdown">
+                <summary>
+                  {requirementExclusions.length > 0 && (
+                    <>{requirementExclusions.length} destination{requirementExclusions.length === 1 ? "" : "s"} excluded by your requirements</>
+                  )}
+                  {requirementExclusions.length > 0 && rankedOutCount > 0 && " · "}
+                  {rankedOutCount > 0 && (
+                    <>{rankedOutCount} more scored well but didn&apos;t make the top {recommendationData.results.length}</>
+                  )}
+                </summary>
+                <ul className="excluded-list">
+                  {recommendationData.excluded.map((item) => (
+                    <li key={item.id}>
+                      <div>
+                        <strong>{item.name}</strong>
+                        <span>{item.reason}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => selectExcluded(recommendationData.level, item)}
+                        disabled={loading}
+                      >
+                        {recommendationData.level === "country" ? "Explore anyway" : "Plan a trip here"}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
             {error && <p className="recommendations-error">{error}</p>}
           </section>
         )}
