@@ -458,9 +458,23 @@ export default function Recommendations() {
   const resultTitle = recommendationData?.level === "country"
     ? "Countries that fit your trip"
     : `Cities in ${selectedCountry?.name || form.country}`;
-  const relaxSuggestions = useMemo(
-    () => recommendationData?.excluded?.slice(0, 3) || [],
+  // The engine's `excluded` list mixes two very different things: places that
+  // actually failed a requirement (budget/accessibility/relevance), and
+  // places that simply didn't make the top-N cut despite scoring fine. Only
+  // the first kind is worth calling "excluded by your requirements" - the
+  // second is just normal ranking and shouldn't read as a rejection.
+  const requirementExclusions = useMemo(
+    () =>
+      recommendationData?.excluded?.filter(
+        (item) => !item.reason.startsWith("Ranked below the top")
+      ) || [],
     [recommendationData]
+  );
+  const rankedOutCount =
+    (recommendationData?.excluded?.length || 0) - requirementExclusions.length;
+  const relaxSuggestions = useMemo(
+    () => requirementExclusions.slice(0, 3),
+    [requirementExclusions]
   );
 
   return (
@@ -641,7 +655,8 @@ export default function Recommendations() {
               </div>
             )}
             {recommendationData.comparison && <p className="recommendation-comparison">{recommendationData.comparison}</p>}
-            {recommendationData.excluded?.length > 0 && <p className="recommendation-excluded">{recommendationData.excluded.length} destinations were excluded by your requirements.</p>}
+            {requirementExclusions.length > 0 && <p className="recommendation-excluded">{requirementExclusions.length} destination{requirementExclusions.length === 1 ? "" : "s"} were excluded by your requirements.</p>}
+            {rankedOutCount > 0 && <p className="recommendation-excluded">{rankedOutCount} more scored well too, but only the top {recommendationData.results.length} are shown.</p>}
             {error && <p className="recommendations-error">{error}</p>}
           </section>
         )}
