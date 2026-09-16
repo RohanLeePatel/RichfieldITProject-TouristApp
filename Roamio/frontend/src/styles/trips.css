@@ -1,0 +1,60 @@
+.trips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.trips-grid-card {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  border: 1px solid #e4e9ed;
+  border-radius: 14px;
+  background: #fbfcfd;
+  color: inherit;
+  text-decoration: none;
+  transition: box-shadow .2s ease, transform .2s ease;
+}
+
+.trips-grid-card:hover {
+  box-shadow: 0 12px 30px rgba(18, 48, 70, .08);
+  transform: translateY(-2px);
+}
+
+.trips-grid-card h3 {
+  margin: 0 0 4px;
+  font: 800 16px "Plus Jakarta Sans", sans-serif;
+  color: #142a42;
+}
+
+.trips-grid-destination,
+.trips-grid-dates {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: #536578;
+  font-size: 12px;
+}
+
+.trips-grid-destination svg,
+.trips-grid-dates svg {
+  color: #16849a;
+  flex-shrink: 0;
+}
+
+.trips-grid-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  color: #16849a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+@media (max-width: 520px) {
+  .trips-grid {
+    grid-template-columns: 1fr;
+  }
+}

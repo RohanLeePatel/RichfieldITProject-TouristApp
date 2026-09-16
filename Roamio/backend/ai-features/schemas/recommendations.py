@@ -29,12 +29,22 @@ class Accessibility(BaseModel):
 class ClimatePrefs(BaseModel):
     prefer: Optional[ClimatePreference] = None
     travel_month: Optional[int] = Field(default=None, ge=1, le=12)
+    # optional - when a trip spans multiple months, average the climate score
+    # across the inclusive travel_month..travel_month_end range instead of
+    # only looking at the start month. Only supports same-year, non-wrapping
+    # ranges (travel_month_end >= travel_month) - a trip crossing a year
+    # boundary (e.g. Nov -> Jan) just falls back to travel_month alone, see
+    # engine/scorers.py score_climate.
+    travel_month_end: Optional[int] = Field(default=None, ge=1, le=12)
 
 
 class Preferences(BaseModel):
     budget_per_day: float = Field(gt=0)
     currency: str = Field(min_length=3, max_length=3, description="ISO 4217, e.g. ZAR.")
     interests: list[str] = Field(default_factory=list)
+    # subset of `interests` the user flagged as must-have rather than nice-to-have;
+    # not enforced to be a subset, just given extra weight where it overlaps
+    priority_interests: list[str] = Field(default_factory=list)
     travellers: Travellers
     accessibility: Accessibility = Field(default_factory=Accessibility)
     climate: ClimatePrefs = Field(default_factory=ClimatePrefs)

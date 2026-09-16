@@ -22,8 +22,10 @@ INTEREST_CATEGORY_MAP: dict[str, list[str]] = {
     # no equivalent seed-data requirement for them
     "parks": ["leisure.park"],
     "hiking": ["natural.mountain", "leisure.park"],
-    "beaches": ["natural.beach"],
-    "waterparks": ["leisure.water_park"],
+    # not "natural.beach" - tried it, Geoapify 400s. "beach" is the real code.
+    "beaches": ["beach"],
+    # not "leisure.water_park" - also 400s. "entertainment.water_park" is real.
+    "waterparks": ["entertainment.water_park"],
     "museums": ["entertainment.museum"],
     "historic_sites": ["tourism.sights"],
     "restaurants": ["catering.restaurant"],

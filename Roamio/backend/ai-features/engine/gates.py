@@ -43,7 +43,32 @@ def check_accessibility_gate(prefs: Preferences, candidate: Candidate) -> str | 
     )
 
 
-GATES = (check_budget_gate, check_accessibility_gate)
+def check_landmark_availability_gate(prefs: Preferences, candidate: Candidate) -> str | None:
+    # Without this, a city with literally zero known spots for every requested
+    # interest still shows up as a top result, and the user only finds out once
+    # they've already committed (trip created) and the landmarks step comes back
+    # empty. interest_counts are raw counts from the seed data (not the 0-1
+    # normalized density), so a genuine zero here means "we found none", not
+    # "this scored low" - a real fact worth excluding on, not just ranking on.
+    if not prefs.interests:
+        return None
+    counts = candidate.features.interest_counts
+    # Only gate on tags we actually have a measured count for - a tag key
+    # missing entirely means "never measured", not "measured as zero", and
+    # shouldn't be punished the same way real seed data always has every tag
+    # key present (even if 0) since enrich_destinations.py loops the full map.
+    measured = [tag for tag in prefs.interests if tag in counts]
+    if not measured:
+        return None
+    if any(counts[tag] > 0 for tag in measured):
+        return None
+
+    return (
+        f"No known spots for {', '.join(prefs.interests)} found near '{candidate.name}' in our data."
+    )
+
+
+GATES = (check_budget_gate, check_accessibility_gate, check_landmark_availability_gate)
 
 
 def run_gates(prefs: Preferences, candidate: Candidate) -> str | None:

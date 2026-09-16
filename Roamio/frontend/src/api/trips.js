@@ -22,10 +22,10 @@ function writeDevTrips(trips) {
   localStorage.setItem(DEV_TRIPS_KEY, JSON.stringify(trips));
 }
 
-export async function createTrip({ title, destination, budget }) {
+export async function createTrip({ title, destination, budget, startDate, endDate }) {
   if (isDevBypass()) {
     const trips = readDevTrips();
-    const trip = { id: Date.now(), title, destination, budget, itinerary: [] };
+    const trip = { id: Date.now(), title, destination, budget, startDate, endDate, itinerary: [] };
     trips.push(trip);
     writeDevTrips(trips);
     return trip;
@@ -33,8 +33,26 @@ export async function createTrip({ title, destination, budget }) {
 
   const result = await authedFetch("/api/trips", {
     method: "POST",
-    body: JSON.stringify({ title, destination, budget }),
+    body: JSON.stringify({ title, destination, budget, startDate, endDate }),
   });
+  return result.trip;
+}
+
+export async function fetchTrips() {
+  if (isDevBypass()) return readDevTrips();
+
+  const result = await authedFetch("/api/trips");
+  return result.trips;
+}
+
+export async function fetchTrip(tripId) {
+  if (isDevBypass()) {
+    const trip = readDevTrips().find((t) => String(t.id) === String(tripId));
+    if (!trip) throw new Error("Trip not found.");
+    return trip;
+  }
+
+  const result = await authedFetch(`/api/trips/${tripId}`);
   return result.trip;
 }
 
@@ -47,11 +65,11 @@ export async function deleteTrip(tripId) {
   await authedFetch(`/api/trips/${tripId}`, { method: "DELETE" });
 }
 
-export async function addItineraryItem(tripId, { title, location }) {
+export async function addItineraryItem(tripId, { title, location, dayNumber, startTime }) {
   if (isDevBypass()) {
     const trips = readDevTrips();
     const trip = trips.find((t) => t.id === tripId);
-    const item = { id: Date.now() + Math.random(), title, location };
+    const item = { id: Date.now() + Math.random(), title, location, dayNumber, startTime };
     if (trip) {
       trip.itinerary.push(item);
       writeDevTrips(trips);
@@ -61,7 +79,21 @@ export async function addItineraryItem(tripId, { title, location }) {
 
   const result = await authedFetch(`/api/trips/${tripId}/itinerary`, {
     method: "POST",
-    body: JSON.stringify({ title, location }),
+    body: JSON.stringify({ title, location, dayNumber, startTime }),
   });
   return result.item;
+}
+
+export async function removeItineraryItem(tripId, itemId) {
+  if (isDevBypass()) {
+    const trips = readDevTrips();
+    const trip = trips.find((t) => t.id === tripId);
+    if (trip) {
+      trip.itinerary = trip.itinerary.filter((item) => item.id !== itemId);
+      writeDevTrips(trips);
+    }
+    return;
+  }
+
+  await authedFetch(`/api/trips/${tripId}/itinerary/${itemId}`, { method: "DELETE" });
 }

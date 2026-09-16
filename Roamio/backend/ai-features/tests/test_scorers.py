@@ -8,6 +8,7 @@ from engine.scorers import (
     score_interests,
     score_safety,
 )
+from tests.conftest import make_candidate
 
 
 # --- score_budget ------------------------------------------------------
@@ -103,6 +104,27 @@ def test_climate_missing_data_is_neutral(destinations, prefs_factory):
     assert result.value == 0.5
 
 
+def test_climate_averages_across_month_range(prefs_factory):
+    candidate = make_candidate(
+        "clim1", "Two Season City", avg_temp_by_month={"6": 10.0, "7": 30.0}
+    )
+    prefs = prefs_factory(climate_prefer="mild", travel_month=6, travel_month_end=7)
+    result = score_climate(prefs, candidate, "city")
+    # target for "mild" is 20.0 - the average of 10 and 30 is exactly 20, a
+    # perfect match, even though neither individual month is
+    assert result.evidence["avg_temp_c"] == pytest.approx(20.0)
+    assert result.value == pytest.approx(1.0)
+
+
+def test_climate_wrapping_range_falls_back_to_start_month(prefs_factory):
+    candidate = make_candidate("clim2", "Wrap City", avg_temp_by_month={"12": 20.0, "1": -10.0})
+    # end (1) < start (12) - a year-wrapping range, not supported - falls back
+    # to travel_month alone rather than misinterpreting the range
+    prefs = prefs_factory(climate_prefer="mild", travel_month=12, travel_month_end=1)
+    result = score_climate(prefs, candidate, "city")
+    assert result.evidence["avg_temp_c"] == pytest.approx(20.0)
+
+
 # --- score_interests --------------------------------------------------
 
 
@@ -127,6 +149,36 @@ def test_interests_family_fold_in_only_applies_with_children(destinations, prefs
     # both start from the same base density, fold-in should only change things when there are kids
     assert with_kids.evidence["family_poi_density"] == 0.85
     assert no_kids.value == no_kids.evidence["matched_density"]["family"]
+
+
+def test_interests_family_fold_in_scales_with_child_ratio(destinations, prefs_factory):
+    candidate = destinations["expensive_accessible_family"]
+    mostly_kids = score_interests(
+        prefs_factory(interests=["family"], adults=1, children=[3, 5, 7]), candidate, "city"
+    )
+    mostly_adults = score_interests(
+        prefs_factory(interests=["family"], adults=5, children=[10]), candidate, "city"
+    )
+    # a group that's mostly children should lean harder toward family_poi_density
+    # than a group with just one child among several adults
+    assert mostly_kids.value > mostly_adults.value
+
+
+def test_priority_interest_weighted_higher_than_regular(destinations, prefs_factory):
+    strong_on_priority = make_candidate(
+        "px1", "Strong On Priority",
+        interest_density={"history": 0.9, "nature": 0.1}, interest_counts={},
+    )
+    strong_on_regular = make_candidate(
+        "px2", "Strong On Regular",
+        interest_density={"history": 0.1, "nature": 0.9}, interest_counts={},
+    )
+    prefs = prefs_factory(interests=["history", "nature"], priority_interests=["history"])
+    a = score_interests(prefs, strong_on_priority, "city")
+    b = score_interests(prefs, strong_on_regular, "city")
+    # same two raw density values (0.9/0.1) either way - only the priority flag
+    # differs, so being strong on the flagged tag must score higher
+    assert a.value > b.value
 
 
 # --- score_safety --------------------------------------------------------

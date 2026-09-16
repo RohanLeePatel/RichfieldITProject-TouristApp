@@ -32,8 +32,27 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { fetchWeather as fetchWeatherFromApi } from "../api/weather";
+import { fetchTrips } from "../api/trips";
 import { TOKEN_KEY } from "../api/client";
 import "../styles/dashboard.css";
+
+// A trip has no status field of its own (neither the real API nor the dev
+// store track one) - derive a reasonable label from its dates instead.
+function tripStatus(trip) {
+  if (!trip.startDate) return "Planning";
+  const start = new Date(trip.startDate);
+  const end = trip.endDate ? new Date(trip.endDate) : start;
+  const now = new Date();
+  if (now > end) return "Completed";
+  if (now >= start) return "Upcoming";
+  return "Planning";
+}
+
+function tripDateLabel(trip) {
+  if (!trip.startDate) return "Dates not set";
+  const format = (iso) => new Date(iso).toLocaleDateString("en", { day: "2-digit", month: "short", year: "numeric" });
+  return trip.endDate ? `${format(trip.startDate)} — ${format(trip.endDate)}` : format(trip.startDate);
+}
 
 // =========================================================
 // WEATHER API
@@ -162,37 +181,30 @@ export default function Dashboard() {
   // TRIPS
   // =========================================================
 
-  const trips = [
-    {
-      id: 1,
-      title: "Cape Town Family Escape",
-      location: "Cape Town, South Africa",
-      dates: "12 Dec — 18 Dec 2026",
-      status: "Upcoming",
-      image:
-        "https://images.unsplash.com/photo-1580060839134-75a5edca2e99?auto=format&fit=crop&w=1000&q=80",
-    },
+  const [trips, setTrips] = useState([]);
+  const [tripsLoading, setTripsLoading] = useState(true);
+  const [tripsError, setTripsError] = useState("");
 
-    {
-      id: 2,
-      title: "Durban Beach Weekend",
-      location: "Durban, South Africa",
-      dates: "08 Jan — 11 Jan 2027",
-      status: "Planning",
-      image:
-        "https://images.unsplash.com/photo-1569263979104-865ab7cd8d13?auto=format&fit=crop&w=1000&q=80",
-    },
-
-    {
-      id: 3,
-      title: "Kruger Family Adventure",
-      location: "Kruger National Park",
-      dates: "21 Mar — 27 Mar 2027",
-      status: "Planning",
-      image:
-        "https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=1000&q=80",
-    },
-  ];
+  useEffect(() => {
+    let active = true;
+    fetchTrips()
+      .then((data) => {
+        if (active) setTrips(data || []);
+      })
+      .catch((error) => {
+        if (active) {
+          setTripsError(
+            error instanceof Error ? error.message : "Could not load your trips."
+          );
+        }
+      })
+      .finally(() => {
+        if (active) setTripsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // =========================================================
   // FAMILY
@@ -371,7 +383,7 @@ export default function Dashboard() {
             </Link>
 
             <Link
-              to="/dashboard"
+              to="/trips"
               className="sidebar-link"
               onClick={closeMobileMenu}
             >
@@ -379,7 +391,7 @@ export default function Dashboard() {
               <span>My Trips</span>
 
               <span className="nav-count">
-                2
+                {trips.length}
               </span>
             </Link>
 
@@ -725,7 +737,7 @@ export default function Dashboard() {
                 </span>
 
                 <strong>
-                  Anywhere
+                  {trips[0]?.destination || "Anywhere"}
                 </strong>
 
               </div>
@@ -751,12 +763,8 @@ export default function Dashboard() {
                 </span>
 
                 <strong>
-                  8
+                  {trips.length}
                 </strong>
-
-                <small>
-                  +2 this year
-                </small>
 
               </div>
 
@@ -855,7 +863,7 @@ export default function Dashboard() {
                 </div>
 
                 <Link
-                  to="/dashboard"
+                  to="/trips"
                   className="view-all"
                 >
                   View all
@@ -864,104 +872,114 @@ export default function Dashboard() {
 
               </div>
 
-              <div className="trip-list">
+              {tripsLoading ? (
+                <p className="trips-empty-note">Loading your trips...</p>
+              ) : tripsError ? (
+                <p className="trips-empty-note">{tripsError}</p>
+              ) : trips.length === 0 ? (
+                <p className="trips-empty-note">
+                  No trips yet - use &quot;Create a new trip&quot; above to plan your first one.
+                </p>
+              ) : (
+                <div className="trip-list">
 
-                {trips.map((trip) => (
+                  {trips.slice(0, 3).map((trip) => {
+                    const status = tripStatus(trip);
+                    return (
 
-                  <article
-                    className="trip-card"
-                    key={trip.id}
-                  >
-
-                    {/* IMAGE */}
-
-                    <div className="trip-image">
-
-                      <img
-                        src={trip.image}
-                        alt={trip.title}
-                      />
-
-                      <span
-                        className={`trip-status ${
-                          trip.status === "Upcoming"
-                            ? "upcoming"
-                            : "planning"
-                        }`}
+                      <Link
+                        to={`/trips/${trip.id}`}
+                        className="trip-card"
+                        key={trip.id}
                       >
 
-                        {trip.status === "Upcoming" ? (
-                          <CheckCircle2 size={13} />
-                        ) : (
-                          <Clock3 size={13} />
-                        )}
+                        {/* IMAGE */}
 
-                        {trip.status}
+                        <div className="trip-image trip-image-fallback">
 
-                      </span>
+                          <MapPin size={26} />
 
-                    </div>
+                          <span
+                            className={`trip-status ${
+                              status === "Upcoming"
+                                ? "upcoming"
+                                : "planning"
+                            }`}
+                          >
 
-                    {/* INFO */}
+                            {status === "Upcoming" ? (
+                              <CheckCircle2 size={13} />
+                            ) : (
+                              <Clock3 size={13} />
+                            )}
 
-                    <div className="trip-info">
+                            {status}
 
-                      <div className="trip-title-row">
+                          </span>
 
-                        <div>
+                        </div>
 
-                          <h3>
-                            {trip.title}
-                          </h3>
+                        {/* INFO */}
 
-                          <div className="trip-location">
+                        <div className="trip-info">
 
-                            <MapPin size={14} />
+                          <div className="trip-title-row">
 
-                            {trip.location}
+                            <div>
+
+                              <h3>
+                                {trip.title}
+                              </h3>
+
+                              <div className="trip-location">
+
+                                <MapPin size={14} />
+
+                                {trip.destination || "Destination not set"}
+
+                              </div>
+
+                            </div>
+
+                            <button
+                              type="button"
+                              className="trip-more"
+                              aria-label={`More options for ${trip.title}`}
+                              onClick={(event) => {
+                                event.preventDefault();
+                                handleTripOptions(trip.title);
+                              }}
+                            >
+
+                              <MoreHorizontal size={19} />
+
+                            </button>
+
+                          </div>
+
+                          <div className="trip-footer">
+
+                            <div className="trip-date">
+
+                              <CalendarDays size={14} />
+
+                              {tripDateLabel(trip)}
+
+                            </div>
+
+                            <ArrowRight size={16} />
 
                           </div>
 
                         </div>
 
-                        <button
-                          type="button"
-                          className="trip-more"
-                          aria-label={`More options for ${trip.title}`}
-                          onClick={() =>
-                            handleTripOptions(
-                              trip.title
-                            )
-                          }
-                        >
+                      </Link>
 
-                          <MoreHorizontal size={19} />
+                    );
+                  })}
 
-                        </button>
-
-                      </div>
-
-                      <div className="trip-footer">
-
-                        <div className="trip-date">
-
-                          <CalendarDays size={14} />
-
-                          {trip.dates}
-
-                        </div>
-
-                        <ArrowRight size={16} />
-
-                      </div>
-
-                    </div>
-
-                  </article>
-
-                ))}
-
-              </div>
+                </div>
+              )}
 
             </section>
 

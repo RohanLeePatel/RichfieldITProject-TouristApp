@@ -10,6 +10,11 @@ class Landmark(BaseModel):
     lon: float
     address: Optional[str] = None
     distance_m: float
+    # raw OSM opening_hours syntax (e.g. "Mo-Fr 08:00-18:00; Sa 09:00-13:00"),
+    # passed through as-is - not parsed. Fully parsing that mini-language is a
+    # bigger job than surfacing it; the frontend does a best-effort check only
+    # for the simple single-daily-range case, see itineraryPlanner.js.
+    opening_hours: Optional[str] = None
 
 
 class LandmarkGroup(BaseModel):

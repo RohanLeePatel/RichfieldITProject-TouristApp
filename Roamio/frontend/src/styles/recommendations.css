@@ -232,8 +232,45 @@
   background: #e9faf7;
 }
 
+.interest-option.priority {
+  border-color: #16849a;
+  color: white;
+  background: linear-gradient(120deg, #16849a, #23a89e);
+}
+
 .interest-group {
   margin-bottom: 18px;
+}
+
+.traveler-block {
+  margin: 6px 0 18px;
+  padding: 14px 16px 2px;
+  border: 1px dashed #dce4e8;
+  border-radius: 12px;
+}
+
+.traveler-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.traveler-block-header h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: #536578;
+}
+
+.traveler-block-header button {
+  display: grid;
+  place-items: center;
+  padding: 4px;
+  border: 0;
+  border-radius: 999px;
+  color: #a33d3d;
+  background: transparent;
 }
 
 .interest-group-label {
@@ -469,6 +506,11 @@
   text-transform: capitalize;
 }
 
+.recommendation-evidence span.priority {
+  color: white;
+  background: linear-gradient(120deg, #16849a, #23a89e);
+}
+
 .recommendation-card-actions {
   display: flex;
   justify-content: space-between;
@@ -579,6 +621,123 @@
 
 .results-empty ul {
   padding-left: 20px;
+}
+
+.itinerary-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 6px;
+}
+
+.itinerary-day {
+  flex: 1 1 220px;
+  min-height: 90px;
+  padding: 14px;
+  border: 1px solid #e4e9ed;
+  border-radius: 12px;
+  background: #fbfcfd;
+}
+
+.itinerary-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.itinerary-day-header .interest-group-label {
+  margin: 0;
+}
+
+.itinerary-day-remove {
+  display: grid;
+  place-items: center;
+  padding: 4px;
+  border: 0;
+  border-radius: 999px;
+  color: #71808e;
+  background: transparent;
+}
+
+.itinerary-day-remove:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
+.itinerary-stop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 9px 10px;
+  border: 1px solid #dce4e8;
+  border-radius: 9px;
+  background: white;
+  cursor: grab;
+}
+
+.itinerary-stop-time {
+  flex-shrink: 0;
+  color: #16849a;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.itinerary-stop-name {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #142a42;
+}
+
+.itinerary-stop-location {
+  flex-basis: 100%;
+  color: #71808e;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.itinerary-stop-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  color: #a3703d;
+  background: #fff6ea;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: none;
+}
+
+.itinerary-stop-remove {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  padding: 3px;
+  border: 0;
+  border-radius: 999px;
+  color: #a33d3d;
+  background: transparent;
+}
+
+.itinerary-add-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1 1 220px;
+  min-height: 90px;
+  border: 1px dashed #dce4e8;
+  border-radius: 12px;
+  color: #71808e;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .recommendations-spinner {

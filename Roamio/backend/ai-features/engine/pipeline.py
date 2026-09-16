@@ -87,13 +87,24 @@ def score_candidates(
 
     scored.sort(key=lambda t: t[1], reverse=True)
 
+    # Relative to the *actual* top score for this request, not a fixed absolute
+    # number - a fixed floor could exclude every candidate when a niche request
+    # (e.g. a single rare interest tag) just legitimately scores low everywhere,
+    # coming back with zero results even though some candidates are clearly the
+    # best of what's available. Multiplying by top_score guarantees the top
+    # candidate always clears its own floor, so a request with any scored
+    # candidates never comes back empty from this step.
     requested_count = len(prefs.interests)
+    top_score = scored[0][1] if scored else 0.0
     relevance_floor = min(
         0.55,
-        BASE_RELEVANCE_FLOOR
-        + min(requested_count, 3) * 0.02
-        + (0.02 if prefs.climate.prefer else 0.0)
-        + (0.02 if prefs.accessibility.wheelchair != "none" else 0.0),
+        top_score
+        * (
+            BASE_RELEVANCE_FLOOR
+            + min(requested_count, 3) * 0.02
+            + (0.02 if prefs.climate.prefer else 0.0)
+            + (0.02 if prefs.accessibility.wheelchair != "none" else 0.0)
+        ),
     )
 
     strong_matches: list[tuple[Candidate, float, list[EvidenceEntry]]] = []
@@ -171,6 +182,15 @@ def score_candidates(
     return results, excluded, comparison
 
 
+# TODO(db): no feedback loop yet - the engine never learns from what a user
+# actually did with a response (which result they picked, which they backed
+# out of via "not this city", which landmarks they kept vs unchecked). That's
+# a real personalization lever, but needs somewhere durable to record it
+# per-user and feed it back into future requests - no bypass makes sense here
+# without persistence (a session-only log wouldn't outlive the request that
+# produced it), so this is left as a pointer rather than fake infrastructure.
+# Once user accounts + a per-user event log exist, the natural hook is here:
+# build_response() is the single choke point every recommendation passes through.
 def build_response(
     request: RecommendationRequest, candidates: list[Candidate] | None = None
 ) -> RecommendationResponse:

@@ -4,6 +4,7 @@ full pipeline, explanation text staying in sync with the evidence, and the
 bottom-up blend.
 """
 
+from engine.weights import MAX_RESULTS
 from engine.pipeline import score_candidates
 from tests.conftest import make_candidate
 
@@ -149,3 +150,19 @@ def test_blend_skipped_and_noted_when_no_children(destinations, prefs_factory):
     blend_evidence = results[0].breakdown[-1]
     assert blend_evidence.dimension == "bottom_up_blend"
     assert blend_evidence.evidence["blended"] is False
+
+
+def test_relevance_floor_is_relative_not_absolute(prefs_factory):
+    """
+    A niche interest that scores low everywhere in absolute terms should still
+    return the best candidates it has, not come back empty just because
+    nothing clears some fixed absolute threshold.
+    """
+    many_mediocre = [
+        make_candidate(f"m{i}", f"Mediocre City {i}", interest_density={"waterparks": 0.1})
+        for i in range(MAX_RESULTS["city"] + 5)
+    ]
+    prefs = prefs_factory(interests=["waterparks"])
+    results, excluded, _ = score_candidates(prefs, "city", many_mediocre)
+    assert len(results) > 0
+    assert len(results) + len(excluded) == len(many_mediocre)
