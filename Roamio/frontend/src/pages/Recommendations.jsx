@@ -1287,6 +1287,15 @@ export default function Recommendations() {
                         // every same-named entry.
                         const key = `${group.interest}|${index}`;
                         const checked = selectedLandmarks.has(key);
+                        // Coordinates, not name/address text - several distinct
+                        // POIs can share the same geocoded label (see the
+                        // duplicate-looking "Manila, 1000 Metro Manila..."
+                        // rows), so only a pin at the real lat/lon actually
+                        // tells them apart.
+                        const mapUrl =
+                          Number.isFinite(landmark.lat) && Number.isFinite(landmark.lon)
+                            ? `https://www.google.com/maps/search/?api=1&query=${landmark.lat},${landmark.lon}`
+                            : null;
                         return (
                           <label key={key} className={`landmark-item ${checked ? "selected" : ""}`}>
                             <input type="checkbox" checked={checked} onChange={() => toggleLandmark(key)} />
@@ -1295,6 +1304,19 @@ export default function Recommendations() {
                               {landmark.address && <small>{landmark.address}</small>}
                               {landmark.opening_hours && <small>Hours: {landmark.opening_hours}</small>}
                             </span>
+                            {mapUrl && (
+                              <a
+                                className="landmark-item-map"
+                                href={mapUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(event) => event.stopPropagation()}
+                                title="View this exact spot on the map"
+                                aria-label={`View ${landmark.name} on the map`}
+                              >
+                                <MapPin size={14} />
+                              </a>
+                            )}
                           </label>
                         );
                       })}

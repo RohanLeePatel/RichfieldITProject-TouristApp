@@ -390,6 +390,19 @@
   font-size: 11px;
 }
 
+.landmark-item-map {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  align-self: center;
+  width: 26px;
+  height: 26px;
+  margin-left: auto;
+  border-radius: 999px;
+  color: #16849a;
+  background: #f0fbf9;
+}
+
 .landmark-item.selected {
   border-color: #23a89e;
   background: #f0fbf9;
