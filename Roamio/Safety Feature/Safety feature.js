@@ -1,14 +1,15 @@
-import axios from 'axios';
-import {parseStringPromise} from 'xml2js';
-/**
-*@param {string} countryName 
-*/
+const axios = require('axios');
+const { parseStringPromise } = require('xml2js');
 
-export async function getSafetyFeature(countryName) {
+/**
+ * Fetches and parses the U.S. State Department Travel Advisory RSS feed.
+ * @param {string} countryName 
+ */
+async function fetchCountrySafetyRating(countryName) {
     try {
         const feedUrl = 'https://travel.state.gov/_res/rss/TAs.xml';
 
-        const response = await axios.get(feedUrl, {timeout: 8000});
+        const response = await axios.get(feedUrl, { timeout: 8000 });
 
         const result = await parseStringPromise(response.data);
         const items = result?.rss?.channel?.[0]?.item || [];
@@ -20,7 +21,6 @@ export async function getSafetyFeature(countryName) {
 
         if (matchedItem) {
             const title = matchedItem.title[0];
-            const description = matchedItem.description?.[0]|| '';
 
             let score = 1.0;
             if (title.includes('Level 4')) score = 4.0;
@@ -33,23 +33,23 @@ export async function getSafetyFeature(countryName) {
                 threatLevel: title,
                 sourceUrl: matchedItem.link?.[0] || 'https://travel.state.gov/en/international-travel/travel-advisories.html',
             };
-    }
+        }
 
-    return {
-        score: 1.0,
-        threatLevel: `Level 1: Exercise Normal Precautions for ${countryName}`,
-        sourceUrl: 'https://travel.state.gov/en/international-travel/travel-advisories.html',
-
-    };
+        return {
+            score: 1.0,
+            threatLevel: `Level 1: Exercise Normal Precautions for ${countryName}`,
+            sourceUrl: 'https://travel.state.gov/en/international-travel/travel-advisories.html',
+        };
 
     } catch (error) {
-        console.error('Failed to fetch Travel Adivsory feed:', error.message);
+        console.error('Failed to fetch Travel Advisory feed:', error.message);
 
         return {
             score: 2.0,
-            threatLevel:'Data temporarily unavailable from travel.state.gov',
+            threatLevel: 'Data temporarily unavailable from travel.state.gov',
             sourceUrl: 'https://travel.state.gov/en/international-travel/travel-advisories.html',
         };
     }
 }
 
+module.exports = { fetchCountrySafetyRating };
