@@ -7,6 +7,21 @@ const prisma = require('../db');
 const validate = require('../middleware/validate');
 const { createTripSchema, createItinerarySchema } = require('../schemas');
 
+// TODO(db): every query below assumes Trip has a direct `userId`, `destination`,
+// `budget`, `notes` and that ItineraryItem has `cost`/`notes` and an optional
+// `startTime`. The live Supabase DB (introspected 2026-09-16) has neither -
+// Trip only has `travelGroupId` (ownership goes through TravelGroup ->
+// TravelGroupMember/TripMember), no destination/budget/notes columns, and
+// ItineraryItem.startTime is NOT NULL with no cost/notes columns. Whoever
+// owns the DB needs to either:
+//   (a) add destination/budget/notes back to Trip and cost/notes to
+//       ItineraryItem (additive, doesn't touch their TravelGroup model), or
+//   (b) confirm trips should route through TripDestination/Destination
+//       instead, in which case these routes need a bigger rewrite.
+// Either way, every `where: { userId: req.user.userId }` on Trip below needs
+// to become a TravelGroupMember/TripMember membership check once the schema
+// question is settled.
+
 // Protect all routes in this file with JWT middleware
 router.use(authenticateToken);
 
