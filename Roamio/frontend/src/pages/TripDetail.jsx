@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, CalendarDays, LoaderCircle, MapPin, Plane, Sparkles, Trash2, X } from "lucide-react";
+import { ArrowLeft, CalendarDays, LoaderCircle, MapPin, Plane, Printer, Sparkles, Trash2, X } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { fetchTrip, deleteTrip, removeItineraryItem } from "../api/trips.js";
@@ -58,7 +58,7 @@ export default function TripDetail() {
 
   return (
     <main className="recommendations-page">
-      <header className="recommendations-header">
+      <header className="recommendations-header print-hide">
         <Link to="/trips" className="recommendations-back-link">
           <ArrowLeft size={17} /> Back to your trips
         </Link>
@@ -96,10 +96,23 @@ export default function TripDetail() {
                   <h2>Day-by-day plan</h2>
                   <p>{trip.itinerary?.length || 0} stop{trip.itinerary?.length === 1 ? "" : "s"} saved to this trip.</p>
                 </div>
-                <button type="button" className="secondary-button" onClick={handleDeleteTrip} disabled={busy}>
-                  <Trash2 size={15} /> Delete trip
-                </button>
+                <div className="print-hide trip-detail-actions">
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => window.print()}
+                    title="Opens your browser's print dialog - choose 'Save as PDF' as the destination to download it"
+                  >
+                    <Printer size={15} /> Download as PDF
+                  </button>
+                  <button type="button" className="secondary-button" onClick={handleDeleteTrip} disabled={busy}>
+                    <Trash2 size={15} /> Delete trip
+                  </button>
+                </div>
               </div>
+              <p className="print-hide wizard-help">
+                Pick &quot;Save as PDF&quot; as the destination in the print dialog that opens.
+              </p>
 
               {error && <p className="recommendations-error">{error}</p>}
 
@@ -124,7 +137,7 @@ export default function TripDetail() {
                           </span>
                           <button
                             type="button"
-                            className="itinerary-stop-remove"
+                            className="itinerary-stop-remove print-hide"
                             onClick={() => handleDeleteItem(item.id)}
                             disabled={busy}
                             aria-label={`Remove ${item.title}`}

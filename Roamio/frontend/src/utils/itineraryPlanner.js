@@ -180,14 +180,36 @@ function chunkIntoDays(list, stopsPerDay) {
   return groups;
 }
 
+// Precise mode: the user set an explicit stop count per day instead of
+// taking the pace default. Same never-drop guarantee as chunkIntoDays - if
+// the counts add up to less than the full list, the remainder spills into
+// one extra day rather than being silently dropped.
+function chunkByCounts(list, counts) {
+  const groups = [];
+  let index = 0;
+  counts.forEach((count) => {
+    if (index >= list.length) return;
+    const size = Math.max(1, count);
+    groups.push(list.slice(index, index + size));
+    index += size;
+  });
+  if (index < list.length) groups.push(list.slice(index));
+  return groups;
+}
+
 /**
- * @param {{ landmarks: Array<{name, lat, lon, category, address}>, tripDays: number, pace: "packed"|"balanced"|"relaxed" }} args
+ * @param {{ landmarks: Array<{name, lat, lon, category, address}>, tripDays: number, pace: "packed"|"balanced"|"relaxed", dayStopCounts?: number[], familyFriendly?: boolean }} args
  * @returns {Array<{ dayNumber: number, stops: Array<{ landmark, startTime, endTime }> }>}
  */
-export function buildDayPlan({ landmarks, tripDays, pace }) {
+export function buildDayPlan({ landmarks, tripDays, pace, dayStopCounts, familyFriendly }) {
   if (!landmarks || landmarks.length === 0) return [];
 
-  const stopsPerDay = STOPS_PER_DAY_BY_PACE[pace] ?? DEFAULT_STOPS_PER_DAY;
+  // Kids need more slack than the pace label alone accounts for - every day
+  // gets the same lighter treatment the sweep already gives the arrival day,
+  // not just the first one. Ignored once the user takes precise per-day
+  // control (dayStopCounts) - that's already an explicit override.
+  const baseStopsPerDay = STOPS_PER_DAY_BY_PACE[pace] ?? DEFAULT_STOPS_PER_DAY;
+  const stopsPerDay = familyFriendly ? Math.max(2, baseStopsPerDay - 1) : baseStopsPerDay;
   const centroid = centroidOf(landmarks);
 
   const sortedByAngle = [...landmarks].sort((a, b) => {
@@ -199,7 +221,10 @@ export function buildDayPlan({ landmarks, tripDays, pace }) {
   // Never silently drop a stop the user picked - if the selection needs more
   // days than tripDays allows, chunking just produces more groups than
   // tripDays; the caller compares dayGroups.length to tripDays to surface that.
-  const dayGroups = chunkIntoDays(sortedByAngle, stopsPerDay);
+  const dayGroups =
+    dayStopCounts && dayStopCounts.length > 0
+      ? chunkByCounts(sortedByAngle, dayStopCounts)
+      : chunkIntoDays(sortedByAngle, stopsPerDay);
 
   return dayGroups.map((group, index) => ({
     dayNumber: index + 1,
@@ -228,6 +253,17 @@ export function groupItineraryByDay(itinerary) {
     }));
   const unscheduled = byDay.get("unscheduled");
   return unscheduled ? [...scheduled, { dayNumber: null, items: unscheduled }] : scheduled;
+}
+
+// A day is "overloaded" if it's still going past a reasonable dinner-and-out
+// hour - a simple last-stop-endTime check, not a real fatigue model, but
+// enough to flag a day that quietly ran long from too many stops or too much
+// travel time between them.
+const LATE_DAY_THRESHOLD_MIN = 20 * 60; // 20:00
+export function isDayOverloaded(stops) {
+  if (!stops || stops.length === 0) return false;
+  const lastStop = stops[stops.length - 1];
+  return timeToMinutes(lastStop.endTime) > LATE_DAY_THRESHOLD_MIN;
 }
 
 export { STOPS_PER_DAY_BY_PACE };

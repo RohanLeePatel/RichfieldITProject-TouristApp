@@ -58,3 +58,33 @@
     grid-template-columns: 1fr;
   }
 }
+
+.trip-detail-actions {
+  display: flex;
+  gap: 8px;
+}
+
+@media print {
+  .print-hide {
+    display: none !important;
+  }
+
+  @page {
+    margin: 16mm;
+  }
+
+  body {
+    background: white;
+  }
+
+  .itinerary-day {
+    break-inside: avoid;
+    border-color: #ccc;
+    background: white;
+  }
+
+  .itinerary-stop {
+    break-inside: avoid;
+    border-color: #ddd;
+  }
+}

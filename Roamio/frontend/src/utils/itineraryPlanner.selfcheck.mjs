@@ -1,6 +1,12 @@
 // Standalone check, no test framework - run with: node src/utils/itineraryPlanner.selfcheck.mjs
 import assert from "node:assert/strict";
-import { buildDayPlan, recomputeDayStopTimes, isLikelyClosed, groupItineraryByDay } from "./itineraryPlanner.js";
+import {
+  buildDayPlan,
+  recomputeDayStopTimes,
+  isLikelyClosed,
+  groupItineraryByDay,
+  isDayOverloaded,
+} from "./itineraryPlanner.js";
 
 // A loose ring of 7 fake landmarks around a city centroid, spread across
 // "directions" so the sweep should split them into distinct day-groups.
@@ -87,6 +93,17 @@ assert.equal(isLikelyClosed({}, "10:00"), false);
 // empty selection -> empty plan, no crash
 assert.deepEqual(buildDayPlan({ landmarks: [], tripDays: 3, pace: "balanced" }), []);
 
+// precise mode: explicit per-day counts override the pace default, in order.
+const precisePlan = buildDayPlan({ landmarks, tripDays: 3, pace: "balanced", dayStopCounts: [1, 2, 4] });
+assert.equal(precisePlan.length, 3, `precise mode expected 3 days, got ${precisePlan.length}`);
+assert.deepEqual(precisePlan.map((d) => d.stops.length), [1, 2, 4]);
+
+// precise mode never drops stops: counts summing to less than the full
+// selection spill the remainder into one extra day.
+const overflowPlan = buildDayPlan({ landmarks, tripDays: 2, pace: "balanced", dayStopCounts: [2, 2] });
+assert.equal(overflowPlan.length, 3, `overflow should append an extra day, got ${overflowPlan.length}`);
+assert.equal(overflowPlan[2].stops.length, 3);
+
 // groupItineraryByDay: saved items group by day, sort by startTime within a
 // day, and anything with no dayNumber lands in a trailing unscheduled group
 // instead of being dropped.
@@ -104,5 +121,23 @@ assert.equal(groups[2].dayNumber, null); // unscheduled trails, never dropped
 assert.equal(groups[2].items[0].title, "Old item, no day");
 assert.deepEqual(groupItineraryByDay([]), []);
 assert.deepEqual(groupItineraryByDay(undefined), []);
+
+// familyFriendly: every day (not just arrival) gets fewer stops than the
+// plain pace default would give, so kid-heavy trips aren't packed on day 2+.
+const familyPlan = buildDayPlan({ landmarks, tripDays: 3, pace: "packed", familyFriendly: true });
+const plainPacked = buildDayPlan({ landmarks, tripDays: 3, pace: "packed" });
+const familyNonArrivalMax = Math.max(...familyPlan.slice(1).map((d) => d.stops.length));
+const plainNonArrivalMax = Math.max(...plainPacked.slice(1).map((d) => d.stops.length));
+assert.ok(
+  familyNonArrivalMax <= plainNonArrivalMax,
+  `familyFriendly day (${familyNonArrivalMax} stops) should not exceed the plain-pace day (${plainNonArrivalMax} stops)`
+);
+
+// isDayOverloaded: flags a day whose last stop ends after the late threshold,
+// leaves a normal day alone, and never crashes on an empty day.
+assert.equal(isDayOverloaded([{ endTime: "21:30" }]), true);
+assert.equal(isDayOverloaded([{ endTime: "17:00" }]), false);
+assert.equal(isDayOverloaded([]), false);
+assert.equal(isDayOverloaded(undefined), false);
 
 console.log("itineraryPlanner selfcheck: all assertions passed");

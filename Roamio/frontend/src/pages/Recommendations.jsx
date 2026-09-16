@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
+  Ban,
   Check,
   ChevronLeft,
   ExternalLink,
@@ -10,9 +11,12 @@ import {
   MapPin,
   Plane,
   Plus,
+  Search,
   Sparkles,
   Star,
   Trash2,
+  Undo2,
+  Wand2,
   X,
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -23,7 +27,13 @@ import {
   fetchLandmarks,
 } from "../api/recommendations.js";
 import { createTrip, addItineraryItem, deleteTrip } from "../api/trips.js";
-import { buildDayPlan, recomputeDayStopTimes, isLikelyClosed } from "../utils/itineraryPlanner.js";
+import {
+  buildDayPlan,
+  recomputeDayStopTimes,
+  isLikelyClosed,
+  isDayOverloaded,
+  STOPS_PER_DAY_BY_PACE,
+} from "../utils/itineraryPlanner.js";
 import "../styles/recommendations.css";
 
 // Specific tags the user can pick, grouped under the 4 broad dimensions the
@@ -75,6 +85,32 @@ const PACE_OPTIONS = [
   { id: "packed", label: "Packed", helper: "~5 stops a day" },
 ];
 
+// One-click starting points - fills interests/priority/pace so a group
+// doesn't have to build every trip from a blank wizard.
+const TRIP_PRESETS = [
+  {
+    id: "family",
+    label: "Family with young kids",
+    interests: ["playgrounds", "theme_parks", "zoos_aquariums", "restaurants"],
+    priorityInterests: ["playgrounds"],
+    pace: "relaxed",
+  },
+  {
+    id: "weekend",
+    label: "Weekend city break",
+    interests: ["historic_sites", "museums", "cafes", "restaurants"],
+    priorityInterests: [],
+    pace: "balanced",
+  },
+  {
+    id: "adventure",
+    label: "Adventure & hiking",
+    interests: ["hiking", "parks", "beaches", "street_food"],
+    priorityInterests: ["hiking"],
+    pace: "packed",
+  },
+];
+
 const COUNTRIES = [
   "Argentina", "Australia", "Brazil", "Canada", "Egypt", "France",
   "Germany", "Italy", "Japan", "Kenya", "Mexico", "Namibia", "Netherlands",
@@ -83,6 +119,7 @@ const COUNTRIES = [
 ];
 
 const DEFAULT_TRIP_DAYS = 3;
+const ITINERARY_HISTORY_LIMIT = 20;
 
 const initialForm = {
   mode: "global",
@@ -93,6 +130,9 @@ const initialForm = {
   endDate: "",
   interests: ["parks", "restaurants"],
   priorityInterests: [],
+  // tags the group wants hard-excluded from landmark picks and city scoring,
+  // independent of anyone's positive interests - see resolveInterests().
+  dealbreakers: [],
   // additional travelers' own interest picks, blended in at submit time -
   // see blendTravelerInterests(). Session-only, see its TODO(db) note.
   travelers: [],
@@ -101,6 +141,10 @@ const initialForm = {
   wheelchair: "none",
   climate: "",
   pace: "balanced",
+  // "precise" mode: an explicit stop count per day instead of the pace
+  // default. dayStopCounts[i] is the count for day i+1.
+  preciseStops: false,
+  dayStopCounts: [],
 };
 
 const steps = ["Trip basics", "Interests", "Accessibility & climate", "Review"];
@@ -164,6 +208,20 @@ function blendTravelerInterests(form) {
   return { interests, priority_interests };
 }
 
+// Blends every traveler's picks, then strips out anything the group flagged
+// as a dealbreaker - a dealbreaker wins over another traveler's pick of the
+// same tag, since it's an explicit "please don't" rather than mere apathy.
+// Shared by both the city-ranking request and the landmark fetch so a
+// dealbreaker tag never resurfaces in either.
+function resolveInterests(form) {
+  const { interests, priority_interests } = blendTravelerInterests(form);
+  const dealbreakers = new Set(form.dealbreakers);
+  return {
+    interests: interests.filter((tag) => !dealbreakers.has(tag)),
+    priority_interests: priority_interests.filter((tag) => !dealbreakers.has(tag)),
+  };
+}
+
 function buildPreferences(form) {
   const children = form.children
     ? form.children
@@ -172,7 +230,7 @@ function buildPreferences(form) {
         .filter((age) => Number.isInteger(age) && age >= 0)
     : [];
 
-  const { interests, priority_interests } = blendTravelerInterests(form);
+  const { interests, priority_interests } = resolveInterests(form);
   const startMonth = form.startDate ? new Date(form.startDate).getMonth() + 1 : null;
   const endMonth = form.endDate ? new Date(form.endDate).getMonth() + 1 : null;
 
@@ -299,6 +357,60 @@ function RecommendationCard({ recommendation, onSelect, selectLabel }) {
   );
 }
 
+const ITINERARY_MAP_COLORS = ["#23a89e", "#f4a340", "#7c6fe0", "#e0607c", "#4f9de0", "#8bc34a"];
+const ITINERARY_MAP_SIZE = 260;
+const ITINERARY_MAP_PAD = 20;
+
+// A rough "which stops are near which" layout, not a real basemap - plotting
+// lat/lon on a plain SVG needs no map library/API key, at the cost of no
+// streets/labels. Upgrade to Leaflet/Mapbox tiles if that visual context
+// turns out to matter more than the dependency-free simplicity here.
+function ItineraryMap({ itineraryDays }) {
+  const points = itineraryDays.flatMap((day) =>
+    day.stops.map((stop) => ({ lat: stop.landmark.lat, lon: stop.landmark.lon, dayNumber: day.dayNumber, name: stop.landmark.name }))
+  );
+  if (points.length < 2) return null;
+
+  const lats = points.map((p) => p.lat);
+  const lons = points.map((p) => p.lon);
+  const minLat = Math.min(...lats);
+  const latSpan = Math.max(...lats) - minLat || 0.001;
+  const minLon = Math.min(...lons);
+  const lonSpan = Math.max(...lons) - minLon || 0.001;
+  const plotSize = ITINERARY_MAP_SIZE - ITINERARY_MAP_PAD * 2;
+  const toXY = (p) => ({
+    x: ITINERARY_MAP_PAD + ((p.lon - minLon) / lonSpan) * plotSize,
+    // latitude increases northward, SVG y increases downward - flip it
+    y: ITINERARY_MAP_PAD + (1 - (p.lat - minLat) / latSpan) * plotSize,
+  });
+  const activeDays = itineraryDays.filter((day) => day.stops.length > 0);
+
+  return (
+    <div className="itinerary-map">
+      <p className="wizard-help">Rough layout of your stops by day - not a real map, see a stop&apos;s &quot;View map&quot; link for that.</p>
+      <svg viewBox={`0 0 ${ITINERARY_MAP_SIZE} ${ITINERARY_MAP_SIZE}`} width="100%" height={ITINERARY_MAP_SIZE} role="img" aria-label="Rough layout of itinerary stops by day">
+        {points.map((point, index) => {
+          const { x, y } = toXY(point);
+          const color = ITINERARY_MAP_COLORS[(point.dayNumber - 1) % ITINERARY_MAP_COLORS.length];
+          return (
+            <circle key={index} cx={x} cy={y} r={5} fill={color}>
+              <title>{`Day ${point.dayNumber}: ${point.name}`}</title>
+            </circle>
+          );
+        })}
+      </svg>
+      <div className="itinerary-map-legend">
+        {activeDays.map((day) => (
+          <span key={day.dayNumber}>
+            <i style={{ background: ITINERARY_MAP_COLORS[(day.dayNumber - 1) % ITINERARY_MAP_COLORS.length] }} />
+            Day {day.dayNumber}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Recommendations() {
   // wizard -> collecting preferences
   // results -> ranked countries or cities
@@ -317,9 +429,14 @@ export default function Recommendations() {
   const [trip, setTrip] = useState(null);
   const [landmarksData, setLandmarksData] = useState(null);
   const [selectedLandmarks, setSelectedLandmarks] = useState(new Set());
+  const [landmarkFilter, setLandmarkFilter] = useState("");
   // [{ dayNumber, stops: [{ landmark, startTime, endTime }] }] - seeded once
   // from buildDayPlan(), then mutated directly by drag-and-drop/remove/add-day.
   const [itineraryDays, setItineraryDays] = useState([]);
+  // Snapshots of itineraryDays taken right before each mutating edit, so
+  // "Undo" can pop the last one back. Capped so an editing spree can't grow
+  // this unbounded.
+  const [itineraryHistory, setItineraryHistory] = useState([]);
   const [dragStop, setDragStop] = useState(null); // { dayIndex, stopIndex } of the stop being dragged
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -392,6 +509,50 @@ export default function Recommendations() {
       ...current,
       travelers: current.travelers.filter((traveler) => traveler.id !== travelerId),
     }));
+  };
+
+  // Dealbreakers are a separate on/off list, not a 3rd cycle state on the
+  // interest buttons - "avoid museums" shouldn't share a control with "I'd
+  // like some museums", they're opposite intents.
+  const toggleDealbreaker = (tagId) => {
+    setForm((current) => ({
+      ...current,
+      dealbreakers: current.dealbreakers.includes(tagId)
+        ? current.dealbreakers.filter((tag) => tag !== tagId)
+        : [...current.dealbreakers, tagId],
+    }));
+  };
+
+  const applyPreset = (preset) => {
+    setForm((current) => ({
+      ...current,
+      interests: preset.interests,
+      priorityInterests: preset.priorityInterests,
+      pace: preset.pace,
+    }));
+  };
+
+  // Turning precise mode on seeds one count per trip day from the current
+  // pace default, which the user can then adjust per day; turning it off
+  // just falls back to the pace default everywhere again.
+  const togglePreciseStops = () => {
+    setForm((current) => {
+      if (current.preciseStops) return { ...current, preciseStops: false };
+      const defaultCount = STOPS_PER_DAY_BY_PACE[current.pace] ?? STOPS_PER_DAY_BY_PACE.balanced;
+      return {
+        ...current,
+        preciseStops: true,
+        dayStopCounts: Array.from({ length: tripLengthDays(current) }, () => defaultCount),
+      };
+    });
+  };
+
+  const updateDayStopCount = (dayIndex, value) => {
+    setForm((current) => {
+      const counts = [...current.dayStopCounts];
+      counts[dayIndex] = Math.max(1, Number(value) || 1);
+      return { ...current, dayStopCounts: counts };
+    });
   };
 
   const validateStep = () => {
@@ -505,7 +666,7 @@ export default function Recommendations() {
         startDate: form.startDate || undefined,
         endDate: form.endDate || undefined,
       });
-      const landmarks = await fetchLandmarks(destinationLabel, form.interests);
+      const landmarks = await fetchLandmarks(destinationLabel, resolveInterests(form).interests);
       if (requestId !== requestIdRef.current) return;
       setResultsHistory((current) => [
         ...current,
@@ -579,13 +740,33 @@ export default function Recommendations() {
   const checkedLandmarks = () => {
     const chosen = [];
     landmarksData?.groups.forEach((group) => {
-      group.landmarks.forEach((landmark) => {
-        if (selectedLandmarks.has(`${group.interest}|${landmark.name}`)) {
+      group.landmarks.forEach((landmark, index) => {
+        if (selectedLandmarks.has(`${group.interest}|${index}`)) {
           chosen.push(landmark);
         }
       });
     });
     return chosen;
+  };
+
+  // "Pick for me": pre-checks a reasonable spread of landmarks instead of
+  // making the user tick every box by hand on a city with dozens of matches.
+  // Each interest group gets a share of the overall stop budget
+  // (stopsPerDay x tripDays), taking its first N landmarks - groups are
+  // already sorted by distance, so this is "the closest matches per interest",
+  // not a random sample. Replaces the current selection rather than adding to
+  // it, so re-running it after manual tweaks gives a predictable result.
+  const autoPickLandmarks = () => {
+    if (!landmarksData?.groups?.length) return;
+    const stopsPerDay = STOPS_PER_DAY_BY_PACE[form.pace] ?? STOPS_PER_DAY_BY_PACE.balanced;
+    const target = stopsPerDay * tripLengthDays(form);
+    const perGroup = Math.max(1, Math.round(target / landmarksData.groups.length));
+    const next = new Set();
+    landmarksData.groups.forEach((group) => {
+      group.landmarks.slice(0, perGroup).forEach((_, index) => next.add(`${group.interest}|${index}`));
+    });
+    setSelectedLandmarks(next);
+    setError("");
   };
 
   // Sequences the checked landmarks into a day-by-day agenda (engine is pure,
@@ -600,8 +781,32 @@ export default function Recommendations() {
       return;
     }
     setError("");
-    setItineraryDays(buildDayPlan({ landmarks: chosen, tripDays: tripLengthDays(form), pace: form.pace }));
+    setItineraryDays(
+      buildDayPlan({
+        landmarks: chosen,
+        tripDays: tripLengthDays(form),
+        pace: form.pace,
+        dayStopCounts: form.preciseStops ? form.dayStopCounts : undefined,
+        familyFriendly: !form.preciseStops && form.children.trim().length > 0,
+      })
+    );
+    setItineraryHistory([]);
     setStage("itinerary");
+  };
+
+  // Snapshots the itinerary right before a mutating edit so "Undo" can
+  // restore it. Called at the start of every edit handler below, capped so a
+  // long editing session doesn't grow this without bound.
+  const snapshotItinerary = () => {
+    setItineraryHistory((current) => [...current.slice(-(ITINERARY_HISTORY_LIMIT - 1)), itineraryDays]);
+  };
+
+  const undoItineraryEdit = () => {
+    setItineraryHistory((current) => {
+      if (current.length === 0) return current;
+      setItineraryDays(current[current.length - 1]);
+      return current.slice(0, -1);
+    });
   };
 
   // dayNumber is just each day's position - re-derive it after any structural
@@ -610,6 +815,7 @@ export default function Recommendations() {
   const renumberDays = (days) => days.map((day, index) => ({ ...day, dayNumber: index + 1 }));
 
   const removeStop = (dayIndex, stopIndex) => {
+    snapshotItinerary();
     setItineraryDays((current) =>
       renumberDays(
         current.map((day, index) => {
@@ -621,14 +827,34 @@ export default function Recommendations() {
     );
   };
 
+  // Adding a day rebalances every already-picked stop evenly across the new
+  // day count instead of leaving the new day empty ("drag one here") - the
+  // itinerary only ever contains stops the user explicitly checked, so
+  // there's no separate pool to pull fresh suggestions from; redistributing
+  // the existing ones is what "auto-populate" can mean here.
+  // ponytail: even split in current order, not a re-run of the geographic
+  // sweep - upgrade to re-clustering if it visibly mixes far-apart stops.
   const addDay = () => {
-    setItineraryDays((current) => renumberDays([...current, { dayNumber: 0, stops: [] }]));
+    snapshotItinerary();
+    setItineraryDays((current) => {
+      const allLandmarks = current.flatMap((day) => day.stops.map((stop) => stop.landmark));
+      if (allLandmarks.length === 0) {
+        return renumberDays([...current, { dayNumber: 0, stops: [] }]);
+      }
+      const dayCount = current.length + 1;
+      const perDay = Math.ceil(allLandmarks.length / dayCount);
+      return Array.from({ length: dayCount }, (_, index) => ({
+        dayNumber: index + 1,
+        stops: recomputeDayStopTimes(allLandmarks.slice(index * perDay, (index + 1) * perDay)),
+      }));
+    });
   };
 
   // Only lets you remove an empty day - dropping a day with stops still in it
   // would silently lose them, and there's no undo here; empty it out first
   // (drag its stops elsewhere, or remove them) to remove the day itself.
   const removeDay = (dayIndex) => {
+    snapshotItinerary();
     setItineraryDays((current) => renumberDays(current.filter((_, index) => index !== dayIndex)));
   };
 
@@ -637,6 +863,7 @@ export default function Recommendations() {
   // the source and destination day using the exact same rule buildDayPlan used.
   const moveStop = (from, to) => {
     if (from.dayIndex === to.dayIndex && from.stopIndex === to.stopIndex) return;
+    snapshotItinerary();
     setItineraryDays((current) => {
       const days = current.map((day) => ({ ...day, stops: [...day.stops] }));
       const [moved] = days[from.dayIndex].stops.splice(from.stopIndex, 1);
@@ -745,6 +972,13 @@ export default function Recommendations() {
                 <>
                   <h2>Where should we look?</h2>
                   <p className="wizard-help">Start globally, or tell us which country you already have in mind.</p>
+                  <div className="preset-list">
+                    {TRIP_PRESETS.map((preset) => (
+                      <button type="button" key={preset.id} className="preset-option" onClick={() => applyPreset(preset)}>
+                        <Wand2 size={14} /> {preset.label}
+                      </button>
+                    ))}
+                  </div>
                   <div className="mode-options">
                     <button type="button" className={form.mode === "global" ? "mode-option selected" : "mode-option"} onClick={() => updateForm("mode", "global")}>
                       <Sparkles size={20} />
@@ -809,6 +1043,25 @@ export default function Recommendations() {
                       A tag every traveler picked is weighted like a must-have automatically.
                     </p>
                   )}
+                  <div className="dealbreaker-section">
+                    <h4 className="interest-group-label">Anything to avoid?</h4>
+                    <p className="wizard-help">These are excluded from every traveler&apos;s matches, even if someone else picked them.</p>
+                    <div className="interest-list">
+                      {INTEREST_GROUPS.flatMap((group) => group.tags).map((tag) => {
+                        const excluded = form.dealbreakers.includes(tag.id);
+                        return (
+                          <button
+                            type="button"
+                            key={tag.id}
+                            className={`interest-option dealbreaker ${excluded ? "selected" : ""}`}
+                            onClick={() => toggleDealbreaker(tag.id)}
+                          >
+                            {excluded && <Ban size={14} />} {tag.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </>
               )}
 
@@ -828,6 +1081,29 @@ export default function Recommendations() {
                       ))}
                     </select>
                   </label>
+                  <label className="wizard-field-checkbox">
+                    <input type="checkbox" checked={form.preciseStops} onChange={togglePreciseStops} />
+                    Set stops per day precisely
+                  </label>
+                  {form.preciseStops && (
+                    <>
+                      <p className="wizard-help">Different days can carry different amounts - a light arrival day, a packed middle day, whatever fits.</p>
+                      <div className="field-grid wizard-fields">
+                        {form.dayStopCounts.map((count, index) => (
+                          <label key={index} className="wizard-field">
+                            Day {index + 1}
+                            <input
+                              type="number"
+                              min="1"
+                              max="10"
+                              value={count}
+                              onChange={(event) => updateDayStopCount(index, event.target.value)}
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </>
               )}
 
@@ -847,6 +1123,9 @@ export default function Recommendations() {
                           .join(", ")}
                       </strong>
                     </div>
+                    {form.dealbreakers.length > 0 && (
+                      <div><span>Avoiding</span><strong>{form.dealbreakers.map(formatDimension).join(", ")}</strong></div>
+                    )}
                     <div><span>Climate</span><strong>{form.climate || "Any climate"}</strong></div>
                     <div><span>Dates</span><strong>{form.startDate && form.endDate ? `${form.startDate} → ${form.endDate}` : `Not set (sample ${DEFAULT_TRIP_DAYS}-day plan)`}</strong></div>
                     <div><span>Pace</span><strong>{PACE_OPTIONS.find((option) => option.id === form.pace)?.label}</strong></div>
@@ -961,32 +1240,69 @@ export default function Recommendations() {
                 <ChevronLeft size={17} /> Not this city
               </button>
             </div>
-            {landmarksData?.groups.map((group) => (
-              <div key={group.interest} className="landmark-group">
-                <h4 className="interest-group-label">{formatDimension(group.interest)}</h4>
-                <p className="wizard-help">{group.explanation}</p>
-                {group.landmarks.length === 0 ? (
-                  <p className="wizard-help">No {formatDimension(group.interest)} spots found nearby.</p>
-                ) : (
-                  <div className="landmark-list">
-                    {group.landmarks.map((landmark) => {
-                      const key = `${group.interest}|${landmark.name}`;
-                      const checked = selectedLandmarks.has(key);
-                      return (
-                        <label key={key} className={`landmark-item ${checked ? "selected" : ""}`}>
-                          <input type="checkbox" checked={checked} onChange={() => toggleLandmark(key)} />
-                          <span>
-                            <strong>{landmark.name}</strong>
-                            {landmark.address && <small>{landmark.address}</small>}
-                            {landmark.opening_hours && <small>Hours: {landmark.opening_hours}</small>}
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            ))}
+            <div className="landmark-toolbar">
+              <label className="landmark-search">
+                <Search size={15} />
+                <input
+                  type="text"
+                  placeholder="Filter by name or area..."
+                  value={landmarkFilter}
+                  onChange={(event) => setLandmarkFilter(event.target.value)}
+                />
+              </label>
+              <button type="button" className="secondary-button" onClick={autoPickLandmarks}>
+                <Wand2 size={15} /> Pick top matches for me
+              </button>
+            </div>
+            {landmarksData?.groups.map((group) => {
+              const query = landmarkFilter.trim().toLowerCase();
+              // Filter by text but keep each landmark's original index (the
+              // selection key) stable, so hiding non-matching rows never
+              // shifts which checkbox represents which landmark.
+              const visible = group.landmarks
+                .map((landmark, index) => ({ landmark, index }))
+                .filter(
+                  ({ landmark }) =>
+                    !query ||
+                    landmark.name.toLowerCase().includes(query) ||
+                    landmark.address?.toLowerCase().includes(query)
+                );
+              return (
+                <div key={group.interest} className="landmark-group">
+                  <h4 className="interest-group-label">{formatDimension(group.interest)}</h4>
+                  <p className="wizard-help">{group.explanation}</p>
+                  {group.landmarks.length === 0 ? (
+                    <p className="wizard-help">No {formatDimension(group.interest)} spots found nearby.</p>
+                  ) : visible.length === 0 ? (
+                    <p className="wizard-help">No matches for &quot;{landmarkFilter}&quot; in this group.</p>
+                  ) : (
+                    <div className="landmark-list">
+                      {visible.map(({ landmark, index }) => {
+                        // Keyed by position, not name - Geoapify sometimes
+                        // returns several distinct places sharing the same
+                        // display name (e.g. a city label repeated for
+                        // several POIs geocoded to its center), and a
+                        // name-based key collapsed all of them onto one
+                        // checkbox state, so checking one appeared to check
+                        // every same-named entry.
+                        const key = `${group.interest}|${index}`;
+                        const checked = selectedLandmarks.has(key);
+                        return (
+                          <label key={key} className={`landmark-item ${checked ? "selected" : ""}`}>
+                            <input type="checkbox" checked={checked} onChange={() => toggleLandmark(key)} />
+                            <span>
+                              <strong>{landmark.name}</strong>
+                              {landmark.address && <small>{landmark.address}</small>}
+                              {landmark.opening_hours && <small>Hours: {landmark.opening_hours}</small>}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
             {error && <p className="recommendations-error">{error}</p>}
             <div className="wizard-actions">
               <button type="button" className="recommendations-submit" onClick={buildItinerary} disabled={loading}>
@@ -1008,10 +1324,23 @@ export default function Recommendations() {
                     : `No trip dates were set, so this is a sample ${DEFAULT_TRIP_DAYS}-day plan - drag to reorder or move stops between days.`}
                 </p>
               </div>
-              <button type="button" className="secondary-button" onClick={() => setStage("landmarks")} disabled={loading}>
-                <ChevronLeft size={17} /> Back to picks
-              </button>
+              <div className="results-heading-actions">
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={undoItineraryEdit}
+                  disabled={itineraryHistory.length === 0}
+                  title={itineraryHistory.length === 0 ? "No edits to undo" : "Undo the last change"}
+                >
+                  <Undo2 size={16} /> Undo
+                </button>
+                <button type="button" className="secondary-button" onClick={() => setStage("landmarks")} disabled={loading}>
+                  <ChevronLeft size={17} /> Back to picks
+                </button>
+              </div>
             </div>
+
+            <ItineraryMap itineraryDays={itineraryDays} />
 
             <div className="itinerary-days">
               {itineraryDays.map((day, dayIndex) => (
@@ -1025,7 +1354,14 @@ export default function Recommendations() {
                   }}
                 >
                   <div className="itinerary-day-header">
-                    <h4 className="interest-group-label">Day {day.dayNumber}</h4>
+                    <h4 className="interest-group-label">
+                      Day {day.dayNumber}
+                      {isDayOverloaded(day.stops) && (
+                        <span className="itinerary-day-warning" title="This day runs past a reasonable evening hour - consider moving a stop elsewhere.">
+                          <AlertTriangle size={12} /> runs late
+                        </span>
+                      )}
+                    </h4>
                     <button
                       type="button"
                       className="itinerary-day-remove"
