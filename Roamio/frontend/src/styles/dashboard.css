@@ -1117,6 +1117,27 @@
   transform: scale(1.06);
 }
 
+/* Real trips have no stock photo - a plain gradient + pin instead of an
+   Unsplash image tied to nothing about the actual destination. */
+.trip-image-fallback {
+  display: grid;
+  place-items: center;
+  color: white;
+  background: linear-gradient(135deg, #16849a, #23a89e);
+}
+
+.trip-card {
+  text-decoration: none;
+}
+
+.trips-empty-note {
+  padding: 18px;
+  border: 1px dashed var(--dashboard-line);
+  border-radius: 14px;
+  color: var(--dashboard-muted);
+  font-size: 13px;
+}
+
 .trip-status {
   position: absolute;
 

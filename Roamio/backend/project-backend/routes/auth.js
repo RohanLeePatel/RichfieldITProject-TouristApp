@@ -8,6 +8,14 @@ const prisma = require('../db');
 const validate = require('../middleware/validate');
 const { registerSchema, loginSchema } = require('../schemas');
 
+// TODO(db): the live Supabase DB already has a schema built against this repo's
+// prisma/schema.prisma but out of sync with it - `User.password` here is
+// `User.passwordHash` there, plus extra required/relation fields (fullName,
+// isActive, updatedAt, TravelGroup membership, etc). This file (and
+// routes/trips.js) needs updating to match whichever schema is authoritative
+// before DATABASE_URL is wired up for real. See routes/trips.js for the
+// bigger mismatch (Trip has no direct userId/destination/budget there).
+
 // POST /api/auth/register
 router.post('/register', validate(registerSchema), async (req, res) => {
   try {

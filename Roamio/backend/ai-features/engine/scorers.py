@@ -1,19 +1,19 @@
 from __future__ import annotations
 
+import math
+
 from engine.currency import convert_from_zar
 from engine.dimension import DimensionScore
 from engine.weights import (
     CLIMATE_TARGET_C,
     CLIMATE_TOLERANCE_C,
     COST_BAND_ZAR_RANGE,
+    FAMILY_FOLD_IN_BASE,
+    FAMILY_FOLD_IN_SCALE,
+    PRIORITY_INTEREST_WEIGHT_MULTIPLIER,
     WEIGHTS,
 )
 from schemas.recommendations import Candidate, Level, Preferences
-
-# how much family_poi_density counts toward the interests score when kids are
-# travelling and we actually have family POI data. kept fairly low so it doesn't
-# drown out an otherwise strong interest match, but still nudges the ranking
-FAMILY_FOLD_IN_WEIGHT = 0.25
 
 
 def _base_weight(level: Level, dimension: str) -> float:
@@ -96,31 +96,53 @@ def score_climate(prefs: Preferences, candidate: Candidate, level: Level) -> Dim
         )
 
     month = prefs.climate.travel_month
+    month_end = prefs.climate.travel_month_end
     normals = candidate.features.climate
-    temp = None
-    if month is not None and normals is not None:
-        temp = normals.avg_temp_by_month.get(str(month))
 
-    if temp is None:
+    # Same-year, non-wrapping range only (see schemas/recommendations.py) -
+    # a trip crossing a year boundary just falls back to the single start month.
+    months_to_average = (
+        list(range(month, month_end + 1))
+        if month is not None and month_end is not None and month_end >= month
+        else [month] if month is not None else []
+    )
+
+    temps = (
+        [t for m in months_to_average if (t := normals.avg_temp_by_month.get(str(m))) is not None]
+        if normals is not None
+        else []
+    )
+
+    if not temps:
         return DimensionScore(
             dimension="climate",
             value=0.5,
             weight=base_weight,
-            evidence={"prefer": prefer, "travel_month": month, "avg_temp_c": None},
-            explanation=f"No climate normals available for '{candidate.name}' for the travel month; treated as neutral.",
+            evidence={"prefer": prefer, "travel_month": month, "travel_month_end": month_end, "avg_temp_c": None},
+            explanation=f"No climate normals available for '{candidate.name}' for the travel period; treated as neutral.",
         )
 
+    avg_temp = sum(temps) / len(temps)
     target = CLIMATE_TARGET_C[prefer]
-    diff = abs(temp - target)
+    diff = abs(avg_temp - target)
     value = _clamp01(1.0 - diff / CLIMATE_TOLERANCE_C)
 
+    period_label = (
+        f"months {month}-{month_end}" if len(months_to_average) > 1 else f"month {month}"
+    )
     return DimensionScore(
         dimension="climate",
         value=value,
         weight=base_weight,
-        evidence={"prefer": prefer, "travel_month": month, "avg_temp_c": temp, "target_c": target},
+        evidence={
+            "prefer": prefer,
+            "travel_month": month,
+            "travel_month_end": month_end,
+            "avg_temp_c": avg_temp,
+            "target_c": target,
+        },
         explanation=(
-            f"Average {temp:.0f}°C in month {month}, vs. your '{prefer}' preference "
+            f"Average {avg_temp:.0f}°C across {period_label}, vs. your '{prefer}' preference "
             f"(target ~{target:.0f}°C)."
         ),
     )
@@ -141,16 +163,40 @@ def score_interests(prefs: Preferences, candidate: Candidate, level: Level) -> D
         )
 
     matched = {tag: density.get(tag, 0.0) for tag in prefs.interests}
-    interest_value = sum(matched.values()) / len(matched) if matched else 0.0
+    # A weighted geometric mean makes a missing requested interest matter, and
+    # missing a priority_interests tag matter more than missing a regular one.
+    # An option that only matches one of four interests should not score like
+    # one that matches all four merely because its arithmetic average is
+    # acceptable.
+    floor = 0.05
+    tag_weights = {
+        tag: PRIORITY_INTEREST_WEIGHT_MULTIPLIER if tag in prefs.priority_interests else 1.0
+        for tag in matched
+    }
+    total_tag_weight = sum(tag_weights.values())
+    interest_value = (
+        1.0
+        if not matched
+        else math.exp(
+            sum(tag_weights[tag] * math.log(max(value, floor)) for tag, value in matched.items())
+            / total_tag_weight
+        )
+    )
 
     value = interest_value
     family_note = ""
     family_density = candidate.features.family_poi_density
     if prefs.travellers.children and family_density is not None:
+        total_travellers = prefs.travellers.adults + len(prefs.travellers.children)
+        child_ratio = len(prefs.travellers.children) / max(1, total_travellers)
+        fold_in_weight = FAMILY_FOLD_IN_BASE + FAMILY_FOLD_IN_SCALE * child_ratio
         value = _clamp01(
-            (1.0 - FAMILY_FOLD_IN_WEIGHT) * interest_value + FAMILY_FOLD_IN_WEIGHT * family_density
+            (1.0 - fold_in_weight) * interest_value + fold_in_weight * family_density
         )
-        family_note = f" Family-friendliness (travelling with children) folded in at {family_density:.0%}."
+        family_note = (
+            f" Family-friendliness (travelling with children) folded in at "
+            f"{family_density:.0%}, weighted {fold_in_weight:.0%} for your group makeup."
+        )
 
     matched_counts = {tag: counts.get(tag, 0) for tag in prefs.interests}
     return DimensionScore(
@@ -159,6 +205,7 @@ def score_interests(prefs: Preferences, candidate: Candidate, level: Level) -> D
         weight=weight,
         evidence={
             "requested": prefs.interests,
+            "priority": [tag for tag in prefs.interests if tag in prefs.priority_interests],
             "matched_density": matched,
             "matched_counts": matched_counts,
             "family_poi_density": family_density,

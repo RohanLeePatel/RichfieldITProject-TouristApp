@@ -52,10 +52,27 @@ def load_country_catalog() -> list[Candidate]:
             for month, temp in (c["features"].get("climate") or {}).get("avg_temp_by_month", {}).items():
                 months.setdefault(month, []).append(temp)
 
+        # Without this, a country candidate's own interest_density/counts stay
+        # empty and its "interests" dimension only ever shows up diluted through
+        # the bottom-up blend (engine/weights.py BLEND_CHILDREN_WEIGHT) instead
+        # of reflecting the country directly - same averaging idea as cost/safety
+        # above, just per-tag.
+        counts_by_tag: dict[str, list[int]] = {}
+        density_by_tag: dict[str, list[float]] = {}
+        for c in cities:
+            for tag, count in (c["features"].get("interest_counts") or {}).items():
+                counts_by_tag.setdefault(tag, []).append(count)
+            for tag, density in (c["features"].get("interest_density") or {}).items():
+                density_by_tag.setdefault(tag, []).append(density)
+
+        interest_counts = {tag: sum(values) for tag, values in counts_by_tag.items()}
+        interest_density = {tag: sum(values) / len(values) for tag, values in density_by_tag.items()}
+
         countries.append(
             Candidate(
                 id=slugify_country(country_name),
                 name=country_name,
+                country=country_name,
                 features={
                     "cost_index": round(sum(cost_indexes) / len(cost_indexes)) if cost_indexes else None,
                     "safety_index": (sum(safety_indexes) / len(safety_indexes)) if safety_indexes else None,
@@ -64,6 +81,9 @@ def load_country_catalog() -> list[Candidate]:
                         if months
                         else None
                     ),
+                    "interest_counts": interest_counts,
+                    "interest_density": interest_density,
+                    "family_poi_density": interest_density.get("family"),
                 },
                 children=children,
             )

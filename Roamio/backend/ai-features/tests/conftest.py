@@ -122,19 +122,22 @@ def make_prefs(
     budget_per_day: float = 1000.0,
     currency: str = "ZAR",
     interests: list[str] | None = None,
+    priority_interests: list[str] | None = None,
     adults: int = 2,
     children: list[int] | None = None,
     wheelchair: str = "none",
     climate_prefer: str | None = None,
     travel_month: int | None = 12,
+    travel_month_end: int | None = None,
 ) -> Preferences:
     return Preferences(
         budget_per_day=budget_per_day,
         currency=currency,
         interests=interests or ["history"],
+        priority_interests=priority_interests or [],
         travellers=Travellers(adults=adults, children=children or []),
         accessibility=Accessibility(wheelchair=wheelchair),
-        climate=ClimatePrefs(prefer=climate_prefer, travel_month=travel_month),
+        climate=ClimatePrefs(prefer=climate_prefer, travel_month=travel_month, travel_month_end=travel_month_end),
     )
 
 

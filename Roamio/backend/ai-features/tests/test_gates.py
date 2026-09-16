@@ -1,5 +1,6 @@
 import engine.currency as currency
-from engine.gates import check_accessibility_gate, check_budget_gate, run_gates
+from engine.gates import check_accessibility_gate, check_budget_gate, check_landmark_availability_gate, run_gates
+from tests.conftest import make_candidate
 
 
 def test_budget_gate_excludes_over_budget(destinations, prefs_factory):
@@ -84,3 +85,25 @@ def test_run_gates_returns_first_hit(destinations, prefs_factory):
     prefs = prefs_factory(budget_per_day=1, wheelchair="required")
     reason = run_gates(prefs, destinations["expensive_poor_access_historic"])
     assert reason is not None  # budget gate should hit first since it's earlier in GATES
+
+
+def test_landmark_availability_gate_excludes_measured_zero(prefs_factory):
+    candidate = make_candidate("d99", "No Museums Here", interest_counts={"museums": 0, "nature": 12})
+    prefs = prefs_factory(interests=["museums"])
+    reason = check_landmark_availability_gate(prefs, candidate)
+    assert reason is not None
+    assert "museums" in reason.lower()
+
+
+def test_landmark_availability_gate_ignores_unmeasured_tags(prefs_factory):
+    # "museums" key is entirely absent (never measured), not an explicit zero -
+    # shouldn't be punished the same way a real measured zero would be
+    candidate = make_candidate("d100", "Unmeasured City", interest_counts={"nature": 12})
+    prefs = prefs_factory(interests=["museums"])
+    assert check_landmark_availability_gate(prefs, candidate) is None
+
+
+def test_landmark_availability_gate_passes_with_any_positive_count(prefs_factory):
+    candidate = make_candidate("d101", "Some Museums", interest_counts={"museums": 1, "nature": 0})
+    prefs = prefs_factory(interests=["museums", "nature"])
+    assert check_landmark_availability_gate(prefs, candidate) is None

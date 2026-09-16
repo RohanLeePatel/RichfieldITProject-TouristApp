@@ -11,6 +11,9 @@ import Dashboard from "./pages/Dashboard.jsx";
 import Settings from "./pages/Settings.jsx";
 import Translator from "./pages/Translator.jsx";
 import Weather from "./pages/Weather.jsx";
+import Recommendations from "./pages/Recommendations.jsx";
+import TripsList from "./pages/TripsList.jsx";
+import TripDetail from "./pages/TripDetail.jsx";
 
 import { useAuthStore } from "./store/authStore.js";
 
@@ -68,6 +71,35 @@ function App() {
           element={
             <ProtectedRoute>
               <Translator />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* RECOMMENDATIONS */}
+        <Route
+          path="/recommendations"
+          element={
+            <ProtectedRoute>
+              <Recommendations />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* TRIPS */}
+        <Route
+          path="/trips"
+          element={
+            <ProtectedRoute>
+              <TripsList />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/trips/:tripId"
+          element={
+            <ProtectedRoute>
+              <TripDetail />
             </ProtectedRoute>
           }
         />

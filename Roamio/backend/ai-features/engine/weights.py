@@ -36,6 +36,11 @@ BLEND_SELF_WEIGHT = 0.7
 BLEND_CHILDREN_WEIGHT = 0.3
 BLEND_TOP_N_CHILDREN = 3
 
+# Results are ranked across the full candidate set before these limits are
+# applied. The floor becomes stricter as the user supplies more constraints.
+MAX_RESULTS: dict[str, int] = {"country": 6, "city": 8, "place": 8}
+BASE_RELEVANCE_FLOOR = 0.40
+
 # hand-curated 1..5 cost_index -> rough daily cost band in ZAR, used by the
 # budget gate and score_budget. Went with ZAR here since that's what the sample
 # request and Node's Trip.budget model both use - not based on any real currency
@@ -65,3 +70,15 @@ ACCESSIBILITY_HARD_FAIL_STATE = "poor"
 # this soft scoring based on the "prefer" setting
 CLIMATE_TARGET_C: dict[str, float] = {"cold": 10.0, "mild": 20.0, "hot": 30.0}
 CLIMATE_TOLERANCE_C = 15.0
+
+# score_interests: a tag the user flagged as priority_interests counts this many
+# times as much as a regular one in the weighted geometric mean - missing a
+# must-have tag should hurt a lot more than missing a nice-to-have one
+PRIORITY_INTEREST_WEIGHT_MULTIPLIER = 2.0
+
+# score_interests family fold-in: how much family_poi_density pulls the interest
+# score, scaled by how much of the group is children (children / total travellers).
+# base = fold-in weight with just one child along; scale = extra weight added as
+# the group skews more toward kids (capped at base+scale when everyone's a kid)
+FAMILY_FOLD_IN_BASE = 0.15
+FAMILY_FOLD_IN_SCALE = 0.35

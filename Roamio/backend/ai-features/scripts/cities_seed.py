@@ -1,71 +1,131 @@
-"""
-Small demo set of destinations - 6 cities across 4 countries, kept small on
-purpose for now instead of the full 15-30 city list we could eventually build.
-Add more cities here and re-run enrich_destinations.py to grow the dataset,
-nothing else needs to change.
+"""Curated tourist-city catalog used to build recommendation seed data.
 
-cost_index (1-5) is just a guess based on general knowledge of typical tourist
-spend per day (accommodation + food + activities), mapped to the ZAR bands in
-engine/weights.py's COST_BAND_ZAR_RANGE. Not actual researched pricing data,
-should get refined before this is used for anything beyond a demo.
-
-radius_m is one rough "city + surrounding area" radius for every city, not
-tuned per city individually - good enough for now, could be more precise later.
+Geoapify enriches these cities offline with interest, accessibility, and
+climate data. Add a city here, then run ``scripts/enrich_destinations.py``.
 """
 
 CITIES = [
-    {
-        "id": "za-cpt",
-        "name": "Cape Town",
-        "country": "South Africa",
-        "lat": -33.9249,
-        "lon": 18.4241,
-        "radius_m": 15000,
-        "cost_index": 3,  # ~R900-1500/day for a tourist — mid band
-    },
-    {
-        "id": "za-dbn",
-        "name": "Durban",
-        "country": "South Africa",
-        "lat": -29.8587,
-        "lon": 31.0218,
-        "radius_m": 15000,
-        "cost_index": 2,  # cheaper than Cape Town for tourists — ~R500-900/day
-    },
-    {
-        "id": "na-whk",
-        "name": "Windhoek",
-        "country": "Namibia",
-        "lat": -22.5609,
-        "lon": 17.0658,
-        "radius_m": 12000,
-        "cost_index": 3,
-    },
-    {
-        "id": "pt-lis",
-        "name": "Lisbon",
-        "country": "Portugal",
-        "lat": 38.7223,
-        "lon": -9.1393,
-        "radius_m": 15000,
-        "cost_index": 4,  # EUR-priced destination, ~R1500-2500/day
-    },
-    {
-        "id": "pt-opo",
-        "name": "Porto",
-        "country": "Portugal",
-        "lat": 41.1579,
-        "lon": -8.6291,
-        "radius_m": 12000,
-        "cost_index": 3,
-    },
-    {
-        "id": "th-bkk",
-        "name": "Bangkok",
-        "country": "Thailand",
-        "lat": 13.7563,
-        "lon": 100.5018,
-        "radius_m": 18000,
-        "cost_index": 2,  # cheap for tourists relative to ZAR budgets
-    },
+    # South Africa
+    {"id": "za-cpt", "name": "Cape Town", "country": "South Africa", "lat": -33.9249, "lon": 18.4241, "radius_m": 15000, "cost_index": 3},
+    {"id": "za-dbn", "name": "Durban", "country": "South Africa", "lat": -29.8587, "lon": 31.0218, "radius_m": 15000, "cost_index": 2},
+    {"id": "za-jnb", "name": "Johannesburg", "country": "South Africa", "lat": -26.2041, "lon": 28.0473, "radius_m": 18000, "cost_index": 3},
+    {"id": "za-pry", "name": "Pretoria", "country": "South Africa", "lat": -25.7479, "lon": 28.2293, "radius_m": 15000, "cost_index": 3},
+    {"id": "za-els", "name": "Gqeberha", "country": "South Africa", "lat": -33.9608, "lon": 25.6022, "radius_m": 12000, "cost_index": 2},
+    {"id": "za-eth", "name": "East London", "country": "South Africa", "lat": -33.0153, "lon": 27.9116, "radius_m": 12000, "cost_index": 2},
+    {"id": "za-bfn", "name": "Bloemfontein", "country": "South Africa", "lat": -29.0852, "lon": 26.1596, "radius_m": 12000, "cost_index": 2},
+    {"id": "za-pol", "name": "Polokwane", "country": "South Africa", "lat": -23.8962, "lon": 29.4486, "radius_m": 12000, "cost_index": 2},
+    {"id": "za-mbp", "name": "Mbombela", "country": "South Africa", "lat": -25.4753, "lon": 30.9694, "radius_m": 15000, "cost_index": 2},
+    {"id": "za-grj", "name": "George", "country": "South Africa", "lat": -33.963, "lon": 22.4617, "radius_m": 12000, "cost_index": 3},
+    {"id": "za-kns", "name": "Knysna", "country": "South Africa", "lat": -34.0363, "lon": 23.0471, "radius_m": 10000, "cost_index": 3},
+    {"id": "za-stb", "name": "Stellenbosch", "country": "South Africa", "lat": -33.9321, "lon": 18.8602, "radius_m": 10000, "cost_index": 3},
+    {"id": "za-her", "name": "Hermanus", "country": "South Africa", "lat": -34.4187, "lon": 19.2345, "radius_m": 10000, "cost_index": 3},
+    {"id": "za-pmb", "name": "Pietermaritzburg", "country": "South Africa", "lat": -29.6006, "lon": 30.3794, "radius_m": 10000, "cost_index": 2},
+    {"id": "za-rst", "name": "Rustenburg", "country": "South Africa", "lat": -25.6676, "lon": 27.2421, "radius_m": 12000, "cost_index": 2},
+    {"id": "za-kby", "name": "Kimberley", "country": "South Africa", "lat": -28.7282, "lon": 24.7499, "radius_m": 10000, "cost_index": 2},
+    {"id": "za-uti", "name": "Upington", "country": "South Africa", "lat": -28.4572, "lon": 21.2425, "radius_m": 10000, "cost_index": 2},
+
+    # Existing international seed destinations
+    {"id": "na-whk", "name": "Windhoek", "country": "Namibia", "lat": -22.5609, "lon": 17.0658, "radius_m": 12000, "cost_index": 3},
+    {"id": "pt-lis", "name": "Lisbon", "country": "Portugal", "lat": 38.7223, "lon": -9.1393, "radius_m": 15000, "cost_index": 4},
+    {"id": "pt-opo", "name": "Porto", "country": "Portugal", "lat": 41.1579, "lon": -8.6291, "radius_m": 12000, "cost_index": 3},
+    {"id": "th-bkk", "name": "Bangkok", "country": "Thailand", "lat": 13.7563, "lon": 100.5018, "radius_m": 18000, "cost_index": 2},
+
+    # Major international tourist cities
+    {"id": "us-nyc", "name": "New York", "country": "United States", "lat": 40.7128, "lon": -74.006, "radius_m": 18000, "cost_index": 5},
+    {"id": "gb-lon", "name": "London", "country": "United Kingdom", "lat": 51.5074, "lon": -0.1278, "radius_m": 18000, "cost_index": 5},
+    {"id": "fr-par", "name": "Paris", "country": "France", "lat": 48.8566, "lon": 2.3522, "radius_m": 15000, "cost_index": 5},
+    {"id": "it-rom", "name": "Rome", "country": "Italy", "lat": 41.9028, "lon": 12.4964, "radius_m": 15000, "cost_index": 4},
+    {"id": "es-bcn", "name": "Barcelona", "country": "Spain", "lat": 41.3874, "lon": 2.1686, "radius_m": 15000, "cost_index": 4},
+    {"id": "es-mad", "name": "Madrid", "country": "Spain", "lat": 40.4168, "lon": -3.7038, "radius_m": 15000, "cost_index": 4},
+    {"id": "nl-ams", "name": "Amsterdam", "country": "Netherlands", "lat": 52.3676, "lon": 4.9041, "radius_m": 12000, "cost_index": 5},
+    {"id": "de-ber", "name": "Berlin", "country": "Germany", "lat": 52.52, "lon": 13.405, "radius_m": 15000, "cost_index": 4},
+    {"id": "ae-dxb", "name": "Dubai", "country": "United Arab Emirates", "lat": 25.2048, "lon": 55.2708, "radius_m": 18000, "cost_index": 5},
+    {"id": "jp-tyo", "name": "Tokyo", "country": "Japan", "lat": 35.6762, "lon": 139.6503, "radius_m": 18000, "cost_index": 4},
+    {"id": "sg-sin", "name": "Singapore", "country": "Singapore", "lat": 1.3521, "lon": 103.8198, "radius_m": 12000, "cost_index": 4},
+    {"id": "au-syd", "name": "Sydney", "country": "Australia", "lat": -33.8688, "lon": 151.2093, "radius_m": 18000, "cost_index": 4},
+    {"id": "au-mel", "name": "Melbourne", "country": "Australia", "lat": -37.8136, "lon": 144.9631, "radius_m": 15000, "cost_index": 4},
+    {"id": "br-rio", "name": "Rio de Janeiro", "country": "Brazil", "lat": -22.9068, "lon": -43.1729, "radius_m": 18000, "cost_index": 3},
+    {"id": "ar-bue", "name": "Buenos Aires", "country": "Argentina", "lat": -34.6037, "lon": -58.3816, "radius_m": 15000, "cost_index": 3},
+    {"id": "mx-cmx", "name": "Mexico City", "country": "Mexico", "lat": 19.4326, "lon": -99.1332, "radius_m": 18000, "cost_index": 3},
+    {"id": "ca-tor", "name": "Toronto", "country": "Canada", "lat": 43.6532, "lon": -79.3832, "radius_m": 15000, "cost_index": 4},
+    {"id": "ca-van", "name": "Vancouver", "country": "Canada", "lat": 49.2827, "lon": -123.1207, "radius_m": 15000, "cost_index": 4},
+    {"id": "eg-cai", "name": "Cairo", "country": "Egypt", "lat": 30.0444, "lon": 31.2357, "radius_m": 18000, "cost_index": 2},
+    {"id": "ke-nbo", "name": "Nairobi", "country": "Kenya", "lat": -1.2921, "lon": 36.8219, "radius_m": 15000, "cost_index": 3},
+
+    # Additional African destinations
+    {"id": "za-oud", "name": "Oudtshoorn", "country": "South Africa", "lat": -33.5906, "lon": 22.2014, "radius_m": 10000, "cost_index": 2},
+    {"id": "za-plt", "name": "Plettenberg Bay", "country": "South Africa", "lat": -34.0527, "lon": 23.3716, "radius_m": 10000, "cost_index": 3},
+    {"id": "za-mby", "name": "Mossel Bay", "country": "South Africa", "lat": -34.1831, "lon": 22.146, "radius_m": 10000, "cost_index": 2},
+    {"id": "za-sun", "name": "Sun City", "country": "South Africa", "lat": -25.3444, "lon": 27.097, "radius_m": 10000, "cost_index": 3},
+    {"id": "za-stl", "name": "St Lucia", "country": "South Africa", "lat": -28.3765, "lon": 32.4127, "radius_m": 10000, "cost_index": 2},
+    {"id": "bw-gbe", "name": "Gaborone", "country": "Botswana", "lat": -24.6282, "lon": 25.9231, "radius_m": 12000, "cost_index": 2},
+    {"id": "zw-vfa", "name": "Victoria Falls", "country": "Zimbabwe", "lat": -17.9243, "lon": 25.8572, "radius_m": 10000, "cost_index": 3},
+    {"id": "zm-lun", "name": "Lusaka", "country": "Zambia", "lat": -15.3875, "lon": 28.3228, "radius_m": 12000, "cost_index": 2},
+    {"id": "mz-mpm", "name": "Maputo", "country": "Mozambique", "lat": -25.9692, "lon": 32.5732, "radius_m": 12000, "cost_index": 2},
+    {"id": "tz-znz", "name": "Zanzibar City", "country": "Tanzania", "lat": -6.1659, "lon": 39.2026, "radius_m": 12000, "cost_index": 3},
+    {"id": "mu-pma", "name": "Port Louis", "country": "Mauritius", "lat": -20.1609, "lon": 57.5012, "radius_m": 10000, "cost_index": 3},
+    {"id": "ma-rak", "name": "Marrakesh", "country": "Morocco", "lat": 31.6295, "lon": -7.9811, "radius_m": 12000, "cost_index": 2},
+    {"id": "ma-cas", "name": "Casablanca", "country": "Morocco", "lat": 33.5731, "lon": -7.5898, "radius_m": 15000, "cost_index": 2},
+    {"id": "sn-dkr", "name": "Dakar", "country": "Senegal", "lat": 14.7167, "lon": -17.4677, "radius_m": 12000, "cost_index": 2},
+    {"id": "gh-acc", "name": "Accra", "country": "Ghana", "lat": 5.6037, "lon": -0.187, "radius_m": 12000, "cost_index": 2},
+
+    # Europe
+    {"id": "ie-dub", "name": "Dublin", "country": "Ireland", "lat": 53.3498, "lon": -6.2603, "radius_m": 12000, "cost_index": 4},
+    {"id": "at-vie", "name": "Vienna", "country": "Austria", "lat": 48.2082, "lon": 16.3738, "radius_m": 12000, "cost_index": 4},
+    {"id": "ch-zrh", "name": "Zurich", "country": "Switzerland", "lat": 47.3769, "lon": 8.5417, "radius_m": 12000, "cost_index": 5},
+    {"id": "ch-gva", "name": "Geneva", "country": "Switzerland", "lat": 46.2044, "lon": 6.1432, "radius_m": 10000, "cost_index": 5},
+    {"id": "cz-prg", "name": "Prague", "country": "Czech Republic", "lat": 50.0755, "lon": 14.4378, "radius_m": 12000, "cost_index": 3},
+    {"id": "gr-ath", "name": "Athens", "country": "Greece", "lat": 37.9838, "lon": 23.7275, "radius_m": 15000, "cost_index": 3},
+    {"id": "gr-skg", "name": "Thessaloniki", "country": "Greece", "lat": 40.6401, "lon": 22.9444, "radius_m": 10000, "cost_index": 3},
+    {"id": "tr-ist", "name": "Istanbul", "country": "Turkey", "lat": 41.0082, "lon": 28.9784, "radius_m": 18000, "cost_index": 3},
+    {"id": "tr-izm", "name": "Izmir", "country": "Turkey", "lat": 38.4237, "lon": 27.1428, "radius_m": 12000, "cost_index": 3},
+    {"id": "hr-dub", "name": "Dubrovnik", "country": "Croatia", "lat": 42.6507, "lon": 18.0944, "radius_m": 10000, "cost_index": 4},
+    {"id": "hr-zag", "name": "Zagreb", "country": "Croatia", "lat": 45.815, "lon": 15.9819, "radius_m": 10000, "cost_index": 3},
+    {"id": "dk-cph", "name": "Copenhagen", "country": "Denmark", "lat": 55.6761, "lon": 12.5683, "radius_m": 12000, "cost_index": 5},
+    {"id": "se-sto", "name": "Stockholm", "country": "Sweden", "lat": 59.3293, "lon": 18.0686, "radius_m": 12000, "cost_index": 4},
+    {"id": "no-osl", "name": "Oslo", "country": "Norway", "lat": 59.9139, "lon": 10.7522, "radius_m": 12000, "cost_index": 5},
+    {"id": "fi-hel", "name": "Helsinki", "country": "Finland", "lat": 60.1699, "lon": 24.9384, "radius_m": 10000, "cost_index": 4},
+    {"id": "is-rey", "name": "Reykjavik", "country": "Iceland", "lat": 64.1466, "lon": -21.9426, "radius_m": 10000, "cost_index": 5},
+    {"id": "pl-krk", "name": "Krakow", "country": "Poland", "lat": 50.0647, "lon": 19.945, "radius_m": 10000, "cost_index": 3},
+    {"id": "hu-bud", "name": "Budapest", "country": "Hungary", "lat": 47.4979, "lon": 19.0402, "radius_m": 12000, "cost_index": 3},
+
+    # Asia and the Middle East
+    {"id": "id-bli", "name": "Denpasar", "country": "Indonesia", "lat": -8.65, "lon": 115.2167, "radius_m": 15000, "cost_index": 2},
+    {"id": "id-jak", "name": "Jakarta", "country": "Indonesia", "lat": -6.2088, "lon": 106.8456, "radius_m": 18000, "cost_index": 2},
+    {"id": "vn-hcm", "name": "Ho Chi Minh City", "country": "Vietnam", "lat": 10.8231, "lon": 106.6297, "radius_m": 15000, "cost_index": 2},
+    {"id": "vn-han", "name": "Hanoi", "country": "Vietnam", "lat": 21.0278, "lon": 105.8342, "radius_m": 15000, "cost_index": 2},
+    {"id": "kr-sel", "name": "Seoul", "country": "South Korea", "lat": 37.5665, "lon": 126.978, "radius_m": 18000, "cost_index": 3},
+    {"id": "cn-bjs", "name": "Beijing", "country": "China", "lat": 39.9042, "lon": 116.4074, "radius_m": 18000, "cost_index": 3},
+    {"id": "cn-sha", "name": "Shanghai", "country": "China", "lat": 31.2304, "lon": 121.4737, "radius_m": 18000, "cost_index": 3},
+    {"id": "in-del", "name": "New Delhi", "country": "India", "lat": 28.6139, "lon": 77.209, "radius_m": 15000, "cost_index": 2},
+    {"id": "in-mum", "name": "Mumbai", "country": "India", "lat": 19.076, "lon": 72.8777, "radius_m": 15000, "cost_index": 2},
+    {"id": "my-kul", "name": "Kuala Lumpur", "country": "Malaysia", "lat": 3.139, "lon": 101.6869, "radius_m": 15000, "cost_index": 2},
+    {"id": "ph-mnl", "name": "Manila", "country": "Philippines", "lat": 14.5995, "lon": 120.9842, "radius_m": 15000, "cost_index": 2},
+    {"id": "lk-cmb", "name": "Colombo", "country": "Sri Lanka", "lat": 6.9271, "lon": 79.8612, "radius_m": 12000, "cost_index": 2},
+    {"id": "jo-amm", "name": "Amman", "country": "Jordan", "lat": 31.9454, "lon": 35.9284, "radius_m": 10000, "cost_index": 3},
+    {"id": "il-tlv", "name": "Tel Aviv", "country": "Israel", "lat": 32.0853, "lon": 34.7818, "radius_m": 12000, "cost_index": 4},
+    {"id": "om-mct", "name": "Muscat", "country": "Oman", "lat": 23.588, "lon": 58.3829, "radius_m": 12000, "cost_index": 4},
+
+    # Americas
+    {"id": "us-lax", "name": "Los Angeles", "country": "United States", "lat": 34.0522, "lon": -118.2437, "radius_m": 18000, "cost_index": 5},
+    {"id": "us-mia", "name": "Miami", "country": "United States", "lat": 25.7617, "lon": -80.1918, "radius_m": 15000, "cost_index": 5},
+    {"id": "us-sfo", "name": "San Francisco", "country": "United States", "lat": 37.7749, "lon": -122.4194, "radius_m": 15000, "cost_index": 5},
+    {"id": "us-las", "name": "Las Vegas", "country": "United States", "lat": 36.1699, "lon": -115.1398, "radius_m": 15000, "cost_index": 4},
+    {"id": "ca-mon", "name": "Montreal", "country": "Canada", "lat": 45.5017, "lon": -73.5673, "radius_m": 12000, "cost_index": 4},
+    {"id": "ca-cal", "name": "Calgary", "country": "Canada", "lat": 51.0447, "lon": -114.0719, "radius_m": 12000, "cost_index": 4},
+    {"id": "mx-can", "name": "Cancun", "country": "Mexico", "lat": 21.1619, "lon": -86.8515, "radius_m": 15000, "cost_index": 3},
+    {"id": "mx-pvr", "name": "Puerto Vallarta", "country": "Mexico", "lat": 20.6534, "lon": -105.2253, "radius_m": 10000, "cost_index": 3},
+    {"id": "cr-sjo", "name": "San Jose", "country": "Costa Rica", "lat": 9.9281, "lon": -84.0907, "radius_m": 10000, "cost_index": 3},
+    {"id": "co-ctg", "name": "Cartagena", "country": "Colombia", "lat": 10.391, "lon": -75.4794, "radius_m": 10000, "cost_index": 2},
+    {"id": "pe-lim", "name": "Lima", "country": "Peru", "lat": -12.0464, "lon": -77.0428, "radius_m": 15000, "cost_index": 2},
+    {"id": "cl-scl", "name": "Santiago", "country": "Chile", "lat": -33.4489, "lon": -70.6693, "radius_m": 15000, "cost_index": 3},
+    {"id": "br-sao", "name": "Sao Paulo", "country": "Brazil", "lat": -23.5505, "lon": -46.6333, "radius_m": 18000, "cost_index": 3},
+    {"id": "br-sal", "name": "Salvador", "country": "Brazil", "lat": -12.9777, "lon": -38.5016, "radius_m": 12000, "cost_index": 2},
+    {"id": "ar-bri", "name": "Bariloche", "country": "Argentina", "lat": -41.1335, "lon": -71.3103, "radius_m": 10000, "cost_index": 3},
+
+    # Oceania
+    {"id": "nz-akl", "name": "Auckland", "country": "New Zealand", "lat": -36.8509, "lon": 174.7645, "radius_m": 15000, "cost_index": 4},
+    {"id": "nz-que", "name": "Queenstown", "country": "New Zealand", "lat": -45.0312, "lon": 168.6626, "radius_m": 10000, "cost_index": 4},
+    {"id": "au-bri", "name": "Brisbane", "country": "Australia", "lat": -27.4698, "lon": 153.0251, "radius_m": 15000, "cost_index": 4},
+    {"id": "au-per", "name": "Perth", "country": "Australia", "lat": -31.9505, "lon": 115.8605, "radius_m": 15000, "cost_index": 4},
 ]

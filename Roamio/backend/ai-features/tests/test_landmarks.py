@@ -83,6 +83,26 @@ def test_landmarks_succeeds_with_correct_secret(client, monkeypatch):
     assert body["groups"][0]["landmarks"][0]["distance_m"] > 0
 
 
+def test_landmarks_resolves_specific_interest_tag(client, monkeypatch):
+    """A curated onboarding tag like 'waterparks' should map to a real Geoapify
+    category instead of KeyError-ing - see INTEREST_CATEGORY_MAP."""
+    import landmarks.landmarks as landmarks_module
+
+    def fake_get(url, params=None, timeout=None):
+        if url == landmarks_module.GEOCODE_URL:
+            return _FakeResponse({"features": [{"geometry": {"coordinates": [18.42, -33.92]}}]})
+        return _FakeResponse({"features": []})
+
+    monkeypatch.setattr(landmarks_module.requests, "get", fake_get)
+
+    response = client.get(
+        "/landmarks?destination=Cape%20Town&interests=waterparks",
+        headers={"node-secretkey": "test-secret"},
+    )
+    assert response.status_code == 200
+    assert response.json()["groups"][0]["interest"] == "waterparks"
+
+
 def test_landmarks_destination_not_found_returns_404(client, monkeypatch):
     import landmarks.landmarks as landmarks_module
 

@@ -135,6 +135,7 @@ def get_landmarks(destination: str, interests: list[str], radius_m: int = 5000) 
                 "lon": p["lon"],
                 "address": _fix_mojibake(p.get("formatted")),
                 "distance_m": round(_haversine_m(lat, lon, p["lat"], p["lon"])),
+                "opening_hours": p.get("opening_hours") or p.get("datasource", {}).get("raw", {}).get("opening_hours"),
             }
             for p in places
         ]
