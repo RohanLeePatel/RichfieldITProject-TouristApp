@@ -113,6 +113,7 @@ model Trip {
   destinations  TripDestination[]
   activityLogs  ActivityLog[]
   itineraries ItineraryItem[]
+  expenses    Expense[]
 
   @@index([travelGroupId])
   @@index([status])
@@ -244,6 +245,10 @@ model ActivityLog {
   @@index([userId])
 }
 
+//-----------------------------------------
+// ITINERARY
+//-----------------------------------------
+
 model ItineraryItem {
   id          String    @id @default(uuid())
   tripId      Int
@@ -256,4 +261,19 @@ model ItineraryItem {
   dayNumber   Int?      @default(1)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+//---------------------------------------
+// EXPENSE
+//---------------------------------------
+model Expense {
+  id        String   @id @default(uuid())
+  tripId    Int
+  title     String
+  amount    Float
+  category  String   // e.g. "TRANSPORT", "FOOD", "ACCOMMODATION", "ACTIVITY", "MISC"
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
 }

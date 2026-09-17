@@ -85,3 +85,9 @@ export const removeItineraryItem = async (req, res) => {
     return res.status(500).json({ error: 'Internal server error.' });
   }
 };
+
+router.put(
+  '/itinerary/:itemId',
+  authenticateToken, // your auth middleware
+  itineraryController.updateItineraryItem
+);

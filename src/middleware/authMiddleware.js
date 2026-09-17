@@ -1,13 +1,13 @@
-const jwt = require('jsonwebtoken');
+const { verifyAccessToken } = require('../auth/tokenService');
 
 const requireAuth = (req, res, next) => {
   let token;
 
-  // 1. Check if the token was sent in the Authorization header (Bearer token)
+  // 1. Check Authorization header (Bearer token)
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
     token = req.headers.authorization.split(' ')[1];
   } 
-  // 2. If not in the header, check the signed cookies (set by our AuthController)
+  // 2. Check signed cookies
   else if (req.signedCookies && req.signedCookies.accessToken) {
     token = req.signedCookies.accessToken;
   }
@@ -16,22 +16,32 @@ const requireAuth = (req, res, next) => {
     token = req.cookies.accessToken;
   }
 
-  // If no token is found anywhere, block the request
+  // Block if no token is found
   if (!token) {
     return res.status(401).json({ message: 'Access token required. Please log in.' });
   }
 
   try {
-    // Verify the token using the secret in your .env file
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Verify token using tokenService's encapsulated verification & secret
+    const decoded = verifyAccessToken(token);
     
-    // Attach the decoded user payload (which contains userId) to the request object
-    req.user = decoded; 
+    // Extract and parse the ID to an integer for Prisma compatibility
+    const rawId = decoded.userId ?? decoded.id ?? decoded.sub;
+    const parsedId = parseInt(rawId, 10);
+
+    if (isNaN(parsedId)) {
+      return res.status(401).json({ message: 'Invalid token payload: missing valid user ID.' });
+    }
     
-    // Move on to the next middleware or the controller route
+    // Attach both .id and .userId normalized as integers
+    req.user = { 
+      ...decoded, 
+      id: parsedId,
+      userId: parsedId
+    }; 
+    
     next();
   } catch (error) {
-    // If the token is expired or tampered with, block the request
     return res.status(401).json({ message: 'Invalid or expired token. Please log in again.' });
   }
 };

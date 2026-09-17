@@ -1,87 +1,82 @@
-import * as itineraryRepo from '../repositories/itinerary.repository.js';
-import * as tripRepo from '../repositories/trip.repository.js';
+const itineraryRepo = require('../repositories/itinerary.repository');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
-export const addItineraryItem = async (req, res) => {
+const verifyTripAccess = async (tripId, userId) => {
+  return await prisma.trip.findFirst({
+    where: {
+      id: parseInt(tripId, 10),
+      members: {
+        some: { userId: userId } // Assumes TripMember has a userId field
+      }
+    }
+  });
+};
+
+const createItineraryItem = async (req, res) => {
   try {
-    const tripId = parseInt(req.params.tripId, 10);
-    if (isNaN(tripId)) {
-      return res.status(400).json({ error: 'Invalid trip ID format.' });
-    }
+    const { tripId } = req.params;
+    const userId = req.user.id;
+    
+    const trip = await verifyTripAccess(tripId, userId);
+    if (!trip) return res.status(403).json({ error: 'Access denied. You are not a member of this trip.' });
 
-    const { title, description, location, startTime, endTime, dayNumber } = req.body;
-
-    if (!title || !startTime) {
-      return res.status(400).json({ error: 'Title and startTime are required.' });
-    }
-
-    const trip = await tripRepo.getTripById(tripId);
-    if (!trip) {
-      return res.status(404).json({ error: 'Trip not found.' });
-    }
-
-    // Ensure requesting user owns or has access to the trip
-    if (trip.userId !== req.user.id) {
-      return res.status(403).json({ error: 'Unauthorized to modify this trip itinerary.' });
-    }
-
-    const item = await itineraryRepo.createItineraryItem({
-      tripId,
-      title,
-      description,
-      location,
-      startTime,
-      endTime,
-      dayNumber,
-    });
-
-    return res.status(201).json({ message: 'Itinerary item added successfully.', item });
+    const newItem = await itineraryRepo.createItem({ ...req.body, tripId: parseInt(tripId, 10) });
+    return res.status(201).json({ item: newItem });
   } catch (error) {
-    console.error('Error adding itinerary item:', error);
-    return res.status(500).json({ error: 'Internal server error.' });
+    return res.status(500).json({ error: 'Server error' });
   }
 };
 
-export const getTripItinerary = async (req, res) => {
+const getItinerary = async (req, res) => {
   try {
-    const tripId = parseInt(req.params.tripId, 10);
-    if (isNaN(tripId)) {
-      return res.status(400).json({ error: 'Invalid trip ID format.' });
-    }
+    const { tripId } = req.params;
+    const userId = req.user.id;
+    
+    const trip = await verifyTripAccess(tripId, userId);
+    if (!trip) return res.status(403).json({ error: 'Access denied.' });
 
-    const trip = await tripRepo.getTripById(tripId);
-    if (!trip) {
-      return res.status(404).json({ error: 'Trip not found.' });
-    }
-
-    if (trip.userId !== req.user.id) {
-      return res.status(403).json({ error: 'Unauthorized to view this trip itinerary.' });
-    }
-
-    const items = await itineraryRepo.getItineraryByTripId(tripId);
-    return res.status(200).json({ itinerary: items });
+    const items = await itineraryRepo.findItemsByTripId(tripId);
+    return res.status(200).json({ items });
   } catch (error) {
-    console.error('Error fetching itinerary:', error);
-    return res.status(500).json({ error: 'Internal server error.' });
+    return res.status(500).json({ error: 'Server error' });
   }
 };
 
-export const removeItineraryItem = async (req, res) => {
+const updateItineraryItem = async (req, res) => {
   try {
     const { itemId } = req.params;
+    const userId = req.user.id;
 
-    const item = await itineraryRepo.getItineraryItemById(itemId);
-    if (!item) {
-      return res.status(404).json({ error: 'Itinerary item not found.' });
-    }
+    const existingItem = await itineraryRepo.findItemById(itemId);
+    if (!existingItem) return res.status(404).json({ error: 'Item not found.' });
 
-    if (item.trip.userId !== req.user.id) {
-      return res.status(403).json({ error: 'Unauthorized to delete this itinerary item.' });
-    }
+    const isMember = existingItem.trip.members.some(member => member.userId === userId);
+    if (!isMember) return res.status(403).json({ error: 'Access denied.' });
 
-    await itineraryRepo.deleteItineraryItem(itemId);
-    return res.status(200).json({ message: 'Itinerary item removed successfully.' });
+    const updated = await itineraryRepo.updateItem(itemId, req.body);
+    return res.status(200).json({ item: updated });
   } catch (error) {
-    console.error('Error deleting itinerary item:', error);
-    return res.status(500).json({ error: 'Internal server error.' });
+    return res.status(500).json({ error: 'Server error' });
   }
 };
+
+const deleteItineraryItem = async (req, res) => {
+  try {
+    const { itemId } = req.params;
+    const userId = req.user.id;
+
+    const existingItem = await itineraryRepo.findItemById(itemId);
+    if (!existingItem) return res.status(404).json({ error: 'Item not found.' });
+
+    const isMember = existingItem.trip.members.some(member => member.userId === userId);
+    if (!isMember) return res.status(403).json({ error: 'Access denied.' });
+
+    await itineraryRepo.deleteItem(itemId);
+    return res.status(200).json({ message: 'Item deleted.' });
+  } catch (error) {
+    return res.status(500).json({ error: 'Server error' });
+  }
+};
+
+module.exports = { createItineraryItem, getItinerary, updateItineraryItem, deleteItineraryItem };
