@@ -27,12 +27,15 @@ import {
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import DestinationPicker from "./DestinationPicker";
+
 import "../styles/dashboard.css";
 
 export default function Dashboard() {
   const navigate = useNavigate();
 
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [destinationPicker, setDestinationPicker] = useState(false);
 
   // =========================================================
   // USER
@@ -44,34 +47,28 @@ export default function Dashboard() {
     const storedUser = localStorage.getItem("user");
 
     if (storedUser) {
-      savedUser = JSON.parse(storedUser);
+      const parsedUser = JSON.parse(storedUser);
+
+      if (parsedUser && typeof parsedUser === "object") {
+        savedUser = parsedUser;
+      }
     }
   } catch (error) {
     console.error("Could not read saved user:", error);
   }
 
-  /*
-   * Get the user's name.
-   *
-   * If no valid name is saved, use the default Roamio name.
-   */
   let userName =
-    savedUser?.name ||
-    savedUser?.firstName ||
-    "";
+    typeof savedUser?.name === "string"
+      ? savedUser.name
+      : typeof savedUser?.firstName === "string"
+        ? savedUser.firstName
+        : "";
 
-  if (!userName) {
-    userName = "Roamio User";
-  }
+  userName = userName.trim() || "Roamio User";
 
-  userName = userName.trim();
-
-  // First name for:
-  // "Good morning, Duran!"
   const firstName =
     userName.split(/\s+/)[0] || "Roamio";
 
-  // Create initials for profile avatar
   const initials =
     userName
       .split(/\s+/)
@@ -95,7 +92,6 @@ export default function Dashboard() {
       image:
         "https://images.unsplash.com/photo-1580060839134-75a5edca2e99?auto=format&fit=crop&w=1000&q=80",
     },
-
     {
       id: 2,
       title: "Durban Beach Weekend",
@@ -105,7 +101,6 @@ export default function Dashboard() {
       image:
         "https://images.unsplash.com/photo-1569263979104-865ab7cd8d13?auto=format&fit=crop&w=1000&q=80",
     },
-
     {
       id: 3,
       title: "Kruger Family Adventure",
@@ -128,21 +123,18 @@ export default function Dashboard() {
       role: "Trip organizer",
       initials,
     },
-
     {
       id: 2,
       name: "Family Member",
       role: "Traveler",
       initials: "F",
     },
-
     {
       id: 3,
       name: "Family Member",
       role: "Traveler",
       initials: "F",
     },
-
     {
       id: 4,
       name: "Family Member",
@@ -160,10 +152,7 @@ export default function Dashboard() {
   };
 
   const handleLogout = () => {
-    // Remove current user
     localStorage.removeItem("user");
-
-    // Remove current Roamio token
     localStorage.removeItem("roamio_token");
 
     setMobileMenu(false);
@@ -174,10 +163,21 @@ export default function Dashboard() {
   };
 
   const handleCreateTrip = () => {
-    console.log("Create new trip");
+    setDestinationPicker(true);
+  };
 
-    // Later:
-    // navigate("/create-trip");
+  const handleDestinationContinue = (destination) => {
+    if (!destination) {
+      return;
+    }
+
+    setDestinationPicker(false);
+
+    navigate("/create-trip", {
+      state: {
+        destination,
+      },
+    });
   };
 
   const handleNotification = () => {
@@ -200,13 +200,8 @@ export default function Dashboard() {
     console.log("View memories");
   };
 
-  // =========================================================
-  // RETURN
-  // =========================================================
-
   return (
     <div className="dashboard-page">
-
       {/* =====================================================
           SIDEBAR
       ===================================================== */}
@@ -216,21 +211,13 @@ export default function Dashboard() {
           mobileMenu ? "sidebar-open" : ""
         }`}
       >
-
-        {/* SIDEBAR TOP */}
-
         <div className="sidebar-top">
-
           <div className="dashboard-logo">
-
             <div className="dashboard-logo-icon">
               <Plane size={20} />
             </div>
 
-            <span>
-              Roamio
-            </span>
-
+            <span>Roamio</span>
           </div>
 
           <button
@@ -241,19 +228,12 @@ export default function Dashboard() {
           >
             <X size={20} />
           </button>
-
         </div>
 
-        {/* YOUR SPACE */}
-
         <div className="sidebar-section">
-
-          <p className="sidebar-label">
-            YOUR SPACE
-          </p>
+          <p className="sidebar-label">YOUR SPACE</p>
 
           <nav className="sidebar-nav">
-
             <Link
               to="/dashboard"
               className="sidebar-link active"
@@ -271,9 +251,7 @@ export default function Dashboard() {
               <Map size={18} />
               <span>My Trips</span>
 
-              <span className="nav-count">
-                2
-              </span>
+              <span className="nav-count">2</span>
             </Link>
 
             <Link
@@ -293,21 +271,13 @@ export default function Dashboard() {
               <Users size={18} />
               <span>Family</span>
             </Link>
-
           </nav>
-
         </div>
 
-        {/* PLANNING */}
-
         <div className="sidebar-section">
-
-          <p className="sidebar-label">
-            PLANNING
-          </p>
+          <p className="sidebar-label">PLANNING</p>
 
           <nav className="sidebar-nav">
-
             <Link
               to="/dashboard"
               className="sidebar-link"
@@ -343,33 +313,22 @@ export default function Dashboard() {
               <Settings size={18} />
               <span>Settings</span>
             </Link>
-
           </nav>
-
         </div>
 
-        {/* SIDEBAR BOTTOM */}
-
         <div className="sidebar-bottom">
-
           <div className="sidebar-tip">
-
             <div className="tip-icon">
               <Sparkles size={17} />
             </div>
 
             <div>
-
-              <strong>
-                Travel smarter
-              </strong>
+              <strong>Travel smarter</strong>
 
               <p>
                 Keep your family plans in one place.
               </p>
-
             </div>
-
           </div>
 
           <button
@@ -380,19 +339,14 @@ export default function Dashboard() {
             <LogOut size={17} />
             Sign out
           </button>
-
         </div>
-
       </aside>
-
-      {/* =====================================================
-          MOBILE OVERLAY
-      ===================================================== */}
 
       {mobileMenu && (
         <div
           className="mobile-overlay"
           onClick={closeMobileMenu}
+          aria-hidden="true"
         />
       )}
 
@@ -401,13 +355,7 @@ export default function Dashboard() {
       ===================================================== */}
 
       <main className="dashboard-main">
-
-        {/* ===================================================
-            HEADER
-        =================================================== */}
-
         <header className="dashboard-header">
-
           <button
             type="button"
             className="mobile-menu-button"
@@ -418,19 +366,11 @@ export default function Dashboard() {
           </button>
 
           <div className="header-date">
-
             <CalendarDays size={16} />
-
-            <span>
-              Friday, August 28, 2026
-            </span>
-
+            <span>Friday, August 28, 2026</span>
           </div>
 
           <div className="header-actions">
-
-            {/* NOTIFICATIONS */}
-
             <button
               type="button"
               className="header-icon-button"
@@ -439,83 +379,46 @@ export default function Dashboard() {
               onClick={handleNotification}
             >
               <Bell size={19} />
-
               <span className="notification-dot" />
             </button>
 
-            {/* PROFILE */}
-
             <div className="header-profile">
-
               <div className="profile-avatar">
                 {initials}
               </div>
 
               <div className="profile-details">
-
-                <strong>
-                  {userName}
-                </strong>
-
-                <span>
-                  Roamio
-                </span>
-
+                <strong>{userName}</strong>
+                <span>Roamio</span>
               </div>
 
               <ChevronRight size={16} />
-
             </div>
-
           </div>
-
         </header>
 
-        {/* ===================================================
-            DASHBOARD CONTENT
-        =================================================== */}
-
         <div className="dashboard-content">
-
-          {/* =================================================
-              HERO
-          ================================================= */}
-
           <section className="hero-section">
-
             <div className="hero-background" />
-
             <div className="hero-glow hero-glow-one" />
-
             <div className="hero-glow hero-glow-two" />
 
             <div className="hero-flight-path">
-
               <span />
               <span />
               <span />
-
             </div>
 
             <div className="hero-content">
-
               <div className="hero-badge">
-
                 <Sparkles size={14} />
-
                 SMART FAMILY TRAVEL
-
               </div>
 
               <h1>
-
                 Good morning,
                 <br />
-
-                <span>
-                  {firstName}!
-                </span>
-
+                <span>{firstName}!</span>
               </h1>
 
               <p className="hero-subtitle">
@@ -532,21 +435,13 @@ export default function Dashboard() {
                 className="hero-button"
                 onClick={handleCreateTrip}
               >
-
                 <Plus size={18} />
-
                 Create a new trip
-
                 <ArrowRight size={16} />
-
               </button>
-
             </div>
 
-            {/* HERO VISUAL */}
-
             <div className="hero-visual">
-
               <div className="floating-pin floating-pin-one">
                 <MapPin size={18} />
               </div>
@@ -566,159 +461,83 @@ export default function Dashboard() {
               <div className="hero-globe">
                 <Globe2 size={150} />
               </div>
-
             </div>
-
           </section>
 
-          {/* =================================================
-              STATS
-          ================================================= */}
-
           <section className="stats-grid">
-
-            {/* NEXT DESTINATION */}
-
             <div className="stat-card">
-
               <div className="stat-icon blue">
                 <Plane size={20} />
               </div>
 
               <div className="stat-info">
-
-                <span>
-                  Next destination
-                </span>
-
-                <strong>
-                  Anywhere
-                </strong>
-
+                <span>Next destination</span>
+                <strong>Anywhere</strong>
               </div>
 
               <div className="stat-decoration">
                 <MapPin size={45} />
               </div>
-
             </div>
 
-            {/* TOTAL TRIPS */}
-
             <div className="stat-card">
-
               <div className="stat-icon teal">
                 <Compass size={20} />
               </div>
 
               <div className="stat-info">
-
-                <span>
-                  Total trips
-                </span>
-
-                <strong>
-                  8
-                </strong>
-
-                <small>
-                  +2 this year
-                </small>
-
+                <span>Total trips</span>
+                <strong>8</strong>
+                <small>+2 this year</small>
               </div>
 
               <div className="stat-decoration">
                 <Plane size={42} />
               </div>
-
             </div>
 
-            {/* PLACES */}
-
             <div className="stat-card">
-
               <div className="stat-icon purple">
                 <Map size={20} />
               </div>
 
               <div className="stat-info">
-
-                <span>
-                  Places visited
-                </span>
-
-                <strong>
-                  14
-                </strong>
-
-                <small>
-                  Across 5 countries
-                </small>
-
+                <span>Places visited</span>
+                <strong>14</strong>
+                <small>Across 5 countries</small>
               </div>
 
               <div className="stat-decoration">
                 <Globe2 size={45} />
               </div>
-
             </div>
 
-            {/* FAMILY */}
-
             <div className="stat-card">
-
               <div className="stat-icon orange">
                 <Users size={20} />
               </div>
 
               <div className="stat-info">
-
-                <span>
-                  Family members
-                </span>
-
-                <strong>
-                  5
-                </strong>
-
-                <small>
-                  Planning together
-                </small>
-
+                <span>Family members</span>
+                <strong>5</strong>
+                <small>Planning together</small>
               </div>
 
               <div className="stat-decoration">
                 <Heart size={43} />
               </div>
-
             </div>
-
           </section>
 
-          {/* =================================================
-              MAIN GRID
-          ================================================= */}
-
           <div className="dashboard-grid">
-
-            {/* =================================================
-                TRIPS
-            ================================================= */}
-
             <section className="trips-section">
-
               <div className="section-heading">
-
                 <div>
-
                   <span className="section-eyebrow">
                     YOUR JOURNEYS
                   </span>
 
-                  <h2>
-                    Upcoming trips
-                  </h2>
-
+                  <h2>Upcoming trips</h2>
                 </div>
 
                 <Link
@@ -728,25 +547,20 @@ export default function Dashboard() {
                   View all
                   <ArrowRight size={15} />
                 </Link>
-
               </div>
 
               <div className="trip-list">
-
                 {trips.map((trip) => (
-
                   <article
                     className="trip-card"
                     key={trip.id}
                   >
-
-                    {/* IMAGE */}
-
                     <div className="trip-image">
-
                       <img
                         src={trip.image}
                         alt={trip.title}
+                        loading="lazy"
+                        decoding="async"
                       />
 
                       <span
@@ -756,7 +570,6 @@ export default function Dashboard() {
                             : "planning"
                         }`}
                       >
-
                         {trip.status === "Upcoming" ? (
                           <CheckCircle2 size={13} />
                         ) : (
@@ -764,31 +577,18 @@ export default function Dashboard() {
                         )}
 
                         {trip.status}
-
                       </span>
-
                     </div>
 
-                    {/* INFO */}
-
                     <div className="trip-info">
-
                       <div className="trip-title-row">
-
                         <div>
-
-                          <h3>
-                            {trip.title}
-                          </h3>
+                          <h3>{trip.title}</h3>
 
                           <div className="trip-location">
-
                             <MapPin size={14} />
-
                             {trip.location}
-
                           </div>
-
                         </div>
 
                         <button
@@ -796,66 +596,36 @@ export default function Dashboard() {
                           className="trip-more"
                           aria-label={`More options for ${trip.title}`}
                           onClick={() =>
-                            handleTripOptions(
-                              trip.title
-                            )
+                            handleTripOptions(trip.title)
                           }
                         >
-
                           <MoreHorizontal size={19} />
-
                         </button>
-
                       </div>
 
                       <div className="trip-footer">
-
                         <div className="trip-date">
-
                           <CalendarDays size={14} />
-
                           {trip.dates}
-
                         </div>
 
                         <ArrowRight size={16} />
-
                       </div>
-
                     </div>
-
                   </article>
-
                 ))}
-
               </div>
-
             </section>
 
-            {/* =================================================
-                RIGHT COLUMN
-            ================================================= */}
-
             <aside className="dashboard-right-column">
-
-              {/* =================================================
-                  FAMILY
-              ================================================= */}
-
               <section className="family-card">
-
                 <div className="section-heading compact">
-
                   <div>
-
                     <span className="section-eyebrow">
                       YOUR CREW
                     </span>
 
-                    <h2>
-                      Family
-                    </h2>
-
+                    <h2>Family</h2>
                   </div>
 
                   <button
@@ -864,22 +634,16 @@ export default function Dashboard() {
                     aria-label="Add family member"
                     onClick={handleAddFamily}
                   >
-
                     <Plus size={16} />
-
                   </button>
-
                 </div>
 
                 <div className="family-list">
-
                   {familyMembers.map((member) => (
-
                     <div
                       className="family-member"
                       key={member.id}
                     >
-
                       <div
                         className={`family-avatar avatar-${member.id}`}
                       >
@@ -887,15 +651,8 @@ export default function Dashboard() {
                       </div>
 
                       <div className="family-member-info">
-
-                        <strong>
-                          {member.name}
-                        </strong>
-
-                        <span>
-                          {member.role}
-                        </span>
-
+                        <strong>{member.name}</strong>
+                        <span>{member.role}</span>
                       </div>
 
                       {member.id === 1 && (
@@ -903,11 +660,8 @@ export default function Dashboard() {
                           You
                         </span>
                       )}
-
                     </div>
-
                   ))}
-
                 </div>
 
                 <button
@@ -915,25 +669,14 @@ export default function Dashboard() {
                   className="invite-family"
                   onClick={handleInviteFamily}
                 >
-
                   <Users size={16} />
-
                   Invite family member
-
                   <ArrowRight size={15} />
-
                 </button>
-
               </section>
 
-              {/* =================================================
-                  MEMORIES
-              ================================================= */}
-
               <section className="memory-card">
-
                 <div className="memory-content">
-
                   <div className="memory-icon">
                     <Camera size={19} />
                   </div>
@@ -942,13 +685,11 @@ export default function Dashboard() {
                     MEMORIES
                   </span>
 
-                  <h3>
-                    36 beautiful moments
-                  </h3>
+                  <h3>36 beautiful moments</h3>
 
                   <p>
-                    Your family's adventures are
-                    worth remembering.
+                    Your family's adventures are worth
+                    remembering.
                   </p>
 
                   <button
@@ -956,42 +697,24 @@ export default function Dashboard() {
                     className="memory-button"
                     onClick={handleViewMemories}
                   >
-
                     View memories
-
                     <ArrowRight size={14} />
-
                   </button>
-
                 </div>
 
                 <div className="memory-decoration">
-
-                  <Heart
-                    size={80}
-                    strokeWidth={1}
-                  />
-
+                  <Heart size={80} strokeWidth={1} />
                 </div>
-
               </section>
-
             </aside>
-
           </div>
 
-          {/* =================================================
-              BOTTOM MESSAGE
-          ================================================= */}
-
           <section className="bottom-message">
-
             <div className="bottom-message-icon">
               <Sparkles size={18} />
             </div>
 
             <div>
-
               <strong>
                 Every great adventure starts with a plan.
               </strong>
@@ -999,20 +722,22 @@ export default function Dashboard() {
               <span>
                 Make your next family memory unforgettable.
               </span>
-
             </div>
 
             <Plane
               className="bottom-plane"
               size={23}
             />
-
           </section>
-
         </div>
-
       </main>
 
+      <DestinationPicker
+        isOpen={destinationPicker}
+        onClose={() => setDestinationPicker(false)}
+        onContinue={handleDestinationContinue}
+      />
     </div>
   );
 }
+

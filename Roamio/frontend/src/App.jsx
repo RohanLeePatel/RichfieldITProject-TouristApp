@@ -10,6 +10,7 @@ import Register from "./pages/Register.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Settings from "./pages/Settings.jsx";
 import Translator from "./pages/Translator.jsx";
+import DestinationPicker from "./pages/DestinationPicker.jsx";
 
 import { useAuthStore } from "./store/authStore.js";
 
@@ -30,16 +31,19 @@ function App() {
     <BrowserRouter>
       <Routes>
 
+        {/* Login */}
         <Route
           path="/login"
           element={<Login />}
         />
 
+        {/* Register */}
         <Route
           path="/register"
           element={<Register />}
         />
 
+        {/* Dashboard */}
         <Route
           path="/dashboard"
           element={
@@ -49,6 +53,17 @@ function App() {
           }
         />
 
+        {/* Destination Picker */}
+        <Route
+          path="/destination-picker"
+          element={
+            <ProtectedRoute>
+              <DestinationPicker />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Translator */}
         <Route
           path="/translator"
           element={
@@ -58,6 +73,7 @@ function App() {
           }
         />
 
+        {/* Settings */}
         <Route
           path="/settings"
           element={
@@ -67,6 +83,7 @@ function App() {
           }
         />
 
+        {/* Default route */}
         <Route
           path="/"
           element={
@@ -77,6 +94,7 @@ function App() {
           }
         />
 
+        {/* Unknown routes */}
         <Route
           path="*"
           element={
