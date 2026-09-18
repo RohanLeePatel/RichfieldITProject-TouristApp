@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, CalendarDays, MapPin, Plane, Plus, Sparkles } from "lucide-react";
+import { ArrowRight, CalendarDays, MapPin, Plus, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import PageShell from "../components/recommendations/PageShell.jsx";
 import { fetchTrips } from "../api/trips.js";
-import "../styles/recommendations.css";
 import "../styles/trips.css";
 
 function tripDateLabel(trip) {
@@ -32,26 +32,16 @@ export default function TripsList() {
     };
   }, []);
 
+  const hero = (
+    <>
+      <p className="recommendations-eyebrow"><Sparkles size={15} /> Your journeys</p>
+      <h1>All your trips.</h1>
+      <p>Every trip you&apos;ve planned, in one place.</p>
+    </>
+  );
+
   return (
-    <main className="recommendations-page">
-      <header className="recommendations-header">
-        <Link to="/dashboard" className="recommendations-back-link">
-          <ArrowLeft size={17} /> Back to dashboard
-        </Link>
-        <div className="recommendations-brand">
-          <span><Plane size={18} /></span> Roamio
-        </div>
-      </header>
-
-      <div className="recommendations-content">
-        <section className="recommendations-intro">
-          <p className="recommendations-eyebrow">
-            <Sparkles size={15} /> Your journeys
-          </p>
-          <h1>All your trips.</h1>
-          <p>Every trip you&apos;ve planned, in one place.</p>
-        </section>
-
+    <PageShell hero={hero}>
         <section className="recommendations-results">
           {loading ? (
             <p className="wizard-help">Loading your trips...</p>
@@ -84,7 +74,6 @@ export default function TripsList() {
             </div>
           )}
         </section>
-      </div>
-    </main>
+    </PageShell>
   );
 }

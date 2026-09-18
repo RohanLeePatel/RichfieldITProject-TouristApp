@@ -1,415 +1,30 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  AlertTriangle,
-  ArrowLeft,
-  ArrowRight,
-  Ban,
-  Check,
-  ChevronLeft,
-  ExternalLink,
-  LoaderCircle,
-  MapPin,
-  Plane,
-  Plus,
-  Search,
-  Sparkles,
-  Star,
-  Trash2,
-  Undo2,
-  Wand2,
-  X,
-} from "lucide-react";
-import { Link } from "react-router-dom";
+import { Sparkles } from "lucide-react";
 
+import ItineraryEditor from "../components/recommendations/ItineraryEditor.jsx";
+import LandmarkPicker from "../components/recommendations/LandmarkPicker.jsx";
+import PageShell from "../components/recommendations/PageShell.jsx";
+import ResultsView from "../components/recommendations/ResultsView.jsx";
+import TripDone from "../components/recommendations/TripDone.jsx";
+import WizardView from "../components/recommendations/WizardView.jsx";
 import {
   fetchRecommendationCatalog,
   fetchRecommendations,
   fetchLandmarks,
 } from "../api/recommendations.js";
 import { createTrip, addItineraryItem, deleteTrip } from "../api/trips.js";
+import { buildDayPlan, recomputeDayStopTimes, STOPS_PER_DAY_BY_PACE } from "../utils/itineraryPlanner.js";
 import {
-  buildDayPlan,
-  recomputeDayStopTimes,
-  isLikelyClosed,
-  isDayOverloaded,
-  STOPS_PER_DAY_BY_PACE,
-} from "../utils/itineraryPlanner.js";
-import "../styles/recommendations.css";
-
-// Specific tags the user can pick, grouped under the 4 broad dimensions the
-// scoring engine actually knows about (engine/weights.py). The broad group
-// key is what gets sent as `preferences.interests`; the specific tag ids are
-// what get passed straight through to /landmarks once a city is chosen.
-const INTEREST_GROUPS = [
-  {
-    key: "nature",
-    label: "Nature & outdoors",
-    tags: [
-      { id: "parks", label: "Parks" },
-      { id: "hiking", label: "Hiking" },
-      { id: "beaches", label: "Beaches" },
-      { id: "waterparks", label: "Waterparks" },
-    ],
-  },
-  {
-    key: "history",
-    label: "History & culture",
-    tags: [
-      { id: "museums", label: "Museums" },
-      { id: "historic_sites", label: "Historic sites" },
-    ],
-  },
-  {
-    key: "food",
-    label: "Food & drink",
-    tags: [
-      { id: "restaurants", label: "Restaurants" },
-      { id: "cafes", label: "Cafes" },
-      { id: "street_food", label: "Street food" },
-    ],
-  },
-  {
-    key: "family",
-    label: "Family & kids",
-    tags: [
-      { id: "theme_parks", label: "Theme parks" },
-      { id: "zoos_aquariums", label: "Zoos & aquariums" },
-      { id: "playgrounds", label: "Playgrounds" },
-    ],
-  },
-];
-
-const PACE_OPTIONS = [
-  { id: "relaxed", label: "Relaxed", helper: "~2 stops a day" },
-  { id: "balanced", label: "Balanced", helper: "~3 stops a day" },
-  { id: "packed", label: "Packed", helper: "~5 stops a day" },
-];
-
-// One-click starting points - fills interests/priority/pace so a group
-// doesn't have to build every trip from a blank wizard.
-const TRIP_PRESETS = [
-  {
-    id: "family",
-    label: "Family with young kids",
-    interests: ["playgrounds", "theme_parks", "zoos_aquariums", "restaurants"],
-    priorityInterests: ["playgrounds"],
-    pace: "relaxed",
-  },
-  {
-    id: "weekend",
-    label: "Weekend city break",
-    interests: ["historic_sites", "museums", "cafes", "restaurants"],
-    priorityInterests: [],
-    pace: "balanced",
-  },
-  {
-    id: "adventure",
-    label: "Adventure & hiking",
-    interests: ["hiking", "parks", "beaches", "street_food"],
-    priorityInterests: ["hiking"],
-    pace: "packed",
-  },
-];
-
-const COUNTRIES = [
-  "Argentina", "Australia", "Brazil", "Canada", "Egypt", "France",
-  "Germany", "Italy", "Japan", "Kenya", "Mexico", "Namibia", "Netherlands",
-  "Portugal", "Singapore", "South Africa", "Spain", "Thailand",
-  "United Arab Emirates", "United Kingdom", "United States",
-];
-
-const DEFAULT_TRIP_DAYS = 3;
-const ITINERARY_HISTORY_LIMIT = 20;
-
-const initialForm = {
-  mode: "global",
-  country: "South Africa",
-  budget: "1000",
-  currency: "ZAR",
-  startDate: "",
-  endDate: "",
-  interests: ["parks", "restaurants"],
-  priorityInterests: [],
-  // tags the group wants hard-excluded from landmark picks and city scoring,
-  // independent of anyone's positive interests - see resolveInterests().
-  dealbreakers: [],
-  // additional travelers' own interest picks, blended in at submit time -
-  // see blendTravelerInterests(). Session-only, see its TODO(db) note.
-  travelers: [],
-  adults: "2",
-  children: "",
-  wheelchair: "none",
-  climate: "",
-  pace: "balanced",
-  // "precise" mode: an explicit stop count per day instead of the pace
-  // default. dayStopCounts[i] is the count for day i+1.
-  preciseStops: false,
-  dayStopCounts: [],
-};
-
-const steps = ["Trip basics", "Interests", "Accessibility & climate", "Review"];
-
-function slugify(value) {
-  return value.toLowerCase().replace(/\s+/g, "-");
-}
-
-function formatDimension(value) {
-  return value.replace(/_/g, " ");
-}
-
-// Inclusive day count between two yyyy-mm-dd dates, or DEFAULT_TRIP_DAYS if
-// either is missing - the itinerary planner always needs a day count to work
-// with, even before real dates are set.
-function tripLengthDays(form) {
-  if (!form.startDate || !form.endDate) return DEFAULT_TRIP_DAYS;
-  const start = new Date(form.startDate);
-  const end = new Date(form.endDate);
-  const days = Math.round((end - start) / 86_400_000) + 1;
-  return days > 0 ? days : DEFAULT_TRIP_DAYS;
-}
-
-// Shared by the primary traveler's interest picker and every additional
-// traveler's - single-click select, click-again mark priority, click-again
-// clear. Pure, no state access, so it works the same against `form` directly
-// or against one entry in form.travelers.
-function cycleTagState(state, tagId) {
-  const isSelected = state.interests.includes(tagId);
-  const isPriority = state.priorityInterests.includes(tagId);
-  if (!isSelected) {
-    return { interests: [...state.interests, tagId], priorityInterests: state.priorityInterests };
-  }
-  if (!isPriority) {
-    return { interests: state.interests, priorityInterests: [...state.priorityInterests, tagId] };
-  }
-  return {
-    interests: state.interests.filter((tag) => tag !== tagId),
-    priorityInterests: state.priorityInterests.filter((tag) => tag !== tagId),
-  };
-}
-
-// TODO(db): "traveler" profiles here are session-only (form state, gone once
-// you leave the page) - a real per-account family/group profile that's
-// reusable across trips needs somewhere durable to live. This blend is the
-// bypass: whoever's filling out the wizard can add other travelers' picks
-// right here for one trip, without needing accounts/persistence for it to
-// have an effect on this search.
-function blendTravelerInterests(form) {
-  const additional = form.travelers.filter((traveler) => traveler.interests.length > 0);
-  if (additional.length === 0) {
-    return { interests: form.interests, priority_interests: form.priorityInterests };
-  }
-  const allSets = [{ interests: form.interests }, ...additional];
-  const interests = [...new Set(allSets.flatMap((set) => set.interests))];
-  // a tag every single traveler picked is worth weighting like a priority
-  // pick, even if nobody individually starred it - universal agreement is a
-  // strong signal on its own
-  const universal = interests.filter((tag) => allSets.every((set) => set.interests.includes(tag)));
-  const priority_interests = [...new Set([...form.priorityInterests, ...universal])];
-  return { interests, priority_interests };
-}
-
-// Blends every traveler's picks, then strips out anything the group flagged
-// as a dealbreaker - a dealbreaker wins over another traveler's pick of the
-// same tag, since it's an explicit "please don't" rather than mere apathy.
-// Shared by both the city-ranking request and the landmark fetch so a
-// dealbreaker tag never resurfaces in either.
-function resolveInterests(form) {
-  const { interests, priority_interests } = blendTravelerInterests(form);
-  const dealbreakers = new Set(form.dealbreakers);
-  return {
-    interests: interests.filter((tag) => !dealbreakers.has(tag)),
-    priority_interests: priority_interests.filter((tag) => !dealbreakers.has(tag)),
-  };
-}
-
-function buildPreferences(form) {
-  const children = form.children
-    ? form.children
-        .split(",")
-        .map((age) => Number(age.trim()))
-        .filter((age) => Number.isInteger(age) && age >= 0)
-    : [];
-
-  const { interests, priority_interests } = resolveInterests(form);
-  const startMonth = form.startDate ? new Date(form.startDate).getMonth() + 1 : null;
-  const endMonth = form.endDate ? new Date(form.endDate).getMonth() + 1 : null;
-
-  return {
-    budget_per_day: Number(form.budget),
-    currency: form.currency.toUpperCase(),
-    interests,
-    priority_interests,
-    travellers: { adults: Number(form.adults), children },
-    accessibility: { wheelchair: form.wheelchair },
-    climate: {
-      ...(form.climate ? { prefer: form.climate } : {}),
-      ...(startMonth ? { travel_month: startMonth } : {}),
-      // only send a range when it doesn't wrap the year boundary - see
-      // engine/scorers.py score_climate for why that case falls back to
-      // travel_month alone instead
-      ...(startMonth && endMonth && endMonth >= startMonth ? { travel_month_end: endMonth } : {}),
-    },
-    pace: form.pace,
-  };
-}
-
-// Renders the interest-group tag buttons for one traveler's picks (the
-// primary trip organizer, or one added via "Add another traveler"). Shared so
-// the two call sites don't duplicate the group/tag rendering.
-function InterestPicker({ interests, priorityInterests, onCycle }) {
-  return INTEREST_GROUPS.map((group) => (
-    <div key={group.key} className="interest-group">
-      <h4 className="interest-group-label">{group.label}</h4>
-      <div className="interest-list">
-        {group.tags.map((tag) => {
-          const isSelected = interests.includes(tag.id);
-          const isPriority = priorityInterests.includes(tag.id);
-          return (
-            <button
-              type="button"
-              className={`interest-option ${isSelected ? "selected" : ""} ${isPriority ? "priority" : ""}`}
-              key={tag.id}
-              onClick={() => onCycle(tag.id)}
-              title={isPriority ? "Must-have" : isSelected ? "Tap to mark as must-have" : ""}
-            >
-              {isPriority ? <Star size={14} /> : isSelected && <Check size={14} />} {tag.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  ));
-}
-
-function RecommendationCard({ recommendation, onSelect, selectLabel }) {
-  const destinationName = recommendation.name || recommendation.id;
-  const mapUrl =
-    recommendation.map_url ||
-    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-      destinationName
-    )}`;
-  // The "interests" dimension gets special treatment: show each matched tag
-  // as its own chip (starred if it was a priority pick) instead of one flat
-  // "interests" chip, so a user can actually see which of their picks moved
-  // this result up - not just that "interests" counted somehow.
-  const interestsEntry = recommendation.breakdown?.find((entry) => entry.dimension === "interests");
-  const priorityTags = new Set(interestsEntry?.evidence?.priority || []);
-  const requestedTags = interestsEntry?.evidence?.requested || [];
-  const otherEvidence = recommendation.breakdown
-    ?.filter((entry) => entry.dimension !== "interests" && entry.weight > 0)
-    .slice(0, 3);
-
-  return (
-    <article className="recommendation-card">
-      {recommendation.image_url ? (
-        <img
-          className="recommendation-card-image"
-          src={recommendation.image_url}
-          alt={`${destinationName} destination`}
-        />
-      ) : (
-        <div className="recommendation-card-image recommendation-card-image-fallback">
-          <MapPin size={25} />
-        </div>
-      )}
-      <div className="recommendation-card-body">
-        <div className="recommendation-card-topline">
-          <span className="recommendation-rank">#{recommendation.rank}</span>
-          <span className="recommendation-score">
-            {Math.round(recommendation.total_score * 100)}% match
-          </span>
-        </div>
-        <h3>{destinationName}</h3>
-        {recommendation.country && (
-          <p className="recommendation-location">
-            <MapPin size={14} /> {recommendation.country}
-          </p>
-        )}
-        <p className="recommendation-explanation">
-          {recommendation.explanation}
-        </p>
-        <div className="recommendation-evidence">
-          {otherEvidence?.map((entry) => (
-            <span key={entry.dimension}>
-              <Check size={13} />
-              {formatDimension(entry.dimension)}
-            </span>
-          ))}
-          {requestedTags.map((tag) => (
-            <span key={tag} className={priorityTags.has(tag) ? "priority" : ""}>
-              {priorityTags.has(tag) ? <Star size={12} /> : <Check size={13} />}
-              {formatDimension(tag)}
-            </span>
-          ))}
-        </div>
-        <div className="recommendation-card-actions">
-          <a href={mapUrl} target="_blank" rel="noreferrer">
-            View map <ExternalLink size={14} />
-          </a>
-          {onSelect && (
-            <button type="button" onClick={() => onSelect(recommendation)}>
-              {selectLabel} <ArrowRight size={14} />
-            </button>
-          )}
-        </div>
-      </div>
-    </article>
-  );
-}
-
-const ITINERARY_MAP_COLORS = ["#23a89e", "#f4a340", "#7c6fe0", "#e0607c", "#4f9de0", "#8bc34a"];
-const ITINERARY_MAP_SIZE = 260;
-const ITINERARY_MAP_PAD = 20;
-
-// A rough "which stops are near which" layout, not a real basemap - plotting
-// lat/lon on a plain SVG needs no map library/API key, at the cost of no
-// streets/labels. Upgrade to Leaflet/Mapbox tiles if that visual context
-// turns out to matter more than the dependency-free simplicity here.
-function ItineraryMap({ itineraryDays }) {
-  const points = itineraryDays.flatMap((day) =>
-    day.stops.map((stop) => ({ lat: stop.landmark.lat, lon: stop.landmark.lon, dayNumber: day.dayNumber, name: stop.landmark.name }))
-  );
-  if (points.length < 2) return null;
-
-  const lats = points.map((p) => p.lat);
-  const lons = points.map((p) => p.lon);
-  const minLat = Math.min(...lats);
-  const latSpan = Math.max(...lats) - minLat || 0.001;
-  const minLon = Math.min(...lons);
-  const lonSpan = Math.max(...lons) - minLon || 0.001;
-  const plotSize = ITINERARY_MAP_SIZE - ITINERARY_MAP_PAD * 2;
-  const toXY = (p) => ({
-    x: ITINERARY_MAP_PAD + ((p.lon - minLon) / lonSpan) * plotSize,
-    // latitude increases northward, SVG y increases downward - flip it
-    y: ITINERARY_MAP_PAD + (1 - (p.lat - minLat) / latSpan) * plotSize,
-  });
-  const activeDays = itineraryDays.filter((day) => day.stops.length > 0);
-
-  return (
-    <div className="itinerary-map">
-      <p className="wizard-help">Rough layout of your stops by day - not a real map, see a stop&apos;s &quot;View map&quot; link for that.</p>
-      <svg viewBox={`0 0 ${ITINERARY_MAP_SIZE} ${ITINERARY_MAP_SIZE}`} width="100%" height={ITINERARY_MAP_SIZE} role="img" aria-label="Rough layout of itinerary stops by day">
-        {points.map((point, index) => {
-          const { x, y } = toXY(point);
-          const color = ITINERARY_MAP_COLORS[(point.dayNumber - 1) % ITINERARY_MAP_COLORS.length];
-          return (
-            <circle key={index} cx={x} cy={y} r={5} fill={color}>
-              <title>{`Day ${point.dayNumber}: ${point.name}`}</title>
-            </circle>
-          );
-        })}
-      </svg>
-      <div className="itinerary-map-legend">
-        {activeDays.map((day) => (
-          <span key={day.dayNumber}>
-            <i style={{ background: ITINERARY_MAP_COLORS[(day.dayNumber - 1) % ITINERARY_MAP_COLORS.length] }} />
-            Day {day.dayNumber}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
+  COUNTRIES,
+  ITINERARY_HISTORY_LIMIT,
+  buildPreferences,
+  cycleTagState,
+  initialForm,
+  resolveInterests,
+  slugify,
+  steps,
+  tripLengthDays,
+} from "./recommendations/constants.js";
 
 export default function Recommendations() {
   // wizard -> collecting preferences
@@ -445,6 +60,7 @@ export default function Recommendations() {
   // (e.g. exploring a country, then quickly switching to another) can't
   // land after a newer one and overwrite it with stale results.
   const requestIdRef = useRef(0);
+  const savedStopsRef = useRef(new Set()); // stops already saved, so a retry doesn't duplicate them
   // Stack of previous "results" views (country list before drilling into a
   // city, city list before picking one) so the back button can restore them
   // without an extra fetch. Empty means the only way back is the wizard.
@@ -499,7 +115,7 @@ export default function Recommendations() {
       ...current,
       travelers: [
         ...current.travelers,
-        { id: Date.now() + Math.random(), interests: [], priorityInterests: [] },
+        { id: Date.now() + Math.random(), interests: [], priorityInterests: [], dealbreakers: [] },
       ],
     }));
   };
@@ -520,6 +136,17 @@ export default function Recommendations() {
       dealbreakers: current.dealbreakers.includes(tagId)
         ? current.dealbreakers.filter((tag) => tag !== tagId)
         : [...current.dealbreakers, tagId],
+    }));
+  };
+
+  const toggleTravelerDealbreaker = (travelerId, tagId) => {
+    setForm((current) => ({
+      ...current,
+      travelers: current.travelers.map((traveler) => {
+        if (traveler.id !== travelerId) return traveler;
+        const list = traveler.dealbreakers || [];
+        return { ...traveler, dealbreakers: list.includes(tagId) ? list.filter((tag) => tag !== tagId) : [...list, tagId] };
+      }),
     }));
   };
 
@@ -791,6 +418,7 @@ export default function Recommendations() {
       })
     );
     setItineraryHistory([]);
+    savedStopsRef.current = new Set();
     setStage("itinerary");
   };
 
@@ -802,11 +430,9 @@ export default function Recommendations() {
   };
 
   const undoItineraryEdit = () => {
-    setItineraryHistory((current) => {
-      if (current.length === 0) return current;
-      setItineraryDays(current[current.length - 1]);
-      return current.slice(0, -1);
-    });
+    if (itineraryHistory.length === 0) return;
+    setItineraryDays(itineraryHistory[itineraryHistory.length - 1]);
+    setItineraryHistory(itineraryHistory.slice(0, -1));
   };
 
   // dayNumber is just each day's position - re-derive it after any structural
@@ -889,17 +515,18 @@ export default function Recommendations() {
     // allSettled instead of all - one failed stop shouldn't hide whether the
     // other N-1 actually saved, and it lets the user see exactly how much
     // landed instead of an all-or-nothing error with no way to tell.
-    const outcomes = await Promise.allSettled(jobs.map((job) => addItineraryItem(trip.id, job)));
+    const keyOf = (job) => `${job.dayNumber}|${job.startTime}|${job.title}`;
+    const pending = jobs.filter((job) => !savedStopsRef.current.has(keyOf(job)));
+    const outcomes = await Promise.allSettled(
+      pending.map((job) => addItineraryItem(trip.id, job).then(() => savedStopsRef.current.add(keyOf(job))))
+    );
     const failedCount = outcomes.filter((outcome) => outcome.status === "rejected").length;
     setLoading(false);
     if (failedCount === 0) {
       setStage("done");
       return;
     }
-    // Stay on this screen so the user can retry. Retrying re-sends every
-    // stop, including ones that already saved, since there's no idempotency
-    // key on the backend yet - acceptable for now (see TODO(db) in
-    // api/trips.js), a real fix needs the DB schema question settled first.
+    // Stay on this screen so the user can retry; only unsaved stops are re-sent.
     setError(
       `Saved ${jobs.length - failedCount} of ${jobs.length} stops. ${failedCount} failed - check your connection and try saving again.`
     );
@@ -934,535 +561,99 @@ export default function Recommendations() {
     [requirementExclusions]
   );
 
+  const stopsPerDay = STOPS_PER_DAY_BY_PACE[form.pace] ?? STOPS_PER_DAY_BY_PACE.balanced;
+  const hero =
+    stage === "wizard" ? (
+      <>
+        <p className="recommendations-eyebrow"><Sparkles size={15} /> Personalised travel planning</p>
+        <h1>Plan a trip that feels made for you.</h1>
+        <p>Answer four quick steps. We&apos;ll explain why each country or city matches your group.</p>
+      </>
+    ) : null;
+
   return (
-    <main className="recommendations-page">
-      <header className="recommendations-header">
-        <Link to="/dashboard" className="recommendations-back-link">
-          <ArrowLeft size={17} /> Back to dashboard
-        </Link>
-        <div className="recommendations-brand">
-          <span><Plane size={18} /></span> Roamio
-        </div>
-      </header>
+    <PageShell hero={hero}>
+      {stage === "wizard" && (
+        <WizardView
+          step={step}
+          setStep={setStep}
+          error={error}
+          setError={setError}
+          loading={loading}
+          onNext={handleNext}
+          form={form}
+          updateForm={updateForm}
+          countries={countries}
+          applyPreset={applyPreset}
+          cycleInterest={cycleInterest}
+          cycleTravelerInterest={cycleTravelerInterest}
+          addTraveler={addTraveler}
+          removeTraveler={removeTraveler}
+          toggleDealbreaker={toggleDealbreaker}
+          toggleTravelerDealbreaker={toggleTravelerDealbreaker}
+          togglePreciseStops={togglePreciseStops}
+          updateDayStopCount={updateDayStopCount}
+        />
+      )}
 
-      <div className="recommendations-content">
-        {stage === "wizard" && (
-          <section className="recommendations-intro">
-            <p className="recommendations-eyebrow">
-              <Sparkles size={15} /> Personalised travel planning
-            </p>
-            <h1>Plan a trip that feels made for you.</h1>
-            <p>Answer four quick steps. We&apos;ll explain why each country or city matches your group.</p>
-          </section>
-        )}
+      {stage === "results" && recommendationData && (
+        <ResultsView
+          data={recommendationData}
+          title={resultTitle}
+          historyCount={resultsHistory.length}
+          loading={loading}
+          error={error}
+          exploreCities={exploreCities}
+          selectCity={selectCity}
+          selectExcluded={selectExcluded}
+          goBack={goBackToResults}
+          startOver={editPreferences}
+          editPreferences={editPreferences}
+          requirementExclusions={requirementExclusions}
+          rankedOutCount={rankedOutCount}
+          relaxSuggestions={relaxSuggestions}
+        />
+      )}
 
-        {stage === "wizard" && (
-          <section className="wizard-card">
-            <div className="wizard-progress">
-              {steps.map((label, index) => (
-                <div className={`wizard-step ${index <= step ? "active" : ""}`} key={label}>
-                  <span>{index + 1}</span>
-                  {label}
-                </div>
-              ))}
-            </div>
+      {stage === "landmarks" && (
+        <LandmarkPicker
+          cityName={selectedCity?.name}
+          landmarksData={landmarksData}
+          selectedLandmarks={selectedLandmarks}
+          toggleLandmark={toggleLandmark}
+          filter={landmarkFilter}
+          setFilter={setLandmarkFilter}
+          autoPick={autoPickLandmarks}
+          onBuild={buildItinerary}
+          onBack={goBackFromLandmarks}
+          loading={loading}
+          error={error}
+          stopsPerDay={stopsPerDay}
+          tripDays={tripLengthDays(form)}
+        />
+      )}
 
-            <div className="wizard-content">
-              {step === 0 && (
-                <>
-                  <h2>Where should we look?</h2>
-                  <p className="wizard-help">Start globally, or tell us which country you already have in mind.</p>
-                  <div className="preset-list">
-                    {TRIP_PRESETS.map((preset) => (
-                      <button type="button" key={preset.id} className="preset-option" onClick={() => applyPreset(preset)}>
-                        <Wand2 size={14} /> {preset.label}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="mode-options">
-                    <button type="button" className={form.mode === "global" ? "mode-option selected" : "mode-option"} onClick={() => updateForm("mode", "global")}>
-                      <Sparkles size={20} />
-                      <strong>Explore globally</strong>
-                      <span>Rank countries around the world.</span>
-                    </button>
-                    <button type="button" className={form.mode === "country" ? "mode-option selected" : "mode-option"} onClick={() => updateForm("mode", "country")}>
-                      <MapPin size={20} />
-                      <strong>I have a country in mind</strong>
-                      <span>Find the best cities in one country.</span>
-                    </button>
-                  </div>
-                  {form.mode === "country" && (
-                    <label className="wizard-field">
-                      Country
-                      <select value={form.country} onChange={(event) => updateForm("country", event.target.value)}>
-                        {countries.map((country) => <option key={country.id} value={country.name}>{country.name} ({country.city_count || 0} cities)</option>)}
-                      </select>
-                    </label>
-                  )}
-                  <div className="field-grid wizard-fields">
-                    <label className="wizard-field">Daily budget<input type="number" min="1" value={form.budget} onChange={(event) => updateForm("budget", event.target.value)} /></label>
-                    <label className="wizard-field">Currency<input maxLength="3" value={form.currency} onChange={(event) => updateForm("currency", event.target.value)} /></label>
-                    <label className="wizard-field">Adults<input type="number" min="1" value={form.adults} onChange={(event) => updateForm("adults", event.target.value)} /></label>
-                    <label className="wizard-field">Children&apos;s ages<input placeholder="e.g. 8, 12" value={form.children} onChange={(event) => updateForm("children", event.target.value)} /></label>
-                    <label className="wizard-field">Start date<input type="date" value={form.startDate} onChange={(event) => updateForm("startDate", event.target.value)} /></label>
-                    <label className="wizard-field">End date<input type="date" value={form.endDate} min={form.startDate || undefined} onChange={(event) => updateForm("endDate", event.target.value)} /></label>
-                  </div>
-                  <p className="wizard-help">Dates sharpen climate matching and let us lay out your itinerary by day - skip them and we&apos;ll use a sample {DEFAULT_TRIP_DAYS}-day plan later.</p>
-                </>
-              )}
+      {stage === "itinerary" && (
+        <ItineraryEditor
+          cityName={selectedCity?.name}
+          days={itineraryDays}
+          hasDates={Boolean(form.startDate && form.endDate)}
+          canUndo={itineraryHistory.length > 0}
+          loading={loading}
+          error={error}
+          undo={undoItineraryEdit}
+          back={() => setStage("landmarks")}
+          addDay={addDay}
+          removeDay={removeDay}
+          removeStop={removeStop}
+          moveStop={moveStop}
+          dragStop={dragStop}
+          setDragStop={setDragStop}
+          onSave={saveItinerary}
+        />
+      )}
 
-              {step === 1 && (
-                <>
-                  <h2>What do you enjoy?</h2>
-                  <p className="wizard-help">Tap once to pick, tap again to mark it a must-have (★) - must-haves count for more when we rank matches.</p>
-                  <InterestPicker
-                    interests={form.interests}
-                    priorityInterests={form.priorityInterests}
-                    onCycle={cycleInterest}
-                  />
-                  {form.travelers.map((traveler, index) => (
-                    <div key={traveler.id} className="traveler-block">
-                      <div className="traveler-block-header">
-                        <h4>Traveler {index + 2}&apos;s picks</h4>
-                        <button type="button" onClick={() => removeTraveler(traveler.id)} aria-label="Remove this traveler">
-                          <X size={14} />
-                        </button>
-                      </div>
-                      <InterestPicker
-                        interests={traveler.interests}
-                        priorityInterests={traveler.priorityInterests}
-                        onCycle={(tagId) => cycleTravelerInterest(traveler.id, tagId)}
-                      />
-                    </div>
-                  ))}
-                  <button type="button" className="secondary-button" onClick={addTraveler}>
-                    <Plus size={16} /> Add another traveler&apos;s preferences
-                  </button>
-                  {form.travelers.some((t) => t.interests.length > 0) && (
-                    <p className="wizard-help">
-                      A tag every traveler picked is weighted like a must-have automatically.
-                    </p>
-                  )}
-                  <div className="dealbreaker-section">
-                    <h4 className="interest-group-label">Anything to avoid?</h4>
-                    <p className="wizard-help">These are excluded from every traveler&apos;s matches, even if someone else picked them.</p>
-                    <div className="interest-list">
-                      {INTEREST_GROUPS.flatMap((group) => group.tags).map((tag) => {
-                        const excluded = form.dealbreakers.includes(tag.id);
-                        return (
-                          <button
-                            type="button"
-                            key={tag.id}
-                            className={`interest-option dealbreaker ${excluded ? "selected" : ""}`}
-                            onClick={() => toggleDealbreaker(tag.id)}
-                          >
-                            {excluded && <Ban size={14} />} {tag.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {step === 2 && (
-                <>
-                  <h2>Make it work for your group.</h2>
-                  <p className="wizard-help">These data-backed preferences help the engine rank suitable matches.</p>
-                  <div className="field-grid wizard-fields">
-                    <label className="wizard-field">Accessibility<select value={form.wheelchair} onChange={(event) => updateForm("wheelchair", event.target.value)}><option value="none">No specific need</option><option value="preferred">Wheelchair preferred</option><option value="required">Wheelchair required</option></select></label>
-                    <label className="wizard-field">Climate<select value={form.climate} onChange={(event) => updateForm("climate", event.target.value)}><option value="">No preference</option><option value="mild">Mild</option><option value="hot">Hot</option><option value="cold">Cold</option></select></label>
-                  </div>
-                  <label className="wizard-field">
-                    Daily pace
-                    <select value={form.pace} onChange={(event) => updateForm("pace", event.target.value)}>
-                      {PACE_OPTIONS.map((option) => (
-                        <option key={option.id} value={option.id}>{option.label} ({option.helper})</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="wizard-field-checkbox">
-                    <input type="checkbox" checked={form.preciseStops} onChange={togglePreciseStops} />
-                    Set stops per day precisely
-                  </label>
-                  {form.preciseStops && (
-                    <>
-                      <p className="wizard-help">Different days can carry different amounts - a light arrival day, a packed middle day, whatever fits.</p>
-                      <div className="field-grid wizard-fields">
-                        {form.dayStopCounts.map((count, index) => (
-                          <label key={index} className="wizard-field">
-                            Day {index + 1}
-                            <input
-                              type="number"
-                              min="1"
-                              max="10"
-                              value={count}
-                              onChange={(event) => updateDayStopCount(index, event.target.value)}
-                            />
-                          </label>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </>
-              )}
-
-              {step === 3 && (
-                <>
-                  <h2>Review your trip preferences.</h2>
-                  <p className="wizard-help">You can go back and change anything before we search.</p>
-                  <div className="review-grid">
-                    <div><span>Search</span><strong>{form.mode === "global" ? "Global countries" : `Cities in ${form.country}`}</strong></div>
-                    <div><span>Budget</span><strong>{form.budget} {form.currency.toUpperCase()} per day</strong></div>
-                    <div><span>Travellers</span><strong>{form.adults} adults{form.children ? `, children aged ${form.children}` : ""}</strong></div>
-                    <div>
-                      <span>Interests</span>
-                      <strong>
-                        {form.interests
-                          .map((tag) => (form.priorityInterests.includes(tag) ? `★ ${formatDimension(tag)}` : formatDimension(tag)))
-                          .join(", ")}
-                      </strong>
-                    </div>
-                    {form.dealbreakers.length > 0 && (
-                      <div><span>Avoiding</span><strong>{form.dealbreakers.map(formatDimension).join(", ")}</strong></div>
-                    )}
-                    <div><span>Climate</span><strong>{form.climate || "Any climate"}</strong></div>
-                    <div><span>Dates</span><strong>{form.startDate && form.endDate ? `${form.startDate} → ${form.endDate}` : `Not set (sample ${DEFAULT_TRIP_DAYS}-day plan)`}</strong></div>
-                    <div><span>Pace</span><strong>{PACE_OPTIONS.find((option) => option.id === form.pace)?.label}</strong></div>
-                  </div>
-                </>
-              )}
-
-              {error && <p className="recommendations-error">{error}</p>}
-              <div className="wizard-actions">
-                {step > 0 && <button type="button" className="secondary-button" onClick={() => { setError(""); setStep((current) => current - 1); }}><ChevronLeft size={17} /> Back</button>}
-                <button type="button" className="recommendations-submit" onClick={handleNext} disabled={loading}>
-                  {loading ? <><LoaderCircle className="recommendations-spinner" size={18} /> Finding matches...</> : <>{step === steps.length - 1 ? "Find my matches" : "Continue"} <ArrowRight size={17} /></>}
-                </button>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {stage === "results" && recommendationData && (
-          <section className="recommendations-results">
-            <div className="results-heading">
-              <div>
-                <p className="recommendations-eyebrow"><MapPin size={15} /> {recommendationData.level} recommendations</p>
-                <h2>{resultTitle}</h2>
-                <p>Ranked using your saved preferences. You can edit them and search again.</p>
-              </div>
-              <div className="results-heading-actions">
-                <button type="button" className="secondary-button" onClick={goBackToResults}>
-                  <ChevronLeft size={17} />
-                  {resultsHistory.length > 0 ? "Back" : "Edit preferences"}
-                </button>
-                {resultsHistory.length > 0 && (
-                  <button type="button" className="secondary-button" onClick={editPreferences}>Start over</button>
-                )}
-              </div>
-            </div>
-            {recommendationData.results.length === 0 ? (
-              <div className="results-empty">
-                <h3>No exact matches yet.</h3>
-                <p>Try relaxing one of these requirements:</p>
-                <ul>{relaxSuggestions.map((item) => <li key={item.id}>{item.name}: {item.reason}</li>)}</ul>
-                <button type="button" className="recommendations-submit" onClick={editPreferences}>Edit preferences</button>
-              </div>
-            ) : (
-              <div className="recommendation-list">
-                {recommendationData.results.map((recommendation) => (
-                  <RecommendationCard
-                    key={recommendation.id}
-                    recommendation={recommendation}
-                    onSelect={
-                      recommendationData.level === "country"
-                        ? exploreCities
-                        : recommendationData.level === "city"
-                        ? selectCity
-                        : undefined
-                    }
-                    selectLabel={
-                      recommendationData.level === "country"
-                        ? "Explore cities"
-                        : loading
-                        ? "Starting trip..."
-                        : "Start a trip here"
-                    }
-                  />
-                ))}
-              </div>
-            )}
-            {recommendationData.comparison && <p className="recommendation-comparison">{recommendationData.comparison}</p>}
-            {recommendationData.excluded?.length > 0 && (
-              <details className="excluded-dropdown">
-                <summary>
-                  {requirementExclusions.length > 0 && (
-                    <>{requirementExclusions.length} destination{requirementExclusions.length === 1 ? "" : "s"} excluded by your requirements</>
-                  )}
-                  {requirementExclusions.length > 0 && rankedOutCount > 0 && " · "}
-                  {rankedOutCount > 0 && (
-                    <>{rankedOutCount} more scored well but didn&apos;t make the top {recommendationData.results.length}</>
-                  )}
-                </summary>
-                <ul className="excluded-list">
-                  {recommendationData.excluded.map((item) => (
-                    <li key={item.id}>
-                      <div>
-                        <strong>{item.name}</strong>
-                        <span>{item.reason}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => selectExcluded(recommendationData.level, item)}
-                        disabled={loading}
-                      >
-                        {recommendationData.level === "country" ? "Explore anyway" : "Plan a trip here"}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            )}
-            {error && <p className="recommendations-error">{error}</p>}
-          </section>
-        )}
-
-        {stage === "landmarks" && (
-          <section className="recommendations-results">
-            <div className="results-heading">
-              <div>
-                <p className="recommendations-eyebrow"><Sparkles size={15} /> place recommendations</p>
-                <h2>Things to do in {selectedCity?.name}</h2>
-                <p>Pick a few to add straight into your new trip&apos;s itinerary.</p>
-              </div>
-              <button type="button" className="secondary-button" onClick={goBackFromLandmarks} disabled={loading}>
-                <ChevronLeft size={17} /> Not this city
-              </button>
-            </div>
-            <div className="landmark-toolbar">
-              <label className="landmark-search">
-                <Search size={15} />
-                <input
-                  type="text"
-                  placeholder="Filter by name or area..."
-                  value={landmarkFilter}
-                  onChange={(event) => setLandmarkFilter(event.target.value)}
-                />
-              </label>
-              <button type="button" className="secondary-button" onClick={autoPickLandmarks}>
-                <Wand2 size={15} /> Pick top matches for me
-              </button>
-            </div>
-            {landmarksData?.groups.map((group) => {
-              const query = landmarkFilter.trim().toLowerCase();
-              // Filter by text but keep each landmark's original index (the
-              // selection key) stable, so hiding non-matching rows never
-              // shifts which checkbox represents which landmark.
-              const visible = group.landmarks
-                .map((landmark, index) => ({ landmark, index }))
-                .filter(
-                  ({ landmark }) =>
-                    !query ||
-                    landmark.name.toLowerCase().includes(query) ||
-                    landmark.address?.toLowerCase().includes(query)
-                );
-              return (
-                <div key={group.interest} className="landmark-group">
-                  <h4 className="interest-group-label">{formatDimension(group.interest)}</h4>
-                  <p className="wizard-help">{group.explanation}</p>
-                  {group.landmarks.length === 0 ? (
-                    <p className="wizard-help">No {formatDimension(group.interest)} spots found nearby.</p>
-                  ) : visible.length === 0 ? (
-                    <p className="wizard-help">No matches for &quot;{landmarkFilter}&quot; in this group.</p>
-                  ) : (
-                    <div className="landmark-list">
-                      {visible.map(({ landmark, index }) => {
-                        // Keyed by position, not name - Geoapify sometimes
-                        // returns several distinct places sharing the same
-                        // display name (e.g. a city label repeated for
-                        // several POIs geocoded to its center), and a
-                        // name-based key collapsed all of them onto one
-                        // checkbox state, so checking one appeared to check
-                        // every same-named entry.
-                        const key = `${group.interest}|${index}`;
-                        const checked = selectedLandmarks.has(key);
-                        // Coordinates, not name/address text - several distinct
-                        // POIs can share the same geocoded label (see the
-                        // duplicate-looking "Manila, 1000 Metro Manila..."
-                        // rows), so only a pin at the real lat/lon actually
-                        // tells them apart.
-                        const mapUrl =
-                          Number.isFinite(landmark.lat) && Number.isFinite(landmark.lon)
-                            ? `https://www.google.com/maps/search/?api=1&query=${landmark.lat},${landmark.lon}`
-                            : null;
-                        return (
-                          <label key={key} className={`landmark-item ${checked ? "selected" : ""}`}>
-                            <input type="checkbox" checked={checked} onChange={() => toggleLandmark(key)} />
-                            <span>
-                              <strong>{landmark.name}</strong>
-                              {landmark.address && <small>{landmark.address}</small>}
-                              {landmark.opening_hours && <small>Hours: {landmark.opening_hours}</small>}
-                            </span>
-                            {mapUrl && (
-                              <a
-                                className="landmark-item-map"
-                                href={mapUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                onClick={(event) => event.stopPropagation()}
-                                title="View this exact spot on the map"
-                                aria-label={`View ${landmark.name} on the map`}
-                              >
-                                <MapPin size={14} />
-                              </a>
-                            )}
-                          </label>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-            {error && <p className="recommendations-error">{error}</p>}
-            <div className="wizard-actions">
-              <button type="button" className="recommendations-submit" onClick={buildItinerary} disabled={loading}>
-                Build my itinerary <ArrowRight size={17} />
-              </button>
-            </div>
-          </section>
-        )}
-
-        {stage === "itinerary" && (
-          <section className="recommendations-results">
-            <div className="results-heading">
-              <div>
-                <p className="recommendations-eyebrow"><Sparkles size={15} /> your itinerary</p>
-                <h2>Your day-by-day plan for {selectedCity?.name}</h2>
-                <p>
-                  {form.startDate && form.endDate
-                    ? "Drag a stop to reorder it or move it to another day."
-                    : `No trip dates were set, so this is a sample ${DEFAULT_TRIP_DAYS}-day plan - drag to reorder or move stops between days.`}
-                </p>
-              </div>
-              <div className="results-heading-actions">
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={undoItineraryEdit}
-                  disabled={itineraryHistory.length === 0}
-                  title={itineraryHistory.length === 0 ? "No edits to undo" : "Undo the last change"}
-                >
-                  <Undo2 size={16} /> Undo
-                </button>
-                <button type="button" className="secondary-button" onClick={() => setStage("landmarks")} disabled={loading}>
-                  <ChevronLeft size={17} /> Back to picks
-                </button>
-              </div>
-            </div>
-
-            <ItineraryMap itineraryDays={itineraryDays} />
-
-            <div className="itinerary-days">
-              {itineraryDays.map((day, dayIndex) => (
-                <div
-                  key={day.dayNumber}
-                  className="itinerary-day"
-                  onDragOver={(event) => event.preventDefault()}
-                  onDrop={() => {
-                    if (dragStop) moveStop(dragStop, { dayIndex, stopIndex: day.stops.length });
-                    setDragStop(null);
-                  }}
-                >
-                  <div className="itinerary-day-header">
-                    <h4 className="interest-group-label">
-                      Day {day.dayNumber}
-                      {isDayOverloaded(day.stops) && (
-                        <span className="itinerary-day-warning" title="This day runs past a reasonable evening hour - consider moving a stop elsewhere.">
-                          <AlertTriangle size={12} /> runs late
-                        </span>
-                      )}
-                    </h4>
-                    <button
-                      type="button"
-                      className="itinerary-day-remove"
-                      onClick={() => removeDay(dayIndex)}
-                      disabled={day.stops.length > 0 || itineraryDays.length <= 1}
-                      title={day.stops.length > 0 ? "Remove this day's stops first" : "Remove this day"}
-                      aria-label={`Remove Day ${day.dayNumber}`}
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                  {day.stops.length === 0 && <p className="wizard-help">No stops - drag one here.</p>}
-                  {day.stops.map((stop, stopIndex) => {
-                    const closed = isLikelyClosed(stop.landmark, stop.startTime);
-                    return (
-                      <div
-                        key={`${stop.landmark.name}-${stopIndex}`}
-                        className="itinerary-stop"
-                        draggable
-                        onDragStart={() => setDragStop({ dayIndex, stopIndex })}
-                        onDragOver={(event) => event.preventDefault()}
-                        onDrop={(event) => {
-                          event.stopPropagation();
-                          if (dragStop) moveStop(dragStop, { dayIndex, stopIndex });
-                          setDragStop(null);
-                        }}
-                      >
-                        <span className="itinerary-stop-time">{stop.startTime}</span>
-                        <span className="itinerary-stop-name">
-                          {stop.landmark.name}
-                          {closed && (
-                            <span className="itinerary-stop-warning" title={`Likely closed at ${stop.startTime} (hours: ${stop.landmark.opening_hours})`}>
-                              <AlertTriangle size={12} /> may be closed
-                            </span>
-                          )}
-                        </span>
-                        <button
-                          type="button"
-                          className="itinerary-stop-remove"
-                          onClick={() => removeStop(dayIndex, stopIndex)}
-                          aria-label={`Remove ${stop.landmark.name}`}
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-              <button type="button" className="itinerary-add-day" onClick={addDay}>
-                <Plus size={16} /> Add a day
-              </button>
-            </div>
-
-            {error && <p className="recommendations-error">{error}</p>}
-            <div className="wizard-actions">
-              <button type="button" className="recommendations-submit" onClick={saveItinerary} disabled={loading}>
-                {loading ? <><LoaderCircle className="recommendations-spinner" size={18} /> Saving...</> : <>Save itinerary <ArrowRight size={17} /></>}
-              </button>
-            </div>
-          </section>
-        )}
-
-        {stage === "done" && (
-          <section className="recommendations-results">
-            <p className="recommendations-eyebrow"><Check size={15} /> Trip created</p>
-            <h2>Your trip to {selectedCity?.name} is ready.</h2>
-            <p className="wizard-help">
-              We saved {itineraryDays.reduce((sum, day) => sum + day.stops.length, 0)} stop{itineraryDays.reduce((sum, day) => sum + day.stops.length, 0) === 1 ? "" : "s"} across {itineraryDays.length} day{itineraryDays.length === 1 ? "" : "s"}.
-            </p>
-            <div className="wizard-actions">
-              <Link to="/dashboard" className="secondary-button">Back to dashboard</Link>
-              {trip?.id && (
-                <Link to={`/trips/${trip.id}`} className="recommendations-submit">View itinerary <ArrowRight size={17} /></Link>
-              )}
-            </div>
-          </section>
-        )}
-      </div>
-    </main>
+      {stage === "done" && <TripDone cityName={selectedCity?.name} tripId={trip?.id} days={itineraryDays} />}
+    </PageShell>
   );
 }

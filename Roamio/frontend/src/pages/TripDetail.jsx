@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, CalendarDays, LoaderCircle, MapPin, Plane, Printer, Sparkles, Trash2, X } from "lucide-react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { CalendarDays, LoaderCircle, MapPin, Printer, Sparkles, Trash2, X } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+
+import PageShell from "../components/recommendations/PageShell.jsx";
 
 import { fetchTrip, deleteTrip, removeItineraryItem } from "../api/trips.js";
 import { groupItineraryByDay } from "../utils/itineraryPlanner.js";
-import "../styles/recommendations.css";
 import "../styles/trips.css";
 
 function formatDate(iso) {
@@ -56,40 +57,30 @@ export default function TripDetail() {
     }
   };
 
-  return (
-    <main className="recommendations-page">
-      <header className="recommendations-header print-hide">
-        <Link to="/trips" className="recommendations-back-link">
-          <ArrowLeft size={17} /> Back to your trips
-        </Link>
-        <div className="recommendations-brand">
-          <span><Plane size={18} /></span> Roamio
-        </div>
-      </header>
+  const hero = trip ? (
+    <>
+      <p className="recommendations-eyebrow"><Sparkles size={15} /> Trip itinerary</p>
+      <h1>{trip.title}</h1>
+      <p>
+        <MapPin size={14} /> {trip.destination || "Destination not set"}
+        {trip.startDate && (
+          <>
+            {" "}· <CalendarDays size={14} /> {formatDate(trip.startDate)}
+            {trip.endDate ? ` → ${formatDate(trip.endDate)}` : ""}
+          </>
+        )}
+      </p>
+    </>
+  ) : null;
 
-      <div className="recommendations-content">
+  return (
+    <PageShell backTo="/trips" backLabel="Back to your trips" hero={hero}>
         {loading ? (
           <p className="wizard-help"><LoaderCircle className="recommendations-spinner" size={16} /> Loading trip...</p>
         ) : error && !trip ? (
           <p className="recommendations-error">{error}</p>
         ) : trip ? (
           <>
-            <section className="recommendations-intro">
-              <p className="recommendations-eyebrow">
-                <Sparkles size={15} /> Trip itinerary
-              </p>
-              <h1>{trip.title}</h1>
-              <p>
-                <MapPin size={14} /> {trip.destination || "Destination not set"}
-                {trip.startDate && (
-                  <>
-                    {" "}· <CalendarDays size={14} /> {formatDate(trip.startDate)}
-                    {trip.endDate ? ` → ${formatDate(trip.endDate)}` : ""}
-                  </>
-                )}
-              </p>
-            </section>
-
             <section className="recommendations-results">
               <div className="results-heading">
                 <div>
@@ -122,12 +113,12 @@ export default function TripDetail() {
                   <p>Landmarks you add to this trip&apos;s itinerary will show up here, grouped by day.</p>
                 </div>
               ) : (
-                <div className="itinerary-days">
+                <div className="itinerary-days itinerary-days-stacked">
                   {dayGroups.map((group) => (
                     <div key={group.dayNumber ?? "unscheduled"} className="itinerary-day">
-                      <h4 className="interest-group-label">
-                        {group.dayNumber ? `Day ${group.dayNumber}` : "Unscheduled"}
-                      </h4>
+                      <div className="itinerary-day-header">
+                        <h4>{group.dayNumber ? `Day ${group.dayNumber}` : "Unscheduled"}</h4>
+                      </div>
                       {group.items.map((item) => (
                         <div key={item.id} className="itinerary-stop">
                           {item.startTime && <span className="itinerary-stop-time">{item.startTime}</span>}
@@ -153,7 +144,6 @@ export default function TripDetail() {
             </section>
           </>
         ) : null}
-      </div>
-    </main>
+    </PageShell>
   );
 }
