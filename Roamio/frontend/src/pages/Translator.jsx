@@ -16,7 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import "../styles/translator.css";
+import "../styles/Translator.css";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";

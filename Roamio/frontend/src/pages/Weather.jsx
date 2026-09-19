@@ -20,7 +20,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { fetchWeather as fetchWeatherFromApi } from "../api/weather";
-import "../styles/weather.css";
+import "../styles/Weather.css";
 
 // =========================================================
 // API
