@@ -12,6 +12,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "https://roamiio.live",
+        "https://www.roamiio.live",
     ],
     allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,

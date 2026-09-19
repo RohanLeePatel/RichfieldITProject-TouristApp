@@ -18,11 +18,10 @@ import {
 import { Link } from "react-router-dom";
 import "../styles/Translator.css";
 
+// OCR goes through the Node backend's proxy (routes/translation.js), which adds
+// the node-secretkey server side - nothing secret in the browser bundle.
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
-
-const API_SECRET_KEY =
-  import.meta.env.VITE_TRANSLATION_SECRET_KEY || "";
+  import.meta.env.VITE_BACKEND_API_URL || "http://127.0.0.1:3000";
 
 const LANGUAGES = [
   { code: "AR", name: "Arabic" },
@@ -279,20 +278,13 @@ function Translator() {
       formData.append("image", selectedFile);
       formData.append("target_lang", targetLanguage);
 
-      const headers = {};
-
-      if (API_SECRET_KEY.trim()) {
-        headers["node-secretkey"] = API_SECRET_KEY.trim();
-      }
-
       const apiUrl =
-        API_BASE_URL.replace(/\/$/, "") + "/ocr";
+        API_BASE_URL.replace(/\/$/, "") + "/api/translate/ocr";
 
       console.log("Translation API:", apiUrl);
 
       const response = await fetch(apiUrl, {
         method: "POST",
-        headers,
         body: formData,
       });
 

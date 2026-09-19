@@ -1,4 +1,5 @@
 const express = require('express');
+const { randomUUID } = require('node:crypto');
 const router = express.Router();
 const authenticateToken = require('../middleware/authMiddleware');
 
@@ -6,24 +7,37 @@ const authenticateToken = require('../middleware/authMiddleware');
 const prisma = require('../db');
 const validate = require('../middleware/validate');
 const { createTripSchema, createItinerarySchema } = require('../schemas');
+const { packMeta, unpackMeta, itemStartDate, formatItem, formatTrip, accessibleTrips } = require('./tripFormat');
 
-// TODO(db): every query below assumes Trip has a direct `userId`, `destination`,
-// `budget`, `notes` and that ItineraryItem has `cost`/`notes` and an optional
-// `startTime`. The live Supabase DB (introspected 2026-09-16) has neither -
-// Trip only has `travelGroupId` (ownership goes through TravelGroup ->
-// TravelGroupMember/TripMember), no destination/budget/notes columns, and
-// ItineraryItem.startTime is NOT NULL with no cost/notes columns. Whoever
-// owns the DB needs to either:
-//   (a) add destination/budget/notes back to Trip and cost/notes to
-//       ItineraryItem (additive, doesn't touch their TravelGroup model), or
-//   (b) confirm trips should route through TripDestination/Destination
-//       instead, in which case these routes need a bigger rewrite.
-// Either way, every `where: { userId: req.user.userId }` on Trip below needs
-// to become a TravelGroupMember/TripMember membership check once the schema
-// question is settled.
+// Written against the LIVE Supabase schema (see prisma/schema.prisma): trips
+// belong to a TravelGroup, users reach them through TripMember/TravelGroupMember,
+// there is no destination/budget column (kept as JSON in Trip.description -
+// see tripFormat.js), and deletes are soft (deletedAt).
+// TODO(db): ItineraryItem has no cost column, so per-item cost is not stored;
+// the budget endpoint sums the Expense table instead.
 
-// Protect all routes in this file with JWT middleware
 router.use(authenticateToken);
+
+// Every trip needs a TravelGroup. Solo users get a personal one, created the
+// first time they make a trip (existing accounts have none).
+async function personalGroupId(userId) {
+  const membership = await prisma.travelGroupMember.findFirst({ where: { userId }, orderBy: { id: 'asc' } });
+  if (membership) return membership.travelGroupId;
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const group = await prisma.travelGroup.create({
+    data: {
+      name: `${user?.fullName || 'My'} trips`,
+      members: { create: { userId, role: 'OWNER' } },
+    },
+  });
+  return group.id;
+}
+
+const parseId = (value) => {
+  const id = parseInt(value, 10);
+  return Number.isNaN(id) ? null : id;
+};
 
 // ==========================================
 // TRIP ENDPOINTS
@@ -33,22 +47,22 @@ router.use(authenticateToken);
 router.post('/', validate(createTripSchema), async (req, res) => {
   try {
     const { title, destination, startDate, endDate, budget, notes } = req.body;
+    const userId = req.user.userId;
 
     const newTrip = await prisma.trip.create({
       data: {
         title,
-        destination,
+        description: packMeta({ destination, budget, notes }),
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,
-        budget,
-        notes,
-        userId: req.user.userId,
+        travelGroupId: await personalGroupId(userId),
+        members: { create: { userId, role: 'OWNER' } },
       },
     });
 
     res.status(201).json({
       message: 'Trip created successfully!',
-      trip: newTrip,
+      trip: formatTrip(newTrip),
     });
   } catch (error) {
     console.error('Error creating trip:', error);
@@ -60,16 +74,12 @@ router.post('/', validate(createTripSchema), async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const userTrips = await prisma.trip.findMany({
-      where: { userId: req.user.userId },
-      include: {
-        _count: {
-          select: { itinerary: true },
-        },
-      },
+      where: accessibleTrips(req.user.userId),
+      include: { _count: { select: { itinerary: true } } },
       orderBy: { createdAt: 'desc' },
     });
 
-    res.json({ trips: userTrips });
+    res.json({ trips: userTrips.map(formatTrip) });
   } catch (error) {
     console.error('Error fetching trips:', error);
     res.status(500).json({ message: 'Internal server error.' });
@@ -79,50 +89,37 @@ router.get('/', async (req, res) => {
 // GET /api/trips/:id - Fetch a single trip AND its itinerary items
 router.get('/:id', async (req, res) => {
   try {
-    const tripId = parseInt(req.params.id);
+    const tripId = parseId(req.params.id);
+    if (tripId === null) return res.status(400).json({ message: 'Invalid trip ID.' });
 
     const trip = await prisma.trip.findFirst({
-      where: {
-        id: tripId,
-        userId: req.user.userId,
-      },
-      include: {
-        itinerary: {
-          orderBy: [{ dayNumber: 'asc' }, { createdAt: 'asc' }],
-        },
-      },
+      where: accessibleTrips(req.user.userId, { id: tripId }),
+      include: { itinerary: { orderBy: [{ dayNumber: 'asc' }, { startTime: 'asc' }] } },
     });
 
     if (!trip) {
       return res.status(404).json({ message: 'Trip not found.' });
     }
 
-    res.json({ trip });
+    res.json({ trip: formatTrip(trip) });
   } catch (error) {
     console.error('Error fetching single trip:', error);
     res.status(500).json({ message: 'Internal server error.' });
   }
 });
 
-// DELETE /api/trips/:id - Delete a trip
+// DELETE /api/trips/:id - Delete (soft) a trip
 router.delete('/:id', async (req, res) => {
   try {
-    const tripId = parseInt(req.params.id);
+    const tripId = parseId(req.params.id);
+    if (tripId === null) return res.status(400).json({ message: 'Invalid trip ID.' });
 
-    const trip = await prisma.trip.findFirst({
-      where: {
-        id: tripId,
-        userId: req.user.userId,
-      },
-    });
-
+    const trip = await prisma.trip.findFirst({ where: accessibleTrips(req.user.userId, { id: tripId }) });
     if (!trip) {
       return res.status(404).json({ message: 'Trip not found or unauthorized.' });
     }
 
-    await prisma.trip.delete({
-      where: { id: tripId },
-    });
+    await prisma.trip.update({ where: { id: tripId }, data: { deletedAt: new Date() } });
 
     res.json({ message: 'Trip deleted successfully!' });
   } catch (error) {
@@ -131,45 +128,25 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// GET /api/trips/:id/budget - Calculate trip budget, total expenses, and remaining funds
+// GET /api/trips/:id/budget - Trip budget vs. logged expenses
 router.get('/:id/budget', async (req, res) => {
   try {
-    const tripId = parseInt(req.params.id);
+    const tripId = parseId(req.params.id);
+    if (tripId === null) return res.status(400).json({ message: 'Invalid trip ID.' });
 
-    if (isNaN(tripId)) {
-      return res.status(400).json({ message: 'Invalid trip ID.' });
-    }
-
-    // Fetch the trip and its associated itinerary item costs
     const trip = await prisma.trip.findFirst({
-      where: {
-        id: tripId,
-        userId: req.user.userId,
-      },
-      select: {
-        id: true,
-        title: true,
-        budget: true,
-        itinerary: {
-          select: {
-            id: true,
-            title: true,
-            cost: true,
-          },
-        },
-      },
+      where: accessibleTrips(req.user.userId, { id: tripId }),
+      include: { expenses: { select: { id: true, title: true, amount: true, category: true } } },
     });
 
     if (!trip) {
       return res.status(404).json({ message: 'Trip not found or unauthorized.' });
     }
 
-    // Aggregate costs
-    const totalBudget = trip.budget || 0;
-    const totalExpenses = trip.itinerary.reduce((sum, item) => sum + (item.cost || 0), 0);
+    const totalBudget = unpackMeta(trip.description).budget || 0;
+    const totalExpenses = trip.expenses.reduce((sum, item) => sum + item.amount, 0);
     const remainingBudget = totalBudget - totalExpenses;
 
-    // Determine status
     let status = 'ON_TRACK';
     if (totalBudget > 0 && totalExpenses > totalBudget) {
       status = 'OVER_BUDGET';
@@ -180,14 +157,8 @@ router.get('/:id/budget', async (req, res) => {
     res.json({
       tripId: trip.id,
       title: trip.title,
-      summary: {
-        totalBudget,
-        totalExpenses,
-        remainingBudget,
-        status,
-        itemCount: trip.itinerary.length,
-      },
-      expenseBreakdown: trip.itinerary,
+      summary: { totalBudget, totalExpenses, remainingBudget, status, itemCount: trip.expenses.length },
+      expenseBreakdown: trip.expenses,
     });
   } catch (error) {
     console.error('Error calculating budget:', error);
@@ -202,40 +173,31 @@ router.get('/:id/budget', async (req, res) => {
 // POST /api/trips/:tripId/itinerary - Add an itinerary item (validated with Zod)
 router.post('/:tripId/itinerary', validate(createItinerarySchema), async (req, res) => {
   try {
-    const tripId = parseInt(req.params.tripId);
-    const { title, location, dayNumber, startTime, cost, notes } = req.body;
+    const tripId = parseId(req.params.tripId);
+    if (tripId === null) return res.status(400).json({ message: 'Invalid trip ID parameter.' });
 
-    if (isNaN(tripId)) {
-      return res.status(400).json({ message: 'Invalid trip ID parameter.' });
-    }
+    const { title, location, dayNumber, startTime, notes } = req.body;
 
-    // Verify trip exists and belongs to the logged-in user
-    const trip = await prisma.trip.findFirst({
-      where: {
-        id: tripId,
-        userId: req.user.userId,
-      },
-    });
-
+    const trip = await prisma.trip.findFirst({ where: accessibleTrips(req.user.userId, { id: tripId }) });
     if (!trip) {
       return res.status(404).json({ message: 'Trip not found or unauthorized.' });
     }
 
     const newItem = await prisma.itineraryItem.create({
       data: {
+        id: randomUUID(),
+        tripId,
         title,
         location,
-        dayNumber,
-        startTime,
-        cost,
-        notes,
-        tripId,
+        description: notes,
+        dayNumber: dayNumber || 1,
+        startTime: itemStartDate(trip.startDate, dayNumber, startTime),
       },
     });
 
     res.status(201).json({
       message: 'Itinerary item added successfully!',
-      item: newItem,
+      item: formatItem(newItem),
     });
   } catch (error) {
     console.error('Error adding itinerary item:', error);
@@ -246,23 +208,19 @@ router.post('/:tripId/itinerary', validate(createItinerarySchema), async (req, r
 // DELETE /api/trips/:tripId/itinerary/:itemId - Delete an itinerary item
 router.delete('/:tripId/itinerary/:itemId', async (req, res) => {
   try {
-    const tripId = parseInt(req.params.tripId);
-    const itemId = parseInt(req.params.itemId);
+    const tripId = parseId(req.params.tripId);
+    if (tripId === null) return res.status(400).json({ message: 'Invalid trip ID parameter.' });
 
-    const trip = await prisma.trip.findFirst({
-      where: {
-        id: tripId,
-        userId: req.user.userId,
-      },
-    });
-
+    const trip = await prisma.trip.findFirst({ where: accessibleTrips(req.user.userId, { id: tripId }) });
     if (!trip) {
       return res.status(404).json({ message: 'Trip not found or unauthorized.' });
     }
 
-    await prisma.itineraryItem.delete({
-      where: { id: itemId },
-    });
+    // scoped to this trip so one trip's id can't delete another trip's item
+    const { count } = await prisma.itineraryItem.deleteMany({ where: { id: req.params.itemId, tripId } });
+    if (count === 0) {
+      return res.status(404).json({ message: 'Itinerary item not found.' });
+    }
 
     res.json({ message: 'Itinerary item deleted successfully!' });
   } catch (error) {

@@ -4,9 +4,20 @@ import { TOKEN_KEY } from "../api/client";
 
 const USER_KEY = "user";
 
+// Restore the session on page load/refresh - without this the store always
+// started logged-out, so every refresh bounced you back to /login.
+function savedSession() {
+  try {
+    const user = JSON.parse(localStorage.getItem(USER_KEY));
+    if (user && localStorage.getItem(TOKEN_KEY)) return { user, isAuthenticated: true };
+  } catch {
+    // corrupt/blocked storage - fall through to logged out
+  }
+  return { user: null, isAuthenticated: false };
+}
+
 export const useAuthStore = create((set) => ({
-  user: null,
-  isAuthenticated: false,
+  ...savedSession(),
 
   login: (userData, token) => {
     localStorage.setItem(

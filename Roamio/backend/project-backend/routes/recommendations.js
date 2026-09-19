@@ -75,4 +75,35 @@ router.get('/catalog', async (req, res) => {
   }
 });
 
+// Landmarks: same proxy pattern as the catalog above, so the browser never
+// needs the node-secretkey. Query string is forwarded as-is.
+router.get('/landmarks', async (req, res) => {
+  const nodeSecretKey = process.env.superSecretKey;
+
+  if (!nodeSecretKey) {
+    return res.status(500).json({
+      message: 'Recommendation service authentication is not configured.',
+    });
+  }
+
+  try {
+    const query = new URLSearchParams(req.query).toString();
+    const response = await fetch(`${aiFeaturesUrl}/landmarks?${query}`, {
+      headers: { 'node-secretkey': nodeSecretKey },
+    });
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        message: data?.detail || 'Landmarks are unavailable.',
+      });
+    }
+
+    return res.json(data);
+  } catch (error) {
+    console.error('Landmarks proxy error:', error);
+    return res.status(502).json({ message: 'Could not connect to the landmarks service.' });
+  }
+});
+
 module.exports = router;

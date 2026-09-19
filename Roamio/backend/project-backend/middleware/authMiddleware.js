@@ -12,8 +12,12 @@ function authenticateToken(req, res, next) {
     return res.status(401).json({ message: 'Access denied. No token provided.' });
   }
 
+  if (!process.env.JWT_SECRET) {
+    return res.status(500).json({ message: 'Server auth is not configured.' });
+  }
+
   // 2. Verify the token using your secret key
-  jwt.verify(token, process.env.JWT_SECRET || 'your_fallback_secret_key', (err, decodedUser) => {
+  jwt.verify(token, process.env.JWT_SECRET, (err, decodedUser) => {
     if (err) {
       return res.status(403).json({ message: 'Invalid or expired token.' });
     }

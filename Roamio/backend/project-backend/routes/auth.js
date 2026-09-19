@@ -8,13 +8,8 @@ const prisma = require('../db');
 const validate = require('../middleware/validate');
 const { registerSchema, loginSchema } = require('../schemas');
 
-// TODO(db): the live Supabase DB already has a schema built against this repo's
-// prisma/schema.prisma but out of sync with it - `User.password` here is
-// `User.passwordHash` there, plus extra required/relation fields (fullName,
-// isActive, updatedAt, TravelGroup membership, etc). This file (and
-// routes/trips.js) needs updating to match whichever schema is authoritative
-// before DATABASE_URL is wired up for real. See routes/trips.js for the
-// bigger mismatch (Trip has no direct userId/destination/budget there).
+// Written against the LIVE Supabase schema: the hash lives in User.passwordHash,
+// and soft-deleted/inactive accounts can't log in.
 
 // POST /api/auth/register
 router.post('/register', validate(registerSchema), async (req, res) => {
@@ -37,7 +32,7 @@ router.post('/register', validate(registerSchema), async (req, res) => {
     const newUser = await prisma.user.create({
       data: {
         email,
-        password: hashedPassword,
+        passwordHash: hashedPassword,
         fullName,
       },
     });
@@ -92,22 +87,26 @@ router.post('/login', validate(loginSchema), async (req, res) => {
       where: { email },
     });
 
-    if (!user) {
+    if (!user || !user.isActive || user.deletedAt) {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }
 
     // Compare password hash
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isPasswordValid) {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }
 
-    // Generate JWT Token
+    // No fallback secret: a guessable default would let anyone forge tokens.
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not set');
+      return res.status(500).json({ message: 'Server auth is not configured.' });
+    }
     const token = jwt.sign(
       { userId: user.id, email: user.email },
-      process.env.JWT_SECRET || 'your_fallback_secret_key',
-      { expiresIn: '1h' }
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
     );
 
     res.json({

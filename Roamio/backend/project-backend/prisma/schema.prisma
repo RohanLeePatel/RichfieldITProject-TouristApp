@@ -1,3 +1,9 @@
+// Mirrors the LIVE Supabase database (verified against information_schema on
+// 2026-09-19) - the live DB is the source of truth. Only the tables this API
+// uses are modelled; the rest (Destination, City, Notification, ...) exist in
+// the DB and are simply not mapped here. Do NOT run `prisma migrate` against
+// it: the files in prisma/migrations describe an older, different schema.
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,43 +13,98 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  fullName  String
-  createdAt DateTime @default(now())
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
+  passwordHash String
+  fullName     String
+  avatarUrl    String?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
 
-  trips     Trip[]
+  groupMemberships TravelGroupMember[]
+  tripMemberships  TripMember[]
+}
+
+model TravelGroup {
+  id         Int       @id @default(autoincrement())
+  name       String
+  description String?
+  inviteCode String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  members TravelGroupMember[]
+  trips   Trip[]
+}
+
+model TravelGroupMember {
+  id            Int      @id @default(autoincrement())
+  travelGroupId Int
+  userId        Int
+  role          String   @default("MEMBER")
+  joinedAt      DateTime @default(now())
+
+  travelGroup TravelGroup @relation(fields: [travelGroupId], references: [id])
+  user        User        @relation(fields: [userId], references: [id])
 }
 
 model Trip {
-  id          Int             @id @default(autoincrement())
-  title       String
-  destination String
-  startDate   DateTime?
-  endDate     DateTime?
-  budget      Float?
-  notes       String?
-  createdAt   DateTime        @default(now())
+  id            Int       @id @default(autoincrement())
+  travelGroupId Int
+  title         String
+  // The live Trip has no destination/budget/notes columns, so this API keeps
+  // them as JSON in `description` (see routes/trips.js tripMeta helpers).
+  description   String?
+  startDate     DateTime?
+  endDate       DateTime?
+  status        String    @default("PLANNING")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
 
-  userId      Int
-  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Relation: One trip can have many itinerary items
+  travelGroup TravelGroup    @relation(fields: [travelGroupId], references: [id])
+  members     TripMember[]
   itinerary   ItineraryItem[]
+  expenses    Expense[]
+}
+
+model TripMember {
+  id       Int      @id @default(autoincrement())
+  tripId   Int
+  userId   Int
+  role     String   @default("COLLABORATOR")
+  joinedAt DateTime @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 }
 
 model ItineraryItem {
-  id          Int       @id @default(autoincrement())
-  title       String    // e.g., "Hike Up Table Mountain"
-  location    String?   // e.g., "Kirstenbosch Gate"
-  dayNumber   Int?      // e.g., Day 1, Day 2
-  startTime   String?   // e.g., "09:00 AM"
-  cost        Float?    // e.g., 350.00
-  notes       String?
-  createdAt   DateTime  @default(now())
-
-  // Foreign Key linking back to Trip
+  id          String    @id
   tripId      Int
-  trip        Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  location    String?
+  startTime   DateTime
+  endTime     DateTime?
+  dayNumber   Int?      @default(1)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  trip Trip @relation(fields: [tripId], references: [id])
+}
+
+model Expense {
+  id        String   @id
+  tripId    Int
+  title     String
+  amount    Float
+  category  String
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id])
 }

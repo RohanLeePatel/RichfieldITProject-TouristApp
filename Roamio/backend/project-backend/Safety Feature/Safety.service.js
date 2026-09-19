@@ -1,0 +1,68 @@
+const prisma = require('../config/prisma.js');
+const { fetchCountrySafetyRating } = require('../SafetyFeature.js');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY);
+
+/**
+ * Retrieves cached safety data or generates new safety scores via RSS + AI.
+ * Parameter order aligned to: (cityName, cityID, countryName)
+ */
+async function getCitySafetyData(cityName, cityID, countryName) {
+    const cachedProfile = await prisma.citySafetyProfile.findUnique({
+        where: { cityID }
+    });
+
+    const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+    if (cachedProfile && (Date.now() - new Date(cachedProfile.updatedAt).getTime() < TWENTY_FOUR_HOURS)) {
+        return cachedProfile;
+    }
+
+    const macroData = await fetchCountrySafetyRating(countryName);
+
+    let aiInsights = { unsafeAreas: [], safeTransit: [], scams: [] };
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const prompt = `Provide local safety information for ${cityName}, ${countryName} in valid JSON format with keys:
+    "unsafeAreas": [list of high-risk neighborhoods to avoid after dark],
+    "safeTransit": [advice on safe ways to get around],
+    "scams": [list of common tourist scams]. Response must strictly be pure JSON.`;
+
+        const result = await model.generateContent(prompt);
+        const textResponse = result.response.text().replace(/```json|```/g, '').trim();
+        aiInsights = JSON.parse(textResponse);
+    } catch (error) {
+        console.error('Error fetching AI insight:', error);
+
+        aiInsights = {
+            unsafeAreas: ["Exercise general vigilance in poorly lit areas at night."],
+            safeTransit: ["Use reputable taxi services or rideshare apps."],
+            scams: ["Be cautious of street vendors and unsolicited offers."]
+        };
+    }
+
+    const newProfile = await prisma.citySafetyProfile.upsert({
+        where: { cityID },
+        update: {
+            macroScore: macroData.score,
+            threatLevel: macroData.threatLevel,
+            unsafeAreas: aiInsights.unsafeAreas,
+            safeTransit: aiInsights.safeTransit,
+            scams: aiInsights.scams,
+            updatedAt: new Date()
+        },
+        create: {
+            cityID,
+            countryCode: countryName,
+            macroScore: macroData.score,
+            threatLevel: macroData.threatLevel,
+            unsafeAreas: aiInsights.unsafeAreas,
+            safeTransit: aiInsights.safeTransit,
+            scams: aiInsights.scams
+        }
+    });
+
+    return newProfile;
+}
+
+module.exports = { getCitySafetyData };

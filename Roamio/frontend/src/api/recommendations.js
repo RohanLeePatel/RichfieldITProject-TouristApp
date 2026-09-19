@@ -1,14 +1,8 @@
-// /recommendations and /recommendations/catalog go through the Node backend's
-// proxy (routes/recommendations.js), which injects the node-secretkey server
-// side - see server.js `app.use('/api/recommendations', ...)`. /landmarks has
-// no such proxy yet, so it's called directly against the FastAPI service,
-// same pattern as api/weather.js and Translator.jsx's OCR call.
+// Everything here goes through the Node backend's proxy
+// (routes/recommendations.js), which injects the node-secretkey server side, so
+// no secret ever ships in the browser bundle.
 const NODE_API_BASE_URL =
   import.meta.env.VITE_BACKEND_API_URL || "http://127.0.0.1:3000";
-const AI_API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
-const API_SECRET_KEY =
-  import.meta.env.VITE_TRANSLATION_SECRET_KEY || "";
 
 const SESSION_ID_KEY = "roamio_recommendation_session_id";
 
@@ -93,14 +87,8 @@ export async function fetchLandmarks(destination, interests, radiusM = 5000) {
     radius_m: radiusM,
   });
 
-  const headers = {};
-  if (API_SECRET_KEY.trim()) {
-    headers["node-secretkey"] = API_SECRET_KEY.trim();
-  }
-
   const response = await fetch(
-    `${AI_API_BASE_URL.replace(/\/$/, "")}/landmarks?${params.toString()}`,
-    { headers }
+    `${NODE_API_BASE_URL.replace(/\/$/, "")}/api/recommendations/landmarks?${params.toString()}`
   );
 
   const data = await readJsonResponse(
