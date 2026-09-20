@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowLeftRight,
@@ -41,6 +41,43 @@ const canSpeak =
 // the node-secretkey server side - nothing secret in the browser bundle.
 const API_BASE_URL =
   import.meta.env.VITE_BACKEND_API_URL || "http://127.0.0.1:3000";
+
+// One translated line drawn over the photo. Boxes are sized from the original
+// text, so a longer translation is shrunk (down to ~45%) until it fits between
+// its left edge and the photo's right edge, then wraps if it still doesn't.
+function OverlayLine({ line, size }) {
+  const ref = useRef(null);
+  const base = (line.height / size.width) * 58; // cqw
+  const maxWidth = ((size.width - line.left) / size.width) * 100;
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    let scale = 1;
+    el.style.whiteSpace = "nowrap";
+    el.style.fontSize = `${base}cqw`;
+    while (el.scrollWidth > el.clientWidth + 1 && scale > 0.45) {
+      scale *= 0.92;
+      el.style.fontSize = `${base * scale}cqw`;
+    }
+    if (el.scrollWidth > el.clientWidth + 1) el.style.whiteSpace = "normal";
+  }, [line.translation, base, maxWidth]);
+
+  return (
+    <span
+      ref={ref}
+      className="overlay-line"
+      style={{
+        left: `${(line.left / size.width) * 100}%`,
+        top: `${(line.top / size.height) * 100}%`,
+        minWidth: `${Math.min((line.width / size.width) * 100, maxWidth)}%`,
+        maxWidth: `${maxWidth}%`,
+        minHeight: `${(line.height / size.height) * 100}%`,
+      }}
+    >
+      {line.translation}
+    </span>
+  );
+}
 
 function Translator() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -924,19 +961,7 @@ function Translator() {
                         <img src={previewUrl} alt="Your photo with the translation drawn over it" />
                         {showOverlay &&
                           translationResult.lines.map((line, index) => (
-                            <span
-                              key={index}
-                              className="overlay-line"
-                              style={{
-                                left: `${(line.left / photoSize.width) * 100}%`,
-                                top: `${(line.top / photoSize.height) * 100}%`,
-                                minWidth: `${(line.width / photoSize.width) * 100}%`,
-                                minHeight: `${(line.height / photoSize.height) * 100}%`,
-                                fontSize: `${(line.height / photoSize.width) * 58}cqw`,
-                              }}
-                            >
-                              {line.translation}
-                            </span>
+                            <OverlayLine key={index} line={line} size={photoSize} />
                           ))}
                       </div>
                     </div>
