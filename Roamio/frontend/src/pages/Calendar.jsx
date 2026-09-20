@@ -56,7 +56,7 @@ export default function Calendar() {
             date: "2026-08-28",
             title: "Family Dinner",
             time: "18:30",
-            location: "Durban Central",
+            location: "Gateway",
             reminder: "1 hour before",
             category: "Personal",
           },
