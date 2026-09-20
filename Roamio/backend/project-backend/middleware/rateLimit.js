@@ -17,7 +17,8 @@ function rateLimit({ max, windowMs, now = Date.now }) {
 
     if (++entry.count > max) {
       res.set('Retry-After', String(Math.ceil((entry.resetAt - t) / 1000)));
-      return res.status(429).json({ detail: 'Too many translation requests - wait a minute and try again.' });
+      const msg = 'Too many requests - wait a minute and try again.';
+      return res.status(429).json({ detail: msg, message: msg }); // detail: translator, message: rest of the app
     }
     next();
   };
