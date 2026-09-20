@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
+  ArrowLeftRight,
   ArrowRight,
   Camera,
   CheckCircle2,
@@ -9,59 +10,37 @@ import {
   ImagePlus,
   Loader2,
   MapPin,
+  Mic,
   Plane,
   RefreshCw,
   Sparkles,
+  Type,
   Upload,
+  Volume2,
   X,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import {
+  LANGUAGES,
+  SOURCE_LANGUAGES,
+  baseCode,
+  compressImage,
+  speechLang,
+  targetForBase,
+} from "../utils/translatorHelpers";
 import "../styles/Translator.css";
+
+const MAX_TEXT_CHARS = 2000;
+const SpeechRecognition =
+  typeof window !== "undefined" &&
+  (window.SpeechRecognition || window.webkitSpeechRecognition);
+const canSpeak =
+  typeof window !== "undefined" && "speechSynthesis" in window;
 
 // OCR goes through the Node backend's proxy (routes/translation.js), which adds
 // the node-secretkey server side - nothing secret in the browser bundle.
 const API_BASE_URL =
   import.meta.env.VITE_BACKEND_API_URL || "http://127.0.0.1:3000";
-
-const LANGUAGES = [
-  { code: "AR", name: "Arabic" },
-  { code: "BG", name: "Bulgarian" },
-  { code: "CS", name: "Czech" },
-  { code: "DA", name: "Danish" },
-  { code: "DE", name: "German" },
-  { code: "EL", name: "Greek" },
-  { code: "EN-GB", name: "English (British)" },
-  { code: "EN-US", name: "English (American)" },
-  { code: "ES", name: "Spanish" },
-  { code: "ES-419", name: "Spanish (Latin American)" },
-  { code: "ET", name: "Estonian" },
-  { code: "FI", name: "Finnish" },
-  { code: "FR", name: "French" },
-  { code: "HE", name: "Hebrew" },
-  { code: "HU", name: "Hungarian" },
-  { code: "ID", name: "Indonesian" },
-  { code: "IT", name: "Italian" },
-  { code: "JA", name: "Japanese" },
-  { code: "KO", name: "Korean" },
-  { code: "LT", name: "Lithuanian" },
-  { code: "LV", name: "Latvian" },
-  { code: "NB", name: "Norwegian (Bokmål)" },
-  { code: "NL", name: "Dutch" },
-  { code: "PL", name: "Polish" },
-  { code: "PT-BR", name: "Portuguese (Brazilian)" },
-  { code: "PT-PT", name: "Portuguese (European)" },
-  { code: "RO", name: "Romanian" },
-  { code: "RU", name: "Russian" },
-  { code: "SK", name: "Slovak" },
-  { code: "SL", name: "Slovenian" },
-  { code: "SV", name: "Swedish" },
-  { code: "TH", name: "Thai" },
-  { code: "TR", name: "Turkish" },
-  { code: "UK", name: "Ukrainian" },
-  { code: "VI", name: "Vietnamese" },
-  { code: "ZH", name: "Chinese (Simplified)" },
-  { code: "ZH-HANT", name: "Chinese (Traditional)" },
-];
 
 function Translator() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -72,7 +51,14 @@ function Translator() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [mode, setMode] = useState("photo");
+  const [inputText, setInputText] = useState("");
+  const [sourceLanguage, setSourceLanguage] = useState("auto");
+  const [listening, setListening] = useState(false);
+  const [photoSize, setPhotoSize] = useState(null);
+  const [showOverlay, setShowOverlay] = useState(true);
 
+  const recognitionRef = useRef(null);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -259,11 +245,22 @@ function Translator() {
     stopCamera();
   };
 
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.abort();
+      if (canSpeak) window.speechSynthesis.cancel();
+    };
+  }, []);
+
   const handleTranslate = async () => {
-    if (!selectedFile) {
-      setError(
-        "Please upload an image or take a photo first."
-      );
+    const isPhoto = mode === "photo";
+
+    if (isPhoto && !selectedFile) {
+      setError("Please upload an image or take a photo first.");
+      return;
+    }
+    if (!isPhoto && !inputText.trim()) {
+      setError("Type or speak something to translate first.");
       return;
     }
 
@@ -273,78 +270,55 @@ function Translator() {
     setCopied(false);
 
     try {
-      const formData = new FormData();
+      const base = API_BASE_URL.replace(/\/$/, "") + "/api/translate";
+      const from = sourceLanguage === "auto" ? "" : sourceLanguage;
+      let request;
 
-      formData.append("image", selectedFile);
-      formData.append("target_lang", targetLanguage);
+      if (isPhoto) {
+        const { blob, width, height } = await compressImage(selectedFile);
+        setPhotoSize(width && height ? { width, height } : null);
 
-      const apiUrl =
-        API_BASE_URL.replace(/\/$/, "") + "/api/translate/ocr";
-
-      console.log("Translation API:", apiUrl);
-
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        body: formData,
-      });
-
-      let data = null;
-
-      try {
-        data = await response.json();
-      } catch (jsonError) {
-        console.error(
-          "Could not read JSON response:",
-          jsonError
-        );
+        const formData = new FormData();
+        formData.append("image", blob, "photo.jpg");
+        formData.append("target_lang", targetLanguage);
+        if (from) formData.append("source_lang", from);
+        request = fetch(`${base}/ocr`, { method: "POST", body: formData });
+      } else {
+        request = fetch(`${base}/text`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text: inputText,
+            target_lang: targetLanguage,
+            source_lang: from || undefined,
+          }),
+        });
       }
+
+      const response = await request;
+      const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        let message =
-          `Translation request failed with status ${response.status}.`;
-
-        if (data?.detail) {
-          message = data.detail;
-        } else if (data?.message) {
-          message = data.message;
-        }
-
-        if (response.status === 401) {
-          message =
-            "Unauthorized. Check your translation secret key.";
-        }
-
-        if (response.status === 422) {
-          message =
-            "FastAPI rejected the request. Check the image and target_lang fields.";
-        }
-
-        throw new Error(message);
-      }
-
-      if (!data) {
         throw new Error(
-          "The translation server returned an empty response."
+          data?.detail?.[0]?.msg ||
+            data?.detail ||
+            data?.message ||
+            `Translation request failed with status ${response.status}.`
         );
+      }
+      if (!data) {
+        throw new Error("The translation server returned an empty response.");
       }
 
       setTranslationResult(data);
     } catch (requestError) {
-      console.error(
-        "Translation error:",
-        requestError
-      );
+      console.error("Translation error:", requestError);
 
-      if (requestError instanceof TypeError) {
-        setError(
-          `Could not connect to the FastAPI server. Make sure it is running at ${API_BASE_URL} and check your CORS settings.`
-        );
-      } else {
-        setError(
-          requestError.message ||
-            "Unable to connect to the translation service."
-        );
-      }
+      setError(
+        requestError instanceof TypeError
+          ? "Could not reach the translation server. Check your connection and try again."
+          : requestError.message || "Unable to connect to the translation service."
+      );
     } finally {
       setLoading(false);
     }
@@ -368,6 +342,70 @@ function Translator() {
 
       setError("Unable to copy the translation.");
     }
+  };
+
+  // reads the translation aloud in the target language (browser speech synthesis)
+  const speakTranslation = () => {
+    const text = translationResult?.translation;
+    if (!text || !canSpeak) return;
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = speechLang(targetLanguage);
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // dictate into the text box; language = chosen source, else the browser's own
+  const toggleListening = () => {
+    if (listening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang =
+      sourceLanguage === "auto" ? navigator.language : speechLang(sourceLanguage);
+    recognition.interimResults = false;
+    recognition.onresult = (event) => {
+      const heard = event.results[0]?.[0]?.transcript || "";
+      setInputText((current) => `${current} ${heard}`.trim().slice(0, MAX_TEXT_CHARS));
+    };
+    recognition.onerror = (event) => {
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        setError("Microphone access was blocked. Allow the microphone and try again.");
+      } else if (event.error === "no-speech") {
+        setError("No speech was heard. Try again and speak closer to the microphone.");
+      }
+    };
+    recognition.onend = () => setListening(false);
+
+    recognitionRef.current = recognition;
+    setError("");
+    setListening(true);
+    recognition.start();
+  };
+
+  // detected language stands in for "auto" so a translation can be flipped back
+  const swapFrom =
+    sourceLanguage !== "auto"
+      ? sourceLanguage
+      : baseCode(translationResult?.detected_lang);
+  const canSwap = Boolean(
+    swapFrom && SOURCE_LANGUAGES.some((l) => l.code === swapFrom) && targetForBase(swapFrom)
+  );
+
+  const swapLanguages = () => {
+    if (!canSwap) return;
+
+    const newTarget = targetForBase(swapFrom);
+    setSourceLanguage(baseCode(targetLanguage));
+    setTargetLanguage(newTarget);
+
+    // typed text: the translation becomes the new input
+    if (mode === "text" && translationResult?.translation) {
+      setInputText(translationResult.translation);
+    }
+    setTranslationResult(null);
   };
 
   return (
@@ -422,6 +460,75 @@ function Translator() {
         <section className="translator-card">
 
           <div className="translator-left">
+
+            <div className="mode-tabs" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === "photo"}
+                className={mode === "photo" ? "active" : ""}
+                onClick={() => setMode("photo")}
+              >
+                <Camera size={16} />
+                Photo
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === "text"}
+                className={mode === "text" ? "active" : ""}
+                onClick={() => setMode("text")}
+              >
+                <Type size={16} />
+                Type or speak
+              </button>
+            </div>
+
+            {mode === "text" ? (
+              <>
+                <div className="translator-card-header">
+                  <div>
+                    <span className="translator-eyebrow">STEP 1</span>
+                    <h2>Type or speak</h2>
+                  </div>
+                  <div className="translator-step-icon">
+                    <Type size={20} />
+                  </div>
+                </div>
+
+                <div className="text-input-box">
+                  <textarea
+                    value={inputText}
+                    maxLength={MAX_TEXT_CHARS}
+                    placeholder="Type a phrase, or press the microphone and say it..."
+                    aria-label="Text to translate"
+                    onChange={(event) => {
+                      setInputText(event.target.value);
+                      setTranslationResult(null);
+                    }}
+                  />
+                  <div className="text-input-footer">
+                    <span>{inputText.length}/{MAX_TEXT_CHARS}</span>
+                    {SpeechRecognition ? (
+                      <button
+                        type="button"
+                        className={listening ? "mic-button listening" : "mic-button"}
+                        onClick={toggleListening}
+                        aria-pressed={listening}
+                      >
+                        <Mic size={16} />
+                        {listening ? "Listening... tap to stop" : "Speak"}
+                      </button>
+                    ) : (
+                      <span title="Speech input needs Chrome, Edge or Safari">
+                        Speech input is not supported in this browser
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
 
             <div className="translator-card-header">
 
@@ -602,6 +709,8 @@ function Translator() {
               </div>
             )}
 
+              </>
+            )}
           </div>
 
           <div className="translator-right">
@@ -626,38 +735,78 @@ function Translator() {
 
             </div>
 
-            <div className="language-select-wrapper">
+            <div className="language-row">
 
-              <label htmlFor="target-language">
-                Translate into
-              </label>
+              <div className="language-select-wrapper">
 
-              <div className="language-select">
+                <label htmlFor="source-language">
+                  Translate from
+                </label>
 
-                <Globe2 size={18} />
+                <div className="language-select">
 
-                <select
-                  id="target-language"
-                  value={targetLanguage}
-                  onChange={(event) =>
-                    setTargetLanguage(
-                      event.target.value
-                    )
-                  }
-                >
+                  <Globe2 size={18} />
 
-                  {LANGUAGES.map((language) => (
+                  <select
+                    id="source-language"
+                    value={sourceLanguage}
+                    onChange={(event) =>
+                      setSourceLanguage(event.target.value)
+                    }
+                  >
+                    <option value="auto">Auto-detect</option>
 
-                    <option
-                      key={language.code}
-                      value={language.code}
-                    >
-                      {language.name}
-                    </option>
+                    {SOURCE_LANGUAGES.map((language) => (
+                      <option key={language.code} value={language.code}>
+                        {language.name}
+                      </option>
+                    ))}
+                  </select>
 
-                  ))}
+                </div>
 
-                </select>
+              </div>
+
+              <button
+                type="button"
+                className="swap-button"
+                onClick={swapLanguages}
+                disabled={!canSwap}
+                aria-label="Swap languages"
+                title={
+                  canSwap
+                    ? "Swap languages"
+                    : "Pick a source language (or translate once) to swap"
+                }
+              >
+                <ArrowLeftRight size={17} />
+              </button>
+
+              <div className="language-select-wrapper">
+
+                <label htmlFor="target-language">
+                  Translate into
+                </label>
+
+                <div className="language-select">
+
+                  <Globe2 size={18} />
+
+                  <select
+                    id="target-language"
+                    value={targetLanguage}
+                    onChange={(event) =>
+                      setTargetLanguage(event.target.value)
+                    }
+                  >
+                    {LANGUAGES.map((language) => (
+                      <option key={language.code} value={language.code}>
+                        {language.name}
+                      </option>
+                    ))}
+                  </select>
+
+                </div>
 
               </div>
 
@@ -666,7 +815,7 @@ function Translator() {
             <button
               type="button"
               className="translate-button"
-              disabled={!selectedFile || loading}
+              disabled={(mode === "photo" ? !selectedFile : !inputText.trim()) || loading}
               onClick={handleTranslate}
             >
 
@@ -681,7 +830,7 @@ function Translator() {
               ) : (
                 <>
                   <Sparkles size={19} />
-                  Translate photo
+                  {mode === "photo" ? "Translate photo" : "Translate text"}
                   <ArrowRight size={17} />
                 </>
               )}
@@ -699,7 +848,7 @@ function Translator() {
                 </div>
 
                 <p>
-                  Reading the text and translating it...
+                  {mode === "photo" ? "Reading the text and translating it..." : "Translating..."}
                 </p>
 
               </div>
@@ -757,6 +906,42 @@ function Translator() {
 
                 </div>
 
+                {mode === "photo" &&
+                  photoSize &&
+                  previewUrl &&
+                  translationResult.lines?.length > 0 && (
+                    <div className="result-box overlay-box">
+                      <div className="result-header">
+                        <span>Translation on photo</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowOverlay((on) => !on)}
+                        >
+                          {showOverlay ? "Hide" : "Show"}
+                        </button>
+                      </div>
+                      <div className="overlay-photo">
+                        <img src={previewUrl} alt="Your photo with the translation drawn over it" />
+                        {showOverlay &&
+                          translationResult.lines.map((line, index) => (
+                            <span
+                              key={index}
+                              className="overlay-line"
+                              style={{
+                                left: `${(line.left / photoSize.width) * 100}%`,
+                                top: `${(line.top / photoSize.height) * 100}%`,
+                                minWidth: `${(line.width / photoSize.width) * 100}%`,
+                                minHeight: `${(line.height / photoSize.height) * 100}%`,
+                                fontSize: `${(line.height / photoSize.width) * 75}cqw`,
+                              }}
+                            >
+                              {line.translation}
+                            </span>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
                 <div className="result-box">
 
                   <div className="result-header">
@@ -779,6 +964,17 @@ function Translator() {
                     <span>
                       Translation
                     </span>
+
+                    {canSpeak && (
+                      <button
+                        type="button"
+                        onClick={speakTranslation}
+                        disabled={!translationResult.translation}
+                      >
+                        <Volume2 size={15} />
+                        Listen
+                      </button>
+                    )}
 
                     <button
                       type="button"
