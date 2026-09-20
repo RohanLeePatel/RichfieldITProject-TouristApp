@@ -932,7 +932,7 @@ function Translator() {
                                 top: `${(line.top / photoSize.height) * 100}%`,
                                 minWidth: `${(line.width / photoSize.width) * 100}%`,
                                 minHeight: `${(line.height / photoSize.height) * 100}%`,
-                                fontSize: `${(line.height / photoSize.width) * 75}cqw`,
+                                fontSize: `${(line.height / photoSize.width) * 58}cqw`,
                               }}
                             >
                               {line.translation}
