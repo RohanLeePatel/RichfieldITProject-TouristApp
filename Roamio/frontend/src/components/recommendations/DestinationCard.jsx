@@ -1,4 +1,7 @@
-import { ArrowRight, Check, ExternalLink, MapPin, Star } from "lucide-react";
+import { useState } from "react";
+import { ArrowRight, CalendarCheck, Check, ExternalLink, MapPin, Star } from "lucide-react";
+
+import ClimateInsights from "../insights/ClimateInsights.jsx";
 
 import { formatDimension } from "../../pages/recommendations/constants.js";
 
@@ -27,7 +30,8 @@ function ScoreRing({ percent }) {
   );
 }
 
-export default function DestinationCard({ recommendation, onSelect, selectLabel }) {
+export default function DestinationCard({ recommendation, onSelect, selectLabel, travelMonth }) {
+  const [showInsights, setShowInsights] = useState(false);
   const destinationName = recommendation.name || recommendation.id;
   const mapUrl =
     recommendation.map_url ||
@@ -73,12 +77,22 @@ export default function DestinationCard({ recommendation, onSelect, selectLabel 
           <a href={mapUrl} target="_blank" rel="noreferrer">
             View map <ExternalLink size={14} />
           </a>
+          {recommendation.country && (
+            <button type="button" className="card-link-button" onClick={() => setShowInsights((open) => !open)} aria-expanded={showInsights}>
+              <CalendarCheck size={14} /> {showInsights ? "Hide" : "Best time"}
+            </button>
+          )}
           {onSelect && (
             <button type="button" onClick={() => onSelect(recommendation)}>
               {selectLabel} <ArrowRight size={14} />
             </button>
           )}
         </div>
+        {showInsights && (
+          <div className="card-insights">
+            <ClimateInsights name={destinationName} country={recommendation.country} month={travelMonth || undefined} showAbout={false} />
+          </div>
+        )}
       </div>
     </article>
   );

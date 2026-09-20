@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, LoaderCircle, MapPin, Printer, Sparkles, Trash2, X } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 
+import ClimateInsights from "../components/insights/ClimateInsights.jsx";
 import PageShell from "../components/recommendations/PageShell.jsx";
 
 import { fetchTrip, deleteTrip, removeItineraryItem } from "../api/trips.js";
@@ -142,6 +143,22 @@ export default function TripDetail() {
                 </div>
               )}
             </section>
+
+            {trip.destination && (
+              <section className="recommendations-results trip-insights">
+                <div className="results-heading">
+                  <div>
+                    <h2>Know before you go</h2>
+                    <p>Typical weather, packing advice and the best time to visit {trip.destination.split(",")[0]}.</p>
+                  </div>
+                </div>
+                <ClimateInsights
+                  name={trip.destination.split(",")[0].trim()}
+                  country={trip.destination.split(",").slice(1).join(",").trim() || undefined}
+                  month={trip.startDate ? new Date(trip.startDate).getUTCMonth() + 1 : undefined}
+                />
+              </section>
+            )}
           </>
         ) : null}
     </PageShell>

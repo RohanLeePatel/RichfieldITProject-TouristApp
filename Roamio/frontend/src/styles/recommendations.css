@@ -958,3 +958,19 @@ path.map-route.day-3 { stroke: var(--day-3); }
 path.map-route.day-4 { stroke: var(--day-4); }
 path.map-route.day-5 { stroke: var(--day-5); }
 path.map-route.day-6 { stroke: var(--day-6); }
+
+/* ---------- Insights inside cards / trip page ---------- */
+
+.card-link-button {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 32px; padding: 0 12px;
+  border: 1.5px solid var(--line); border-radius: 999px;
+  background: var(--surface); color: var(--ink);
+  font: 700 12.5px "DM Sans", sans-serif; cursor: pointer;
+}
+.card-link-button:hover { background: var(--surface-2); }
+.recommendation-card-actions .card-link-button { background: var(--surface); color: var(--ink); }
+.card-insights { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.card-insights .insights-grid { grid-template-columns: 1fr; }
+.card-insights .insights-card { padding: 12px 14px; box-shadow: none; }
+.recommendation-list:has(.card-insights) { align-items: start; }

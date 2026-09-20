@@ -612,6 +612,7 @@ export default function Recommendations() {
           requirementExclusions={requirementExclusions}
           rankedOutCount={rankedOutCount}
           relaxSuggestions={relaxSuggestions}
+          travelMonth={form.startDate ? new Date(form.startDate).getMonth() + 1 : null}
         />
       )}
 

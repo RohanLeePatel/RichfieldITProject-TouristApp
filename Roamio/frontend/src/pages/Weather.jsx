@@ -19,6 +19,7 @@ import {
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+import ClimateInsights from "../components/insights/ClimateInsights.jsx";
 import { fetchWeather as fetchWeatherFromApi } from "../api/weather";
 import "../styles/Weather.css";
 
@@ -156,7 +157,13 @@ export default function Weather() {
       setLoading(true);
       setError("");
 
-      const data = await fetchWeatherFromApi(locationData.name);
+      // "Paris,FR" not just "Paris" - OpenWeather resolves bare names to
+      // whichever place it likes (Paris, Texas), so pin the country.
+      const data = await fetchWeatherFromApi(
+        locationData.countryCode
+          ? `${locationData.name},${locationData.countryCode}`
+          : locationData.name
+      );
 
       setWeather({
         ...data,
@@ -215,23 +222,17 @@ export default function Weather() {
 
       const data = await response.json();
 
-      const southAfricanResults =
-        (data.results || []).filter(
-          (item) =>
-            item.country_code === "ZA"
-        );
+      const results = data.results || [];
 
-      if (!southAfricanResults.length) {
+      if (!results.length) {
         setLocationResults([]);
         setError(
-          "No South African location was found. Try another city or town."
+          "No location was found. Try another city or town."
         );
         return;
       }
 
-      setLocationResults(
-        southAfricanResults
-      );
+      setLocationResults(results);
 
       setShowLocationResults(true);
     } catch (err) {
@@ -254,9 +255,9 @@ export default function Weather() {
     const selectedLocation = {
       name: result.name,
       country:
-        result.country || "South Africa",
+        result.country || "",
       countryCode:
-        result.country_code || "ZA",
+        result.country_code || "",
       admin1:
         result.admin1 || "",
       latitude: result.latitude,
@@ -397,7 +398,7 @@ export default function Weather() {
           <p>
             Check current conditions and
             the 7-day forecast for cities and
-            towns across South Africa.
+            towns around the world.
           </p>
 
         </section>
@@ -447,7 +448,7 @@ export default function Weather() {
                     false
                   );
                 }}
-                placeholder="Search a South African city..."
+                placeholder="Search any city..."
                 aria-label="Search city"
               />
 
@@ -881,6 +882,28 @@ export default function Weather() {
 
             </div>
 
+          </section>
+        )}
+
+        {/* =================================================
+            HISTORY, BEST TIME TO VISIT, ADVICE
+        ================================================= */}
+
+        {weather?.location && (
+          <section className="weather-insights">
+            <div className="section-heading">
+              <div>
+                <span className="section-eyebrow">KNOW BEFORE YOU GO</span>
+                <h2>Climate, best time &amp; advice for {weather.location.name}</h2>
+              </div>
+            </div>
+            <ClimateInsights
+              name={weather.location.name}
+              country={weather.location.country}
+              latitude={weather.location.latitude}
+              longitude={weather.location.longitude}
+              forecast={weather.forecast}
+            />
           </section>
         )}
 

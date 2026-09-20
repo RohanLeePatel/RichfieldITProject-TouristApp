@@ -4,7 +4,7 @@ import DestinationCard from "./DestinationCard.jsx";
 
 export default function ResultsView({
   data, title, historyCount, loading, error, exploreCities, selectCity, selectExcluded,
-  goBack, startOver, editPreferences, requirementExclusions, rankedOutCount, relaxSuggestions,
+  goBack, startOver, editPreferences, requirementExclusions, rankedOutCount, relaxSuggestions, travelMonth,
 }) {
   const isCountry = data.level === "country";
   return (
@@ -41,6 +41,7 @@ export default function ResultsView({
               recommendation={recommendation}
               onSelect={isCountry ? exploreCities : data.level === "city" ? selectCity : undefined}
               selectLabel={isCountry ? "Explore cities" : loading ? "Starting trip..." : "Start a trip here"}
+              travelMonth={travelMonth}
             />
           ))}
         </div>
