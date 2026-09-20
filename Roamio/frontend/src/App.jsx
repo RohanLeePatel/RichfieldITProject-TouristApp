@@ -14,6 +14,7 @@ import Weather from "./pages/Weather.jsx";
 import Recommendations from "./pages/Recommendations.jsx";
 import TripsList from "./pages/TripsList.jsx";
 import TripDetail from "./pages/TripDetail.jsx";
+import Calendar from "./pages/Calendar.jsx";
 
 import { useAuthStore } from "./store/authStore.js";
 
@@ -133,6 +134,16 @@ function App() {
               to="/login"
               replace
             />
+          }
+        />
+
+        {/* CALENDAR */}
+        <Route
+          path="/calendar"
+          element={
+            <ProtectedRoute>
+              <Calendar />
+            </ProtectedRoute>
           }
         />
 
