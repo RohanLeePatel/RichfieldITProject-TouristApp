@@ -428,7 +428,7 @@ export default function Dashboard() {
           <nav className="sidebar-nav">
 
             <Link
-              to="/dashboard"
+              to="/Calendar"
               className="sidebar-link"
               onClick={closeMobileMenu}
             >
