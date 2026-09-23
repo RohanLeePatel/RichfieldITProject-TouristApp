@@ -1,12 +1,14 @@
 // 1. Environment & Core Imports
+const cron = require('node-cron');
+const safetySyncService = require('./src/services/safetySyncService');
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const PORT = process.env.PORT || 5000;
 
 // 2. Route Imports
-// (Assuming these are located in your src/routes folder)
-const authRoutes = require('./src/routes/auth.routes'); // Your login/register routes
+const authRoutes = require('./src/routes/auth.routes'); 
 const travelGroupRoutes = require('./src/routes/travelGroup.routes');
 const invitationRoutes = require('./src/routes/invitation.routes');
 const tripRoutes = require('./src/routes/trip.routes');
@@ -14,6 +16,8 @@ const destinationRoutes = require('./src/routes/destination.routes');
 const itineraryRoutes = require('./src/routes/itinerary.routes');
 const expenseRoutes = require('./src/routes/expense.routes');
 const activityRoutes = require('./src/routes/activity.routes');
+const safetyRoutes = require('./src/routes/safety.routes');
+app.use('/api', safetyRoutes);
 
 // 3. Custom Middleware Imports
 const attachActivityLogger = require('./src/middleware/activityLogger.middleware');
@@ -22,7 +26,7 @@ const attachActivityLogger = require('./src/middleware/activityLogger.middleware
 const app = express();
 
 // 5. Global Middleware Setup
-// Enable CORS for your React frontend (adjust origin for production)
+// Enable CORS for your React frontend 
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:3000',
   credentials: true // Crucial for sending/receiving secure cookies
@@ -65,8 +69,17 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 8. Server Boot Sequence
-const PORT = process.env.PORT || 5000;
+// Schedule the Safety Sync Job
+// This cron expression ('0 */12 * * *') means "Run at minute 0 past every 12th hour." (Twice a day)
+cron.schedule('0 */12 * * *', async () => {
+  await safetySyncService.syncCountryAdvisories();
+});
+
+if (process.env.NODE_ENV === 'development') {
+  setTimeout(() => {
+    safetySyncService.syncCountryAdvisories();
+  }, 5000); 
+}
 
 app.listen(PORT, () => {
   console.log(` Roamio API Server running on http://localhost:${PORT}`);

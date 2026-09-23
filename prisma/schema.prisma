@@ -166,6 +166,8 @@ model Destination {
   tags             DestinationTagMapping[]
   tripDestinations TripDestination[]
 
+  safetyAdvisory  SafetyAdvisory?
+
   @@index([cityId])
 }
 
@@ -197,6 +199,20 @@ model TripDestination {
 
   @@index([tripId])
   @@index([orderIndex])
+}
+
+model SafetyAdvisory {
+  id                Int         @id @default(autoincrement())
+  destinationId     Int         @unique // One-to-one relationship with Destination
+  countryIso        String      @unique // e.g., "ZAF" (ISO 3-letter code)
+  
+  compositeScore    Int         // The 1-5 risk score from TravelRiskAPI
+  advisoryLevel     String      // e.g., "Level 2: Exercise Increased Caution"
+  activeAlertsCount Int         @default(0)
+  lastUpdated       DateTime    @default(now())
+
+  // Relations
+  destination       Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
 }
 
 // -------------------------------------------------------------
