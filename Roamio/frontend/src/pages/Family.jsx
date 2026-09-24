@@ -49,7 +49,7 @@ const DEFAULT_MEMBERS = [
   {
     id: "member-2",
     name: "Savaan",
-    relationship: "Family member",
+    relationship: "Group member",
     type: "Adult",
     email: "",
     initials: "SA",
@@ -61,7 +61,7 @@ const DEFAULT_MEMBERS = [
   {
     id: "member-3",
     name: "Rohan",
-    relationship: "Family member",
+    relationship: "Group member",
     type: "Adult",
     email: "",
     initials: "RO",
@@ -73,7 +73,7 @@ const DEFAULT_MEMBERS = [
   {
     id: "member-4",
     name: "Yatheen",
-    relationship: "Family member",
+    relationship: "Group member",
     type: "Adult",
     email: "",
     initials: "YA",
@@ -85,7 +85,7 @@ const DEFAULT_MEMBERS = [
   {
     id: "member-5",
     name: "Jordan",
-    relationship: "Family member",
+    relationship: "Group member",
     type: "Adult",
     email: "",
     initials: "JO",
@@ -133,7 +133,7 @@ const COLOR_OPTIONS = [
 
 const EMPTY_FORM = {
   name: "",
-  relationship: "Family member",
+  relationship: "Group member",
   type: "Adult",
   email: "",
   interests: [],
@@ -143,7 +143,7 @@ const EMPTY_FORM = {
 const upcomingTrips = [
   {
     id: 1,
-    title: "Durban Family Escape",
+    title: "Durban Group Escape",
     destination: "Durban, South Africa",
     dates: "14–18 Aug 2026",
     members: 5,
@@ -174,19 +174,19 @@ const recentActivity = [
   {
     id: 1,
     icon: Plus,
-    title: "Yatheen was added to the family",
+    title: "Yatheen was added to the travel group",
     time: "2 days ago",
   },
   {
     id: 2,
     icon: Plane,
-    title: "Durban Family Escape was updated",
+    title: "Durban Group Escape was updated",
     time: "4 days ago",
   },
   {
     id: 3,
     icon: Heart,
-    title: "Family travel preferences were updated",
+    title: "Group travel preferences were updated",
     time: "1 week ago",
   },
 ];
@@ -201,6 +201,26 @@ function getInitials(name) {
       .join("")
       .toUpperCase() || "RM"
   );
+}
+
+/*
+ * Normalise older saved Travel Group data.
+ *
+ * Earlier versions of Roamio used "Family member".
+ * Existing localStorage data can therefore still contain
+ * that value even though the current UI uses "Group member".
+ *
+ * This converts old values automatically without deleting
+ * the user's saved members.
+ */
+function normalizeMember(member) {
+  return {
+    ...member,
+    relationship:
+      member.relationship === "Family member"
+        ? "Group member"
+        : member.relationship || "Group member",
+  };
 }
 
 function MemberAvatar({ member, large = false }) {
@@ -240,7 +260,9 @@ function MemberModal({
     setForm((current) => ({
       ...current,
       interests: current.interests.includes(interest)
-        ? current.interests.filter((item) => item !== interest)
+        ? current.interests.filter(
+            (item) => item !== interest
+          )
         : [...current.interests, interest],
     }));
   };
@@ -264,17 +286,18 @@ function MemberModal({
           <div>
             <span className="family-modal-eyebrow">
               <Users size={14} />
-              FAMILY PROFILE
+              TRAVEL GROUP PROFILE
             </span>
 
             <h2 id="family-modal-title">
               {mode === "edit"
-                ? "Edit family member"
-                : "Add family member"}
+                ? "Edit group member"
+                : "Add group member"}
             </h2>
 
             <p>
-              Keep your family's travel details together in Roamio.
+              Keep your travel group's details together
+              in Roamio.
             </p>
           </div>
 
@@ -324,12 +347,14 @@ function MemberModal({
                   })
                 }
               >
-                <option>Family member</option>
+                <option>Group member</option>
                 <option>Parent</option>
                 <option>Partner</option>
                 <option>Sibling</option>
                 <option>Child</option>
                 <option>Grandparent</option>
+                <option>Friend</option>
+                <option>Colleague</option>
                 <option>Other</option>
               </select>
             </label>
@@ -368,7 +393,7 @@ function MemberModal({
                       email: event.target.value,
                     })
                   }
-                  placeholder="family@example.com"
+                  placeholder="member@example.com"
                 />
               </div>
             </label>
@@ -387,9 +412,10 @@ function MemberModal({
 
             <div className="family-interest-picker">
               {INTERESTS.map((interest) => {
-                const selected = form.interests.includes(
-                  interest.name
-                );
+                const selected =
+                  form.interests.includes(
+                    interest.name
+                  );
 
                 const Icon = interest.icon;
 
@@ -408,7 +434,9 @@ function MemberModal({
 
                     <span>{interest.name}</span>
 
-                    {selected && <Check size={14} />}
+                    {selected && (
+                      <Check size={14} />
+                    )}
                   </button>
                 );
               })}
@@ -432,7 +460,9 @@ function MemberModal({
                   type="button"
                   key={color}
                   className={`family-colour-option family-colour-${color} ${
-                    form.color === color ? "selected" : ""
+                    form.color === color
+                      ? "selected"
+                      : ""
                   }`}
                   onClick={() =>
                     setForm({
@@ -480,18 +510,23 @@ function MemberModal({
 export default function Family() {
   const [members, setMembers] = useState(() => {
     /*
-     * Always start with the new Roamio family.
+     * Load the saved Roamio Travel Group.
      *
-     * This intentionally replaces the previous demo names:
-     * Roamio User, Maya, Jayden and Ari.
+     * Older demo data is ignored.
+     * Older "Family member" labels are automatically
+     * converted to "Group member".
      */
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved =
+        localStorage.getItem(STORAGE_KEY);
 
       if (saved) {
         const parsed = JSON.parse(saved);
 
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (
+          Array.isArray(parsed) &&
+          parsed.length > 0
+        ) {
           const oldNames = [
             "Roamio User",
             "Maya",
@@ -499,53 +534,78 @@ export default function Family() {
             "Ari",
           ];
 
-          const containsOldDemoData = parsed.some((member) =>
-            oldNames.includes(member.name)
-          );
+          const containsOldDemoData =
+            parsed.some((member) =>
+              oldNames.includes(member.name)
+            );
 
           if (!containsOldDemoData) {
-            return parsed;
+            return parsed.map(normalizeMember);
           }
         }
       }
     } catch {
-      // Fall back to the new default family.
+      // Fall back to the new default travel group.
     }
 
     return DEFAULT_MEMBERS;
   });
 
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("All");
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState("add");
+  const [search, setSearch] =
+    useState("");
+
+  const [filter, setFilter] =
+    useState("All");
+
+  const [modalOpen, setModalOpen] =
+    useState(false);
+
+  const [modalMode, setModalMode] =
+    useState("add");
+
   const [selectedMember, setSelectedMember] =
     useState(null);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [menuOpen, setMenuOpen] = useState(null);
-  const [toast, setToast] = useState("");
 
+  const [form, setForm] =
+    useState(EMPTY_FORM);
+
+  const [menuOpen, setMenuOpen] =
+    useState(null);
+
+  const [toast, setToast] =
+    useState("");
+
+  // Save the current Travel Group.
   useEffect(() => {
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify(members)
+    );
+
+    // Tell other Roamio pages in this tab that the
+    // Travel Group has changed.
+    window.dispatchEvent(
+      new Event("roamio-group-updated")
     );
   }, [members]);
 
   useEffect(() => {
     if (!toast) return undefined;
 
-    const timer = window.setTimeout(() => {
-      setToast("");
-    }, 2600);
+    const timer =
+      window.setTimeout(() => {
+        setToast("");
+      }, 2600);
 
-    return () => window.clearTimeout(timer);
+    return () =>
+      window.clearTimeout(timer);
   }, [toast]);
 
   const adults = useMemo(
     () =>
       members.filter(
-        (member) => member.type === "Adult"
+        (member) =>
+          member.type === "Adult"
       ),
     [members]
   );
@@ -553,7 +613,8 @@ export default function Family() {
   const children = useMemo(
     () =>
       members.filter(
-        (member) => member.type === "Child"
+        (member) =>
+          member.type === "Child"
       ),
     [members]
   );
@@ -562,52 +623,69 @@ export default function Family() {
     () =>
       members.reduce(
         (total, member) =>
-          total + Number(member.trips || 0),
+          total +
+          Number(member.trips || 0),
         0
       ),
     [members]
   );
 
-  const familyInterests = useMemo(() => {
+  const groupInterests = useMemo(() => {
     const counts = {};
 
     members.forEach((member) => {
-      (member.interests || []).forEach((interest) => {
+      (
+        member.interests || []
+      ).forEach((interest) => {
         counts[interest] =
-          (counts[interest] || 0) + 1;
+          (counts[interest] || 0) +
+          1;
       });
     });
 
-    return INTERESTS.map((interest) => ({
-      ...interest,
-      count: counts[interest.name] || 0,
-    }))
-      .sort((a, b) => b.count - a.count)
+    return INTERESTS.map(
+      (interest) => ({
+        ...interest,
+        count:
+          counts[interest.name] ||
+          0,
+      })
+    )
+      .sort(
+        (a, b) =>
+          b.count - a.count
+      )
       .slice(0, 5);
   }, [members]);
 
   const filteredMembers = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const query =
+      search.trim().toLowerCase();
 
-    return members.filter((member) => {
-      const matchesSearch =
-        !query ||
-        member.name
-          .toLowerCase()
-          .includes(query) ||
-        member.relationship
-          .toLowerCase()
-          .includes(query) ||
-        member.type
-          .toLowerCase()
-          .includes(query);
+    return members.filter(
+      (member) => {
+        const matchesSearch =
+          !query ||
+          member.name
+            .toLowerCase()
+            .includes(query) ||
+          member.relationship
+            .toLowerCase()
+            .includes(query) ||
+          member.type
+            .toLowerCase()
+            .includes(query);
 
-      const matchesFilter =
-        filter === "All" ||
-        member.type === filter;
+        const matchesFilter =
+          filter === "All" ||
+          member.type === filter;
 
-      return matchesSearch && matchesFilter;
-    });
+        return (
+          matchesSearch &&
+          matchesFilter
+        );
+      }
+    );
   }, [members, search, filter]);
 
   const openAddModal = () => {
@@ -618,17 +696,26 @@ export default function Family() {
     setMenuOpen(null);
   };
 
-  const openEditModal = (member) => {
+  const openEditModal = (
+    member
+  ) => {
     setModalMode("edit");
     setSelectedMember(member);
 
     setForm({
       name: member.name,
-      relationship: member.relationship,
+      relationship:
+        member.relationship ===
+        "Family member"
+          ? "Group member"
+          : member.relationship ||
+            "Group member",
       type: member.type,
       email: member.email || "",
-      interests: member.interests || [],
-      color: member.color || "teal",
+      interests:
+        member.interests || [],
+      color:
+        member.color || "teal",
     });
 
     setModalOpen(true);
@@ -641,30 +728,48 @@ export default function Family() {
     setForm(EMPTY_FORM);
   };
 
-  const handleSaveMember = (event) => {
+  const handleSaveMember = (
+    event
+  ) => {
     event.preventDefault();
 
-    const cleanName = form.name.trim();
+    const cleanName =
+      form.name.trim();
 
     if (!cleanName) return;
 
-    if (modalMode === "edit" && selectedMember) {
-      setMembers((current) =>
-        current.map((member) =>
-          member.id === selectedMember.id
-            ? {
-                ...member,
-                name: cleanName,
-                relationship:
-                  form.relationship,
-                type: form.type,
-                email: form.email.trim(),
-                initials: getInitials(cleanName),
-                color: form.color,
-                interests: form.interests,
-              }
-            : member
-        )
+    if (
+      modalMode === "edit" &&
+      selectedMember
+    ) {
+      setMembers(
+        (current) =>
+          current.map(
+            (member) =>
+              member.id ===
+              selectedMember.id
+                ? {
+                    ...member,
+                    name: cleanName,
+                    relationship:
+                      form.relationship ===
+                      "Family member"
+                        ? "Group member"
+                        : form.relationship,
+                    type: form.type,
+                    email:
+                      form.email.trim(),
+                    initials:
+                      getInitials(
+                        cleanName
+                      ),
+                    color:
+                      form.color,
+                    interests:
+                      form.interests,
+                  }
+                : member
+          )
       );
 
       setToast(
@@ -674,31 +779,45 @@ export default function Family() {
       const newMember = {
         id: `member-${Date.now()}`,
         name: cleanName,
-        relationship: form.relationship,
+        relationship:
+          form.relationship ===
+          "Family member"
+            ? "Group member"
+            : form.relationship,
         type: form.type,
-        email: form.email.trim(),
-        initials: getInitials(cleanName),
+        email:
+          form.email.trim(),
+        initials:
+          getInitials(cleanName),
         color: form.color,
-        interests: form.interests,
+        interests:
+          form.interests,
         trips: 0,
         status: "Active",
       };
 
-      setMembers((current) => [
-        ...current,
-        newMember,
-      ]);
+      setMembers(
+        (current) => [
+          ...current,
+          newMember,
+        ]
+      );
 
       setToast(
-        `${cleanName} was added to your family.`
+        `${cleanName} was added to your travel group.`
       );
     }
 
     closeModal();
   };
 
-  const handleDeleteMember = (member) => {
-    if (member.status === "Organizer") {
+  const handleDeleteMember = (
+    member
+  ) => {
+    if (
+      member.status ===
+      "Organizer"
+    ) {
       setToast(
         "The trip organizer cannot be removed."
       );
@@ -708,20 +827,23 @@ export default function Family() {
       return;
     }
 
-    const confirmed = window.confirm(
-      `Remove ${member.name} from your Roamio family?`
-    );
+    const confirmed =
+      window.confirm(
+        `Remove ${member.name} from your Roamio travel group?`
+      );
 
     if (!confirmed) return;
 
-    setMembers((current) =>
-      current.filter(
-        (item) => item.id !== member.id
-      )
+    setMembers(
+      (current) =>
+        current.filter(
+          (item) =>
+            item.id !== member.id
+        )
     );
 
     setToast(
-      `${member.name} was removed from your family.`
+      `${member.name} was removed from your travel group.`
     );
 
     setMenuOpen(null);
@@ -731,7 +853,7 @@ export default function Family() {
     <>
       <p className="recommendations-eyebrow family-hero-eyebrow">
         <Sparkles size={15} />
-        Your travel crew
+        Your travel group
       </p>
 
       <h1>
@@ -740,9 +862,9 @@ export default function Family() {
       </h1>
 
       <p>
-        Keep your family organised, remember everyone's
-        interests, and plan trips that work for the
-        people you love.
+        Keep your travel group organised, remember
+        everyone's interests, and plan trips that work
+        for everyone.
       </p>
     </>
   );
@@ -756,7 +878,7 @@ export default function Family() {
       <div className="family-page-content">
 
         {/* ================================
-            FAMILY OVERVIEW
+            TRAVEL GROUP OVERVIEW
         ================================= */}
 
         <section className="family-overview">
@@ -764,14 +886,16 @@ export default function Family() {
             <div>
               <span className="family-section-eyebrow">
                 <Users size={14} />
-                FAMILY OVERVIEW
+                TRAVEL GROUP OVERVIEW
               </span>
 
-              <h2>Your family at a glance</h2>
+              <h2>
+                Your travel group at a glance
+              </h2>
 
               <p>
-                Everything you need to plan better trips
-                together.
+                Everything you need to plan better
+                trips together.
               </p>
             </div>
 
@@ -781,7 +905,7 @@ export default function Family() {
               onClick={openAddModal}
             >
               <Plus size={17} />
-              Add family member
+              Add group member
             </button>
           </div>
 
@@ -793,9 +917,17 @@ export default function Family() {
               </div>
 
               <div>
-                <span>Family members</span>
-                <strong>{members.length}</strong>
-                <small>Planning together</small>
+                <span>
+                  Group members
+                </span>
+
+                <strong>
+                  {members.length}
+                </strong>
+
+                <small>
+                  Planning together
+                </small>
               </div>
 
               <div className="family-stat-decoration">
@@ -810,8 +942,14 @@ export default function Family() {
 
               <div>
                 <span>Adults</span>
-                <strong>{adults.length}</strong>
-                <small>Travel companions</small>
+
+                <strong>
+                  {adults.length}
+                </strong>
+
+                <small>
+                  Travel companions
+                </small>
               </div>
             </div>
 
@@ -821,9 +959,17 @@ export default function Family() {
               </div>
 
               <div>
-                <span>Children</span>
-                <strong>{children.length}</strong>
-                <small>Little explorers</small>
+                <span>
+                  Children
+                </span>
+
+                <strong>
+                  {children.length}
+                </strong>
+
+                <small>
+                  Little explorers
+                </small>
               </div>
             </div>
 
@@ -833,7 +979,10 @@ export default function Family() {
               </div>
 
               <div>
-                <span>Family trips</span>
+                <span>
+                  Group trips
+                </span>
+
                 <strong>
                   {Math.max(
                     3,
@@ -851,22 +1000,25 @@ export default function Family() {
         </section>
 
         {/* ================================
-            MAIN FAMILY GRID
+            MAIN TRAVEL GROUP GRID
         ================================= */}
 
         <div className="family-main-grid">
 
-          {/* FAMILY MEMBERS */}
+          {/* GROUP MEMBERS */}
 
           <section className="family-members-panel">
+
             <div className="family-panel-header">
               <div>
                 <span className="family-section-eyebrow">
                   <Users size={14} />
-                  YOUR PEOPLE
+                  YOUR TRAVEL GROUP
                 </span>
 
-                <h2>Family members</h2>
+                <h2>
+                  Group members
+                </h2>
 
                 <p>
                   Manage the people you travel and plan
@@ -878,7 +1030,7 @@ export default function Family() {
                 type="button"
                 className="family-mobile-add"
                 onClick={openAddModal}
-                aria-label="Add family member"
+                aria-label="Add group member"
               >
                 <Plus size={18} />
               </button>
@@ -887,6 +1039,7 @@ export default function Family() {
             {/* SEARCH + FILTER */}
 
             <div className="family-member-toolbar">
+
               <div className="family-search">
                 <Search size={16} />
 
@@ -894,16 +1047,20 @@ export default function Family() {
                   type="search"
                   value={search}
                   onChange={(event) =>
-                    setSearch(event.target.value)
+                    setSearch(
+                      event.target.value
+                    )
                   }
-                  placeholder="Search family members..."
-                  aria-label="Search family members"
+                  placeholder="Search group members..."
+                  aria-label="Search group members"
                 />
 
                 {search && (
                   <button
                     type="button"
-                    onClick={() => setSearch("")}
+                    onClick={() =>
+                      setSearch("")
+                    }
                     aria-label="Clear search"
                   >
                     <X size={14} />
@@ -912,183 +1069,261 @@ export default function Family() {
               </div>
 
               <div className="family-filter-tabs">
-                {["All", "Adult", "Child"].map(
-                  (item) => (
-                    <button
-                      type="button"
-                      key={item}
-                      className={
-                        filter === item
-                          ? "active"
-                          : ""
-                      }
-                      onClick={() =>
-                        setFilter(item)
-                      }
-                    >
-                      {item}
-                    </button>
-                  )
-                )}
+
+                {[
+                  "All",
+                  "Adult",
+                  "Child",
+                ].map((item) => (
+                  <button
+                    type="button"
+                    key={item}
+                    className={
+                      filter === item
+                        ? "active"
+                        : ""
+                    }
+                    onClick={() =>
+                      setFilter(item)
+                    }
+                  >
+                    {item}
+                  </button>
+                ))}
+
               </div>
             </div>
 
             {/* MEMBER LIST */}
 
-            {filteredMembers.length > 0 ? (
+            {filteredMembers.length >
+            0 ? (
               <div className="family-member-list">
-                {filteredMembers.map((member) => (
-                  <article
-                    className="family-member-card"
-                    key={member.id}
-                  >
-                    <MemberAvatar
-                      member={member}
-                      large
-                    />
 
-                    <div className="family-member-main">
+                {filteredMembers.map(
+                  (member) => (
+                    <article
+                      className="family-member-card"
+                      key={
+                        member.id
+                      }
+                    >
 
-                      <div className="family-member-name-row">
-                        <h3>{member.name}</h3>
+                      <MemberAvatar
+                        member={
+                          member
+                        }
+                        large
+                      />
 
-                        {member.status ===
-                        "Organizer" ? (
-                          <span className="family-organizer-badge">
-                            <ShieldCheck size={12} />
-                            Organizer
-                          </span>
-                        ) : (
-                          <span className="family-active-dot">
-                            <i />
-                            Active
-                          </span>
-                        )}
-                      </div>
+                      <div className="family-member-main">
 
-                      <p className="family-member-role">
-                        {member.relationship}
-                        <span>•</span>
-                        {member.type}
-                      </p>
+                        <div className="family-member-name-row">
 
-                      <div className="family-member-meta">
-                        <span>
-                          <Plane size={13} />
+                          <h3>
+                            {
+                              member.name
+                            }
+                          </h3>
 
-                          {member.trips}{" "}
-                          {member.trips === 1
-                            ? "trip"
-                            : "trips"}
-                        </span>
+                          {member.status ===
+                          "Organizer" ? (
+                            <span className="family-organizer-badge">
+                              <ShieldCheck
+                                size={12}
+                              />
+                              Organizer
+                            </span>
+                          ) : (
+                            <span className="family-active-dot">
+                              <i />
+                              Active
+                            </span>
+                          )}
 
-                        {member.email && (
+                        </div>
+
+                        <p className="family-member-role">
+
+                          {member.relationship ===
+                          "Family member"
+                            ? "Group member"
+                            : member.relationship ||
+                              "Group member"}
+
                           <span>
-                            <BriefcaseBusiness
+                            •
+                          </span>
+
+                          {member.type}
+
+                        </p>
+
+                        <div className="family-member-meta">
+
+                          <span>
+                            <Plane
                               size={13}
                             />
-                            {member.email}
-                          </span>
-                        )}
-                      </div>
 
-                      <div className="family-member-interests">
-                        {(member.interests || [])
-                          .length > 0 ? (
-                          member.interests.map(
-                            (interest) => (
-                              <span key={interest}>
-                                <InterestIcon
-                                  name={interest}
-                                  size={12}
-                                />
-                                {interest}
-                              </span>
+                            {member.trips}{" "}
+                            {member.trips ===
+                            1
+                              ? "trip"
+                              : "trips"}
+                          </span>
+
+                          {member.email && (
+                            <span>
+                              <BriefcaseBusiness
+                                size={13}
+                              />
+
+                              {
+                                member.email
+                              }
+                            </span>
+                          )}
+
+                        </div>
+
+                        <div className="family-member-interests">
+
+                          {(member.interests ||
+                            []).length >
+                          0 ? (
+                            member.interests.map(
+                              (
+                                interest
+                              ) => (
+                                <span
+                                  key={
+                                    interest
+                                  }
+                                >
+                                  <InterestIcon
+                                    name={
+                                      interest
+                                    }
+                                    size={
+                                      12
+                                    }
+                                  />
+
+                                  {
+                                    interest
+                                  }
+                                </span>
+                              )
                             )
-                          )
-                        ) : (
-                          <span className="family-no-interests">
-                            No travel interests added
-                          </span>
-                        )}
+                          ) : (
+                            <span className="family-no-interests">
+                              No travel interests
+                              added
+                            </span>
+                          )}
+
+                        </div>
+
                       </div>
-                    </div>
 
-                    {/* ACTIONS */}
+                      {/* ACTIONS */}
 
-                    <div className="family-member-actions">
-                      <button
-                        type="button"
-                        className="family-icon-button"
-                        onClick={() =>
-                          openEditModal(member)
-                        }
-                        aria-label={`Edit ${member.name}`}
-                        title="Edit member"
-                      >
-                        <Edit3 size={16} />
-                      </button>
+                      <div className="family-member-actions">
 
-                      <div className="family-more-wrap">
                         <button
                           type="button"
                           className="family-icon-button"
                           onClick={() =>
-                            setMenuOpen(
-                              menuOpen ===
-                                member.id
-                                ? null
-                                : member.id
+                            openEditModal(
+                              member
                             )
                           }
-                          aria-label={`More options for ${member.name}`}
+                          aria-label={`Edit ${member.name}`}
+                          title="Edit member"
                         >
-                          <MoreHorizontal
-                            size={17}
+                          <Edit3
+                            size={16}
                           />
                         </button>
 
-                        {menuOpen ===
-                          member.id && (
-                          <div className="family-member-menu">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                openEditModal(
-                                  member
-                                )
-                              }
-                            >
-                              <Edit3 size={14} />
-                              Edit profile
-                            </button>
+                        <div className="family-more-wrap">
 
-                            <button
-                              type="button"
-                              className="danger"
-                              onClick={() =>
-                                handleDeleteMember(
-                                  member
-                                )
-                              }
-                            >
-                              <Trash2 size={14} />
-                              Remove member
-                            </button>
-                          </div>
-                        )}
+                          <button
+                            type="button"
+                            className="family-icon-button"
+                            onClick={() =>
+                              setMenuOpen(
+                                menuOpen ===
+                                  member.id
+                                  ? null
+                                  : member.id
+                              )
+                            }
+                            aria-label={`More options for ${member.name}`}
+                          >
+                            <MoreHorizontal
+                              size={17}
+                            />
+                          </button>
+
+                          {menuOpen ===
+                            member.id && (
+                            <div className="family-member-menu">
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openEditModal(
+                                    member
+                                  )
+                                }
+                              >
+                                <Edit3
+                                  size={14}
+                                />
+
+                                Edit profile
+                              </button>
+
+                              <button
+                                type="button"
+                                className="danger"
+                                onClick={() =>
+                                  handleDeleteMember(
+                                    member
+                                  )
+                                }
+                              >
+                                <Trash2
+                                  size={14}
+                                />
+
+                                Remove member
+                              </button>
+
+                            </div>
+                          )}
+
+                        </div>
+
                       </div>
-                    </div>
-                  </article>
-                ))}
+
+                    </article>
+                  )
+                )}
+
               </div>
             ) : (
               <div className="family-empty-state">
+
                 <div className="family-empty-icon">
                   <Search size={24} />
                 </div>
 
-                <h3>No family members found</h3>
+                <h3>
+                  No group members found
+                </h3>
 
                 <p>
                   Try another search or clear the
@@ -1105,45 +1340,57 @@ export default function Family() {
                 >
                   Clear filters
                 </button>
+
               </div>
             )}
 
             <div className="family-list-footer">
+
               <span>
-                Showing {filteredMembers.length} of{" "}
+                Showing{" "}
+                {filteredMembers.length} of{" "}
                 {members.length} members
               </span>
 
               <button
                 type="button"
-                onClick={openAddModal}
+                onClick={
+                  openAddModal
+                }
               >
                 <Plus size={14} />
                 Add another member
               </button>
+
             </div>
+
           </section>
 
-          {/* ================================
-              RIGHT SIDEBAR
-          ================================= */}
+          {/* RIGHT SIDEBAR */}
 
           <aside className="family-sidebar">
 
-            {/* TRAVEL DNA */}
+            {/* GROUP INTERESTS */}
 
             <section className="family-preferences-card">
+
               <div className="family-card-heading">
+
                 <div>
+
                   <span className="family-section-eyebrow">
                     <Heart size={14} />
                     TRAVEL DNA
                   </span>
 
-                  <h2>What your family loves</h2>
+                  <h2>
+                    Group interests & preferences
+                  </h2>
+
                 </div>
 
                 <Sparkles size={19} />
+
               </div>
 
               <p className="family-card-description">
@@ -1152,63 +1399,90 @@ export default function Family() {
               </p>
 
               <div className="family-interest-bars">
-                {familyInterests.map((interest) => {
-                  const Icon = interest.icon;
 
-                  const percentage =
-                    members.length > 0
-                      ? Math.max(
-                          8,
-                          Math.round(
-                            (interest.count /
-                              members.length) *
-                              100
+                {groupInterests.map(
+                  (interest) => {
+                    const Icon =
+                      interest.icon;
+
+                    const percentage =
+                      members.length >
+                      0
+                        ? Math.max(
+                            8,
+                            Math.round(
+                              (interest.count /
+                                members.length) *
+                                100
+                            )
                           )
-                        )
-                      : 0;
+                        : 0;
 
-                  return (
-                    <div
-                      className="family-interest-bar"
-                      key={interest.name}
-                    >
-                      <div className="family-interest-bar-top">
-                        <span>
-                          <Icon size={14} />
-                          {interest.name}
-                        </span>
+                    return (
+                      <div
+                        className="family-interest-bar"
+                        key={
+                          interest.name
+                        }
+                      >
 
-                        <strong>
-                          {interest.count}
-                        </strong>
+                        <div className="family-interest-bar-top">
+
+                          <span>
+                            <Icon
+                              size={14}
+                            />
+
+                            {
+                              interest.name
+                            }
+                          </span>
+
+                          <strong>
+                            {
+                              interest.count
+                            }
+                          </strong>
+
+                        </div>
+
+                        <div className="family-interest-track">
+
+                          <span
+                            style={{
+                              width: `${percentage}%`,
+                            }}
+                          />
+
+                        </div>
+
                       </div>
+                    );
+                  }
+                )}
 
-                      <div className="family-interest-track">
-                        <span
-                          style={{
-                            width: `${percentage}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
 
               <Link
                 to="/recommendations"
                 className="family-card-link"
               >
-                Explore family recommendations
-                <ChevronRight size={15} />
+                Explore group recommendations
+                <ChevronRight
+                  size={15}
+                />
               </Link>
+
             </section>
 
             {/* PLAN TOGETHER */}
 
             <section className="family-together-card">
+
               <div className="family-together-art">
+
                 <div className="family-together-circle circle-one" />
+
                 <div className="family-together-circle circle-two" />
 
                 <div className="family-together-plane">
@@ -1222,16 +1496,18 @@ export default function Family() {
                 <div className="family-mini-pin pin-two">
                   <MapPin size={13} />
                 </div>
+
               </div>
 
               <div className="family-together-content">
+
                 <span className="family-section-eyebrow">
                   <Compass size={14} />
                   PLAN TOGETHER
                 </span>
 
                 <h2>
-                  One family. Many adventures.
+                  One group. Many adventures.
                 </h2>
 
                 <p>
@@ -1244,32 +1520,42 @@ export default function Family() {
                   to="/trips"
                   className="family-button family-button-light"
                 >
-                  View family trips
-                  <ChevronRight size={15} />
+                  View group trips
+                  <ChevronRight
+                    size={15}
+                  />
                 </Link>
+
               </div>
+
             </section>
+
           </aside>
+
         </div>
 
-        {/* ================================
-            UPCOMING TRIPS
-        ================================= */}
+        {/* UPCOMING TRIPS */}
 
         <section className="family-trips-section">
+
           <div className="family-section-heading-row">
+
             <div>
+
               <span className="family-section-eyebrow">
                 <CalendarDays size={14} />
                 SHARED ADVENTURES
               </span>
 
-              <h2>Upcoming family trips</h2>
+              <h2>
+                Upcoming group trips
+              </h2>
 
               <p>
-                Trips where your family can plan,
+                Trips where your group can plan,
                 explore and travel together.
               </p>
+
             </div>
 
             <Link
@@ -1277,117 +1563,169 @@ export default function Family() {
               className="family-outline-link"
             >
               View all trips
-              <ChevronRight size={15} />
+              <ChevronRight
+                size={15}
+              />
             </Link>
+
           </div>
 
           <div className="family-trip-grid">
-            {upcomingTrips.map((trip) => (
-              <Link
-                to="/trips"
-                className={`family-trip-card family-trip-${trip.color}`}
-                key={trip.id}
-              >
-                <div className="family-trip-cover">
-                  <div className="family-trip-cover-glow" />
 
-                  <div className="family-trip-icon">
-                    <Plane size={22} />
-                  </div>
+            {upcomingTrips.map(
+              (trip) => (
+                <Link
+                  to="/trips"
+                  className={`family-trip-card family-trip-${trip.color}`}
+                  key={trip.id}
+                >
 
-                  <span className="family-trip-status">
-                    {trip.status}
-                  </span>
-                </div>
+                  <div className="family-trip-cover">
 
-                <div className="family-trip-body">
-                  <h3>{trip.title}</h3>
+                    <div className="family-trip-cover-glow" />
 
-                  <p>
-                    <MapPin size={14} />
-                    {trip.destination}
-                  </p>
+                    <div className="family-trip-icon">
+                      <Plane size={22} />
+                    </div>
 
-                  <div className="family-trip-details">
-                    <span>
-                      <CalendarDays size={14} />
-                      {trip.dates}
+                    <span className="family-trip-status">
+                      {trip.status}
                     </span>
 
-                    <span>
-                      <Users size={14} />
-                      {trip.members} members
-                    </span>
                   </div>
 
-                  <div className="family-trip-link">
-                    Open trip
-                    <ChevronRight size={15} />
+                  <div className="family-trip-body">
+
+                    <h3>
+                      {trip.title}
+                    </h3>
+
+                    <p>
+                      <MapPin size={14} />
+                      {
+                        trip.destination
+                      }
+                    </p>
+
+                    <div className="family-trip-details">
+
+                      <span>
+                        <CalendarDays
+                          size={14}
+                        />
+
+                        {trip.dates}
+                      </span>
+
+                      <span>
+                        <Users
+                          size={14}
+                        />
+
+                        {trip.members}{" "}
+                        members
+                      </span>
+
+                    </div>
+
+                    <div className="family-trip-link">
+                      Open trip
+                      <ChevronRight
+                        size={15}
+                      />
+                    </div>
+
                   </div>
-                </div>
-              </Link>
-            ))}
+
+                </Link>
+              )
+            )}
+
           </div>
+
         </section>
 
-        {/* ================================
-            BOTTOM SECTION
-        ================================= */}
+        {/* BOTTOM SECTION */}
 
         <section className="family-bottom-grid">
 
           {/* RECENT ACTIVITY */}
 
           <div className="family-activity-card">
+
             <div className="family-section-heading-row compact">
+
               <div>
+
                 <span className="family-section-eyebrow">
                   <Sparkles size={14} />
                   RECENT ACTIVITY
                 </span>
 
-                <h2>What's happening</h2>
+                <h2>
+                  What's happening
+                </h2>
+
               </div>
+
             </div>
 
             <div className="family-activity-list">
-              {recentActivity.map((activity) => {
-                const Icon = activity.icon;
 
-                return (
-                  <div
-                    className="family-activity-item"
-                    key={activity.id}
-                  >
-                    <div className="family-activity-icon">
-                      <Icon size={16} />
+              {recentActivity.map(
+                (activity) => {
+                  const Icon =
+                    activity.icon;
+
+                  return (
+                    <div
+                      className="family-activity-item"
+                      key={
+                        activity.id
+                      }
+                    >
+
+                      <div className="family-activity-icon">
+                        <Icon size={16} />
+                      </div>
+
+                      <div>
+
+                        <strong>
+                          {
+                            activity.title
+                          }
+                        </strong>
+
+                        <span>
+                          {
+                            activity.time
+                          }
+                        </span>
+
+                      </div>
+
                     </div>
+                  );
+                }
+              )}
 
-                    <div>
-                      <strong>
-                        {activity.title}
-                      </strong>
-
-                      <span>
-                        {activity.time}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
             </div>
+
           </div>
 
           {/* INVITE */}
 
           <div className="family-invite-card">
+
             <div className="family-invite-icon">
               <Users size={22} />
             </div>
 
             <div>
+
               <span className="family-section-eyebrow">
-                GROW YOUR CREW
+                GROW YOUR GROUP
               </span>
 
               <h2>
@@ -1395,26 +1733,30 @@ export default function Family() {
               </h2>
 
               <p>
-                Add another family member so they can be
+                Add another group member so they can be
                 part of your next Roamio adventure.
               </p>
 
               <button
                 type="button"
                 className="family-button family-button-primary"
-                onClick={openAddModal}
+                onClick={
+                  openAddModal
+                }
               >
                 <Plus size={16} />
-                Add family member
+                Add group member
               </button>
+
             </div>
+
           </div>
+
         </section>
+
       </div>
 
-      {/* ================================
-          MEMBER MODAL
-      ================================= */}
+      {/* MEMBER MODAL */}
 
       <MemberModal
         open={modalOpen}
@@ -1425,12 +1767,13 @@ export default function Family() {
         onSave={handleSaveMember}
       />
 
-      {/* ================================
-          TOAST
-      ================================= */}
+      {/* TOAST */}
 
       {toast && (
-        <div className="family-toast" role="status">
+        <div
+          className="family-toast"
+          role="status"
+        >
           <div className="family-toast-icon">
             <Check size={15} />
           </div>
@@ -1438,7 +1781,7 @@ export default function Family() {
           <span>{toast}</span>
         </div>
       )}
+
     </PageShell>
   );
 }
-

@@ -28,7 +28,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Link,
   useLocation,
@@ -42,6 +42,13 @@ import { TOKEN_KEY } from "../api/client";
 import "../styles/dashboard.css";
 
 // =========================================================
+// CONSTANTS
+// =========================================================
+
+const GROUP_STORAGE_KEY =
+  "roamio_family_members_v1";
+
+// =========================================================
 // TRIP HELPERS
 // =========================================================
 
@@ -49,7 +56,9 @@ function tripStatus(trip) {
   if (!trip.startDate) return "Planning";
 
   const start = new Date(trip.startDate);
-  const end = trip.endDate ? new Date(trip.endDate) : start;
+  const end = trip.endDate
+    ? new Date(trip.endDate)
+    : start;
   const now = new Date();
 
   if (now > end) return "Completed";
@@ -69,7 +78,9 @@ function tripDateLabel(trip) {
     });
 
   return trip.endDate
-    ? `${format(trip.startDate)} — ${format(trip.endDate)}`
+    ? `${format(trip.startDate)} — ${format(
+        trip.endDate
+      )}`
     : format(trip.startDate);
 }
 
@@ -85,10 +96,14 @@ const DEFAULT_WEATHER_LOCATION = {
 };
 
 function getDashboardWeatherInfo(description) {
-  const normalizedDescription = String(description || "").toLowerCase();
+  const normalizedDescription = String(
+    description || ""
+  ).toLowerCase();
 
   if (normalizedDescription.includes("thunder")) {
-    return { label: "Thunderstorm" };
+    return {
+      label: "Thunderstorm",
+    };
   }
 
   if (
@@ -96,23 +111,31 @@ function getDashboardWeatherInfo(description) {
     normalizedDescription.includes("shower") ||
     normalizedDescription.includes("drizzle")
   ) {
-    return { label: "Rain" };
+    return {
+      label: "Rain",
+    };
   }
 
   if (normalizedDescription.includes("snow")) {
-    return { label: "Snow" };
+    return {
+      label: "Snow",
+    };
   }
 
   if (normalizedDescription.includes("cloud")) {
     return {
-      label: normalizedDescription.includes("overcast")
+      label: normalizedDescription.includes(
+        "overcast"
+      )
         ? "Overcast"
         : "Partly cloudy",
     };
   }
 
   return {
-    label: normalizedDescription.includes("clear")
+    label: normalizedDescription.includes(
+      "clear"
+    )
       ? "Clear sky"
       : "Weather",
   };
@@ -132,6 +155,141 @@ function getDashboardDate() {
 }
 
 // =========================================================
+// DEFAULT TRAVEL GROUP
+// =========================================================
+
+function getDefaultGroupMembers(
+  userName,
+  initials
+) {
+  return [
+    {
+      id: "member-1",
+      name: userName,
+      relationship: "Trip organizer",
+      role: "Trip organizer",
+      type: "Adult",
+      email: "",
+      initials,
+      color: "blue",
+      interests: [
+        "Nature",
+        "Culture",
+        "Food",
+      ],
+      trips: 4,
+      status: "Organizer",
+    },
+    {
+      id: "member-2",
+      name: "Savaan",
+      relationship: "Group member",
+      role: "Group member",
+      type: "Adult",
+      email: "",
+      initials: "SA",
+      color: "teal",
+      interests: [
+        "Adventure",
+        "Beach",
+      ],
+      trips: 3,
+      status: "Active",
+    },
+    {
+      id: "member-3",
+      name: "Rohan",
+      relationship: "Group member",
+      role: "Group member",
+      type: "Adult",
+      email: "",
+      initials: "RO",
+      color: "purple",
+      interests: [
+        "Nature",
+        "Photography",
+      ],
+      trips: 2,
+      status: "Active",
+    },
+    {
+      id: "member-4",
+      name: "Yatheen",
+      relationship: "Group member",
+      role: "Group member",
+      type: "Adult",
+      email: "",
+      initials: "YA",
+      color: "orange",
+      interests: [
+        "Adventure",
+        "Beach",
+      ],
+      trips: 2,
+      status: "Active",
+    },
+    {
+      id: "member-5",
+      name: "Jordan",
+      relationship: "Group member",
+      role: "Group member",
+      type: "Adult",
+      email: "",
+      initials: "JO",
+      color: "green",
+      interests: [
+        "Food",
+        "Culture",
+      ],
+      trips: 1,
+      status: "Active",
+    },
+  ];
+}
+
+// =========================================================
+// LOAD TRAVEL GROUP
+// =========================================================
+
+function loadGroupMembers(
+  userName,
+  initials
+) {
+  const defaults = getDefaultGroupMembers(
+    userName,
+    initials
+  );
+
+  try {
+    const saved = localStorage.getItem(
+      GROUP_STORAGE_KEY
+    );
+
+    if (!saved) {
+      return defaults;
+    }
+
+    const parsed = JSON.parse(saved);
+
+    if (
+      !Array.isArray(parsed) ||
+      parsed.length === 0
+    ) {
+      return defaults;
+    }
+
+    return parsed;
+  } catch (error) {
+    console.error(
+      "Could not load travel group:",
+      error
+    );
+
+    return defaults;
+  }
+}
+
+// =========================================================
 // DASHBOARD
 // =========================================================
 
@@ -139,15 +297,21 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [mobileMenu, setMobileMenu] = useState(false);
+  const [mobileMenu, setMobileMenu] =
+    useState(false);
 
   // =========================================================
   // WEATHER STATE
   // =========================================================
 
-  const [weather, setWeather] = useState(null);
-  const [weatherLoading, setWeatherLoading] = useState(true);
-  const [weatherError, setWeatherError] = useState("");
+  const [weather, setWeather] =
+    useState(null);
+
+  const [weatherLoading, setWeatherLoading] =
+    useState(true);
+
+  const [weatherError, setWeatherError] =
+    useState("");
 
   // =========================================================
   // USER
@@ -156,13 +320,17 @@ export default function Dashboard() {
   let savedUser = {};
 
   try {
-    const storedUser = localStorage.getItem("user");
+    const storedUser =
+      localStorage.getItem("user");
 
     if (storedUser) {
       savedUser = JSON.parse(storedUser);
     }
   } catch (error) {
-    console.error("Could not read saved user:", error);
+    console.error(
+      "Could not read saved user:",
+      error
+    );
   }
 
   let userName =
@@ -184,7 +352,9 @@ export default function Dashboard() {
     userName
       .split(/\s+/)
       .filter(Boolean)
-      .map((word) => word.charAt(0))
+      .map((word) =>
+        word.charAt(0)
+      )
       .join("")
       .substring(0, 2)
       .toUpperCase() || "R";
@@ -193,9 +363,14 @@ export default function Dashboard() {
   // TRIPS
   // =========================================================
 
-  const [trips, setTrips] = useState([]);
-  const [tripsLoading, setTripsLoading] = useState(true);
-  const [tripsError, setTripsError] = useState("");
+  const [trips, setTrips] =
+    useState([]);
+
+  const [tripsLoading, setTripsLoading] =
+    useState(true);
+
+  const [tripsError, setTripsError] =
+    useState("");
 
   useEffect(() => {
     let active = true;
@@ -227,63 +402,96 @@ export default function Dashboard() {
   }, []);
 
   // =========================================================
-  // FAMILY
+  // TRAVEL GROUP
   // =========================================================
 
-  const familyMembers = [
-    {
-      id: 1,
-      name: userName,
-      role: "Trip organizer",
-      initials,
-    },
-    {
-      id: 2,
-      name: "Family Member",
-      role: "Traveler",
-      initials: "F",
-    },
-    {
-      id: 3,
-      name: "Family Member",
-      role: "Traveler",
-      initials: "F",
-    },
-    {
-      id: 4,
-      name: "Family Member",
-      role: "Traveler",
-      initials: "F",
-    },
-  ];
+  const [groupMembers, setGroupMembers] =
+    useState(() =>
+      loadGroupMembers(
+        userName,
+        initials
+      )
+    );
+
+  const syncGroupMembers =
+    useCallback(() => {
+      const updatedMembers =
+        loadGroupMembers(
+          userName,
+          initials
+        );
+
+      setGroupMembers(
+        updatedMembers
+      );
+    }, [userName, initials]);
+
+  // Refresh when Dashboard becomes active.
+  useEffect(() => {
+    if (location.pathname === "/dashboard") {
+      syncGroupMembers();
+    }
+  }, [
+    location.pathname,
+    syncGroupMembers,
+  ]);
+
+  // Refresh if localStorage changes
+  // from another browser tab/window.
+  useEffect(() => {
+    const handleStorageChange = (
+      event
+    ) => {
+      if (
+        event.key ===
+        GROUP_STORAGE_KEY
+      ) {
+        syncGroupMembers();
+      }
+    };
+
+    window.addEventListener(
+      "storage",
+      handleStorageChange
+    );
+
+    return () => {
+      window.removeEventListener(
+        "storage",
+        handleStorageChange
+      );
+    };
+  }, [syncGroupMembers]);
 
   // =========================================================
   // WEATHER
   // =========================================================
 
-  const fetchDashboardWeather = async () => {
-    try {
-      setWeatherLoading(true);
-      setWeatherError("");
+  const fetchDashboardWeather =
+    async () => {
+      try {
+        setWeatherLoading(true);
+        setWeatherError("");
 
-      const data = await fetchWeatherFromApi(
-        DEFAULT_WEATHER_LOCATION.name
-      );
+        const data =
+          await fetchWeatherFromApi(
+            DEFAULT_WEATHER_LOCATION.name
+          );
 
-      setWeather(data);
-    } catch (error) {
-      console.error(
-        "Could not load dashboard weather:",
-        error
-      );
+        setWeather(data);
+      } catch (error) {
+        console.error(
+          "Could not load dashboard weather:",
+          error
+        );
 
-      setWeatherError(
-        "Weather information is currently unavailable."
-      );
-    } finally {
-      setWeatherLoading(false);
-    }
-  };
+        setWeatherError(
+          "Weather information is currently unavailable."
+        );
+      } finally {
+        setWeatherLoading(false);
+      }
+    };
 
   useEffect(() => {
     fetchDashboardWeather();
@@ -299,10 +507,15 @@ export default function Dashboard() {
 
   const isActive = (path) => {
     if (path === "/dashboard") {
-      return location.pathname === "/dashboard";
+      return (
+        location.pathname ===
+        "/dashboard"
+      );
     }
 
-    return location.pathname.startsWith(path);
+    return location.pathname.startsWith(
+      path
+    );
   };
 
   // =========================================================
@@ -311,7 +524,9 @@ export default function Dashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem("user");
-    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(
+      TOKEN_KEY
+    );
 
     setMobileMenu(false);
 
@@ -328,15 +543,20 @@ export default function Dashboard() {
     console.log("Notifications");
   };
 
-  const handleTripOptions = (tripTitle) => {
-    console.log("Trip options:", tripTitle);
+  const handleTripOptions = (
+    tripTitle
+  ) => {
+    console.log(
+      "Trip options:",
+      tripTitle
+    );
   };
 
-  const handleAddFamily = () => {
+  const handleAddGroup = () => {
     navigate("/family");
   };
 
-  const handleInviteFamily = () => {
+  const handleInviteGroup = () => {
     navigate("/family");
   };
 
@@ -357,7 +577,9 @@ export default function Dashboard() {
 
       <aside
         className={`dashboard-sidebar ${
-          mobileMenu ? "sidebar-open" : ""
+          mobileMenu
+            ? "sidebar-open"
+            : ""
         }`}
       >
 
@@ -368,7 +590,9 @@ export default function Dashboard() {
           <Link
             to="/dashboard"
             className="dashboard-logo"
-            onClick={closeMobileMenu}
+            onClick={
+              closeMobileMenu
+            }
           >
             <div className="dashboard-logo-icon">
               <Plane size={20} />
@@ -382,7 +606,9 @@ export default function Dashboard() {
           <button
             type="button"
             className="mobile-close"
-            onClick={closeMobileMenu}
+            onClick={
+              closeMobileMenu
+            }
             aria-label="Close menu"
           >
             <X size={20} />
@@ -405,14 +631,20 @@ export default function Dashboard() {
             <Link
               to="/dashboard"
               className={`sidebar-link ${
-                isActive("/dashboard")
+                isActive(
+                  "/dashboard"
+                )
                   ? "active"
                   : ""
               }`}
-              onClick={closeMobileMenu}
+              onClick={
+                closeMobileMenu
+              }
             >
               <Home size={18} />
-              <span>Dashboard</span>
+              <span>
+                Dashboard
+              </span>
             </Link>
 
             {/* MY TRIPS */}
@@ -424,7 +656,9 @@ export default function Dashboard() {
                   ? "active"
                   : ""
               }`}
-              onClick={closeMobileMenu}
+              onClick={
+                closeMobileMenu
+              }
             >
               <Map size={18} />
 
@@ -442,29 +676,41 @@ export default function Dashboard() {
             <Link
               to="/explore"
               className={`sidebar-link ${
-                isActive("/explore")
+                isActive(
+                  "/explore"
+                )
                   ? "active"
                   : ""
               }`}
-              onClick={closeMobileMenu}
+              onClick={
+                closeMobileMenu
+              }
             >
               <Compass size={18} />
-              <span>Explore</span>
+              <span>
+                Explore
+              </span>
             </Link>
 
-            {/* FAMILY */}
+            {/* TRAVEL GROUP */}
 
             <Link
               to="/family"
               className={`sidebar-link ${
-                isActive("/family")
+                isActive(
+                  "/family"
+                )
                   ? "active"
                   : ""
               }`}
-              onClick={closeMobileMenu}
+              onClick={
+                closeMobileMenu
+              }
             >
               <Users size={18} />
-              <span>Family</span>
+              <span>
+                Travel Group
+              </span>
             </Link>
 
           </nav>
@@ -486,14 +732,20 @@ export default function Dashboard() {
             <Link
               to="/calendar"
               className={`sidebar-link ${
-                isActive("/calendar")
+                isActive(
+                  "/calendar"
+                )
                   ? "active"
                   : ""
               }`}
-              onClick={closeMobileMenu}
+              onClick={
+                closeMobileMenu
+              }
             >
               <CalendarDays size={18} />
-              <span>Calendar</span>
+              <span>
+                Calendar
+              </span>
             </Link>
 
             {/* MEMORIES */}
@@ -501,14 +753,20 @@ export default function Dashboard() {
             <Link
               to="/memories"
               className={`sidebar-link ${
-                isActive("/memories")
+                isActive(
+                  "/memories"
+                )
                   ? "active"
                   : ""
               }`}
-              onClick={closeMobileMenu}
+              onClick={
+                closeMobileMenu
+              }
             >
               <Heart size={18} />
-              <span>Memories</span>
+              <span>
+                Memories
+              </span>
             </Link>
 
             {/* WEATHER */}
@@ -516,14 +774,20 @@ export default function Dashboard() {
             <Link
               to="/weather"
               className={`sidebar-link ${
-                isActive("/weather")
+                isActive(
+                  "/weather"
+                )
                   ? "active"
                   : ""
               }`}
-              onClick={closeMobileMenu}
+              onClick={
+                closeMobileMenu
+              }
             >
               <CloudSun size={18} />
-              <span>Weather</span>
+              <span>
+                Weather
+              </span>
             </Link>
 
             {/* RECOMMENDATIONS */}
@@ -531,14 +795,20 @@ export default function Dashboard() {
             <Link
               to="/recommendations"
               className={`sidebar-link ${
-                isActive("/recommendations")
+                isActive(
+                  "/recommendations"
+                )
                   ? "active"
                   : ""
               }`}
-              onClick={closeMobileMenu}
+              onClick={
+                closeMobileMenu
+              }
             >
               <Sparkles size={18} />
-              <span>Recommendations</span>
+              <span>
+                Recommendations
+              </span>
             </Link>
 
             {/* TRANSLATOR */}
@@ -546,14 +816,20 @@ export default function Dashboard() {
             <Link
               to="/translator"
               className={`sidebar-link ${
-                isActive("/translator")
+                isActive(
+                  "/translator"
+                )
                   ? "active"
                   : ""
               }`}
-              onClick={closeMobileMenu}
+              onClick={
+                closeMobileMenu
+              }
             >
               <Languages size={18} />
-              <span>Travel Translator</span>
+              <span>
+                Travel Translator
+              </span>
             </Link>
 
             {/* SETTINGS */}
@@ -561,14 +837,20 @@ export default function Dashboard() {
             <Link
               to="/settings"
               className={`sidebar-link ${
-                isActive("/settings")
+                isActive(
+                  "/settings"
+                )
                   ? "active"
                   : ""
               }`}
-              onClick={closeMobileMenu}
+              onClick={
+                closeMobileMenu
+              }
             >
               <Settings size={18} />
-              <span>Settings</span>
+              <span>
+                Settings
+              </span>
             </Link>
 
           </nav>
@@ -591,7 +873,8 @@ export default function Dashboard() {
               </strong>
 
               <p>
-                Keep your family plans in one place.
+                Keep your group plans
+                in one place.
               </p>
             </div>
 
@@ -600,7 +883,9 @@ export default function Dashboard() {
           <button
             type="button"
             className="sidebar-logout"
-            onClick={handleLogout}
+            onClick={
+              handleLogout
+            }
           >
             <LogOut size={17} />
             Sign out
@@ -617,7 +902,9 @@ export default function Dashboard() {
       {mobileMenu && (
         <div
           className="mobile-overlay"
-          onClick={closeMobileMenu}
+          onClick={
+            closeMobileMenu
+          }
         />
       )}
 
@@ -636,7 +923,9 @@ export default function Dashboard() {
           <button
             type="button"
             className="mobile-menu-button"
-            onClick={() => setMobileMenu(true)}
+            onClick={() =>
+              setMobileMenu(true)
+            }
             aria-label="Open menu"
           >
             <Menu size={21} />
@@ -661,7 +950,9 @@ export default function Dashboard() {
               className="header-icon-button"
               title="Notifications"
               aria-label="Notifications"
-              onClick={handleNotification}
+              onClick={
+                handleNotification
+              }
             >
               <Bell size={19} />
 
@@ -731,7 +1022,7 @@ export default function Dashboard() {
 
                 <Sparkles size={14} />
 
-                SMART FAMILY TRAVEL
+                SMART GROUP TRAVEL
 
               </div>
 
@@ -747,18 +1038,23 @@ export default function Dashboard() {
               </h1>
 
               <p className="hero-subtitle">
-                Ready to plan your next family adventure?
+                Ready to plan your next
+                group adventure?
               </p>
 
               <p className="hero-description">
-                Start planning an unforgettable adventure
-                together. Everything you need, all in one place.
+                Start planning an
+                unforgettable adventure
+                together. Everything you
+                need, all in one place.
               </p>
 
               <button
                 type="button"
                 className="hero-button"
-                onClick={handleCreateTrip}
+                onClick={
+                  handleCreateTrip
+                }
               >
 
                 <Plus size={18} />
@@ -820,7 +1116,8 @@ export default function Dashboard() {
                 </span>
 
                 <strong>
-                  {trips[0]?.destination || "Anywhere"}
+                  {trips[0]?.destination ||
+                    "Anywhere"}
                 </strong>
 
               </div>
@@ -887,7 +1184,7 @@ export default function Dashboard() {
 
             </div>
 
-            {/* FAMILY */}
+            {/* TRAVEL GROUP */}
 
             <Link
               to="/family"
@@ -901,11 +1198,11 @@ export default function Dashboard() {
               <div className="stat-info">
 
                 <span>
-                  Family members
+                  Group members
                 </span>
 
                 <strong>
-                  {familyMembers.length}
+                  {groupMembers.length}
                 </strong>
 
                 <small>
@@ -970,114 +1267,161 @@ export default function Dashboard() {
                   {tripsError}
                 </p>
 
-              ) : trips.length === 0 ? (
+              ) : trips.length ===
+                0 ? (
 
                 <p className="trips-empty-note">
-                  No trips yet — use "Create a new trip"
-                  above to plan your first one.
+                  No trips yet — use
+                  "Create a new trip"
+                  above to plan your
+                  first one.
                 </p>
 
               ) : (
 
                 <div className="trip-list">
 
-                  {trips.slice(0, 3).map((trip) => {
+                  {trips
+                    .slice(0, 3)
+                    .map((trip) => {
 
-                    const status = tripStatus(trip);
+                      const status =
+                        tripStatus(
+                          trip
+                        );
 
-                    return (
+                      return (
 
-                      <Link
-                        to={`/trips/${trip.id}`}
-                        className="trip-card"
-                        key={trip.id}
-                      >
+                        <Link
+                          to={`/trips/${trip.id}`}
+                          className="trip-card"
+                          key={
+                            trip.id
+                          }
+                        >
 
-                        {/* IMAGE */}
+                          {/* IMAGE */}
 
-                        <div className="trip-image trip-image-fallback">
+                          <div className="trip-image trip-image-fallback">
 
-                          <MapPin size={26} />
+                            <MapPin
+                              size={26}
+                            />
 
-                          <span
-                            className={`trip-status ${
-                              status === "Upcoming"
-                                ? "upcoming"
-                                : "planning"
-                            }`}
-                          >
+                            <span
+                              className={`trip-status ${
+                                status ===
+                                "Upcoming"
+                                  ? "upcoming"
+                                  : "planning"
+                              }`}
+                            >
 
-                            {status === "Upcoming" ? (
-                              <CheckCircle2 size={13} />
-                            ) : (
-                              <Clock3 size={13} />
-                            )}
+                              {status ===
+                              "Upcoming" ? (
+                                <CheckCircle2
+                                  size={
+                                    13
+                                  }
+                                />
+                              ) : (
+                                <Clock3
+                                  size={
+                                    13
+                                  }
+                                />
+                              )}
 
-                            {status}
+                              {status}
 
-                          </span>
+                            </span>
 
-                        </div>
+                          </div>
 
-                        {/* INFO */}
+                          {/* INFO */}
 
-                        <div className="trip-info">
+                          <div className="trip-info">
 
-                          <div className="trip-title-row">
+                            <div className="trip-title-row">
 
-                            <div>
+                              <div>
 
-                              <h3>
-                                {trip.title}
-                              </h3>
+                                <h3>
+                                  {
+                                    trip.title
+                                  }
+                                </h3>
 
-                              <div className="trip-location">
+                                <div className="trip-location">
 
-                                <MapPin size={14} />
+                                  <MapPin
+                                    size={
+                                      14
+                                    }
+                                  />
 
-                                {trip.destination ||
-                                  "Destination not set"}
+                                  {trip.destination ||
+                                    "Destination not set"}
+
+                                </div>
 
                               </div>
 
-                            </div>
+                              <button
+                                type="button"
+                                className="trip-more"
+                                aria-label={`More options for ${trip.title}`}
+                                onClick={(
+                                  event
+                                ) => {
+                                  event.preventDefault();
 
-                            <button
-                              type="button"
-                              className="trip-more"
-                              aria-label={`More options for ${trip.title}`}
-                              onClick={(event) => {
-                                event.preventDefault();
-                                handleTripOptions(trip.title);
-                              }}
-                            >
+                                  handleTripOptions(
+                                    trip.title
+                                  );
+                                }}
+                              >
 
-                              <MoreHorizontal size={19} />
+                                <MoreHorizontal
+                                  size={
+                                    19
+                                  }
+                                />
 
-                            </button>
-
-                          </div>
-
-                          <div className="trip-footer">
-
-                            <div className="trip-date">
-
-                              <CalendarDays size={14} />
-
-                              {tripDateLabel(trip)}
+                              </button>
 
                             </div>
 
-                            <ArrowRight size={16} />
+                            <div className="trip-footer">
+
+                              <div className="trip-date">
+
+                                <CalendarDays
+                                  size={
+                                    14
+                                  }
+                                />
+
+                                {tripDateLabel(
+                                  trip
+                                )}
+
+                              </div>
+
+                              <ArrowRight
+                                size={
+                                  16
+                                }
+                              />
+
+                            </div>
 
                           </div>
 
-                        </div>
+                        </Link>
 
-                      </Link>
-
-                    );
-                  })}
+                      );
+                    })}
 
                 </div>
               )}
@@ -1091,7 +1435,7 @@ export default function Dashboard() {
             <aside className="dashboard-right-column">
 
               {/* =================================================
-                  FAMILY
+                  TRAVEL GROUP
               ================================================= */}
 
               <section className="family-card">
@@ -1101,11 +1445,11 @@ export default function Dashboard() {
                   <div>
 
                     <span className="section-eyebrow">
-                      YOUR CREW
+                      YOUR TRAVEL GROUP
                     </span>
 
                     <h2>
-                      Family
+                      Travel Group
                     </h2>
 
                   </div>
@@ -1113,8 +1457,10 @@ export default function Dashboard() {
                   <button
                     type="button"
                     className="small-add"
-                    aria-label="Add family member"
-                    onClick={handleAddFamily}
+                    aria-label="Add group member"
+                    onClick={
+                      handleAddGroup
+                    }
                   >
 
                     <Plus size={16} />
@@ -1125,54 +1471,70 @@ export default function Dashboard() {
 
                 <div className="family-list">
 
-                  {familyMembers.map((member) => (
-
-                    <div
-                      className="family-member"
-                      key={member.id}
-                    >
-
+                  {groupMembers.map(
+                    (member) => (
                       <div
-                        className={`family-avatar avatar-${member.id}`}
+                        className="family-member"
+                        key={
+                          member.id
+                        }
                       >
-                        {member.initials}
+
+                        <div
+                          className={`family-avatar avatar-${String(
+                            member.id
+                          ).replace(
+                            "member-",
+                            ""
+                          )}`}
+                        >
+                          {member.initials}
+                        </div>
+
+                        <div className="family-member-info">
+
+                          <strong>
+                            {
+                              member.name
+                            }
+                          </strong>
+
+                          <span>
+                            {member.role ||
+                              member.relationship ||
+                              "Group member"}
+                          </span>
+
+                        </div>
+
+                        {member.status ===
+                          "Organizer" && (
+                          <span className="organizer-badge">
+                            You
+                          </span>
+                        )}
+
                       </div>
-
-                      <div className="family-member-info">
-
-                        <strong>
-                          {member.name}
-                        </strong>
-
-                        <span>
-                          {member.role}
-                        </span>
-
-                      </div>
-
-                      {member.id === 1 && (
-                        <span className="organizer-badge">
-                          You
-                        </span>
-                      )}
-
-                    </div>
-
-                  ))}
+                    )
+                  )}
 
                 </div>
 
                 <button
                   type="button"
                   className="invite-family"
-                  onClick={handleInviteFamily}
+                  onClick={
+                    handleInviteGroup
+                  }
                 >
 
                   <Users size={16} />
 
-                  Invite family member
+                  Invite group member
 
-                  <ArrowRight size={15} />
+                  <ArrowRight
+                    size={15}
+                  />
 
                 </button>
 
@@ -1201,8 +1563,12 @@ export default function Dashboard() {
                   <button
                     type="button"
                     className="weather-refresh-button"
-                    onClick={fetchDashboardWeather}
-                    disabled={weatherLoading}
+                    onClick={
+                      fetchDashboardWeather
+                    }
+                    disabled={
+                      weatherLoading
+                    }
                     aria-label="Refresh weather"
                   >
 
@@ -1238,7 +1604,9 @@ export default function Dashboard() {
 
                   <div className="dashboard-weather-error">
 
-                    <CloudSun size={24} />
+                    <CloudSun
+                      size={24}
+                    />
 
                     <p>
                       {weatherError}
@@ -1246,7 +1614,9 @@ export default function Dashboard() {
 
                     <button
                       type="button"
-                      onClick={fetchDashboardWeather}
+                      onClick={
+                        fetchDashboardWeather
+                      }
                     >
                       Try again
                     </button>
@@ -1260,14 +1630,18 @@ export default function Dashboard() {
                     <div className="dashboard-weather-main">
 
                       <div className="dashboard-weather-icon">
-                        <CloudSun size={42} />
+                        <CloudSun
+                          size={42}
+                        />
                       </div>
 
                       <div className="dashboard-weather-temperature">
 
                         <strong>
                           {Math.round(
-                            weather.current.temp
+                            weather
+                              .current
+                              .temp
                           )}
                           °
                         </strong>
@@ -1275,7 +1649,9 @@ export default function Dashboard() {
                         <span>
                           {
                             getDashboardWeatherInfo(
-                              weather.current.description
+                              weather
+                                .current
+                                .description
                             ).label
                           }
                         </span>
@@ -1286,10 +1662,13 @@ export default function Dashboard() {
 
                     <div className="dashboard-weather-location">
 
-                      <MapPin size={15} />
+                      <MapPin
+                        size={15}
+                      />
 
                       <span>
-                        Durban, KwaZulu-Natal
+                        Durban,
+                        KwaZulu-Natal
                       </span>
 
                     </div>
@@ -1298,21 +1677,30 @@ export default function Dashboard() {
 
                       <div>
 
-                        <Droplets size={15} />
+                        <Droplets
+                          size={15}
+                        />
 
                         <span>
                           Humidity
                         </span>
 
                         <strong>
-                          {weather.current.humidity}%
+                          {
+                            weather
+                              .current
+                              .humidity
+                          }
+                          %
                         </strong>
 
                       </div>
 
                       <div>
 
-                        <Wind size={15} />
+                        <Wind
+                          size={15}
+                        />
 
                         <span>
                           Wind
@@ -1320,7 +1708,9 @@ export default function Dashboard() {
 
                         <strong>
                           {Math.round(
-                            weather.current.wind_speed
+                            weather
+                              .current
+                              .wind_speed
                           )}{" "}
                           km/h
                         </strong>
@@ -1336,7 +1726,9 @@ export default function Dashboard() {
 
                       View full forecast
 
-                      <ArrowRight size={15} />
+                      <ArrowRight
+                        size={15}
+                      />
 
                     </Link>
 
@@ -1367,19 +1759,24 @@ export default function Dashboard() {
                   </h3>
 
                   <p>
-                    Your family's adventures are
+                    Your group's
+                    adventures are
                     worth remembering.
                   </p>
 
                   <button
                     type="button"
                     className="memory-button"
-                    onClick={handleViewMemories}
+                    onClick={
+                      handleViewMemories
+                    }
                   >
 
                     View memories
 
-                    <ArrowRight size={14} />
+                    <ArrowRight
+                      size={14}
+                    />
 
                   </button>
 
@@ -1413,11 +1810,13 @@ export default function Dashboard() {
             <div>
 
               <strong>
-                Every great adventure starts with a plan.
+                Every great adventure
+                starts with a plan.
               </strong>
 
               <span>
-                Make your next family memory unforgettable.
+                Make your next group
+                memory unforgettable.
               </span>
 
             </div>
