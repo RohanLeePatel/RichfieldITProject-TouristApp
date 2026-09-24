@@ -29,48 +29,60 @@ import {
 } from "lucide-react";
 
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 
 import { fetchWeather as fetchWeatherFromApi } from "../api/weather";
 import { fetchTrips } from "../api/trips";
 import { TOKEN_KEY } from "../api/client";
+
 import "../styles/dashboard.css";
 
-// A trip has no status field of its own (neither the real API nor the dev
-// store track one) - derive a reasonable label from its dates instead.
+// =========================================================
+// TRIP HELPERS
+// =========================================================
+
 function tripStatus(trip) {
   if (!trip.startDate) return "Planning";
+
   const start = new Date(trip.startDate);
   const end = trip.endDate ? new Date(trip.endDate) : start;
   const now = new Date();
+
   if (now > end) return "Completed";
   if (now >= start) return "Upcoming";
+
   return "Planning";
 }
 
 function tripDateLabel(trip) {
   if (!trip.startDate) return "Dates not set";
-  const format = (iso) => new Date(iso).toLocaleDateString("en", { day: "2-digit", month: "short", year: "numeric" });
-  return trip.endDate ? `${format(trip.startDate)} — ${format(trip.endDate)}` : format(trip.startDate);
+
+  const format = (iso) =>
+    new Date(iso).toLocaleDateString("en-ZA", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+
+  return trip.endDate
+    ? `${format(trip.startDate)} — ${format(trip.endDate)}`
+    : format(trip.startDate);
 }
 
 // =========================================================
-// WEATHER API
+// WEATHER
 // =========================================================
 
-// Default weather location for the dashboard.
-// The full Weather page allows the user to search for
-// other South African locations.
 const DEFAULT_WEATHER_LOCATION = {
   name: "Durban",
   province: "KwaZulu-Natal",
   latitude: -29.8587,
   longitude: 31.0218,
 };
-
-// =========================================================
-// WEATHER HELPER
-// =========================================================
 
 function getDashboardWeatherInfo(description) {
   const normalizedDescription = String(description || "").toLowerCase();
@@ -107,11 +119,25 @@ function getDashboardWeatherInfo(description) {
 }
 
 // =========================================================
+// DATE
+// =========================================================
+
+function getDashboardDate() {
+  return new Date().toLocaleDateString("en-ZA", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+// =========================================================
 // DASHBOARD
 // =========================================================
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [mobileMenu, setMobileMenu] = useState(false);
 
@@ -120,12 +146,8 @@ export default function Dashboard() {
   // =========================================================
 
   const [weather, setWeather] = useState(null);
-
-  const [weatherLoading, setWeatherLoading] =
-    useState(true);
-
-  const [weatherError, setWeatherError] =
-    useState("");
+  const [weatherLoading, setWeatherLoading] = useState(true);
+  const [weatherError, setWeatherError] = useState("");
 
   // =========================================================
   // USER
@@ -140,19 +162,12 @@ export default function Dashboard() {
       savedUser = JSON.parse(storedUser);
     }
   } catch (error) {
-    console.error(
-      "Could not read saved user:",
-      error
-    );
+    console.error("Could not read saved user:", error);
   }
 
-  /*
-   * Get the user's name.
-   *
-   * If no valid name is saved, use the default Roamio name.
-   */
   let userName =
     savedUser?.name ||
+    savedUser?.fullName ||
     savedUser?.firstName ||
     "";
 
@@ -162,12 +177,9 @@ export default function Dashboard() {
 
   userName = userName.trim();
 
-  // First name for:
-  // "Good morning, Duran!"
   const firstName =
     userName.split(/\s+/)[0] || "Roamio";
 
-  // Create initials for profile avatar
   const initials =
     userName
       .split(/\s+/)
@@ -187,20 +199,28 @@ export default function Dashboard() {
 
   useEffect(() => {
     let active = true;
+
     fetchTrips()
       .then((data) => {
-        if (active) setTrips(data || []);
+        if (active) {
+          setTrips(data || []);
+        }
       })
       .catch((error) => {
         if (active) {
           setTripsError(
-            error instanceof Error ? error.message : "Could not load your trips."
+            error instanceof Error
+              ? error.message
+              : "Could not load your trips."
           );
         }
       })
       .finally(() => {
-        if (active) setTripsLoading(false);
+        if (active) {
+          setTripsLoading(false);
+        }
       });
+
     return () => {
       active = false;
     };
@@ -217,21 +237,18 @@ export default function Dashboard() {
       role: "Trip organizer",
       initials,
     },
-
     {
       id: 2,
       name: "Family Member",
       role: "Traveler",
       initials: "F",
     },
-
     {
       id: 3,
       name: "Family Member",
       role: "Traveler",
       initials: "F",
     },
-
     {
       id: 4,
       name: "Family Member",
@@ -268,24 +285,32 @@ export default function Dashboard() {
     }
   };
 
-  // Load weather when Dashboard opens.
   useEffect(() => {
     fetchDashboardWeather();
   }, []);
 
   // =========================================================
-  // FUNCTIONS
+  // NAVIGATION
   // =========================================================
 
   const closeMobileMenu = () => {
     setMobileMenu(false);
   };
 
-  const handleLogout = () => {
-    // Remove current user
-    localStorage.removeItem("user");
+  const isActive = (path) => {
+    if (path === "/dashboard") {
+      return location.pathname === "/dashboard";
+    }
 
-    // Remove current Roamio token
+    return location.pathname.startsWith(path);
+  };
+
+  // =========================================================
+  // ACTIONS
+  // =========================================================
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
     localStorage.removeItem(TOKEN_KEY);
 
     setMobileMenu(false);
@@ -308,15 +333,15 @@ export default function Dashboard() {
   };
 
   const handleAddFamily = () => {
-    console.log("Add family member");
+    navigate("/family");
   };
 
   const handleInviteFamily = () => {
-    console.log("Invite family member");
+    navigate("/family");
   };
 
   const handleViewMemories = () => {
-    console.log("View memories");
+    navigate("/memories");
   };
 
   // =========================================================
@@ -340,8 +365,11 @@ export default function Dashboard() {
 
         <div className="sidebar-top">
 
-          <div className="dashboard-logo">
-
+          <Link
+            to="/dashboard"
+            className="dashboard-logo"
+            onClick={closeMobileMenu}
+          >
             <div className="dashboard-logo-icon">
               <Plane size={20} />
             </div>
@@ -349,8 +377,7 @@ export default function Dashboard() {
             <span>
               Roamio
             </span>
-
-          </div>
+          </Link>
 
           <button
             type="button"
@@ -373,40 +400,67 @@ export default function Dashboard() {
 
           <nav className="sidebar-nav">
 
+            {/* DASHBOARD */}
+
             <Link
               to="/dashboard"
-              className="sidebar-link active"
+              className={`sidebar-link ${
+                isActive("/dashboard")
+                  ? "active"
+                  : ""
+              }`}
               onClick={closeMobileMenu}
             >
               <Home size={18} />
               <span>Dashboard</span>
             </Link>
 
+            {/* MY TRIPS */}
+
             <Link
               to="/trips"
-              className="sidebar-link"
+              className={`sidebar-link ${
+                isActive("/trips")
+                  ? "active"
+                  : ""
+              }`}
               onClick={closeMobileMenu}
             >
               <Map size={18} />
-              <span>My Trips</span>
+
+              <span>
+                My Trips
+              </span>
 
               <span className="nav-count">
                 {trips.length}
               </span>
             </Link>
 
+            {/* EXPLORE */}
+
             <Link
-              to="/dashboard"
-              className="sidebar-link"
+              to="/explore"
+              className={`sidebar-link ${
+                isActive("/explore")
+                  ? "active"
+                  : ""
+              }`}
               onClick={closeMobileMenu}
             >
               <Compass size={18} />
               <span>Explore</span>
             </Link>
 
+            {/* FAMILY */}
+
             <Link
-              to="/dashboard"
-              className="sidebar-link"
+              to="/family"
+              className={`sidebar-link ${
+                isActive("/family")
+                  ? "active"
+                  : ""
+              }`}
               onClick={closeMobileMenu}
             >
               <Users size={18} />
@@ -427,18 +481,30 @@ export default function Dashboard() {
 
           <nav className="sidebar-nav">
 
+            {/* CALENDAR */}
+
             <Link
-              to="/Calendar"
-              className="sidebar-link"
+              to="/calendar"
+              className={`sidebar-link ${
+                isActive("/calendar")
+                  ? "active"
+                  : ""
+              }`}
               onClick={closeMobileMenu}
             >
               <CalendarDays size={18} />
               <span>Calendar</span>
             </Link>
 
+            {/* MEMORIES */}
+
             <Link
-              to="/dashboard"
-              className="sidebar-link"
+              to="/memories"
+              className={`sidebar-link ${
+                isActive("/memories")
+                  ? "active"
+                  : ""
+              }`}
               onClick={closeMobileMenu}
             >
               <Heart size={18} />
@@ -449,7 +515,11 @@ export default function Dashboard() {
 
             <Link
               to="/weather"
-              className="sidebar-link"
+              className={`sidebar-link ${
+                isActive("/weather")
+                  ? "active"
+                  : ""
+              }`}
               onClick={closeMobileMenu}
             >
               <CloudSun size={18} />
@@ -460,7 +530,11 @@ export default function Dashboard() {
 
             <Link
               to="/recommendations"
-              className="sidebar-link"
+              className={`sidebar-link ${
+                isActive("/recommendations")
+                  ? "active"
+                  : ""
+              }`}
               onClick={closeMobileMenu}
             >
               <Sparkles size={18} />
@@ -471,7 +545,11 @@ export default function Dashboard() {
 
             <Link
               to="/translator"
-              className="sidebar-link"
+              className={`sidebar-link ${
+                isActive("/translator")
+                  ? "active"
+                  : ""
+              }`}
               onClick={closeMobileMenu}
             >
               <Languages size={18} />
@@ -482,7 +560,11 @@ export default function Dashboard() {
 
             <Link
               to="/settings"
-              className="sidebar-link"
+              className={`sidebar-link ${
+                isActive("/settings")
+                  ? "active"
+                  : ""
+              }`}
               onClick={closeMobileMenu}
             >
               <Settings size={18} />
@@ -504,7 +586,6 @@ export default function Dashboard() {
             </div>
 
             <div>
-
               <strong>
                 Travel smarter
               </strong>
@@ -512,7 +593,6 @@ export default function Dashboard() {
               <p>
                 Keep your family plans in one place.
               </p>
-
             </div>
 
           </div>
@@ -567,7 +647,7 @@ export default function Dashboard() {
             <CalendarDays size={16} />
 
             <span>
-              Friday, August 28, 2026
+              {getDashboardDate()}
             </span>
 
           </div>
@@ -590,7 +670,10 @@ export default function Dashboard() {
 
             {/* PROFILE */}
 
-            <div className="header-profile">
+            <Link
+              to="/settings"
+              className="header-profile"
+            >
 
               <div className="profile-avatar">
                 {initials}
@@ -610,7 +693,7 @@ export default function Dashboard() {
 
               <ChevronRight size={16} />
 
-            </div>
+            </Link>
 
           </div>
 
@@ -806,7 +889,10 @@ export default function Dashboard() {
 
             {/* FAMILY */}
 
-            <div className="stat-card">
+            <Link
+              to="/family"
+              className="stat-card"
+            >
 
               <div className="stat-icon orange">
                 <Users size={20} />
@@ -819,7 +905,7 @@ export default function Dashboard() {
                 </span>
 
                 <strong>
-                  5
+                  {familyMembers.length}
                 </strong>
 
                 <small>
@@ -832,7 +918,7 @@ export default function Dashboard() {
                 <Heart size={43} />
               </div>
 
-            </div>
+            </Link>
 
           </section>
 
@@ -873,18 +959,32 @@ export default function Dashboard() {
               </div>
 
               {tripsLoading ? (
-                <p className="trips-empty-note">Loading your trips...</p>
-              ) : tripsError ? (
-                <p className="trips-empty-note">{tripsError}</p>
-              ) : trips.length === 0 ? (
+
                 <p className="trips-empty-note">
-                  No trips yet - use &quot;Create a new trip&quot; above to plan your first one.
+                  Loading your trips...
                 </p>
+
+              ) : tripsError ? (
+
+                <p className="trips-empty-note">
+                  {tripsError}
+                </p>
+
+              ) : trips.length === 0 ? (
+
+                <p className="trips-empty-note">
+                  No trips yet — use "Create a new trip"
+                  above to plan your first one.
+                </p>
+
               ) : (
+
                 <div className="trip-list">
 
                   {trips.slice(0, 3).map((trip) => {
+
                     const status = tripStatus(trip);
+
                     return (
 
                       <Link
@@ -935,7 +1035,8 @@ export default function Dashboard() {
 
                                 <MapPin size={14} />
 
-                                {trip.destination || "Destination not set"}
+                                {trip.destination ||
+                                  "Destination not set"}
 
                               </div>
 
@@ -1204,10 +1305,7 @@ export default function Dashboard() {
                         </span>
 
                         <strong>
-                          {
-                            weather.current.humidity
-                          }
-                          %
+                          {weather.current.humidity}%
                         </strong>
 
                       </div>
