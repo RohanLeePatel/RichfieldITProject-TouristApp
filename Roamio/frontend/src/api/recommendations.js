@@ -33,12 +33,13 @@ async function readJsonResponse(response, invalidMessage, fallbackMessage) {
   return data;
 }
 
-export async function fetchRecommendations(preferences, level, parentId) {
+export async function fetchRecommendations(preferences, level, parentId, excludeIds = []) {
   const request = {
     request_id: crypto.randomUUID(),
     session_id: getSessionId(),
     level,
     preferences,
+    exclude_ids: excludeIds,
   };
 
   if (level === "city" && parentId) {
