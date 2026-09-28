@@ -29,7 +29,7 @@ import {
 import { Link } from "react-router-dom";
 
 import PageShell from "../components/recommendations/PageShell.jsx";
-import "../styles/family.css";
+import "../styles/Family.css";
 
 const STORAGE_KEY = "roamio_family_members_v1";
 
