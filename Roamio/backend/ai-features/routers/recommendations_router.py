@@ -49,6 +49,10 @@ async def recommendations(request: RecommendationRequest) -> RecommendationRespo
                 detail="No built-in candidate catalog for 'place' level — use /landmarks instead.",
             )
 
+    # keep at least one candidate so a run of dislikes never yields a 500
+    kept = [c for c in candidates if c.id not in request.exclude_ids]
+    candidates = kept or candidates
+
     try:
         return build_response(request, candidates=candidates)
     except Exception as e:

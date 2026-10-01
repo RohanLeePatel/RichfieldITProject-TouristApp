@@ -974,3 +974,27 @@ path.map-route.day-6 { stroke: var(--day-6); }
 .card-insights .insights-grid { grid-template-columns: 1fr; }
 .card-insights .insights-card { padding: 12px 14px; box-shadow: none; }
 .recommendation-list:has(.card-insights) { align-items: start; }
+
+/* why-matched label, per-card feedback buttons, shortlist bar, compare table */
+.recommendation-why { margin: 4px 0 -2px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft); }
+.recommendation-feedback { display: flex; flex-wrap: wrap; gap: 8px; }
+.recommendation-feedback .card-link-button.active { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); }
+.recommendation-feedback .card-link-button:disabled { opacity: .5; cursor: not-allowed; }
+.shortlist-bar {
+  position: sticky; bottom: 12px; z-index: 5; margin-top: 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 12px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px;
+  box-shadow: 0 10px 30px rgba(20, 48, 31, .18);
+}
+.shortlist-bar span { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--ink); }
+.compare-view { margin-top: 20px; padding: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; }
+.compare-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.compare-scroll { overflow-x: auto; }
+.compare-view table { width: 100%; border-collapse: collapse; min-width: 420px; }
+.compare-view th, .compare-view td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); color: var(--ink); vertical-align: middle; }
+.compare-view thead th { font-weight: 800; }
+.compare-view tbody th { color: var(--ink-soft); font-weight: 600; white-space: nowrap; }
+.compare-view td.best { font-weight: 800; color: var(--primary); }
+.compare-bar { display: block; height: 6px; margin-bottom: 4px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
+.compare-bar i { display: block; height: 100%; background: var(--primary); }
+.compare-remove { margin-left: 6px; border: 0; background: none; color: var(--ink-soft); cursor: pointer; vertical-align: middle; }

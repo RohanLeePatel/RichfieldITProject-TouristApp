@@ -115,6 +115,8 @@ class RecommendationRequest(BaseModel):
     # catalog (engine/catalog.py) based on level/preferences. pass it in if you
     # want to score your own specific set of candidates instead
     candidates: Optional[list[Candidate]] = None
+    # destinations the user marked "not quite right" - dropped before scoring
+    exclude_ids: list[str] = Field(default_factory=list, max_length=100)
 
     @model_validator(mode="after")
     def _candidates_not_explicitly_empty(self) -> "RecommendationRequest":

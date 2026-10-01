@@ -26,6 +26,8 @@ import {
   tripLengthDays,
 } from "./recommendations/constants.js";
 
+const MAX_SHORTLIST = 3;
+
 export default function Recommendations() {
   // wizard -> collecting preferences
   // results -> ranked countries or cities
@@ -65,6 +67,8 @@ export default function Recommendations() {
   // city, city list before picking one) so the back button can restore them
   // without an extra fetch. Empty means the only way back is the wizard.
   const [resultsHistory, setResultsHistory] = useState([]);
+  const [dislikedIds, setDislikedIds] = useState([]); // "not quite right" picks, sent as exclude_ids
+  const [shortlist, setShortlist] = useState([]); // up to MAX_SHORTLIST results to compare
 
   useEffect(() => {
     let active = true;
@@ -203,7 +207,7 @@ export default function Recommendations() {
     return "";
   };
 
-  const submitRecommendations = async (level, parentId, country = null) => {
+  const submitRecommendations = async (level, parentId, country = null, excludeIds = dislikedIds) => {
     const requestId = ++requestIdRef.current;
     setLoading(true);
     setError("");
@@ -211,7 +215,8 @@ export default function Recommendations() {
       const data = await fetchRecommendations(
         buildPreferences(form),
         level,
-        parentId
+        parentId,
+        excludeIds
       );
       if (requestId !== requestIdRef.current) return; // superseded by a newer request
       setRecommendationData(data);
@@ -244,11 +249,31 @@ export default function Recommendations() {
     // A fresh search from the wizard starts a new drill-down, not a
     // continuation of whatever was explored before.
     setResultsHistory([]);
+    setDislikedIds([]);
+    setShortlist([]);
     await submitRecommendations(
       form.mode === "global" ? "country" : "city",
       form.mode === "country" ? slugify(form.country) : undefined,
-      form.mode === "country" ? { id: slugify(form.country), name: form.country } : null
+      form.mode === "country" ? { id: slugify(form.country), name: form.country } : null,
+      []
     );
+  };
+
+  const toggleShortlist = (recommendation) =>
+    setShortlist((current) =>
+      current.some((item) => item.id === recommendation.id)
+        ? current.filter((item) => item.id !== recommendation.id)
+        : current.length < MAX_SHORTLIST ? [...current, recommendation] : current
+    );
+
+  // Re-ask the engine with this destination left out, so the slot it held is
+  // refilled by the next best match instead of just shrinking the list.
+  const notQuiteRight = (recommendation) => {
+    const excludeIds = [...dislikedIds, recommendation.id];
+    setDislikedIds(excludeIds);
+    setShortlist((current) => current.filter((item) => item.id !== recommendation.id));
+    const level = recommendationData.level;
+    return submitRecommendations(level, level === "city" ? selectedCountry?.id : undefined, selectedCountry, excludeIds);
   };
 
   // Excluded destinations only carry {id, name, country, reason} - enough to
@@ -613,6 +638,10 @@ export default function Recommendations() {
           rankedOutCount={rankedOutCount}
           relaxSuggestions={relaxSuggestions}
           travelMonth={form.startDate ? new Date(form.startDate).getMonth() + 1 : null}
+          shortlist={shortlist}
+          toggleShortlist={toggleShortlist}
+          notQuiteRight={notQuiteRight}
+          maxShortlist={MAX_SHORTLIST}
         />
       )}
 
