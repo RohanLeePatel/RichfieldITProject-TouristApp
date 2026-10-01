@@ -1,39 +1,96 @@
 import {
   ArrowLeft,
   ArrowRight,
+  Camera,
   CheckCircle2,
+  ImagePlus,
   LockKeyhole,
   Mail,
+  Moon,
   Plane,
   Save,
   Settings as SettingsIcon,
+  Sun,
+  Trash2,
   User,
 } from "lucide-react";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import "../styles/Settings.css";
 
 export default function Settings() {
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
 
-  // Current user data
-  const [name, setName] = useState("Savaan");
-  const [email, setEmail] = useState("savaan@example.com");
+  const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+
+  const [name, setName] = useState(storedUser.name || "Savaan");
+  const [email, setEmail] = useState(
+    storedUser.email || "savaan@example.com"
+  );
+  const [photo, setPhoto] = useState(storedUser.photo || "");
+
+  const [theme, setTheme] = useState(
+    localStorage.getItem("settings-theme") || "light"
+  );
 
   const [saved, setSaved] = useState(false);
+  const [photoError, setPhotoError] = useState("");
+
+  useEffect(() => {
+    localStorage.setItem("settings-theme", theme);
+  }, [theme]);
+
+  const handlePhotoChange = (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    setPhotoError("");
+
+    if (!file.type.startsWith("image/")) {
+      setPhotoError("Please choose an image file.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError("Your profile photo must be smaller than 5 MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      setPhoto(reader.result);
+    };
+
+    reader.onerror = () => {
+      setPhotoError("We couldn't load that image. Please try again.");
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  const removePhoto = () => {
+    setPhoto("");
+    setPhotoError("");
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // For now, save locally.
-    // Replace this with your API/update-profile hook later.
     localStorage.setItem(
       "user",
       JSON.stringify({
         name,
         email,
+        photo,
       })
     );
 
@@ -44,309 +101,361 @@ export default function Settings() {
     }, 3000);
   };
 
+  const initials = name
+    ? name
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part.charAt(0).toUpperCase())
+        .join("")
+    : "U";
+
   return (
-    <div className="settings-page">
+    <div
+      className="recommendations-page settings-page"
+      data-theme={theme}
+    >
+      {/* HERO / HEADER */}
 
-      {/* SIDEBAR */}
-
-      <aside className="settings-sidebar">
-
-        <div className="settings-logo">
-
-          <div className="settings-logo-icon">
-            <Plane size={20} />
-          </div>
-
-          <span>
-            Rom<span>io</span>
-          </span>
-
-        </div>
-
-
-        <nav className="settings-nav">
-
-          <Link to="/dashboard">
-            <ArrowLeft size={18} />
+      <section className="settings-hero">
+        <header className="recommendations-header">
+          <Link to="/dashboard" className="recommendations-back-link">
+            <ArrowLeft size={17} />
             Back to dashboard
           </Link>
 
-        </nav>
-
-
-        <div className="settings-sidebar-bottom">
-
-          <div className="settings-tip">
-
-            <div>
-              <SettingsIcon size={18} />
-            </div>
-
+          <div className="recommendations-brand">
             <span>
-              Manage your account and profile
-              information.
+              <Plane size={18} />
             </span>
 
+            Roamio
           </div>
 
+          <div className="rx-header-right">
+            <button
+              type="button"
+              className="theme-toggle"
+              aria-label={`Switch to ${
+                theme === "light" ? "dark" : "light"
+              } mode`}
+              onClick={() =>
+                setTheme(theme === "light" ? "dark" : "light")
+              }
+            >
+              {theme === "light" ? (
+                <Moon size={17} />
+              ) : (
+                <Sun size={17} />
+              )}
+            </button>
+          </div>
+        </header>
+
+        <div className="rx-hero-body settings-hero-body">
+          <p className="recommendations-eyebrow">
+            <SettingsIcon size={14} />
+            Account settings
+          </p>
+
+          <h1>Edit your profile</h1>
+
+          <p>
+            Keep your Roamio profile up to date so your
+            travel plans feel a little more personal.
+          </p>
         </div>
-
-      </aside>
-
+      </section>
 
       {/* MAIN */}
 
-      <main className="settings-main">
+      <main className="recommendations-content settings-content">
+        <div className="settings-layout">
+          <div className="settings-main-column">
 
-        {/* HEADER */}
+            {/* PROFILE */}
 
-        <header className="settings-header">
-
-          <div>
-
-            <span className="settings-eyebrow">
-              ACCOUNT SETTINGS
-            </span>
-
-            <h1>
-              Edit your profile
-            </h1>
-
-            <p>
-              Update your personal information and
-              keep your Roamio profile up to date.
-            </p>
-
-          </div>
-
-        </header>
-
-
-        {/* CONTENT */}
-
-        <div className="settings-content">
-
-
-          {/* PROFILE CARD */}
-
-          <section className="profile-card">
-
-            <div className="profile-card-header">
-
-              <div>
-
-                <span className="settings-section-label">
-                  YOUR PROFILE
-                </span>
-
-                <h2>
-                  Personal information
-                </h2>
-
-                <p>
-                  This information will be used for
-                  your Roamio account.
-                </p>
-
+            <section className="panel profile-edit-card">
+              <div className="panel-title">
+                <User size={15} />
+                Your profile
               </div>
 
+              <div className="settings-section-intro">
+                <div>
+                  <h2>Personal information</h2>
 
-              {/* AVATAR */}
+                  <p>
+                    Add your details and a profile photo so
+                    your account feels like yours.
+                  </p>
+                </div>
 
-              <div className="large-profile-avatar">
-                {name
-                  ? name.charAt(0).toUpperCase()
-                  : "U"}
+                <div className="profile-status">
+                  <span className="status-dot" />
+                  Profile
+                </div>
               </div>
 
-            </div>
+              {/* PHOTO */}
 
+              <div className="profile-photo-section">
+                <div className="profile-avatar-wrap">
+                  {photo ? (
+                    <img
+                      src={photo}
+                      alt={`${name || "Your"} profile`}
+                      className="profile-avatar-image"
+                    />
+                  ) : (
+                    <div className="profile-avatar-placeholder">
+                      {initials}
+                    </div>
+                  )}
 
-            <form onSubmit={handleSubmit}>
+                  <button
+                    type="button"
+                    className="profile-camera-button"
+                    aria-label="Change profile photo"
+                    onClick={() =>
+                      fileInputRef.current?.click()
+                    }
+                  >
+                    <Camera size={16} />
+                  </button>
+                </div>
 
-              {/* NAME */}
+                <div className="profile-photo-copy">
+                  <h3>Profile photo</h3>
 
-              <div className="settings-input-group">
+                  <p>
+                    Choose a photo of yourself. JPG, PNG,
+                    WEBP and other common image formats are
+                    supported.
+                  </p>
 
-                <label htmlFor="profile-name">
-                  Full name
-                </label>
+                  <div className="profile-photo-actions">
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() =>
+                        fileInputRef.current?.click()
+                      }
+                    >
+                      <ImagePlus size={16} />
+                      {photo ? "Change photo" : "Add photo"}
+                    </button>
 
-                <div className="settings-input">
-
-                  <User size={18} />
+                    {photo && (
+                      <button
+                        type="button"
+                        className="photo-remove-button"
+                        onClick={removePhoto}
+                      >
+                        <Trash2 size={15} />
+                        Remove
+                      </button>
+                    )}
+                  </div>
 
                   <input
-                    id="profile-name"
-                    type="text"
-                    value={name}
-                    placeholder="Your full name"
-                    autoComplete="name"
-                    onChange={(e) =>
-                      setName(e.target.value)
-                    }
-                    required
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoChange}
+                    hidden
                   />
+
+                  {photoError && (
+                    <p className="photo-error">
+                      {photoError}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* FORM */}
+
+              <form onSubmit={handleSubmit}>
+                <div className="settings-field-grid">
+
+                  <label className="settings-field">
+                    <span>Full name</span>
+
+                    <div className="settings-input">
+                      <User size={17} />
+
+                      <input
+                        type="text"
+                        value={name}
+                        placeholder="Your full name"
+                        autoComplete="name"
+                        onChange={(e) =>
+                          setName(e.target.value)
+                        }
+                        required
+                      />
+                    </div>
+                  </label>
+
+                  <label className="settings-field">
+                    <span>Email address</span>
+
+                    <div className="settings-input">
+                      <Mail size={17} />
+
+                      <input
+                        type="email"
+                        value={email}
+                        placeholder="you@example.com"
+                        autoComplete="email"
+                        onChange={(e) =>
+                          setEmail(e.target.value)
+                        }
+                        required
+                      />
+                    </div>
+                  </label>
 
                 </div>
 
+                <div className="settings-actions">
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() =>
+                      navigate("/dashboard")
+                    }
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="recommendations-submit"
+                  >
+                    <Save size={16} />
+                    Save changes
+                    <ArrowRight size={15} />
+                  </button>
+                </div>
+              </form>
+
+              {saved && (
+                <div className="settings-success">
+                  <CheckCircle2 size={17} />
+
+                  <span>
+                    Your profile has been updated
+                    successfully.
+                  </span>
+                </div>
+              )}
+            </section>
+
+            {/* SECURITY */}
+
+            <section className="panel security-card">
+              <div className="panel-title">
+                <LockKeyhole size={15} />
+                Security
               </div>
 
-
-              {/* EMAIL */}
-
-              <div className="settings-input-group">
-
-                <label htmlFor="profile-email">
-                  Email address
-                </label>
-
-                <div className="settings-input">
-
-                  <Mail size={18} />
-
-                  <input
-                    id="profile-email"
-                    type="email"
-                    value={email}
-                    placeholder="you@example.com"
-                    autoComplete="email"
-                    onChange={(e) =>
-                      setEmail(e.target.value)
-                    }
-                    required
-                  />
-
+              <div className="settings-row">
+                <div className="settings-row-icon">
+                  <LockKeyhole size={19} />
                 </div>
 
-              </div>
+                <div className="settings-row-copy">
+                  <h3>Password</h3>
 
-
-              {/* SAVE */}
-
-              <div className="settings-actions">
+                  <p>
+                    Keep your account secure with a strong
+                    password.
+                  </p>
+                </div>
 
                 <button
                   type="button"
-                  className="settings-cancel"
+                  className="card-link-button"
                   onClick={() =>
-                    navigate("/dashboard")
+                    alert(
+                      "Change password functionality coming soon."
+                    )
                   }
                 >
-                  Cancel
+                  Change password
+                  <ArrowRight size={14} />
                 </button>
+              </div>
+            </section>
+          </div>
 
-                <button
-                  type="submit"
-                  className="settings-save"
-                >
+          {/* SIDEBAR */}
 
-                  <Save size={17} />
+          <aside className="settings-sidebar-content">
 
-                  Save changes
-
-                  <ArrowRight size={16} />
-
-                </button>
-
+            <section className="panel settings-preview-card">
+              <div className="panel-title">
+                <User size={15} />
+                Profile preview
               </div>
 
-            </form>
-
-
-            {/* SUCCESS */}
-
-            {saved && (
-              <div className="settings-success">
-
-                <CheckCircle2 size={17} />
-
-                <span>
-                  Your profile has been updated
-                  successfully.
-                </span>
-
+              <div className="settings-preview-avatar">
+                {photo ? (
+                  <img
+                    src={photo}
+                    alt=""
+                  />
+                ) : (
+                  initials
+                )}
               </div>
-            )}
-
-          </section>
-
-
-          {/* PASSWORD CARD */}
-
-          <section className="password-card">
-
-            <div className="password-icon">
-
-              <LockKeyhole size={20} />
-
-            </div>
-
-            <div className="password-info">
-
-              <span className="settings-section-label">
-                SECURITY
-              </span>
-
-              <h2>
-                Password
-              </h2>
-
-              <p>
-                Keep your account secure by using a
-                strong password.
-              </p>
-
-            </div>
-
-            <button
-              type="button"
-              className="change-password-button"
-              onClick={() =>
-                alert(
-                  "Change password functionality coming soon."
-                )
-              }
-            >
-              Change password
-              <ArrowRight size={15} />
-            </button>
-
-          </section>
-
-
-          {/* ACCOUNT INFO */}
-
-          <section className="account-info-card">
-
-            <div className="account-plane">
-              <Plane size={28} />
-            </div>
-
-            <div>
-
-              <span className="settings-section-label">
-                Roamio ACCOUNT
-              </span>
 
               <h3>
-                Plan better. Travel happier.
+                {name || "Your name"}
               </h3>
 
               <p>
-                Your profile information helps your
-                family recognize you when planning
-                adventures together.
+                {email || "you@example.com"}
               </p>
 
-            </div>
+              <div className="preview-divider" />
 
-          </section>
+              <div className="preview-detail">
+                <span>Profile photo</span>
 
+                <strong>
+                  {photo ? "Added" : "Not added"}
+                </strong>
+              </div>
+
+              <div className="preview-detail">
+                <span>Account</span>
+
+                <strong>Roamio</strong>
+              </div>
+            </section>
+
+            <section className="panel settings-tip-card">
+              <div className="settings-tip-icon">
+                <Plane size={18} />
+              </div>
+
+              <h3>
+                Make it yours
+              </h3>
+
+              <p>
+                A profile photo makes it easier for family
+                and travel companions to recognize you when
+                planning adventures together.
+              </p>
+            </section>
+
+          </aside>
         </div>
-
       </main>
-
     </div>
   );
 }
