@@ -13,6 +13,7 @@ import {
   Sun,
   Trash2,
   User,
+  X,
 } from "lucide-react";
 
 import { useEffect, useRef, useState } from "react";
@@ -24,12 +25,24 @@ export default function Settings() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
-  const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+  /*
+   * Get the currently saved user.
+   * If there is no user yet, create an empty/default profile.
+   */
+  const getStoredUser = () => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "{}");
+    } catch {
+      return {};
+    }
+  };
 
-  const [name, setName] = useState(storedUser.name || "Savaan");
-  const [email, setEmail] = useState(
-    storedUser.email || "savaan@example.com"
-  );
+  const storedUser = getStoredUser();
+
+  /* ---------------- PROFILE STATE ---------------- */
+
+  const [name, setName] = useState(storedUser.name || "");
+  const [email, setEmail] = useState(storedUser.email || "");
   const [photo, setPhoto] = useState(storedUser.photo || "");
 
   const [theme, setTheme] = useState(
@@ -39,9 +52,24 @@ export default function Settings() {
   const [saved, setSaved] = useState(false);
   const [photoError, setPhotoError] = useState("");
 
+  /* ---------------- PASSWORD STATE ---------------- */
+
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSaved, setPasswordSaved] = useState(false);
+
+  /* ---------------- THEME ---------------- */
+
   useEffect(() => {
     localStorage.setItem("settings-theme", theme);
   }, [theme]);
+
+  /* ---------------- PROFILE PHOTO ---------------- */
 
   const handlePhotoChange = (event) => {
     const file = event.target.files?.[0];
@@ -82,17 +110,39 @@ export default function Settings() {
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  /* ---------------- SAVE PROFILE ---------------- */
 
-    localStorage.setItem(
-      "user",
-      JSON.stringify({
-        name,
-        email,
-        photo,
-      })
-    );
+  const handleSubmit = (event) => {
+    event.preventDefault();
+
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+
+    if (!trimmedName) {
+      return;
+    }
+
+    if (!trimmedEmail) {
+      return;
+    }
+
+    /*
+     * Keep any other user properties that may already
+     * exist in localStorage.
+     */
+    const currentUser = getStoredUser();
+
+    const updatedUser = {
+      ...currentUser,
+      name: trimmedName,
+      email: trimmedEmail,
+      photo,
+    };
+
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+
+    setName(trimmedName);
+    setEmail(trimmedEmail);
 
     setSaved(true);
 
@@ -100,6 +150,99 @@ export default function Settings() {
       setSaved(false);
     }, 3000);
   };
+
+  /* ---------------- PASSWORD ---------------- */
+
+  const openPasswordForm = () => {
+    setPasswordError("");
+    setPasswordSaved(false);
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setShowPasswordForm(true);
+  };
+
+  const closePasswordForm = () => {
+    setShowPasswordForm(false);
+    setPasswordError("");
+    setPasswordSaved(false);
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+  };
+
+  const handlePasswordChange = (event) => {
+    event.preventDefault();
+
+    setPasswordError("");
+    setPasswordSaved(false);
+
+    /*
+     * Your login system should normally store passwords
+     * securely on a backend.
+     *
+     * For this localStorage-based project, we use the
+     * password saved in localStorage.
+     */
+    const storedPassword = localStorage.getItem("user-password");
+
+    /*
+     * If the user has never created a password before,
+     * allow them to create their first password without
+     * requiring an old one.
+     */
+    if (storedPassword && currentPassword !== storedPassword) {
+      setPasswordError("Your current password is incorrect.");
+      return;
+    }
+
+    if (!newPassword) {
+      setPasswordError("Please enter a new password.");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordError(
+        "Your new password must be at least 8 characters long."
+      );
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("The new passwords do not match.");
+      return;
+    }
+
+    if (storedPassword && newPassword === storedPassword) {
+      setPasswordError(
+        "Your new password must be different from your current password."
+      );
+      return;
+    }
+
+    /*
+     * Save the new password.
+     *
+     * NOTE:
+     * For a real production application, passwords should
+     * NEVER be stored directly in localStorage. They should
+     * be securely hashed and stored on a server.
+     */
+    localStorage.setItem("user-password", newPassword);
+
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+
+    setPasswordSaved(true);
+
+    setTimeout(() => {
+      setPasswordSaved(false);
+      setShowPasswordForm(false);
+    }, 2500);
+  };
+
+  /* ---------------- INITIALS ---------------- */
 
   const initials = name
     ? name
@@ -115,7 +258,7 @@ export default function Settings() {
       className="recommendations-page settings-page"
       data-theme={theme}
     >
-      {/* HERO / HEADER */}
+      {/* ================= HERO / HEADER ================= */}
 
       <section className="settings-hero">
         <header className="recommendations-header">
@@ -128,7 +271,6 @@ export default function Settings() {
             <span>
               <Plane size={18} />
             </span>
-
             Roamio
           </div>
 
@@ -167,13 +309,13 @@ export default function Settings() {
         </div>
       </section>
 
-      {/* MAIN */}
+      {/* ================= MAIN ================= */}
 
       <main className="recommendations-content settings-content">
         <div className="settings-layout">
           <div className="settings-main-column">
 
-            {/* PROFILE */}
+            {/* ================= PROFILE ================= */}
 
             <section className="panel profile-edit-card">
               <div className="panel-title">
@@ -197,7 +339,7 @@ export default function Settings() {
                 </div>
               </div>
 
-              {/* PHOTO */}
+              {/* ================= PHOTO ================= */}
 
               <div className="profile-photo-section">
                 <div className="profile-avatar-wrap">
@@ -274,7 +416,7 @@ export default function Settings() {
                 </div>
               </div>
 
-              {/* FORM */}
+              {/* ================= FORM ================= */}
 
               <form onSubmit={handleSubmit}>
                 <div className="settings-field-grid">
@@ -290,8 +432,8 @@ export default function Settings() {
                         value={name}
                         placeholder="Your full name"
                         autoComplete="name"
-                        onChange={(e) =>
-                          setName(e.target.value)
+                        onChange={(event) =>
+                          setName(event.target.value)
                         }
                         required
                       />
@@ -309,8 +451,8 @@ export default function Settings() {
                         value={email}
                         placeholder="you@example.com"
                         autoComplete="email"
-                        onChange={(e) =>
-                          setEmail(e.target.value)
+                        onChange={(event) =>
+                          setEmail(event.target.value)
                         }
                         required
                       />
@@ -353,7 +495,7 @@ export default function Settings() {
               )}
             </section>
 
-            {/* SECURITY */}
+            {/* ================= SECURITY ================= */}
 
             <section className="panel security-card">
               <div className="panel-title">
@@ -361,37 +503,162 @@ export default function Settings() {
                 Security
               </div>
 
-              <div className="settings-row">
-                <div className="settings-row-icon">
-                  <LockKeyhole size={19} />
+              {!showPasswordForm ? (
+                <div className="settings-row">
+                  <div className="settings-row-icon">
+                    <LockKeyhole size={19} />
+                  </div>
+
+                  <div className="settings-row-copy">
+                    <h3>Password</h3>
+
+                    <p>
+                      Keep your account secure with a strong
+                      password.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="card-link-button"
+                    onClick={openPasswordForm}
+                  >
+                    Change password
+                    <ArrowRight size={14} />
+                  </button>
                 </div>
+              ) : (
+                <div className="password-change-container">
+                  <div className="password-change-header">
+                    <div>
+                      <h3>Change your password</h3>
 
-                <div className="settings-row-copy">
-                  <h3>Password</h3>
+                      <p>
+                        Choose a strong password that is at
+                        least 8 characters long.
+                      </p>
+                    </div>
 
-                  <p>
-                    Keep your account secure with a strong
-                    password.
-                  </p>
+                    <button
+                      type="button"
+                      className="password-close-button"
+                      aria-label="Close password form"
+                      onClick={closePasswordForm}
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  <form
+                    onSubmit={handlePasswordChange}
+                    className="password-form"
+                  >
+                    {localStorage.getItem("user-password") && (
+                      <label className="settings-field">
+                        <span>Current password</span>
+
+                        <div className="settings-input">
+                          <LockKeyhole size={17} />
+
+                          <input
+                            type="password"
+                            value={currentPassword}
+                            placeholder="Enter current password"
+                            autoComplete="current-password"
+                            onChange={(event) =>
+                              setCurrentPassword(
+                                event.target.value
+                              )
+                            }
+                            required
+                          />
+                        </div>
+                      </label>
+                    )}
+
+                    <label className="settings-field">
+                      <span>New password</span>
+
+                      <div className="settings-input">
+                        <LockKeyhole size={17} />
+
+                        <input
+                          type="password"
+                          value={newPassword}
+                          placeholder="At least 8 characters"
+                          autoComplete="new-password"
+                          onChange={(event) =>
+                            setNewPassword(
+                              event.target.value
+                            )
+                          }
+                          required
+                        />
+                      </div>
+                    </label>
+
+                    <label className="settings-field">
+                      <span>Confirm new password</span>
+
+                      <div className="settings-input">
+                        <LockKeyhole size={17} />
+
+                        <input
+                          type="password"
+                          value={confirmPassword}
+                          placeholder="Enter your new password again"
+                          autoComplete="new-password"
+                          onChange={(event) =>
+                            setConfirmPassword(
+                              event.target.value
+                            )
+                          }
+                          required
+                        />
+                      </div>
+                    </label>
+
+                    {passwordError && (
+                      <div className="password-error">
+                        <span>{passwordError}</span>
+                      </div>
+                    )}
+
+                    {passwordSaved && (
+                      <div className="settings-success">
+                        <CheckCircle2 size={17} />
+
+                        <span>
+                          Your password has been changed
+                          successfully.
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="password-actions">
+                      <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={closePasswordForm}
+                      >
+                        Cancel
+                      </button>
+
+                      <button
+                        type="submit"
+                        className="recommendations-submit"
+                      >
+                        <LockKeyhole size={16} />
+                        Update password
+                      </button>
+                    </div>
+                  </form>
                 </div>
-
-                <button
-                  type="button"
-                  className="card-link-button"
-                  onClick={() =>
-                    alert(
-                      "Change password functionality coming soon."
-                    )
-                  }
-                >
-                  Change password
-                  <ArrowRight size={14} />
-                </button>
-              </div>
+              )}
             </section>
           </div>
 
-          {/* SIDEBAR */}
+          {/* ================= SIDEBAR ================= */}
 
           <aside className="settings-sidebar-content">
 
@@ -447,9 +714,8 @@ export default function Settings() {
               </h3>
 
               <p>
-                A profile photo makes it easier for family
-                and travel companions to recognize you when
-                planning adventures together.
+                Add your own details and profile photo so
+                your Roamio account feels personal.
               </p>
             </section>
 
