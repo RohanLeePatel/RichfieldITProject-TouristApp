@@ -3,3 +3,4 @@
 pytest==9.1.1
 httpx==0.28.1  # FastAPI's TestClient needs it
 coverage==7.16.2
+ruff==0.16.10  # lint rules live in ruff.toml

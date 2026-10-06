@@ -10,7 +10,6 @@ from engine.scorers import (
 )
 from tests.conftest import make_candidate
 
-
 # --- score_budget ------------------------------------------------------
 
 
@@ -195,3 +194,17 @@ def test_safety_reflects_index(destinations, prefs_factory):
     safe = score_safety(prefs, destinations["mid_safe_interest_rich"], "country")
     unsafe = score_safety(prefs, destinations["mid_unsafe"], "country")
     assert safe.value > unsafe.value
+
+
+def test_no_stated_interests_scores_neutral(destinations):
+    """BR-08: a traveller who named no interests must not drag every candidate
+    down on the interests dimension. Built directly rather than through
+    prefs_factory, whose `interests or [...]` default can't express "none"."""
+    from schemas.recommendations import Preferences, Travellers
+
+    prefs = Preferences(
+        budget_per_day=1000.0, currency="ZAR", interests=[], travellers=Travellers(adults=2)
+    )
+    score = score_interests(prefs, destinations["cheap_accessible_historic"], "city")
+    assert score.value == 0.5
+    assert "No interests stated" in score.explanation

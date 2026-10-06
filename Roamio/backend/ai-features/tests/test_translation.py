@@ -98,3 +98,41 @@ def test_source_language_skips_detection_and_is_sent(monkeypatch):
 
 def test_short_text_is_no_text_found():
     assert "No readable text" in lt.translate_text("  ", "EN")["message"]
+
+
+def test_without_a_key_nothing_is_translated(monkeypatch):
+    monkeypatch.setattr(lt, "DEEPL_API_KEY", None)
+    result = lt.translate_text("Salida de emergencia", "EN")
+    assert result["translation"] is None and "not configured" in result["message"]
+
+
+def test_a_timeout_is_reported_in_plain_language(monkeypatch):
+    monkeypatch.setattr(lt, "DEEPL_API_KEY", "k:fx")
+    monkeypatch.setattr(
+        lt.requests, "post", lambda *a, **k: (_ for _ in ()).throw(lt.requests.Timeout())
+    )
+    assert "timed out" in lt.translate_text("Salida de emergencia", "EN")["message"]
+
+
+def test_an_unreachable_service_is_reported_in_plain_language(monkeypatch):
+    monkeypatch.setattr(lt, "DEEPL_API_KEY", "k:fx")
+    monkeypatch.setattr(
+        lt.requests,
+        "post",
+        lambda *a, **k: (_ for _ in ()).throw(lt.requests.ConnectionError("down")),
+    )
+    assert "Could not reach" in lt.translate_text("Salida de emergencia", "EN")["message"]
+
+
+def test_no_lines_means_no_call(monkeypatch):
+    monkeypatch.setattr(
+        lt.requests, "post", lambda *a, **k: (_ for _ in ()).throw(AssertionError("no call expected"))
+    )
+    assert lt.translate_lines([], "EN") == []
+
+
+def test_a_failed_overlay_is_dropped_rather_than_raised(monkeypatch):
+    """The photo translation still succeeds; only the per-line overlay is lost."""
+    monkeypatch.setattr(lt, "DEEPL_API_KEY", None)
+    lines = [{"text": "Salida", "left": 1, "top": 2, "width": 3, "height": 4}]
+    assert lt.translate_lines(lines, "EN") == []

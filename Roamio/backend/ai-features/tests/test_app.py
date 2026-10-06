@@ -65,9 +65,9 @@ def test_the_log_line_carries_no_query_string(client, caplog):
     """Interests, destinations and radius travel in the query string - keep them
     out of the log."""
     with caplog.at_level(logging.INFO, logger="roamio.access"):
-        client.get("/weather/Durban?units=imperial")
+        client.get("/?units=imperial")  # any route; this one needs no provider
 
-    assert "/weather/Durban" in caplog.text
+    assert "GET / ->" in caplog.text
     assert "units=imperial" not in caplog.text
 
 

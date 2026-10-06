@@ -1,24 +1,27 @@
 import logging
 import time
 import uuid
+
 from dotenv import load_dotenv
 
 # Load environment variables from .env
 # This must happen before importing the routers.
 load_dotenv()
 from fastapi import Depends, FastAPI, Request
-from config.auth import verify_secretKey
-from routers.translation_router import router as translation_router
-from routers.recommendations_router import router as recommendations_router
-from routers.weather_router import router as weather_router
-from routers.landmarks_router import router as landmarks_router
-from routers.rates_router import router as rates_router
+from fastapi.responses import JSONResponse
 
 import engine.currency
 import landmarks.landmarks
 import ocr.ocr
 import translation.live_translation
 import weather.weather
+from config.auth import verify_secretKey
+from rate_limit import check_rate_limit
+from routers.landmarks_router import router as landmarks_router
+from routers.rates_router import router as rates_router
+from routers.recommendations_router import router as recommendations_router
+from routers.translation_router import router as translation_router
+from routers.weather_router import router as weather_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -41,6 +44,21 @@ app = FastAPI(
     redoc_url=None,
     openapi_url=None,
 )
+
+
+# Middleware order: the one added last runs first, so the rate limiter is
+# declared first and the logger wraps it - a throttled request still gets an
+# access line.
+@app.middleware("http")
+async def enforce_rate_limit(request: Request, call_next):
+    retry_after = check_rate_limit(request)
+    if retry_after is None:
+        return await call_next(request)
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Too many requests - wait a minute and try again."},
+        headers={"Retry-After": str(retry_after)},
+    )
 
 
 # One access line per request, with the id the Core API sent so a problem can be

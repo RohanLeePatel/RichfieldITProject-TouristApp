@@ -22,5 +22,14 @@ def ttl_cache_get(cache: dict, key, ttl_seconds: float, allow_stale: bool = Fals
     return value
 
 
-def ttl_cache_set(cache: dict, key, value) -> None:
+# A cap so a long-running instance can't grow a cache without bound: one entry
+# per city, currency pair or place lookup, and nothing evicts on its own.
+# ponytail: O(n) scan to find the oldest entry, fine at this size; use an
+# OrderedDict if these ever hold thousands.
+MAX_ENTRIES = 512
+
+
+def ttl_cache_set(cache: dict, key, value, max_entries: int = MAX_ENTRIES) -> None:
+    if key not in cache and len(cache) >= max_entries:
+        del cache[min(cache, key=lambda k: cache[k][1])]
     cache[key] = (value, time.monotonic())

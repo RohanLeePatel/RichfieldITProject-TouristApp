@@ -146,7 +146,7 @@ def get_landmarks(destination: str, interests: list[str], radius_m: int = 5000) 
             }
             for p in places
         ]
-        landmarks.sort(key=lambda l: l["distance_m"])
+        landmarks.sort(key=lambda place: place["distance_m"])
         groups.append(
             {
                 "interest": tag,

@@ -188,3 +188,131 @@ def test_an_absurdly_long_destination_is_rejected(client):
         f"/landmarks?destination={long_name}&interests=history", headers={"node-secretkey": "test-secret"}
     )
     assert response.status_code == 422
+
+
+def test_without_a_key_the_route_reports_it_is_not_configured(monkeypatch):
+    import importlib
+
+    monkeypatch.setenv("superSecretKey", "test-secret")
+    monkeypatch.delenv("geoapifyAPIKey", raising=False)
+    import config.auth as auth_module
+
+    importlib.reload(auth_module)
+    import landmarks.landmarks as landmarks_module
+
+    importlib.reload(landmarks_module)
+    import main as main_module
+
+    importlib.reload(main_module)
+
+    response = TestClient(main_module.app).get(
+        "/landmarks?destination=Cape%20Town&interests=history", headers={"node-secretkey": "test-secret"}
+    )
+    assert response.status_code == 503
+
+
+def test_an_unmappable_destination_is_a_404(client, monkeypatch):
+    import landmarks.landmarks as landmarks_module
+
+    landmarks_module._geocode_cache.clear()
+    monkeypatch.setattr(
+        landmarks_module.requests, "get", lambda *a, **k: _FakeResponse({"features": []})
+    )
+
+    response = client.get(
+        "/landmarks?destination=Nowhereland&interests=history", headers={"node-secretkey": "test-secret"}
+    )
+    assert response.status_code == 404
+
+
+def test_a_geocode_failure_falls_back_to_the_expired_position(monkeypatch):
+    """NFR-13: a city doesn't move, so an expired entry beats an error."""
+    import time
+
+    import landmarks.landmarks as landmarks_module
+
+    landmarks_module._geocode_cache.clear()
+    stale = time.monotonic() - landmarks_module.CACHE_TTL_SECONDS - 1
+    landmarks_module._geocode_cache[("cape town", 5000)] = ((-33.9, 18.4), stale)
+
+    def boom(*a, **k):
+        raise landmarks_module.requests.ConnectionError("provider down")
+
+    monkeypatch.setattr(landmarks_module.requests, "get", boom)
+    assert landmarks_module.geocode_destination("Cape Town", 5000) == (-33.9, 18.4)
+
+
+def test_a_places_failure_falls_back_to_the_expired_results(monkeypatch):
+    import time
+
+    import landmarks.landmarks as landmarks_module
+
+    landmarks_module._places_cache.clear()
+    stale = time.monotonic() - landmarks_module.CACHE_TTL_SECONDS - 1
+    cached = [{"name": "Castle", "lat": -33.9, "lon": 18.4}]
+    landmarks_module._places_cache[("-33.9000,18.4000", "history", 5000)] = (cached, stale)
+
+    def boom(*a, **k):
+        raise landmarks_module.requests.ConnectionError("provider down")
+
+    monkeypatch.setattr(landmarks_module.requests, "get", boom)
+    assert landmarks_module._fetch_places("history", -33.9, 18.4, 5000) == cached
+
+
+def test_an_unknown_interest_tag_asks_the_provider_for_nothing(monkeypatch):
+    import landmarks.landmarks as landmarks_module
+
+    landmarks_module._places_cache.clear()
+    monkeypatch.setattr(
+        landmarks_module.requests, "get", lambda *a, **k: (_ for _ in ()).throw(AssertionError("no call"))
+    )
+    assert landmarks_module._fetch_places("underwater-basket-weaving", -33.9, 18.4, 5000) == []
+
+
+def test_double_encoded_place_names_are_repaired():
+    import landmarks.landmarks as landmarks_module
+
+    # "’" (a curly apostrophe) sent as UTF-8 but read as cp1252 upstream
+    mojibake = "Smitâ€™s Bar"
+    assert landmarks_module._fix_mojibake(mojibake) == "Smit’s Bar"
+    # text that is already correct comes back untouched
+    assert landmarks_module._fix_mojibake("Café Rouge") == "Café Rouge"
+    assert landmarks_module._fix_mojibake(None) is None
+    assert landmarks_module._fix_mojibake("") == ""
+
+
+def test_an_unexpected_provider_error_becomes_a_502(client, monkeypatch):
+    import routers.landmarks_router as router_module
+
+    monkeypatch.setattr(
+        router_module, "get_landmarks", lambda *a, **k: {"error": "Geoapify is confused", "groups": []}
+    )
+
+    response = client.get(
+        "/landmarks?destination=Cape%20Town&interests=history", headers={"node-secretkey": "test-secret"}
+    )
+    assert response.status_code == 502
+
+
+def test_repeat_lookups_are_served_from_cache(monkeypatch):
+    """Geoapify's free tier is shared across the account, so the same city must
+    not be geocoded twice (NFR-13)."""
+    import landmarks.landmarks as landmarks_module
+
+    landmarks_module._geocode_cache.clear()
+    landmarks_module._places_cache.clear()
+    calls = []
+
+    def counted_get(url, params=None, timeout=None):
+        calls.append(url)
+        if url == landmarks_module.GEOCODE_URL:
+            return _FakeResponse({"features": [{"geometry": {"coordinates": [18.4, -33.9]}}]})
+        return _FakeResponse({"features": [{"properties": {"name": "Castle", "lat": -33.9, "lon": 18.4}}]})
+
+    monkeypatch.setattr(landmarks_module.requests, "get", counted_get)
+
+    first = landmarks_module.get_landmarks("Cape Town", ["history"], 5000)
+    second = landmarks_module.get_landmarks("Cape Town", ["history"], 5000)
+
+    assert len(calls) == 2  # one geocode + one places lookup, not four
+    assert second == first

@@ -102,7 +102,7 @@ def translate_lines(lines: list[dict], target_lang: str | None, source_lang: str
     if not lines:
         return []
     try:
-        translated = _deepl([l["text"] for l in lines], (target_lang or "EN").upper(), deepl_source(source_lang))
+        translated = _deepl([line["text"] for line in lines], (target_lang or "EN").upper(), deepl_source(source_lang))
     except TranslationError:
         return []
-    return [{**l, "translation": t["text"]} for l, t in zip(lines, translated)]
+    return [{**line, "translation": t["text"]} for line, t in zip(lines, translated)]
