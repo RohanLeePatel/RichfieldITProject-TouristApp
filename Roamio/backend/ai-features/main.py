@@ -1,9 +1,16 @@
+from dotenv import load_dotenv
+
+# Load environment variables from .env
+# This must happen before importing the routers.
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers.translation_router import router as translation_router
 from routers.recommendations_router import router as recommendations_router
 from routers.weather_router import router as weather_router
 from routers.landmarks_router import router as landmarks_router
+
 
 app = FastAPI()
 
