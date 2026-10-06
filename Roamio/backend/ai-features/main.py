@@ -1,7 +1,11 @@
 import logging
 import time
 import uuid
+from dotenv import load_dotenv
 
+# Load environment variables from .env
+# This must happen before importing the routers.
+load_dotenv()
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from routers.translation_router import router as translation_router

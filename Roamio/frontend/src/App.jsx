@@ -50,7 +50,6 @@ function ProtectedRoute({ children }) {
 function App() {
   return (
     <BrowserRouter>
-
       <Routes>
 
         {/* =================================================
@@ -81,7 +80,7 @@ function App() {
         />
 
         {/* =================================================
-            FAMILY
+            FAMILY / TRAVEL GROUP
         ================================================= */}
 
         <Route
@@ -194,14 +193,14 @@ function App() {
         />
 
         {/* =================================================
-            DEFAULT
+            DEFAULT ROUTE
         ================================================= */}
 
         <Route
           path="/"
           element={
             <Navigate
-              to="/login"
+              to="/dashboard"
               replace
             />
           }
@@ -215,14 +214,13 @@ function App() {
           path="*"
           element={
             <Navigate
-              to="/login"
+              to="/dashboard"
               replace
             />
           }
         />
 
       </Routes>
-
     </BrowserRouter>
   );
 }
