@@ -17,13 +17,15 @@ def looks_like_image(data: bytes) -> bool:
 
 
 @router.post("/ocr", response_model=TranslationResponse, dependencies=[Depends(verify_secretKey)])
-async def ocr_and_translate(
+def ocr_and_translate(
     image: UploadFile = File(...),
     target_lang: str | None = Form(None),
     source_lang: str | None = Form(None),
 ):
     try:
-        image_bytes = await image.read()
+        # .file.read() rather than await .read(): the handler is sync so FastAPI
+        # runs it in the threadpool, which keeps a slow OCR call off the event loop
+        image_bytes = image.file.read()
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Could not read upload: {e}")
 
@@ -49,7 +51,7 @@ async def ocr_and_translate(
 
 
 @router.post("/text", response_model=TranslationResponse, dependencies=[Depends(verify_secretKey)])
-async def translate_typed_text(body: TextRequest):
+def translate_typed_text(body: TextRequest):
     result = translate_text(body.text, body.target_lang, body.source_lang)
     return TranslationResponse(
         text=body.text,

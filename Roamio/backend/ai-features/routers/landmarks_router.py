@@ -8,9 +8,9 @@ router = APIRouter()
 
 
 @router.get("/landmarks", response_model=LandmarksResponse, dependencies=[Depends(verify_secretKey)])
-async def landmarks(
-    destination: str,
-    interests: str = Query(..., description="Comma-separated interest tags, e.g. 'history,food'."),
+def landmarks(
+    destination: str = Query(..., min_length=1, max_length=100),
+    interests: str = Query(..., max_length=200, description="Comma-separated interest tags, e.g. 'history,food'."),
     radius_m: int = Query(5000, gt=0, le=50000),
 ):
     interest_list = [i.strip() for i in interests.split(",") if i.strip()]

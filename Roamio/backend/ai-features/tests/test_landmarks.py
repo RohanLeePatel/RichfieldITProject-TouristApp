@@ -180,3 +180,11 @@ def test_landmarks_requires_at_least_one_interest(client):
         "/landmarks?destination=Cape%20Town&interests=", headers={"node-secretkey": "test-secret"}
     )
     assert response.status_code == 422
+
+
+def test_an_absurdly_long_destination_is_rejected(client):
+    long_name = "a" * 101
+    response = client.get(
+        f"/landmarks?destination={long_name}&interests=history", headers={"node-secretkey": "test-secret"}
+    )
+    assert response.status_code == 422

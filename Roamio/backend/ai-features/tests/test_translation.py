@@ -37,12 +37,57 @@ def test_deepl_failures_become_friendly_messages(monkeypatch):
     assert result["translation"] is None and "quota" in result["message"]
 
 
+def test_detected_language_comes_from_the_translation_response(monkeypatch):
+    """DeepL reports the source language with the translation, so no separate
+    detection provider is called."""
+
+    def fake_post(url, headers, data, timeout):
+        return SimpleNamespace(
+            ok=True,
+            json=lambda: {"translations": [{"text": "Emergency exit", "detected_source_language": "ES"}]},
+        )
+
+    monkeypatch.setattr(lt, "DEEPL_API_KEY", "k:fx")
+    monkeypatch.setattr(lt.requests, "post", fake_post)
+
+    result = lt.translate_text("Salida de emergencia", "EN-US")
+    assert result["translation"] == "Emergency exit"
+    assert result["detected_lang"] == "es"
+    assert result["message"] is None
+
+
+def test_lines_are_sent_in_batches_of_fifty(monkeypatch):
+    """DeepL accepts at most 50 texts per request, so a long sign is split."""
+    batch_sizes = []
+
+    def fake_post(url, headers, data, timeout):
+        texts = [value for key, value in data if key == "text"]
+        batch_sizes.append(len(texts))
+        return SimpleNamespace(
+            ok=True, json=lambda: {"translations": [{"text": t.upper()} for t in texts]}
+        )
+
+    monkeypatch.setattr(lt, "DEEPL_API_KEY", "k:fx")
+    monkeypatch.setattr(lt.requests, "post", fake_post)
+
+    lines = [{"text": f"line {i}", "left": 0, "top": i, "width": 1, "height": 1} for i in range(120)]
+    translated = lt.translate_lines(lines, "EN")
+
+    assert batch_sizes == [50, 50, 20]
+    assert len(translated) == 120
+    assert translated[0]["translation"] == "LINE 0"
+    assert translated[119]["top"] == 119  # positions survive the batching
+
+
 def test_source_language_skips_detection_and_is_sent(monkeypatch):
     sent = {}
 
     def fake_post(url, headers, data, timeout):
         sent["data"] = data
-        return SimpleNamespace(ok=True, json=lambda: {"translations": [{"text": "Hello"}]})
+        return SimpleNamespace(
+            ok=True,
+            json=lambda: {"translations": [{"text": "Hello", "detected_source_language": "FR"}]},
+        )
 
     monkeypatch.setattr(lt, "DEEPL_API_KEY", "k:fx")
     monkeypatch.setattr(lt.requests, "post", fake_post)

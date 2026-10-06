@@ -14,7 +14,7 @@ def _currency_code() -> Path:
 
 
 @router.get("/rates/{base}/{target}", response_model=RateResponse, dependencies=[Depends(verify_secretKey)])
-async def exchange_rate(base: str = _currency_code(), target: str = _currency_code()):
+def exchange_rate(base: str = _currency_code(), target: str = _currency_code()):
     """One unit of `base` in `target`. The Core API stores this with an expense
     recorded in a currency other than the trip currency (FR-13)."""
     detail = rate_detail(base, target)

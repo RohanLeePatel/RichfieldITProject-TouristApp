@@ -203,3 +203,14 @@ def test_http_error_from_the_provider_hides_the_status_detail(client, monkeypatc
     response = client.get("/weather/Durban", headers=SECRET)
     assert response.status_code == 502
     assert "401" not in response.json()["detail"]
+
+
+def test_an_absurdly_long_city_is_rejected_before_the_provider(client, monkeypatch):
+    import weather.weather as weather_module
+
+    def never(*a, **k):
+        raise AssertionError("should not reach the weather provider")
+
+    monkeypatch.setattr(weather_module.requests, "get", never)
+
+    assert client.get("/weather/" + "a" * 101, headers=SECRET).status_code == 422

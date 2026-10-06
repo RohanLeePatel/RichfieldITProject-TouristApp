@@ -16,7 +16,7 @@ router = APIRouter()
     "/recommendations/catalog",
     dependencies=[Depends(verify_secretKey)],
 )
-async def recommendation_catalog() -> dict:
+def recommendation_catalog() -> dict:
     countries = load_country_catalog()
     return {
         "countries": [
@@ -35,7 +35,7 @@ async def recommendation_catalog() -> dict:
     response_model=RecommendationResponse,
     dependencies=[Depends(verify_secretKey)],
 )
-async def recommendations(request: RecommendationRequest) -> RecommendationResponse:
+def recommendations(request: RecommendationRequest) -> RecommendationResponse:
     candidates = request.candidates
     if not candidates:
         if request.level == "country":
