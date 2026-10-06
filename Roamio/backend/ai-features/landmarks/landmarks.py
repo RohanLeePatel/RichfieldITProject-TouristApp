@@ -14,6 +14,7 @@ shared across the whole account (see scripts/enrich_destinations.py).
 
 from __future__ import annotations
 
+import logging
 import math
 import os
 
@@ -21,6 +22,8 @@ import requests
 
 from cache_utils import ttl_cache_get, ttl_cache_set
 from landmarks.interest_categories import INTEREST_CATEGORY_MAP
+
+logger = logging.getLogger(__name__)
 
 GEOAPIFY_API_KEY = os.environ.get("geoapifyAPIKey")
 GEOCODE_URL = "https://api.geoapify.com/v1/geocode/search"
@@ -73,8 +76,11 @@ def geocode_destination(destination: str, radius_m: int) -> tuple[float, float] 
         )
         response.raise_for_status()
         features = response.json().get("features", [])
-    except Exception:
-        return None
+    except Exception as e:
+        # the URL carries the API key, so log the exception type only. An expired
+        # entry is better than no answer while the provider is down (NFR-13).
+        logger.warning("Geoapify geocode failed: %s", type(e).__name__)
+        return ttl_cache_get(_geocode_cache, cache_key, CACHE_TTL_SECONDS, allow_stale=True)
 
     if not features:
         return None
@@ -108,8 +114,9 @@ def _fetch_places(tag: str, lat: float, lon: float, radius_m: int) -> list[dict]
         )
         response.raise_for_status()
         places = [f["properties"] for f in response.json().get("features", [])]
-    except Exception:
-        return []
+    except Exception as e:
+        logger.warning("Geoapify places failed for '%s': %s", tag, type(e).__name__)
+        return ttl_cache_get(_places_cache, cache_key, CACHE_TTL_SECONDS, allow_stale=True) or []
 
     ttl_cache_set(_places_cache, cache_key, places)
     return places

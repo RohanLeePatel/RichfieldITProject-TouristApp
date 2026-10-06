@@ -24,3 +24,11 @@ dist-ssr
 *.sw?
 
 .env
+
+# Python (backend/ai-features)
+__pycache__/
+*.py[cod]
+.venv
+.pytest_cache/
+.coverage
+htmlcov/

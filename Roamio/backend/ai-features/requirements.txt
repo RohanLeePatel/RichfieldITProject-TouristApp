@@ -1,6 +1,8 @@
-fastapi
-pydantic
-uvicorn[standard]
-python-multipart
-requests
-detectlanguage
+# Runtime dependencies. Pinned so every machine and the deployed service run the
+# same versions (test tooling is in requirements-dev.txt).
+fastapi==0.141.1
+pydantic==2.13.5
+uvicorn[standard]==0.52.4
+python-multipart==0.0.32
+requests==2.34.2
+detectlanguage==2.0.0

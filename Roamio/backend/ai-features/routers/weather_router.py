@@ -1,12 +1,15 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from config.auth import verify_secretKey
 from schemas.weather import WeatherResponse
 from weather.weather import get_weather
 
 router = APIRouter()
 
 
-@router.get("/weather/{city}", response_model=WeatherResponse)
+# Reached through the Core API's /api/weather proxy, not from the browser: the
+# OpenWeather key lives here and the route costs shared provider quota (NFR-11).
+@router.get("/weather/{city}", response_model=WeatherResponse, dependencies=[Depends(verify_secretKey)])
 async def weather(city: str, units: str = Query("metric", pattern="^(metric|imperial)$")):
     result = get_weather(city, units)
     error = result.get("error")
