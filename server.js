@@ -1,13 +1,16 @@
 // 1. Environment & Core Imports
-const cron = require('node-cron');
-const safetySyncService = require('./src/services/safetySyncService');
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const PORT = process.env.PORT || 5000;
+const cron = require('node-cron');
+const safetySyncService = require('./src/services/safetySyncService');
 
-// 2. Route Imports
+// 2. Custom Middleware Imports
+const { generalLimiter, authLimiter } = require('./src/middleware/rateLimiter');
+const attachActivityLogger = require('./src/middleware/activityLogger.middleware');
+
+// 3. Route Imports
 const authRoutes = require('./src/routes/auth.routes'); 
 const travelGroupRoutes = require('./src/routes/travelGroup.routes');
 const invitationRoutes = require('./src/routes/invitation.routes');
@@ -17,17 +20,16 @@ const itineraryRoutes = require('./src/routes/itinerary.routes');
 const expenseRoutes = require('./src/routes/expense.routes');
 const activityRoutes = require('./src/routes/activity.routes');
 const safetyRoutes = require('./src/routes/safety.routes');
-const tripRoutes = require('./src/routes/trip.routes');
-app.use('/api', tripRoutes);
-app.use('/api', safetyRoutes);
-
-// 3. Custom Middleware Imports
-const attachActivityLogger = require('./src/middleware/activityLogger.middleware');
 
 // 4. App Initialization
 const app = express();
+const PORT = process.env.PORT || 5000;
 
 // 5. Global Middleware Setup
+
+// Tell Express to trust the cloud provider's reverse proxy (MUST be before limiters)
+app.set('trust proxy', 1);
+
 // Enable CORS for your React frontend 
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:3000',
@@ -44,16 +46,24 @@ app.use(cookieParser(process.env.COOKIE_SECRET || 'roamio_secret'));
 // Attach the `req.logActivity` helper to every request
 app.use(attachActivityLogger);
 
+// Apply the general limiter to all API routes
+app.use('/api', generalLimiter);
+
 // 6. Mount API Routes
-// All core endpoints are prefixed with /api
+
+// Apply the stricter auth limiter specifically to authentication routes
+app.use('/api/auth', authLimiter);
 app.use('/api/auth', authRoutes); // e.g., /api/auth/login, /api/auth/register
+
+// Mount all other core endpoints
 app.use('/api', travelGroupRoutes);
 app.use('/api', invitationRoutes);
 app.use('/api', tripRoutes);
 app.use('/api', destinationRoutes);
-app.use('/api', itineraryRoutes); // Implicitly handles /api/trips/:tripId/itinerary, etc.
+app.use('/api', itineraryRoutes); 
 app.use('/api', expenseRoutes);
 app.use('/api', activityRoutes);
+app.use('/api', safetyRoutes);
 
 // 7. Global Error Handling Middleware
 // This catches any errors thrown via `next(error)` in your controllers
@@ -71,7 +81,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Schedule the Safety Sync Job
+// 8. Schedule the Safety Sync Job
 // This cron expression ('0 */12 * * *') means "Run at minute 0 past every 12th hour." (Twice a day)
 cron.schedule('0 */12 * * *', async () => {
   await safetySyncService.syncCountryAdvisories();
@@ -83,7 +93,8 @@ if (process.env.NODE_ENV === 'development') {
   }, 5000); 
 }
 
+// 9. Start Server
 app.listen(PORT, () => {
-  console.log(` Roamio API Server running on http://localhost:${PORT}`);
-  console.log(` Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Roamio API Server running on http://localhost:${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
