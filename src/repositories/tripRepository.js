@@ -6,19 +6,16 @@ const tripRepository = {
     return await prisma.trip.create({
       data: {
         ...tripData,
-        travelGroupId: parseInt(groupId, 10), // Updated to match schema
-        
-        // Automatically create the relational TripMember record for the creator
+        travelGroupId: parseInt(groupId, 10),
         members: {
           create: {
             userId: userId,
-            // If your TripMember schema requires a role, you can add it here:
-            // role: 'ADMIN' 
+            // role: 'ADMIN'
           }
         }
       },
       include: {
-        members: true // Return the newly created member data alongside the trip
+        members: true 
       }
     });
   },
@@ -27,16 +24,19 @@ const tripRepository = {
   getTripsByGroup: async (groupId, userId) => {
     return await prisma.trip.findMany({
       where: { 
-        travelGroupId: parseInt(groupId, 10), // Updated to match schema
+        travelGroupId: parseInt(groupId, 10),
         members: {
-          some: { 
-            userId: userId // Security check: Only fetch if user is a member of the trip
-          }
+          some: { userId: userId }
         }
       },
       orderBy: { startDate: 'asc' },
       include: {
-        members: true // Optional: Include members in the response if the frontend needs it
+        destinations: {
+          include: { destination: true } 
+        },
+        members: {
+          include: { user: { select: { id: true, name: true, email: true } } }
+        }
       }
     });
   },
@@ -47,14 +47,21 @@ const tripRepository = {
       where: { 
         id: parseInt(tripId, 10),
         members: {
-          some: {
-            userId: userId // Security check
-          }
+          some: { userId: userId }
         }
       },
       include: {
-        members: true,
-        itineraries: true, 
+        destinations: {
+          include: {
+            destination: {
+              include: { city: { include: { country: true } } } // Deep fetch for safety feature integration
+            }
+          }
+        },
+        members: {
+          include: { user: { select: { id: true, name: true, email: true } } }
+        },
+        itineraryItems: true, // Updated to 'itineraryItems' to match your Prisma migration logs
         expenses: true
       }
     });

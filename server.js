@@ -17,6 +17,8 @@ const itineraryRoutes = require('./src/routes/itinerary.routes');
 const expenseRoutes = require('./src/routes/expense.routes');
 const activityRoutes = require('./src/routes/activity.routes');
 const safetyRoutes = require('./src/routes/safety.routes');
+const tripRoutes = require('./src/routes/trip.routes');
+app.use('/api', tripRoutes);
 app.use('/api', safetyRoutes);
 
 // 3. Custom Middleware Imports
