@@ -107,3 +107,11 @@ def test_landmark_availability_gate_passes_with_any_positive_count(prefs_factory
     candidate = make_candidate("d101", "Some Museums", interest_counts={"museums": 1, "nature": 0})
     prefs = prefs_factory(interests=["museums", "nature"])
     assert check_landmark_availability_gate(prefs, candidate) is None
+
+
+def test_interests_that_were_never_measured_do_not_exclude(destinations, prefs_factory):
+    """A tag with no count at all means "never measured", not "measured as
+    zero" - a thinly mapped city is not a bad one (BR-08)."""
+    candidate = destinations["cheap_accessible_historic"]
+    candidate.features.interest_counts = {}  # nothing measured for any tag
+    assert check_landmark_availability_gate(prefs_factory(interests=["history"]), candidate) is None

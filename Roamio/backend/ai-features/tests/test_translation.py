@@ -37,12 +37,57 @@ def test_deepl_failures_become_friendly_messages(monkeypatch):
     assert result["translation"] is None and "quota" in result["message"]
 
 
+def test_detected_language_comes_from_the_translation_response(monkeypatch):
+    """DeepL reports the source language with the translation, so no separate
+    detection provider is called."""
+
+    def fake_post(url, headers, data, timeout):
+        return SimpleNamespace(
+            ok=True,
+            json=lambda: {"translations": [{"text": "Emergency exit", "detected_source_language": "ES"}]},
+        )
+
+    monkeypatch.setattr(lt, "DEEPL_API_KEY", "k:fx")
+    monkeypatch.setattr(lt.requests, "post", fake_post)
+
+    result = lt.translate_text("Salida de emergencia", "EN-US")
+    assert result["translation"] == "Emergency exit"
+    assert result["detected_lang"] == "es"
+    assert result["message"] is None
+
+
+def test_lines_are_sent_in_batches_of_fifty(monkeypatch):
+    """DeepL accepts at most 50 texts per request, so a long sign is split."""
+    batch_sizes = []
+
+    def fake_post(url, headers, data, timeout):
+        texts = [value for key, value in data if key == "text"]
+        batch_sizes.append(len(texts))
+        return SimpleNamespace(
+            ok=True, json=lambda: {"translations": [{"text": t.upper()} for t in texts]}
+        )
+
+    monkeypatch.setattr(lt, "DEEPL_API_KEY", "k:fx")
+    monkeypatch.setattr(lt.requests, "post", fake_post)
+
+    lines = [{"text": f"line {i}", "left": 0, "top": i, "width": 1, "height": 1} for i in range(120)]
+    translated = lt.translate_lines(lines, "EN")
+
+    assert batch_sizes == [50, 50, 20]
+    assert len(translated) == 120
+    assert translated[0]["translation"] == "LINE 0"
+    assert translated[119]["top"] == 119  # positions survive the batching
+
+
 def test_source_language_skips_detection_and_is_sent(monkeypatch):
     sent = {}
 
     def fake_post(url, headers, data, timeout):
         sent["data"] = data
-        return SimpleNamespace(ok=True, json=lambda: {"translations": [{"text": "Hello"}]})
+        return SimpleNamespace(
+            ok=True,
+            json=lambda: {"translations": [{"text": "Hello", "detected_source_language": "FR"}]},
+        )
 
     monkeypatch.setattr(lt, "DEEPL_API_KEY", "k:fx")
     monkeypatch.setattr(lt.requests, "post", fake_post)
@@ -53,3 +98,41 @@ def test_source_language_skips_detection_and_is_sent(monkeypatch):
 
 def test_short_text_is_no_text_found():
     assert "No readable text" in lt.translate_text("  ", "EN")["message"]
+
+
+def test_without_a_key_nothing_is_translated(monkeypatch):
+    monkeypatch.setattr(lt, "DEEPL_API_KEY", None)
+    result = lt.translate_text("Salida de emergencia", "EN")
+    assert result["translation"] is None and "not configured" in result["message"]
+
+
+def test_a_timeout_is_reported_in_plain_language(monkeypatch):
+    monkeypatch.setattr(lt, "DEEPL_API_KEY", "k:fx")
+    monkeypatch.setattr(
+        lt.requests, "post", lambda *a, **k: (_ for _ in ()).throw(lt.requests.Timeout())
+    )
+    assert "timed out" in lt.translate_text("Salida de emergencia", "EN")["message"]
+
+
+def test_an_unreachable_service_is_reported_in_plain_language(monkeypatch):
+    monkeypatch.setattr(lt, "DEEPL_API_KEY", "k:fx")
+    monkeypatch.setattr(
+        lt.requests,
+        "post",
+        lambda *a, **k: (_ for _ in ()).throw(lt.requests.ConnectionError("down")),
+    )
+    assert "Could not reach" in lt.translate_text("Salida de emergencia", "EN")["message"]
+
+
+def test_no_lines_means_no_call(monkeypatch):
+    monkeypatch.setattr(
+        lt.requests, "post", lambda *a, **k: (_ for _ in ()).throw(AssertionError("no call expected"))
+    )
+    assert lt.translate_lines([], "EN") == []
+
+
+def test_a_failed_overlay_is_dropped_rather_than_raised(monkeypatch):
+    """The photo translation still succeeds; only the per-line overlay is lost."""
+    monkeypatch.setattr(lt, "DEEPL_API_KEY", None)
+    lines = [{"text": "Salida", "left": 1, "top": 2, "width": 3, "height": 4}]
+    assert lt.translate_lines(lines, "EN") == []

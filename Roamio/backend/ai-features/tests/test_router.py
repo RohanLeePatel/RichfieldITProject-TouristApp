@@ -10,8 +10,8 @@ import importlib
 import pytest
 from fastapi.testclient import TestClient
 
-from tests.test_contract import VALID_PAYLOAD
 from engine.catalog import load_city_candidates, load_country_catalog
+from tests.test_contract import VALID_PAYLOAD
 
 
 @pytest.fixture
@@ -130,3 +130,30 @@ def test_recommendations_city_level_unknown_parent_country_404s(client):
         "/recommendations", json=payload, headers={"node-secretkey": "test-secret"}
     )
     assert response.status_code == 404
+
+
+def test_a_pipeline_failure_is_a_502_without_internals(client, monkeypatch):
+    """NFR-22: the traveller gets a sentence, the traceback goes to the log."""
+    import routers.recommendations_router as router_module
+
+    def boom(*a, **k):
+        raise ZeroDivisionError("weights summed to zero somehow")
+
+    monkeypatch.setattr(router_module, "build_response", boom)
+
+    response = client.post(
+        "/recommendations", json=VALID_PAYLOAD, headers={"node-secretkey": "test-secret"}
+    )
+    assert response.status_code == 502
+    detail = response.json()["detail"]
+    assert "ZeroDivisionError" not in detail and "weights summed" not in detail
+
+
+def test_dismissing_every_candidate_still_returns_something(client):
+    """A run of "not quite right" must not empty the candidate set and 500."""
+    payload = {**VALID_PAYLOAD, "exclude_ids": [c["id"] for c in VALID_PAYLOAD["candidates"]]}
+    response = client.post(
+        "/recommendations", json=payload, headers={"node-secretkey": "test-secret"}
+    )
+    assert response.status_code == 200
+    assert response.json()["results"]

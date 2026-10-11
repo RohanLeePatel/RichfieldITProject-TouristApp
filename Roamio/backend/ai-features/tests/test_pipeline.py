@@ -4,10 +4,9 @@ full pipeline, explanation text staying in sync with the evidence, and the
 bottom-up blend.
 """
 
-from engine.weights import MAX_RESULTS
 from engine.pipeline import score_candidates
+from engine.weights import MAX_RESULTS
 from tests.conftest import make_candidate
-
 
 # --- Personas --------------------------------------------------------
 
@@ -166,3 +165,23 @@ def test_relevance_floor_is_relative_not_absolute(prefs_factory):
     results, excluded, _ = score_candidates(prefs, "city", many_mediocre)
     assert len(results) > 0
     assert len(results) + len(excluded) == len(many_mediocre)
+
+
+def test_a_candidate_with_no_weighted_dimension_scores_neutral(monkeypatch, destinations, prefs_factory):
+    """Guard against a divide-by-zero if every dimension is zero-weighted."""
+    import engine.pipeline as pipeline_module
+    from engine.dimension import DimensionScore
+
+    monkeypatch.setattr(
+        pipeline_module,
+        "score_all_dimensions",
+        lambda prefs, candidate, level: [
+            DimensionScore(dimension="budget", value=0.9, weight=0.0, explanation="x")
+        ],
+    )
+
+    score, breakdown = pipeline_module.score_candidate_own(
+        prefs_factory(), destinations["cheap_accessible_historic"], "city"
+    )
+    assert score == 0.5
+    assert [e.weight for e in breakdown] == [0.0]

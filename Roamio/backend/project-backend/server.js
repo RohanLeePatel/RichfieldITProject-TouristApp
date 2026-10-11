@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth');
 const tripRoutes = require('./routes/trips');
 const recommendationRoutes = require('./routes/recommendations');
 const translationRoutes = require('./routes/translation');
+const weatherRoutes = require('./routes/weather');
 const rateLimit = require('./middleware/rateLimit');
 
 const app = express();
@@ -58,6 +59,7 @@ app.use('/api/auth', rateLimit({ max: 10, windowMs: 60_000 }), authRoutes); // p
 app.use('/api/trips', tripRoutes);
 app.use('/api/recommendations', rateLimit({ max: 30, windowMs: 60_000 }), recommendationRoutes); // hits the AI service
 app.use('/api/translate', translationRoutes);
+app.use('/api/weather', rateLimit({ max: 60, windowMs: 60_000 }), weatherRoutes); // shared OpenWeather quota
 
 // Health check endpoint
 app.get('/', (req, res) => {

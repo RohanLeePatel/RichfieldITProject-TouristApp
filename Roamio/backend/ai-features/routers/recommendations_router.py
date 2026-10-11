@@ -1,9 +1,13 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from config.auth import verify_secretKey
 from engine.catalog import load_city_candidates, load_country_catalog
 from engine.pipeline import build_response
 from schemas.recommendations import RecommendationRequest, RecommendationResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -12,7 +16,7 @@ router = APIRouter()
     "/recommendations/catalog",
     dependencies=[Depends(verify_secretKey)],
 )
-async def recommendation_catalog() -> dict:
+def recommendation_catalog() -> dict:
     countries = load_country_catalog()
     return {
         "countries": [
@@ -31,7 +35,7 @@ async def recommendation_catalog() -> dict:
     response_model=RecommendationResponse,
     dependencies=[Depends(verify_secretKey)],
 )
-async def recommendations(request: RecommendationRequest) -> RecommendationResponse:
+def recommendations(request: RecommendationRequest) -> RecommendationResponse:
     candidates = request.candidates
     if not candidates:
         if request.level == "country":
@@ -55,5 +59,9 @@ async def recommendations(request: RecommendationRequest) -> RecommendationRespo
 
     try:
         return build_response(request, candidates=candidates)
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"AI_SERVICE_UNAVAILABLE: {e}")
+    except Exception:
+        # the traceback belongs in the log, not in the response (NFR-22)
+        logger.exception("Recommendation pipeline failed for level %s", request.level)
+        raise HTTPException(
+            status_code=502, detail="Recommendations are unavailable right now. Please try again."
+        )

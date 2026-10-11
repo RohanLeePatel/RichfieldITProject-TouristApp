@@ -701,7 +701,7 @@ export default function Weather() {
                       {Math.round(
                         currentWeather.wind_speed
                       )}{" "}
-                      km/h
+                      m/s
                     </strong>
                   </div>
 
@@ -719,7 +719,9 @@ export default function Weather() {
                     </span>
 
                     <strong>
-                      Weather data unavailable
+                      {currentWeather.precipitation_mm != null
+                        ? `${currentWeather.precipitation_mm} mm`
+                        : "None"}
                     </strong>
                   </div>
 
@@ -860,7 +862,9 @@ export default function Weather() {
                         <Droplets size={12} />
 
                         <span>
-                          Forecast
+                          {day.precipitation_chance != null
+                            ? `${day.precipitation_chance}% rain`
+                            : "No rain data"}
                         </span>
 
                       </div>
@@ -870,7 +874,9 @@ export default function Weather() {
                         <Wind size={12} />
 
                         <span>
-                          data unavailable
+                          {day.wind_speed != null
+                            ? `${Math.round(day.wind_speed)} m/s`
+                            : "No wind data"}
                         </span>
 
                       </div>

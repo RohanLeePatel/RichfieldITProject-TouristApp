@@ -1,4 +1,5 @@
 import os
+
 import requests
 
 OCR_SPACE_API_KEY = os.environ.get("ocrSpaceAPIKey")
