@@ -3,4 +3,4 @@ pydantic
 uvicorn[standard]
 python-multipart
 requests
-detectlanguage
+python-dotenv

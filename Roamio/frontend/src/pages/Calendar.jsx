@@ -14,8 +14,11 @@ import {
   Sparkles,
   ArrowLeft,
   Filter,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import useTheme from "../components/recommendations/useTheme.js";
 import "../styles/Calendar.css";
 
 // South African Public Holidays
@@ -36,6 +39,7 @@ const PUBLIC_HOLIDAYS_SA = [
 ];
 
 export default function Calendar() {
+  const { theme, toggle: toggleTheme } = useTheme(); // app-wide theme, also set in Settings
   const [currentDate, setCurrentDate] = useState(new Date(2026, 7, 1)); // Default August 2026
   const [selectedDate, setSelectedDate] = useState(new Date(2026, 7, 28));
   const [viewMode, setViewMode] = useState("month"); // 'month' | 'week'
@@ -43,16 +47,6 @@ export default function Calendar() {
   // Event Filters
   const [showHolidays, setShowHolidays] = useState(true);
   const [showEvents, setShowEvents] = useState(true);
-
-  // App Theme Detection
-  const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "light");
-
-  useEffect(() => {
-    const storedTheme = localStorage.getItem("theme");
-    if (storedTheme) {
-      setTheme(storedTheme);
-    }
-  }, []);
 
   // Local Storage for User Events & Reminders
   const [events, setEvents] = useState(() => {
@@ -269,6 +263,16 @@ export default function Calendar() {
           </div>
         </div>
         <div className="calendar-header-actions">
+          <button
+            type="button"
+            className="theme-toggle-btn"
+            onClick={toggleTheme}
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            title={theme === "dark" ? "Light mode" : "Dark mode"}
+          >
+            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+
           <Link to="/dashboard" className="calendar-back-button">
             <ArrowLeft size={16} />
             Back to Dashboard

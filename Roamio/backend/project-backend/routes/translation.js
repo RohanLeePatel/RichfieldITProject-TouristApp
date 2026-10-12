@@ -8,7 +8,7 @@ const aiFeaturesUrl = (
   'https://richfield-it-project-tourist-app.vercel.app'
 ).replace(/\/$/, '');
 
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 1024 * 1024; // OCR.space's free tier limit; the frontend compresses to this
 const MAX_TEXT_CHARS = 2000;
 
 // DeepL/OCR quota is shared by everyone on the public site
@@ -50,7 +50,7 @@ router.post('/ocr', (req, res) => {
     return res.status(415).json({ detail: 'Send the photo as a multipart form upload.' });
   }
   if (!Number.isFinite(length) || length > MAX_IMAGE_BYTES) {
-    return res.status(413).json({ detail: 'That photo is too large (5 MB max).' });
+    return res.status(413).json({ detail: 'That photo is too large (1 MB max). Try a tighter crop of just the text.' });
   }
 
   return forward(res, '/ocr', { headers: { 'content-type': type }, body: req, duplex: 'half' });

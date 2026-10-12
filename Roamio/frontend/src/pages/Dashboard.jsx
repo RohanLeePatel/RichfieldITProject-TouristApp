@@ -7,22 +7,26 @@ import {
   CalendarDays,
   Plus,
   ArrowRight,
-  Heart,
   Bell,
   Settings,
   LogOut,
   Home,
   Compass,
-  Camera,
   ChevronRight,
   MoreHorizontal,
   Clock3,
   CheckCircle2,
   Globe2,
   Menu,
+  Moon,
   X,
   Languages,
   CloudSun,
+  Cloud,
+  CloudRain,
+  CloudLightning,
+  Snowflake,
+  Sun,
   Droplets,
   Wind,
   RefreshCw,
@@ -39,6 +43,7 @@ import { fetchWeather as fetchWeatherFromApi } from "../api/weather";
 import { fetchTrips } from "../api/trips";
 import { TOKEN_KEY } from "../api/client";
 
+import useTheme from "../components/recommendations/useTheme.js";
 import "../styles/dashboard.css";
 
 // =========================================================
@@ -59,6 +64,7 @@ function tripStatus(trip) {
   const end = trip.endDate
     ? new Date(trip.endDate)
     : start;
+
   const now = new Date();
 
   if (now > end) return "Completed";
@@ -78,31 +84,68 @@ function tripDateLabel(trip) {
     });
 
   return trip.endDate
-    ? `${format(trip.startDate)} — ${format(
-        trip.endDate
-      )}`
+    ? `${format(trip.startDate)} — ${format(trip.endDate)}`
     : format(trip.startDate);
 }
 
 // =========================================================
-// WEATHER
+// SORT / NEXT TRIP HELPERS
 // =========================================================
 
-const DEFAULT_WEATHER_LOCATION = {
-  name: "Durban",
-  province: "KwaZulu-Natal",
-  latitude: -29.8587,
-  longitude: 31.0218,
-};
+function getRelevantTrips(trips) {
+  return [...trips]
+    .filter(
+      (trip) =>
+        tripStatus(trip) !== "Completed"
+    )
+    .sort((a, b) => {
+      if (!a.startDate && !b.startDate) {
+        return 0;
+      }
+
+      if (!a.startDate) return 1;
+      if (!b.startDate) return -1;
+
+      return (
+        new Date(a.startDate) -
+        new Date(b.startDate)
+      );
+    });
+}
+
+function getNextTrip(trips) {
+  return getRelevantTrips(trips)[0] || null;
+}
+
+// =========================================================
+// WEATHER HELPERS
+// =========================================================
 
 function getDashboardWeatherInfo(description) {
   const normalizedDescription = String(
     description || ""
   ).toLowerCase();
 
-  if (normalizedDescription.includes("thunder")) {
+  if (
+    normalizedDescription.includes("thunder") ||
+    normalizedDescription.includes("storm")
+  ) {
     return {
       label: "Thunderstorm",
+      icon: CloudLightning,
+      className: "storm",
+    };
+  }
+
+  if (
+    normalizedDescription.includes("snow") ||
+    normalizedDescription.includes("sleet") ||
+    normalizedDescription.includes("ice")
+  ) {
+    return {
+      label: "Snow",
+      icon: Snowflake,
+      className: "snow",
     };
   }
 
@@ -113,31 +156,41 @@ function getDashboardWeatherInfo(description) {
   ) {
     return {
       label: "Rain",
+      icon: CloudRain,
+      className: "rain",
     };
   }
 
-  if (normalizedDescription.includes("snow")) {
-    return {
-      label: "Snow",
-    };
-  }
-
-  if (normalizedDescription.includes("cloud")) {
+  if (
+    normalizedDescription.includes("cloud") ||
+    normalizedDescription.includes("overcast")
+  ) {
     return {
       label: normalizedDescription.includes(
         "overcast"
       )
         ? "Overcast"
         : "Partly cloudy",
+      icon: Cloud,
+      className: "cloud",
+    };
+  }
+
+  if (
+    normalizedDescription.includes("clear") ||
+    normalizedDescription.includes("sun")
+  ) {
+    return {
+      label: "Clear sky",
+      icon: Sun,
+      className: "sun",
     };
   }
 
   return {
-    label: normalizedDescription.includes(
-      "clear"
-    )
-      ? "Clear sky"
-      : "Weather",
+    label: "Current conditions",
+    icon: CloudSun,
+    className: "default",
   };
 }
 
@@ -146,16 +199,19 @@ function getDashboardWeatherInfo(description) {
 // =========================================================
 
 function getDashboardDate() {
-  return new Date().toLocaleDateString("en-ZA", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
+  return new Date().toLocaleDateString(
+    "en-ZA",
+    {
+      weekday: "long",
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    }
+  );
 }
 
 // =========================================================
-// DEFAULT TRAVEL GROUP
+// TRAVEL GROUP
 // =========================================================
 
 function getDefaultGroupMembers(
@@ -172,84 +228,12 @@ function getDefaultGroupMembers(
       email: "",
       initials,
       color: "blue",
-      interests: [
-        "Nature",
-        "Culture",
-        "Food",
-      ],
-      trips: 4,
+      interests: [],
+      trips: 0,
       status: "Organizer",
-    },
-    {
-      id: "member-2",
-      name: "Savaan",
-      relationship: "Group member",
-      role: "Group member",
-      type: "Adult",
-      email: "",
-      initials: "SA",
-      color: "teal",
-      interests: [
-        "Adventure",
-        "Beach",
-      ],
-      trips: 3,
-      status: "Active",
-    },
-    {
-      id: "member-3",
-      name: "Rohan",
-      relationship: "Group member",
-      role: "Group member",
-      type: "Adult",
-      email: "",
-      initials: "RO",
-      color: "purple",
-      interests: [
-        "Nature",
-        "Photography",
-      ],
-      trips: 2,
-      status: "Active",
-    },
-    {
-      id: "member-4",
-      name: "Yatheen",
-      relationship: "Group member",
-      role: "Group member",
-      type: "Adult",
-      email: "",
-      initials: "YA",
-      color: "orange",
-      interests: [
-        "Adventure",
-        "Beach",
-      ],
-      trips: 2,
-      status: "Active",
-    },
-    {
-      id: "member-5",
-      name: "Jordan",
-      relationship: "Group member",
-      role: "Group member",
-      type: "Adult",
-      email: "",
-      initials: "JO",
-      color: "green",
-      interests: [
-        "Food",
-        "Culture",
-      ],
-      trips: 1,
-      status: "Active",
     },
   ];
 }
-
-// =========================================================
-// LOAD TRAVEL GROUP
-// =========================================================
 
 function loadGroupMembers(
   userName,
@@ -294,8 +278,13 @@ function loadGroupMembers(
 // =========================================================
 
 export default function Dashboard() {
+  const { theme, toggle: toggleTheme } = useTheme(); // app-wide theme, also set in Settings
   const navigate = useNavigate();
   const location = useLocation();
+
+  // =========================================================
+  // MOBILE MENU
+  // =========================================================
 
   const [mobileMenu, setMobileMenu] =
     useState(false);
@@ -375,20 +364,27 @@ export default function Dashboard() {
   useEffect(() => {
     let active = true;
 
+    setTripsLoading(true);
+    setTripsError("");
+
     fetchTrips()
       .then((data) => {
-        if (active) {
-          setTrips(data || []);
-        }
+        if (!active) return;
+
+        setTrips(
+          Array.isArray(data)
+            ? data
+            : []
+        );
       })
       .catch((error) => {
-        if (active) {
-          setTripsError(
-            error instanceof Error
-              ? error.message
-              : "Could not load your trips."
-          );
-        }
+        if (!active) return;
+
+        setTripsError(
+          error instanceof Error
+            ? error.message
+            : "Could not load your trips."
+        );
       })
       .finally(() => {
         if (active) {
@@ -426,9 +422,11 @@ export default function Dashboard() {
       );
     }, [userName, initials]);
 
-  // Refresh when Dashboard becomes active.
   useEffect(() => {
-    if (location.pathname === "/dashboard") {
+    if (
+      location.pathname ===
+      "/dashboard"
+    ) {
       syncGroupMembers();
     }
   }, [
@@ -436,8 +434,6 @@ export default function Dashboard() {
     syncGroupMembers,
   ]);
 
-  // Refresh if localStorage changes
-  // from another browser tab/window.
   useEffect(() => {
     const handleStorageChange = (
       event
@@ -468,14 +464,25 @@ export default function Dashboard() {
   // =========================================================
 
   const fetchDashboardWeather =
-    async () => {
+    useCallback(async () => {
       try {
         setWeatherLoading(true);
         setWeatherError("");
 
+        const nextTrip =
+          getNextTrip(trips);
+
+        if (
+          !nextTrip?.destination
+        ) {
+          setWeather(null);
+          setWeatherLoading(false);
+          return;
+        }
+
         const data =
           await fetchWeatherFromApi(
-            DEFAULT_WEATHER_LOCATION.name
+            nextTrip.destination
           );
 
         setWeather(data);
@@ -491,11 +498,31 @@ export default function Dashboard() {
       } finally {
         setWeatherLoading(false);
       }
-    };
+    }, [trips]);
 
   useEffect(() => {
     fetchDashboardWeather();
-  }, []);
+  }, [fetchDashboardWeather]);
+
+  // =========================================================
+  // DERIVED DATA
+  // =========================================================
+
+  const relevantTrips =
+    getRelevantTrips(trips);
+
+  const nextTrip =
+    getNextTrip(trips);
+
+  const completedTrips =
+    trips.filter(
+      (trip) =>
+        tripStatus(trip) ===
+        "Completed"
+    );
+
+  const displayedTrips =
+    relevantTrips.slice(0, 3);
 
   // =========================================================
   // NAVIGATION
@@ -560,16 +587,12 @@ export default function Dashboard() {
     navigate("/family");
   };
 
-  const handleViewMemories = () => {
-    navigate("/memories");
-  };
-
   // =========================================================
   // RETURN
   // =========================================================
 
   return (
-    <div className="dashboard-page">
+    <div className="dashboard-page" data-theme={theme}>
 
       {/* =====================================================
           SIDEBAR
@@ -582,8 +605,6 @@ export default function Dashboard() {
             : ""
         }`}
       >
-
-        {/* SIDEBAR TOP */}
 
         <div className="sidebar-top">
 
@@ -616,8 +637,6 @@ export default function Dashboard() {
 
         </div>
 
-        {/* YOUR SPACE */}
-
         <div className="sidebar-section">
 
           <p className="sidebar-label">
@@ -625,8 +644,6 @@ export default function Dashboard() {
           </p>
 
           <nav className="sidebar-nav">
-
-            {/* DASHBOARD */}
 
             <Link
               to="/dashboard"
@@ -642,12 +659,11 @@ export default function Dashboard() {
               }
             >
               <Home size={18} />
+
               <span>
                 Dashboard
               </span>
             </Link>
-
-            {/* MY TRIPS */}
 
             <Link
               to="/trips"
@@ -671,8 +687,6 @@ export default function Dashboard() {
               </span>
             </Link>
 
-            {/* EXPLORE */}
-
             <Link
               to="/explore"
               className={`sidebar-link ${
@@ -687,12 +701,11 @@ export default function Dashboard() {
               }
             >
               <Compass size={18} />
+
               <span>
                 Explore
               </span>
             </Link>
-
-            {/* TRAVEL GROUP */}
 
             <Link
               to="/family"
@@ -708,6 +721,7 @@ export default function Dashboard() {
               }
             >
               <Users size={18} />
+
               <span>
                 Travel Group
               </span>
@@ -717,8 +731,6 @@ export default function Dashboard() {
 
         </div>
 
-        {/* PLANNING */}
-
         <div className="sidebar-section">
 
           <p className="sidebar-label">
@@ -726,8 +738,6 @@ export default function Dashboard() {
           </p>
 
           <nav className="sidebar-nav">
-
-            {/* CALENDAR */}
 
             <Link
               to="/calendar"
@@ -743,33 +753,11 @@ export default function Dashboard() {
               }
             >
               <CalendarDays size={18} />
+
               <span>
                 Calendar
               </span>
             </Link>
-
-            {/* MEMORIES */}
-
-            <Link
-              to="/memories"
-              className={`sidebar-link ${
-                isActive(
-                  "/memories"
-                )
-                  ? "active"
-                  : ""
-              }`}
-              onClick={
-                closeMobileMenu
-              }
-            >
-              <Heart size={18} />
-              <span>
-                Memories
-              </span>
-            </Link>
-
-            {/* WEATHER */}
 
             <Link
               to="/weather"
@@ -785,12 +773,11 @@ export default function Dashboard() {
               }
             >
               <CloudSun size={18} />
+
               <span>
                 Weather
               </span>
             </Link>
-
-            {/* RECOMMENDATIONS */}
 
             <Link
               to="/recommendations"
@@ -806,12 +793,11 @@ export default function Dashboard() {
               }
             >
               <Sparkles size={18} />
+
               <span>
                 Recommendations
               </span>
             </Link>
-
-            {/* TRANSLATOR */}
 
             <Link
               to="/translator"
@@ -827,12 +813,11 @@ export default function Dashboard() {
               }
             >
               <Languages size={18} />
+
               <span>
                 Travel Translator
               </span>
             </Link>
-
-            {/* SETTINGS */}
 
             <Link
               to="/settings"
@@ -848,6 +833,7 @@ export default function Dashboard() {
               }
             >
               <Settings size={18} />
+
               <span>
                 Settings
               </span>
@@ -856,8 +842,6 @@ export default function Dashboard() {
           </nav>
 
         </div>
-
-        {/* SIDEBAR BOTTOM */}
 
         <div className="sidebar-bottom">
 
@@ -868,6 +852,7 @@ export default function Dashboard() {
             </div>
 
             <div>
+
               <strong>
                 Travel smarter
               </strong>
@@ -876,6 +861,7 @@ export default function Dashboard() {
                 Keep your group plans
                 in one place.
               </p>
+
             </div>
 
           </div>
@@ -888,6 +874,7 @@ export default function Dashboard() {
             }
           >
             <LogOut size={17} />
+
             Sign out
           </button>
 
@@ -914,9 +901,7 @@ export default function Dashboard() {
 
       <main className="dashboard-main">
 
-        {/* ===================================================
-            HEADER
-        =================================================== */}
+        {/* HEADER */}
 
         <header className="dashboard-header">
 
@@ -943,7 +928,15 @@ export default function Dashboard() {
 
           <div className="header-actions">
 
-            {/* NOTIFICATIONS */}
+            <button
+              type="button"
+              className="header-icon-button"
+              onClick={toggleTheme}
+              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              title={theme === "dark" ? "Light mode" : "Dark mode"}
+            >
+              {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
 
             <button
               type="button"
@@ -958,8 +951,6 @@ export default function Dashboard() {
 
               <span className="notification-dot" />
             </button>
-
-            {/* PROFILE */}
 
             <Link
               to="/settings"
@@ -996,9 +987,7 @@ export default function Dashboard() {
 
         <div className="dashboard-content">
 
-          {/* =================================================
-              HERO
-          ================================================= */}
+          {/* HERO */}
 
           <section className="hero-section">
 
@@ -1067,8 +1056,6 @@ export default function Dashboard() {
 
             </div>
 
-            {/* HERO VISUAL */}
-
             <div className="hero-visual">
 
               <div className="floating-pin floating-pin-one">
@@ -1101,8 +1088,6 @@ export default function Dashboard() {
 
           <section className="stats-grid">
 
-            {/* NEXT DESTINATION */}
-
             <div className="stat-card">
 
               <div className="stat-icon blue">
@@ -1116,7 +1101,7 @@ export default function Dashboard() {
                 </span>
 
                 <strong>
-                  {trips[0]?.destination ||
+                  {nextTrip?.destination ||
                     "Anywhere"}
                 </strong>
 
@@ -1128,9 +1113,12 @@ export default function Dashboard() {
 
             </div>
 
-            {/* TOTAL TRIPS */}
+            {/* TOTAL TRIPS - CLICKABLE */}
 
-            <div className="stat-card">
+            <Link
+              to="/trips"
+              className="stat-card"
+            >
 
               <div className="stat-icon teal">
                 <Compass size={20} />
@@ -1152,11 +1140,14 @@ export default function Dashboard() {
                 <Plane size={42} />
               </div>
 
-            </div>
+            </Link>
 
-            {/* PLACES */}
+            {/* COMPLETED TRIPS - CLICKABLE */}
 
-            <div className="stat-card">
+            <Link
+              to="/trips?status=completed"
+              className="stat-card"
+            >
 
               <div className="stat-icon purple">
                 <Map size={20} />
@@ -1165,15 +1156,15 @@ export default function Dashboard() {
               <div className="stat-info">
 
                 <span>
-                  Places visited
+                  Trips completed
                 </span>
 
                 <strong>
-                  14
+                  {completedTrips.length}
                 </strong>
 
                 <small>
-                  Across 5 countries
+                  Adventures completed
                 </small>
 
               </div>
@@ -1182,9 +1173,9 @@ export default function Dashboard() {
                 <Globe2 size={45} />
               </div>
 
-            </div>
+            </Link>
 
-            {/* TRAVEL GROUP */}
+            {/* GROUP MEMBERS */}
 
             <Link
               to="/family"
@@ -1212,7 +1203,7 @@ export default function Dashboard() {
               </div>
 
               <div className="stat-decoration">
-                <Heart size={43} />
+                <Users size={43} />
               </div>
 
             </Link>
@@ -1225,9 +1216,7 @@ export default function Dashboard() {
 
           <div className="dashboard-grid">
 
-            {/* =================================================
-                TRIPS
-            ================================================= */}
+            {/* TRIPS */}
 
             <section className="trips-section">
 
@@ -1250,6 +1239,7 @@ export default function Dashboard() {
                   className="view-all"
                 >
                   View all
+
                   <ArrowRight size={15} />
                 </Link>
 
@@ -1267,23 +1257,22 @@ export default function Dashboard() {
                   {tripsError}
                 </p>
 
-              ) : trips.length ===
+              ) : displayedTrips.length ===
                 0 ? (
 
                 <p className="trips-empty-note">
-                  No trips yet — use
-                  "Create a new trip"
+                  No upcoming trips yet —
+                  use "Create a new trip"
                   above to plan your
-                  first one.
+                  next adventure.
                 </p>
 
               ) : (
 
                 <div className="trip-list">
 
-                  {trips
-                    .slice(0, 3)
-                    .map((trip) => {
+                  {displayedTrips.map(
+                    (trip) => {
 
                       const status =
                         tripStatus(
@@ -1299,8 +1288,6 @@ export default function Dashboard() {
                             trip.id
                           }
                         >
-
-                          {/* IMAGE */}
 
                           <div className="trip-image trip-image-fallback">
 
@@ -1338,8 +1325,6 @@ export default function Dashboard() {
 
                           </div>
 
-                          {/* INFO */}
-
                           <div className="trip-info">
 
                             <div className="trip-title-row">
@@ -1348,7 +1333,8 @@ export default function Dashboard() {
 
                                 <h3>
                                   {
-                                    trip.title
+                                    trip.title ||
+                                    "Untitled trip"
                                   }
                                 </h3>
 
@@ -1370,11 +1356,15 @@ export default function Dashboard() {
                               <button
                                 type="button"
                                 className="trip-more"
-                                aria-label={`More options for ${trip.title}`}
+                                aria-label={`More options for ${
+                                  trip.title ||
+                                  "trip"
+                                }`}
                                 onClick={(
                                   event
                                 ) => {
                                   event.preventDefault();
+                                  event.stopPropagation();
 
                                   handleTripOptions(
                                     trip.title
@@ -1421,22 +1411,20 @@ export default function Dashboard() {
                         </Link>
 
                       );
-                    })}
+                    }
+                  )}
 
                 </div>
+
               )}
 
             </section>
 
-            {/* =================================================
-                RIGHT COLUMN
-            ================================================= */}
+            {/* RIGHT COLUMN */}
 
             <aside className="dashboard-right-column">
 
-              {/* =================================================
-                  TRAVEL GROUP
-              ================================================= */}
+              {/* TRAVEL GROUP */}
 
               <section className="family-card">
 
@@ -1541,10 +1529,22 @@ export default function Dashboard() {
               </section>
 
               {/* =================================================
-                  WEATHER
+                  PREMIUM WEATHER
               ================================================= */}
 
               <section className="dashboard-weather-card">
+
+                <div className="weather-card-glow weather-card-glow-one" />
+
+                <div className="weather-card-glow weather-card-glow-two" />
+
+                <div className="weather-cloud-decoration weather-cloud-one">
+                  <CloudSun size={72} />
+                </div>
+
+                <div className="weather-cloud-decoration weather-cloud-two">
+                  <Cloud size={48} />
+                </div>
 
                 <div className="weather-card-header">
 
@@ -1555,7 +1555,7 @@ export default function Dashboard() {
                     </span>
 
                     <h2>
-                      Today's weather
+                      Today's conditions
                     </h2>
 
                   </div>
@@ -1567,13 +1567,15 @@ export default function Dashboard() {
                       fetchDashboardWeather
                     }
                     disabled={
-                      weatherLoading
+                      weatherLoading ||
+                      !nextTrip?.destination
                     }
                     aria-label="Refresh weather"
+                    title="Refresh weather"
                   >
 
                     <RefreshCw
-                      size={16}
+                      size={15}
                       className={
                         weatherLoading
                           ? "weather-refresh-spin"
@@ -1589,14 +1591,24 @@ export default function Dashboard() {
 
                   <div className="dashboard-weather-loading">
 
-                    <RefreshCw
-                      size={22}
-                      className="weather-refresh-spin"
-                    />
+                    <div className="weather-loading-icon">
+                      <RefreshCw
+                        size={25}
+                        className="weather-refresh-spin"
+                      />
+                    </div>
 
-                    <span>
-                      Loading weather...
-                    </span>
+                    <div>
+
+                      <strong>
+                        Checking the skies...
+                      </strong>
+
+                      <span>
+                        Getting the latest weather for your next trip.
+                      </span>
+
+                    </div>
 
                   </div>
 
@@ -1604,192 +1616,234 @@ export default function Dashboard() {
 
                   <div className="dashboard-weather-error">
 
-                    <CloudSun
-                      size={24}
-                    />
+                    <div className="weather-error-icon">
+                      <CloudSun size={24} />
+                    </div>
 
-                    <p>
-                      {weatherError}
-                    </p>
+                    <div className="weather-error-content">
 
-                    <button
-                      type="button"
-                      onClick={
-                        fetchDashboardWeather
-                      }
-                    >
-                      Try again
-                    </button>
+                      <strong>
+                        Weather unavailable
+                      </strong>
+
+                      <p>
+                        {weatherError}
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={
+                          fetchDashboardWeather
+                        }
+                      >
+                        Try again
+                        <ArrowRight size={14} />
+                      </button>
+
+                    </div>
 
                   </div>
 
                 ) : weather ? (
 
-                  <>
+                  (() => {
 
-                    <div className="dashboard-weather-main">
+                    const weatherInfo =
+                      getDashboardWeatherInfo(
+                        weather?.current?.description
+                      );
 
-                      <div className="dashboard-weather-icon">
-                        <CloudSun
-                          size={42}
-                        />
-                      </div>
+                    const WeatherIcon =
+                      weatherInfo.icon;
 
-                      <div className="dashboard-weather-temperature">
+                    const temperature =
+                      Math.round(
+                        weather?.current?.temp ?? 0
+                      );
 
-                        <strong>
-                          {Math.round(
-                            weather
-                              .current
-                              .temp
-                          )}
-                          °
-                        </strong>
+                    const humidity =
+                      weather?.current?.humidity;
 
-                        <span>
-                          {
-                            getDashboardWeatherInfo(
-                              weather
-                                .current
-                                .description
-                            ).label
-                          }
-                        </span>
+                    const windSpeed =
+                      weather?.current?.wind_speed;
 
-                      </div>
+                    return (
+
+                      <>
+
+                        <div className="dashboard-weather-destination">
+
+                          <div className="weather-destination-icon">
+                            <MapPin size={15} />
+                          </div>
+
+                          <div>
+
+                            <span>
+                              NEXT TRIP
+                            </span>
+
+                            <strong>
+                              {nextTrip?.destination ||
+                                "Destination"}
+                            </strong>
+
+                          </div>
+
+                          <div className="weather-live-badge">
+
+                            <span />
+
+                            Live
+
+                          </div>
+
+                        </div>
+
+                        <div className="dashboard-weather-main">
+
+                          <div
+                            className={`dashboard-weather-icon weather-icon-${weatherInfo.className}`}
+                          >
+
+                            <WeatherIcon
+                              size={54}
+                              strokeWidth={1.6}
+                            />
+
+                            <div className="weather-icon-ring" />
+
+                          </div>
+
+                          <div className="dashboard-weather-temperature">
+
+                            <div className="weather-temperature-row">
+
+                              <strong>
+                                {temperature}
+                              </strong>
+
+                              <span className="weather-degree">
+                                °
+                              </span>
+
+                            </div>
+
+                            <span className="weather-condition">
+                              {weatherInfo.label}
+                            </span>
+
+                            <span className="weather-updated">
+                              Current conditions
+                            </span>
+
+                          </div>
+
+                        </div>
+
+                        <div className="dashboard-weather-stats">
+
+                          <div className="weather-stat">
+
+                            <div className="weather-stat-icon weather-stat-humidity">
+                              <Droplets size={17} />
+                            </div>
+
+                            <div className="weather-stat-copy">
+
+                              <span>
+                                Humidity
+                              </span>
+
+                              <strong>
+                                {humidity ?? "--"}%
+                              </strong>
+
+                            </div>
+
+                          </div>
+
+                          <div className="weather-stat">
+
+                            <div className="weather-stat-icon weather-stat-wind">
+                              <Wind size={17} />
+                            </div>
+
+                            <div className="weather-stat-copy">
+
+                              <span>
+                                Wind
+                              </span>
+
+                              <strong>
+                                {windSpeed != null
+                                  ? `${Math.round(
+                                      windSpeed
+                                    )} km/h`
+                                  : "--"}
+                              </strong>
+
+                            </div>
+
+                          </div>
+
+                        </div>
+
+                        <Link
+                          to="/weather"
+                          className="dashboard-weather-button"
+                        >
+
+                          <span>
+                            Open full weather forecast
+                          </span>
+
+                          <span className="weather-button-arrow">
+                            <ArrowRight size={15} />
+                          </span>
+
+                        </Link>
+
+                      </>
+
+                    );
+
+                  })()
+
+                ) : (
+
+                  <div className="dashboard-weather-empty">
+
+                    <div className="weather-empty-icon">
+                      <CloudSun size={30} />
+                    </div>
+
+                    <div>
+
+                      <strong>
+                        Your trip weather awaits
+                      </strong>
+
+                      <p>
+                        Create a trip with a destination
+                        and we'll show its current weather here.
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={
+                          handleCreateTrip
+                        }
+                      >
+                        Plan a trip
+                        <ArrowRight size={14} />
+                      </button>
 
                     </div>
 
-                    <div className="dashboard-weather-location">
-
-                      <MapPin
-                        size={15}
-                      />
-
-                      <span>
-                        Durban,
-                        KwaZulu-Natal
-                      </span>
-
-                    </div>
-
-                    <div className="dashboard-weather-stats">
-
-                      <div>
-
-                        <Droplets
-                          size={15}
-                        />
-
-                        <span>
-                          Humidity
-                        </span>
-
-                        <strong>
-                          {
-                            weather
-                              .current
-                              .humidity
-                          }
-                          %
-                        </strong>
-
-                      </div>
-
-                      <div>
-
-                        <Wind
-                          size={15}
-                        />
-
-                        <span>
-                          Wind
-                        </span>
-
-                        <strong>
-                          {Math.round(
-                            weather
-                              .current
-                              .wind_speed
-                          )}{" "}
-                          km/h
-                        </strong>
-
-                      </div>
-
-                    </div>
-
-                    <Link
-                      to="/weather"
-                      className="dashboard-weather-button"
-                    >
-
-                      View full forecast
-
-                      <ArrowRight
-                        size={15}
-                      />
-
-                    </Link>
-
-                  </>
-
-                ) : null}
-
-              </section>
-
-              {/* =================================================
-                  MEMORIES
-              ================================================= */}
-
-              <section className="memory-card">
-
-                <div className="memory-content">
-
-                  <div className="memory-icon">
-                    <Camera size={19} />
                   </div>
 
-                  <span className="section-eyebrow">
-                    MEMORIES
-                  </span>
-
-                  <h3>
-                    36 beautiful moments
-                  </h3>
-
-                  <p>
-                    Your group's
-                    adventures are
-                    worth remembering.
-                  </p>
-
-                  <button
-                    type="button"
-                    className="memory-button"
-                    onClick={
-                      handleViewMemories
-                    }
-                  >
-
-                    View memories
-
-                    <ArrowRight
-                      size={14}
-                    />
-
-                  </button>
-
-                </div>
-
-                <div className="memory-decoration">
-
-                  <Heart
-                    size={80}
-                    strokeWidth={1}
-                  />
-
-                </div>
+                )}
 
               </section>
 

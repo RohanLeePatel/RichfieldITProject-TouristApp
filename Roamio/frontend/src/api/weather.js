@@ -1,5 +1,9 @@
+// Weather goes through the Node backend's /api/weather proxy, like
+// recommendations and translation: the ai-features service requires the
+// node-secretkey, which must not reach the browser.
+
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+  import.meta.env.VITE_BACKEND_API_URL || "http://127.0.0.1:3000";
 
 export async function fetchWeather(city) {
   const normalizedCity = city?.trim();
@@ -9,7 +13,7 @@ export async function fetchWeather(city) {
   }
 
   const apiUrl =
-    `${API_BASE_URL.replace(/\/$/, "")}/weather/` +
+    `${API_BASE_URL.replace(/\/$/, "")}/api/weather/` +
     `${encodeURIComponent(normalizedCity)}?units=metric`;
 
   const response = await fetch(apiUrl);
@@ -23,7 +27,8 @@ export async function fetchWeather(city) {
 
   if (!response.ok) {
     throw new Error(
-      data?.detail ||
+      data?.message ||
+        data?.detail ||
         data?.error ||
         "Weather information is currently unavailable."
     );

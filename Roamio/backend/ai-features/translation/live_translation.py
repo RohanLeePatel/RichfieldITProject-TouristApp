@@ -1,8 +1,6 @@
 import os
-import detectlanguage
-import requests
 
-detectlanguage.configuration.api_key = os.environ.get("detectlanguageAPIKey")
+import requests
 
 DEEPL_API_KEY = os.environ.get("deepLAPIKey")
 
@@ -20,6 +18,10 @@ DEEPL_ERRORS = {
     456: "The translation quota for this month has been used up.",
 }
 
+# DeepL accepts at most 50 text parameters per request, so a photo with more
+# lines than that is sent in batches instead of failing outright.
+DEEPL_MAX_TEXTS = 50
+
 
 class TranslationError(Exception):
     pass
@@ -32,37 +34,47 @@ def deepl_source(code: str | None) -> str | None:
     return code.upper().split("-")[0]
 
 
-def _deepl(texts: list[str], target_lang: str, source_lang: str | None) -> list[str]:
+def _deepl(texts: list[str], target_lang: str, source_lang: str | None) -> list[dict]:
+    """Returns DeepL's translation objects: {"text", "detected_source_language"}.
+    The detected language comes back with the translation, so no separate
+    language-detection provider is needed."""
     if not DEEPL_API_KEY:
         raise TranslationError("The translation service is not configured (deepLAPIKey missing).")
 
-    data = [("text", t) for t in texts] + [("target_lang", target_lang)]
-    if source_lang:
-        data.append(("source_lang", source_lang))
+    translations: list[dict] = []
+    for start in range(0, len(texts), DEEPL_MAX_TEXTS):
+        batch = texts[start:start + DEEPL_MAX_TEXTS]
+        data = [("text", t) for t in batch] + [("target_lang", target_lang)]
+        if source_lang:
+            data.append(("source_lang", source_lang))
 
-    try:
-        response = requests.post(
-            DEEPL_API_URL,
-            headers={"Authorization": f"DeepL-Auth-Key {DEEPL_API_KEY}"},
-            data=data,
-            timeout=10,
-        )
-    except requests.Timeout:
-        raise TranslationError("The translation service timed out. Try again.")
-    except requests.RequestException:
-        raise TranslationError("Could not reach the translation service.")
+        try:
+            response = requests.post(
+                DEEPL_API_URL,
+                headers={"Authorization": f"DeepL-Auth-Key {DEEPL_API_KEY}"},
+                data=data,
+                timeout=10,
+            )
+        except requests.Timeout:
+            raise TranslationError("The translation service timed out. Try again.")
+        except requests.RequestException:
+            raise TranslationError("Could not reach the translation service.")
 
-    if not response.ok:
-        raise TranslationError(
-            DEEPL_ERRORS.get(response.status_code, f"The translation service failed (HTTP {response.status_code}).")
-        )
-    return [t["text"] for t in response.json()["translations"]]
+        if not response.ok:
+            raise TranslationError(
+                DEEPL_ERRORS.get(response.status_code, f"The translation service failed (HTTP {response.status_code}).")
+            )
+        translations.extend(response.json()["translations"])
+
+    return translations
 
 
 def translate_text(text: str, target_lang: str | None = None, source_lang: str | None = None) -> dict:
 
     target_lang = (target_lang or "EN").upper()
     source_lang = deepl_source(source_lang)
+    # when the user told us the language there is nothing to detect
+    given_lang = source_lang.lower() if source_lang else None
 
     if len(text.strip()) < 3:
         return {
@@ -71,29 +83,26 @@ def translate_text(text: str, target_lang: str | None = None, source_lang: str |
             "message": "No readable text found. Try a closer, sharper photo with the text filling the frame.",
         }
 
-    # the user told us the language, so skip the (rate-limited) detection call
-    detected_lang = source_lang.lower() if source_lang else None
-    if not detected_lang:
-        try:
-            detected_lang = detectlanguage.detect_code(text)
-        except Exception:
-            pass
-
     try:
-        translated_text = _deepl([text], target_lang, source_lang)[0]
+        translated = _deepl([text], target_lang, source_lang)[0]
     except TranslationError as e:
-        return {"detected_lang": detected_lang, "translation": None, "message": str(e)}
+        return {"detected_lang": given_lang, "translation": None, "message": str(e)}
 
-    return {"detected_lang": detected_lang, "translation": translated_text, "message": None}
+    detected = translated.get("detected_source_language")
+    return {
+        "detected_lang": given_lang or (detected.lower() if detected else None),
+        "translation": translated["text"],
+        "message": None,
+    }
 
 
 def translate_lines(lines: list[dict], target_lang: str | None, source_lang: str | None = None) -> list[dict]:
-    """Translate each OCR line (one DeepL call) so it can be drawn back over the photo.
-    Best-effort: on any failure the overlay is just left out."""
+    """Translate each OCR line (one DeepL call per 50 lines) so it can be drawn
+    back over the photo. Best-effort: on any failure the overlay is just left out."""
     if not lines:
         return []
     try:
-        translated = _deepl([l["text"] for l in lines], (target_lang or "EN").upper(), deepl_source(source_lang))
+        translated = _deepl([line["text"] for line in lines], (target_lang or "EN").upper(), deepl_source(source_lang))
     except TranslationError:
         return []
-    return [{**l, "translation": t} for l, t in zip(lines, translated)]
+    return [{**line, "translation": t["text"]} for line, t in zip(lines, translated)]

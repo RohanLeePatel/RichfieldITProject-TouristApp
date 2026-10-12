@@ -1,12 +1,17 @@
-import { ChevronLeft, MapPin } from "lucide-react";
+import { useState } from "react";
+import { Bookmark, ChevronLeft, MapPin } from "lucide-react";
 
+import CompareView from "./CompareView.jsx";
 import DestinationCard from "./DestinationCard.jsx";
 
 export default function ResultsView({
   data, title, historyCount, loading, error, exploreCities, selectCity, selectExcluded,
   goBack, startOver, editPreferences, requirementExclusions, rankedOutCount, relaxSuggestions, travelMonth,
+  shortlist, toggleShortlist, notQuiteRight, maxShortlist,
 }) {
+  const [comparing, setComparing] = useState(false);
   const isCountry = data.level === "country";
+  const isShortlisted = (id) => shortlist.some((item) => item.id === id);
   return (
     <section className="recommendations-results">
       <div className="results-heading">
@@ -42,9 +47,26 @@ export default function ResultsView({
               onSelect={isCountry ? exploreCities : data.level === "city" ? selectCity : undefined}
               selectLabel={isCountry ? "Explore cities" : loading ? "Starting trip..." : "Start a trip here"}
               travelMonth={travelMonth}
+              shortlisted={isShortlisted(recommendation.id)}
+              shortlistFull={shortlist.length >= maxShortlist}
+              onToggleShortlist={toggleShortlist}
+              onDislike={notQuiteRight}
+              busy={loading}
             />
           ))}
         </div>
+      )}
+
+      {shortlist.length > 0 && (
+        <div className="shortlist-bar" role="region" aria-label="Shortlist">
+          <span><Bookmark size={15} /> {shortlist.length} shortlisted: {shortlist.map((item) => item.name || item.id).join(", ")}</span>
+          <button type="button" className="recommendations-submit" onClick={() => setComparing(true)} disabled={shortlist.length < 2}>
+            {shortlist.length < 2 ? "Shortlist 2 to compare" : "Compare"}
+          </button>
+        </div>
+      )}
+      {comparing && shortlist.length >= 2 && (
+        <CompareView items={shortlist} onRemove={toggleShortlist} onClose={() => setComparing(false)} />
       )}
 
       {data.comparison && <p className="recommendation-comparison">{data.comparison}</p>}

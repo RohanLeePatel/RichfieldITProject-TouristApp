@@ -1829,3 +1829,150 @@
     transition-duration: 0.001ms !important;
   }
 }
+
+/* =========================================================
+   DARK MODE  (data-theme="dark" on .weather-page - set from
+   the app-wide theme in Settings; same palette as the trip pages)
+========================================================= */
+
+.weather-page[data-theme="dark"] {
+  --weather-ink: #e8f2f5;
+  --weather-ink-light: #c6dbe1;
+  --weather-teal: #2b9fc0;
+  --weather-teal-light: #3fb3cf;
+  --weather-mint: #7fb08a;
+  --weather-blue: #7ab0ff;
+  --weather-purple: #a78bfa;
+  --weather-orange: #fbbf24;
+  --weather-bg: #072229;
+  --weather-white: #0d3440;
+  --weather-line: #1f5666;
+  --weather-muted: #a3c0ca;
+  --weather-faint: #7fa0ac;
+  --weather-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+
+  /* trip-page variables, used by the ClimateInsights cards */
+  --bg: #072229;
+  --surface: #0d3440;
+  --surface-2: #144552;
+  --ink: #e8f2f5;
+  --ink-soft: #a3c0ca;
+  --line: #1f5666;
+  --primary: #4ab3d3;
+  --primary-ink: #04222b;
+  --sage: #7fb08a;
+  --sage-bg: #19483f;
+  --accent: #b5d330;
+  --accent-bg: #2b3f10;
+  --danger: #f2917b;
+  --danger-bg: #3a1e17;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+
+  background:
+    radial-gradient(circle at 85% 0%, rgba(74, 179, 211, 0.1), transparent 30%),
+    radial-gradient(circle at 100% 100%, rgba(127, 176, 138, 0.08), transparent 40%),
+    var(--weather-bg);
+  color-scheme: dark;
+}
+
+.weather-page[data-theme="dark"] .weather-header {
+  background: rgba(7, 34, 41, 0.86);
+}
+
+.weather-page[data-theme="dark"] .weather-back-button,
+.weather-page[data-theme="dark"] .weather-search-card,
+.weather-page[data-theme="dark"] .location-results,
+.weather-page[data-theme="dark"] .location-result,
+.weather-page[data-theme="dark"] .forecast-card {
+  background: var(--weather-white);
+  box-shadow: var(--weather-shadow);
+}
+
+.weather-page[data-theme="dark"] .location-result {
+  box-shadow: none;
+}
+
+.weather-page[data-theme="dark"] .location-result:hover {
+  background: #144552;
+}
+
+.weather-page[data-theme="dark"] .weather-page-badge {
+  border-color: var(--weather-line);
+  background: #19483f;
+}
+
+.weather-page[data-theme="dark"] .weather-search-icon,
+.weather-page[data-theme="dark"] .location-result-icon,
+.weather-page[data-theme="dark"] .weather-tip-icon,
+.weather-page[data-theme="dark"] .forecast-icon.cloud {
+  background: #19483f;
+}
+
+.weather-page[data-theme="dark"] .weather-search-input-wrapper {
+  background: #0a2a33;
+}
+
+.weather-page[data-theme="dark"] .weather-search-input-wrapper:focus-within {
+  background: var(--weather-white);
+  box-shadow: 0 0 0 3px rgba(74, 179, 211, 0.2);
+}
+
+.weather-page[data-theme="dark"] .weather-error {
+  border-color: rgba(242, 145, 123, 0.3);
+  color: #e3bfb4;
+  background: #3a1e17;
+}
+
+.weather-page[data-theme="dark"] .weather-error svg,
+.weather-page[data-theme="dark"] .weather-error button {
+  color: #f2917b;
+}
+
+/* big current-weather card uses the trip pages' teal hero */
+.weather-page[data-theme="dark"] .current-weather-card {
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.4);
+}
+
+.weather-page[data-theme="dark"] .current-weather-background {
+  background:
+    radial-gradient(circle at 80% 20%, rgba(74, 179, 211, 0.24), transparent 27%),
+    radial-gradient(circle at 100% 100%, rgba(127, 176, 138, 0.22), transparent 35%),
+    linear-gradient(125deg, #04262e 0%, #045570 60%, #4d8a8c 100%);
+}
+
+.weather-page[data-theme="dark"] .forecast-card.today {
+  border-color: rgba(74, 179, 211, 0.45);
+  background: linear-gradient(180deg, #144552, #0d3440);
+}
+
+.weather-page[data-theme="dark"] .forecast-icon.clear {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.14);
+}
+
+.weather-page[data-theme="dark"] .forecast-icon.rain { background: rgba(122, 176, 255, 0.15); }
+.weather-page[data-theme="dark"] .forecast-icon.snow { background: rgba(108, 198, 226, 0.14); }
+.weather-page[data-theme="dark"] .forecast-icon.storm { background: rgba(167, 139, 250, 0.16); }
+
+.weather-page[data-theme="dark"] .weather-tip {
+  border-color: var(--weather-line);
+  background: linear-gradient(90deg, #0d3440, #0a2a33);
+}
+
+.weather-page[data-theme="dark"] .weather-tip-decoration {
+  color: rgba(74, 179, 211, 0.12);
+}
+
+/* header: theme toggle + back link */
+.weather-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.weather-theme-button {
+  width: 40px;
+  padding: 0;
+  justify-content: center;
+  cursor: pointer;
+}

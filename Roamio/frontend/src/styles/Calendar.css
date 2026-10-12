@@ -485,3 +485,79 @@
     padding: 0 1rem;
   }
 }
+
+/* =========================================================
+   DARK MODE  (data-theme="dark" on .calendar-page - set from the
+   app-wide theme in Settings). The rules above already read the
+   trip-page variables, so defining them here does most of the work.
+========================================================= */
+
+.calendar-page[data-theme="dark"] {
+  --bg: #072229;
+  --surface: #0d3440;
+  --surface-2: #144552;
+  --ink: #e8f2f5;
+  --ink-soft: #a3c0ca;
+  --line: #1f5666;
+  /* a little deeper than the trip pages' #4ab3d3 so white text on it stays readable */
+  --primary: #2b9fc0;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --shadow-lift: 0 16px 40px rgba(0, 0, 0, 0.5);
+
+  color-scheme: dark;
+}
+
+.calendar-page[data-theme="dark"] .view-mode-tabs {
+  background: #0a2a33;
+}
+
+/* selected states use the trip pages' sage fill + cyan outline */
+.calendar-page[data-theme="dark"] .view-mode-tabs button.active {
+  background: #19483f;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px #4ab3d3;
+}
+
+.calendar-page[data-theme="dark"] .calendar-day.selected {
+  border-color: #4ab3d3;
+  background: #19483f;
+  box-shadow: inset 0 0 0 1px #4ab3d3;
+}
+
+.calendar-page[data-theme="dark"] .today-btn {
+  background: #19483f;
+  color: #6cc6e2;
+}
+
+.calendar-page[data-theme="dark"] .agenda-eyebrow,
+.calendar-page[data-theme="dark"] .reminder-tag,
+.calendar-page[data-theme="dark"] .calendar-back-button,
+.calendar-page[data-theme="dark"] .item-actions button:hover {
+  color: #4ab3d3;
+}
+
+.calendar-page[data-theme="dark"] .agenda-item.holiday {
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.calendar-page[data-theme="dark"] .agenda-item.custom {
+  border-color: rgba(127, 176, 138, 0.35);
+  background: #19483f;
+}
+
+.calendar-page[data-theme="dark"] .modal-overlay {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.calendar-page[data-theme="dark"] .modal-form input,
+.calendar-page[data-theme="dark"] .modal-form select {
+  background: #0a2a33;
+}
+
+/* header: theme toggle + back link */
+.calendar-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}

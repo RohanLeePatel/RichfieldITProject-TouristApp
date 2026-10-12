@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, CalendarCheck, Check, ExternalLink, MapPin, Star } from "lucide-react";
+import { ArrowRight, Bookmark, CalendarCheck, Check, ExternalLink, MapPin, Star, ThumbsDown } from "lucide-react";
 
 import ClimateInsights from "../insights/ClimateInsights.jsx";
 
@@ -30,7 +30,10 @@ function ScoreRing({ percent }) {
   );
 }
 
-export default function DestinationCard({ recommendation, onSelect, selectLabel, travelMonth }) {
+export default function DestinationCard({
+  recommendation, onSelect, selectLabel, travelMonth,
+  shortlisted, shortlistFull, onToggleShortlist, onDislike, busy,
+}) {
   const [showInsights, setShowInsights] = useState(false);
   const destinationName = recommendation.name || recommendation.id;
   const mapUrl =
@@ -42,7 +45,7 @@ export default function DestinationCard({ recommendation, onSelect, selectLabel,
   const priorityTags = new Set(interestsEntry?.evidence?.priority || []);
   const requestedTags = interestsEntry?.evidence?.requested || [];
   const otherEvidence = recommendation.breakdown
-    ?.filter((entry) => entry.dimension !== "interests" && entry.weight > 0)
+    ?.filter((entry) => entry.dimension !== "interests" && entry.weight > 0 && entry.value >= 0.6)
     .slice(0, 3);
   const percent = Math.round(recommendation.total_score * 100);
 
@@ -62,6 +65,7 @@ export default function DestinationCard({ recommendation, onSelect, selectLabel,
           <p className="recommendation-location"><MapPin size={14} /> {recommendation.country}</p>
         )}
         <p className="recommendation-explanation">{recommendation.explanation}</p>
+        <p className="recommendation-why">Why it matched</p>
         <div className="chip-list recommendation-evidence">
           {otherEvidence?.map((entry) => (
             <span key={entry.dimension} className="chip"><Check size={12} />{formatDimension(entry.dimension)}</span>
@@ -73,6 +77,27 @@ export default function DestinationCard({ recommendation, onSelect, selectLabel,
             </span>
           ))}
         </div>
+        {(onToggleShortlist || onDislike) && (
+          <div className="recommendation-feedback">
+            {onToggleShortlist && (
+              <button
+                type="button"
+                className={`card-link-button ${shortlisted ? "active" : ""}`}
+                onClick={() => onToggleShortlist(recommendation)}
+                aria-pressed={shortlisted}
+                disabled={!shortlisted && shortlistFull}
+                title={!shortlisted && shortlistFull ? "Shortlist is full - remove one to add another" : undefined}
+              >
+                <Bookmark size={14} fill={shortlisted ? "currentColor" : "none"} /> {shortlisted ? "Shortlisted" : "Shortlist"}
+              </button>
+            )}
+            {onDislike && (
+              <button type="button" className="card-link-button" onClick={() => onDislike(recommendation)} disabled={busy}>
+                <ThumbsDown size={14} /> Not quite right
+              </button>
+            )}
+          </div>
+        )}
         <div className="recommendation-card-actions">
           <a href={mapUrl} target="_blank" rel="noreferrer">
             View map <ExternalLink size={14} />
