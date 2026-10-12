@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   Globe2,
   Menu,
+  Moon,
   X,
   Languages,
   CloudSun,
@@ -42,6 +43,7 @@ import { fetchWeather as fetchWeatherFromApi } from "../api/weather";
 import { fetchTrips } from "../api/trips";
 import { TOKEN_KEY } from "../api/client";
 
+import useTheme from "../components/recommendations/useTheme.js";
 import "../styles/dashboard.css";
 
 // =========================================================
@@ -276,6 +278,7 @@ function loadGroupMembers(
 // =========================================================
 
 export default function Dashboard() {
+  const { theme, toggle: toggleTheme } = useTheme(); // app-wide theme, also set in Settings
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -589,7 +592,7 @@ export default function Dashboard() {
   // =========================================================
 
   return (
-    <div className="dashboard-page">
+    <div className="dashboard-page" data-theme={theme}>
 
       {/* =====================================================
           SIDEBAR
@@ -924,6 +927,16 @@ export default function Dashboard() {
           </div>
 
           <div className="header-actions">
+
+            <button
+              type="button"
+              className="header-icon-button"
+              onClick={toggleTheme}
+              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              title={theme === "dark" ? "Light mode" : "Dark mode"}
+            >
+              {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
 
             <button
               type="button"

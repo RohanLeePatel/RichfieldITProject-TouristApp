@@ -622,6 +622,66 @@
   line-height: 1.55;
 }
 
+/* ---------- Appearance (app-wide theme) ---------- */
+
+.settings-appearance-card > p {
+  margin: 0 0 14px;
+
+  color: var(--ink-soft);
+
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.appearance-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+
+  padding: 5px;
+
+  border: 1px solid var(--line);
+  border-radius: 14px;
+
+  background: var(--bg);
+}
+
+.appearance-options button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  padding: 10px 12px;
+
+  border: none;
+  border-radius: 10px;
+
+  background: transparent;
+  color: var(--ink-soft);
+
+  font: inherit;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.appearance-options button:hover:not(.active) {
+  color: var(--ink);
+}
+
+.appearance-options button.active {
+  background: var(--primary);
+  color: var(--primary-ink);
+
+  box-shadow: var(--shadow);
+}
+
 /* ---------- Responsive ---------- */
 
 @media (max-width: 900px) {

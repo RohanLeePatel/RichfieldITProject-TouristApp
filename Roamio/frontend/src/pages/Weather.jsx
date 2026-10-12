@@ -6,6 +6,7 @@ import {
   CloudSun,
   Droplets,
   Loader2,
+  Moon,
   MapPin,
   Plane,
   RefreshCw,
@@ -21,6 +22,7 @@ import { Link } from "react-router-dom";
 
 import ClimateInsights from "../components/insights/ClimateInsights.jsx";
 import { fetchWeather as fetchWeatherFromApi } from "../api/weather";
+import useTheme from "../components/recommendations/useTheme.js";
 import "../styles/Weather.css";
 
 // =========================================================
@@ -121,6 +123,7 @@ const getShortDate = (dateString) => {
 // =========================================================
 
 export default function Weather() {
+  const { theme, toggle: toggleTheme } = useTheme(); // app-wide theme, also set in Settings
   // =======================================================
   // STATE
   // =======================================================
@@ -332,7 +335,7 @@ export default function Weather() {
   // =======================================================
 
   return (
-    <div className="weather-page">
+    <div className="weather-page" data-theme={theme}>
 
       {/* =================================================
           HEADER
@@ -363,13 +366,27 @@ export default function Weather() {
 
         </div>
 
-        <Link
-          to="/dashboard"
-          className="weather-back-button"
-        >
-          <ArrowLeft size={16} />
-          Back to Dashboard
-        </Link>
+        <div className="weather-header-actions">
+
+          <button
+            type="button"
+            className="weather-back-button weather-theme-button"
+            onClick={toggleTheme}
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            title={theme === "dark" ? "Light mode" : "Dark mode"}
+          >
+            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+
+          <Link
+            to="/dashboard"
+            className="weather-back-button"
+          >
+            <ArrowLeft size={16} />
+            Back to Dashboard
+          </Link>
+
+        </div>
 
       </header>
 

@@ -20,6 +20,8 @@ import {
   X,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import ThemeToggle from "../components/recommendations/ThemeToggle.jsx";
+import useTheme from "../components/recommendations/useTheme.js";
 import {
   LANGUAGES,
   SOURCE_LANGUAGES,
@@ -80,6 +82,7 @@ function OverlayLine({ line, size }) {
 }
 
 function Translator() {
+  const { theme, toggle: toggleTheme } = useTheme();
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [targetLanguage, setTargetLanguage] = useState("EN-US");
@@ -446,7 +449,7 @@ function Translator() {
   };
 
   return (
-    <div className="translator-page">
+    <div className="translator-page" data-theme={theme}>
 
       <header className="translator-header">
 
@@ -462,13 +465,19 @@ function Translator() {
 
         </div>
 
-        <Link
-          to="/dashboard"
-          className="back-dashboard"
-        >
-          <ArrowLeft size={17} />
-          Back to Dashboard
-        </Link>
+        <div className="translator-header-actions">
+
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
+
+          <Link
+            to="/dashboard"
+            className="back-dashboard"
+          >
+            <ArrowLeft size={17} />
+            Back to Dashboard
+          </Link>
+
+        </div>
 
       </header>
 

@@ -16,9 +16,10 @@ import {
   X,
 } from "lucide-react";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import useTheme from "../components/recommendations/useTheme.js";
 import "../styles/Settings.css";
 
 export default function Settings() {
@@ -45,9 +46,8 @@ export default function Settings() {
   const [email, setEmail] = useState(storedUser.email || "");
   const [photo, setPhoto] = useState(storedUser.photo || "");
 
-  const [theme, setTheme] = useState(
-    localStorage.getItem("settings-theme") || "light"
-  );
+  // app-wide theme - changing it here updates every page
+  const { theme, toggle: toggleTheme, setTheme } = useTheme();
 
   const [saved, setSaved] = useState(false);
   const [photoError, setPhotoError] = useState("");
@@ -62,12 +62,6 @@ export default function Settings() {
 
   const [passwordError, setPasswordError] = useState("");
   const [passwordSaved, setPasswordSaved] = useState(false);
-
-  /* ---------------- THEME ---------------- */
-
-  useEffect(() => {
-    localStorage.setItem("settings-theme", theme);
-  }, [theme]);
 
   /* ---------------- PROFILE PHOTO ---------------- */
 
@@ -281,9 +275,7 @@ export default function Settings() {
               aria-label={`Switch to ${
                 theme === "light" ? "dark" : "light"
               } mode`}
-              onClick={() =>
-                setTheme(theme === "light" ? "dark" : "light")
-              }
+              onClick={toggleTheme}
             >
               {theme === "light" ? (
                 <Moon size={17} />
@@ -661,6 +653,46 @@ export default function Settings() {
           {/* ================= SIDEBAR ================= */}
 
           <aside className="settings-sidebar-content">
+
+            <section className="panel settings-appearance-card">
+              <div className="panel-title">
+                {theme === "dark" ? <Moon size={15} /> : <Sun size={15} />}
+                Appearance
+              </div>
+
+              <p>
+                Choose how Roamio looks. This applies to
+                every page.
+              </p>
+
+              <div
+                className="appearance-options"
+                role="radiogroup"
+                aria-label="Theme"
+              >
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={theme === "light"}
+                  className={theme === "light" ? "active" : ""}
+                  onClick={() => setTheme("light")}
+                >
+                  <Sun size={16} />
+                  Light
+                </button>
+
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={theme === "dark"}
+                  className={theme === "dark" ? "active" : ""}
+                  onClick={() => setTheme("dark")}
+                >
+                  <Moon size={16} />
+                  Dark
+                </button>
+              </div>
+            </section>
 
             <section className="panel settings-preview-card">
               <div className="panel-title">
