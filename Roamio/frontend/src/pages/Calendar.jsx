@@ -13,7 +13,6 @@ import {
   Plane,
   Sparkles,
   ArrowLeft,
-  CheckCircle2,
   Filter,
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -39,11 +38,21 @@ const PUBLIC_HOLIDAYS_SA = [
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date(2026, 7, 1)); // Default August 2026
   const [selectedDate, setSelectedDate] = useState(new Date(2026, 7, 28));
-  const [viewMode, setViewMode] = useState("month"); // 'month' | 'week' | 'day'
+  const [viewMode, setViewMode] = useState("month"); // 'month' | 'week'
 
   // Event Filters
   const [showHolidays, setShowHolidays] = useState(true);
   const [showEvents, setShowEvents] = useState(true);
+
+  // App Theme Detection
+  const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "light");
+
+  useEffect(() => {
+    const storedTheme = localStorage.getItem("theme");
+    if (storedTheme) {
+      setTheme(storedTheme);
+    }
+  }, []);
 
   // Local Storage for User Events & Reminders
   const [events, setEvents] = useState(() => {
@@ -56,7 +65,7 @@ export default function Calendar() {
             date: "2026-08-28",
             title: "Family Dinner",
             time: "18:30",
-            location: "Gateway",
+            location: "Durban Central",
             reminder: "1 hour before",
             category: "Personal",
           },
@@ -247,7 +256,7 @@ export default function Calendar() {
   };
 
   return (
-    <div className="calendar-page">
+    <div className="calendar-page" data-theme={theme}>
       {/* Header */}
       <header className="calendar-header">
         <div className="calendar-brand">
@@ -259,10 +268,12 @@ export default function Calendar() {
             <span>Calendar</span>
           </div>
         </div>
-        <Link to="/dashboard" className="calendar-back-button">
-          <ArrowLeft size={16} />
-          Back to Dashboard
-        </Link>
+        <div className="calendar-header-actions">
+          <Link to="/dashboard" className="calendar-back-button">
+            <ArrowLeft size={16} />
+            Back to Dashboard
+          </Link>
+        </div>
       </header>
 
       <main className="calendar-container">
@@ -335,7 +346,7 @@ export default function Calendar() {
           <div className="agenda-header">
             <div>
               <span className="agenda-eyebrow">AGENDA</span>
-              3<h3>
+              <h3>
                 {selectedDate.toLocaleDateString("en-ZA", {
                   weekday: "long",
                   month: "short",
