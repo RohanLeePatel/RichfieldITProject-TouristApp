@@ -1,7 +1,6 @@
 const crypto = require('crypto');
-const invitationRepo = require('../repositories/invitation.repository');
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const invitationRepo = require('../repositories/invitationRepository');
+const prisma = require('../config/prisma');
 
 exports.createInvite = async (req, res, next) => {
   try {

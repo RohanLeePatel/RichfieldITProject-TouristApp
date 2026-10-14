@@ -8,18 +8,18 @@ const safetySyncService = require('./src/services/safetySyncService');
 
 // 2. Custom Middleware Imports
 const { generalLimiter, authLimiter } = require('./src/middleware/rateLimiter');
-const attachActivityLogger = require('./src/middleware/activityLogger.middleware');
+const attachActivityLogger = require('./src/middleware/activityLoggerMiddleware');
 
 // 3. Route Imports
-const authRoutes = require('./src/routes/auth.routes'); 
-const travelGroupRoutes = require('./src/routes/travelGroup.routes');
-const invitationRoutes = require('./src/routes/invitation.routes');
-const tripRoutes = require('./src/routes/trip.routes');
-const destinationRoutes = require('./src/routes/destination.routes');
-const itineraryRoutes = require('./src/routes/itinerary.routes');
-const expenseRoutes = require('./src/routes/expense.routes');
-const activityRoutes = require('./src/routes/activity.routes');
-const safetyRoutes = require('./src/routes/safety.routes');
+const authRoutes = require('./src/routes/auth'); 
+const travelGroupRoutes = require('./src/routes/travelGroup');
+const invitationRoutes = require('./src/routes/invitation');
+const tripRoutes = require('./src/routes/trip');
+const destinationRoutes = require('./src/routes/destination');
+const itineraryRoutes = require('./src/routes/itinerary');
+const activityRoutes = require('./src/routes/activity');
+const safetyRoutes = require('./src/routes/safety');
+const expenseRoutes = require('./src/routes/expense');
 
 // 4. App Initialization
 const app = express();
@@ -43,9 +43,6 @@ app.use(express.urlencoded({ extended: true }));
 // Parse cookies (using the secret from .env if you are using signed cookies)
 app.use(cookieParser(process.env.COOKIE_SECRET || 'roamio_secret'));
 
-// Attach the `req.logActivity` helper to every request
-app.use(attachActivityLogger);
-
 // Apply the general limiter to all API routes
 app.use('/api', generalLimiter);
 
@@ -54,6 +51,8 @@ app.use('/api', generalLimiter);
 // Apply the stricter auth limiter specifically to authentication routes
 app.use('/api/auth', authLimiter);
 app.use('/api/auth', authRoutes); // e.g., /api/auth/login, /api/auth/register
+
+app.use(attachActivityLogger);
 
 // Mount all other core endpoints
 app.use('/api', travelGroupRoutes);

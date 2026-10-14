@@ -1,4 +1,4 @@
-const travelGroupRepository = require('../repositories/travelGroup.repository');
+const travelGroupRepository = require('../repositories/travelGroupRepository');
 
 exports.createGroup = async (req, res, next) => {
   try {

@@ -1,6 +1,5 @@
-const destinationRepo = require('../repositories/destination.repository');
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const destinationRepo = require('../repositories/destinationRepository');
+const prisma = require('../config/prisma');
 
 // Helper to verify trip membership
 const verifyTripAccess = async (tripId, userId) => {

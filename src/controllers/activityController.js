@@ -1,6 +1,5 @@
-const activityRepo = require('../repositories/activity.repository');
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const activityRepo = require('../repositories/activityRepository');
+const prisma = require('../config/prisma');
 
 // Helper to verify group/trip access
 const verifyTripAccess = async (tripId, userId) => {

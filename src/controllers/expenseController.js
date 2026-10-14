@@ -1,6 +1,5 @@
-const expenseRepo = require('../repositories/expense.repository');
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const expenseRepo = require('../repositories/expenseRepository');
+const prisma = require('../config/prisma');
 
 const verifyTripAccess = async (tripId, userId) => {
   return await prisma.trip.findFirst({

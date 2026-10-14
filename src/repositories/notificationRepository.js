@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../config/prisma');
 
 const notificationRepository = {
   // 1. Internal use: Create a notification (e.g., triggered when an invite is sent)

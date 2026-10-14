@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const invitationController = require('../controllers/invitation.controller');
-const requireAuth = require('../middleware/auth.middleware'); // Adjust path to your auth middleware
+const invitationController = require('../controllers/invitationController');
+const requireAuth = require('../middleware/authMiddleware'); // Adjust path to your auth middleware
 
 router.use(requireAuth);
 

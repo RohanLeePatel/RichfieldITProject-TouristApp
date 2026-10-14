@@ -1,4 +1,4 @@
-const activityRepo = require('../repositories/activity.repository');
+const activityRepo = require('../repositories/activityRepository');
 
 const attachActivityLogger = (req, res, next) => {
   /**

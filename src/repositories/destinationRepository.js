@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../config/prisma');
 
 const destinationRepository = {
   // --- GLOBAL GEOGRAPHY (Read-Only for Users) ---

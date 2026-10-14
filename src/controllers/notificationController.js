@@ -1,4 +1,4 @@
-const notificationRepo = require('../repositories/notification.repository');
+const notificationRepo = require('../repositories/notificationRepository');
 
 exports.getMyNotifications = async (req, res, next) => {
   try {
