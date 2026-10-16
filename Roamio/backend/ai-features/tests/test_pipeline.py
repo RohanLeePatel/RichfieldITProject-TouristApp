@@ -4,9 +4,12 @@ full pipeline, explanation text staying in sync with the evidence, and the
 bottom-up blend.
 """
 
+import pytest
+
+from engine.group import merge_preferences
 from engine.pipeline import score_candidates
 from engine.weights import MAX_RESULTS
-from tests.conftest import make_candidate
+from tests.conftest import make_candidate, make_prefs
 
 # --- Personas --------------------------------------------------------
 
@@ -185,3 +188,153 @@ def test_a_candidate_with_no_weighted_dimension_scores_neutral(monkeypatch, dest
     )
     assert score == 0.5
     assert [e.weight for e in breakdown] == [0.0]
+
+
+# --- rank order must match the scores printed beside it -------------------
+
+
+def test_rank_order_always_follows_score(prefs_factory):
+    """
+    The diversity rule below chooses which candidates make the page. It used
+    to decide their order too, which published rank badges that contradicted
+    the scores next to them - live, a 33% match sat at #4 above a 47% one.
+    Whatever the selection does, rank 1..N must descend by score.
+    """
+    # Several strong candidates dominated by one interest, plus a weaker one
+    # dominated by another - exactly the shape that triggers the variety pick.
+    candidates = [
+        make_candidate(f"parky-{i}", f"Parks City {i}", cost_index=1, interest_density={"parks": 0.9 - i * 0.01})
+        for i in range(6)
+    ] + [
+        make_candidate("foodie", "Weak Food City", cost_index=5, interest_density={"restaurants": 0.95})
+    ]
+    prefs = prefs_factory(interests=["parks", "restaurants"], budget_per_day=800)
+
+    results, _, _ = score_candidates(prefs, "city", candidates)
+
+    scores = [r.total_score for r in results]
+    assert scores == sorted(scores, reverse=True), f"ranks contradict scores: {scores}"
+    assert [r.rank for r in results] == list(range(1, len(results) + 1))
+
+
+def test_a_variety_pick_is_ranked_by_its_score_not_by_when_it_was_chosen(prefs_factory):
+    """
+    The exact live defect. The diversity rule reaches past the leaders to pull
+    in a candidate with a different strongest interest; it used to land wherever
+    the loop happened to place it, which was near the top. A 32% match was
+    published at #4, above 47% ones. It belongs on the page - at its own rank.
+    """
+    parks = [
+        make_candidate(f"p{i}", f"Parks City {i}", cost_index=1, interest_density={"parks": 0.95})
+        for i in range(MAX_RESULTS["city"] + 4)
+    ]
+    weak_outlier = make_candidate("foodie", "Food City", cost_index=4, interest_density={"restaurants": 0.95})
+    prefs = prefs_factory(interests=["parks", "restaurants"], budget_per_day=2000)
+
+    results, excluded, _ = score_candidates(prefs, "city", [*parks, weak_outlier])
+
+    shown = {r.id: r for r in results}
+    assert "foodie" in shown, "variety pick should still make the page"
+    # it is the weakest thing on the page, so it must be last
+    assert shown["foodie"].rank == len(results)
+    assert shown["foodie"].total_score == min(r.total_score for r in results)
+
+    # and the parks cities it displaced are not described as merely low-ranked
+    assert any("already cover" in item.reason for item in excluded), (
+        f"variety drop never attributed: {[e.reason for e in excluded]}"
+    )
+    assert not any("Ranked below" in item.reason for item in excluded)
+
+
+def test_explanations_across_one_response_are_not_all_identical(prefs_factory):
+    """
+    The live symptom: six results, six byte-identical sentences, because the
+    highest-weighted dimension is the same one for every candidate scored
+    against the same preferences.
+    """
+    candidates = [
+        make_candidate("a", "Alpha", cost_index=2, interest_density={"parks": 0.95, "restaurants": 0.2}),
+        make_candidate("b", "Beta", cost_index=2, interest_density={"parks": 0.2, "restaurants": 0.95}),
+        make_candidate("c", "Gamma", cost_index=2, interest_density={"parks": 0.5, "restaurants": 0.5}),
+    ]
+    prefs = prefs_factory(interests=["parks", "restaurants"], budget_per_day=1000)
+
+    results, _, _ = score_candidates(prefs, "city", candidates)
+    explanations = [r.explanation for r in results]
+    assert len(set(explanations)) > 1, f"every result explained identically: {explanations}"
+
+
+# --- the group is scored as a group, not as one averaged traveller --------
+
+
+def test_a_destination_that_fails_one_member_loses_to_one_that_suits_everybody():
+    """
+    The headline fix. Merging the group into a single Preferences first meant
+    the union of everyone's interests was scored once, so a city matching one
+    member brilliantly and the rest not at all looked like a group match.
+    """
+    museums_only = make_candidate(
+        "museums", "Museum Town", cost_index=2,
+        interest_density={"museums": 1.0, "beaches": 0.02, "hiking": 0.02},
+    )
+    something_for_all = make_candidate(
+        "balanced", "Balanced Town", cost_index=2,
+        interest_density={"museums": 0.65, "beaches": 0.65, "hiking": 0.65},
+    )
+    members = [
+        make_prefs(label="Sipho", interests=["museums"]),
+        make_prefs(label="Ayanda", interests=["beaches"]),
+        make_prefs(label="Thandi", interests=["hiking"]),
+    ]
+    merged, _ = merge_preferences(members)
+
+    results, _, _ = score_candidates(
+        merged, "city", [museums_only, something_for_all], members=members
+    )
+    ranked = [r.id for r in results]
+    assert ranked[0] == "balanced", f"one-sided city still won: {[(r.id, r.total_score) for r in results]}"
+
+
+def test_each_result_reports_how_every_member_fared():
+    members = [
+        make_prefs(label="Sipho", interests=["museums"]),
+        make_prefs(label="Ayanda", interests=["beaches"]),
+    ]
+    merged, _ = merge_preferences(members)
+    candidate = make_candidate(
+        "c", "Museum Town", cost_index=2, interest_density={"museums": 1.0, "beaches": 0.05}
+    )
+
+    results, _, _ = score_candidates(merged, "city", [candidate], members=members)
+    fit = results[0].member_fit
+
+    assert [f.label for f in fit] == ["Sipho", "Ayanda"]
+    assert fit[0].score > fit[1].score, "the member it suits should score higher"
+    assert results[0].fit_spread == pytest.approx(fit[0].score - fit[1].score)
+    assert all(f.weakest_dimension for f in fit)
+
+
+def test_a_solo_request_carries_no_member_breakdown():
+    """Nobody to disagree with - the response should not imply a group."""
+    prefs = make_prefs(interests=["museums"])
+    candidate = make_candidate("c", "Town", cost_index=2, interest_density={"museums": 0.8})
+    results, _, _ = score_candidates(prefs, "city", [candidate], members=[prefs])
+    assert results[0].member_fit == []
+    assert results[0].fit_spread is None
+
+
+def test_group_scoring_still_ranks_by_score(prefs_factory):
+    """The ordering guarantee has to survive the per-member path too."""
+    members = [
+        make_prefs(label="A", interests=["museums"]),
+        make_prefs(label="B", interests=["beaches"]),
+    ]
+    merged, _ = merge_preferences(members)
+    candidates = [
+        make_candidate(f"c{i}", f"Town {i}", cost_index=2,
+                       interest_density={"museums": 0.9 - i * 0.1, "beaches": 0.3 + i * 0.1})
+        for i in range(5)
+    ]
+    results, _, _ = score_candidates(merged, "city", candidates, members=members)
+    scores = [r.total_score for r in results]
+    assert scores == sorted(scores, reverse=True)

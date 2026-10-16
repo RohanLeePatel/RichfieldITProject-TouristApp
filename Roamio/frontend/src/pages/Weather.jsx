@@ -49,6 +49,13 @@ const DEFAULT_LOCATION = {
 // WEATHER HELPER
 // =========================================================
 
+// OpenWeather reports metric wind in m/s, which is a meteorologist's unit.
+// Travellers read wind in km/h.
+function kmh(metresPerSecond) {
+  if (metresPerSecond == null) return "No wind data";
+  return `${Math.round(metresPerSecond * 3.6)} km/h`;
+}
+
 function getWeatherInfo(weatherCode) {
   const description = String(weatherCode || "").toLowerCase();
 
@@ -404,7 +411,7 @@ export default function Weather() {
 
           <div className="weather-page-badge">
             <CloudSun size={14} />
-            SOUTH AFRICA WEATHER
+            Weather &amp; climate
           </div>
 
           <h1>
@@ -413,9 +420,9 @@ export default function Weather() {
           </h1>
 
           <p>
-            Check current conditions and
-            the 7-day forecast for cities and
-            towns around the world.
+            Check current conditions and the
+            days ahead for cities and towns
+            around the world.
           </p>
 
         </section>
@@ -715,10 +722,9 @@ export default function Weather() {
                     </span>
 
                     <strong>
-                      {Math.round(
+                      {kmh(
                         currentWeather.wind_speed
-                      )}{" "}
-                      m/s
+                      )}
                     </strong>
                   </div>
 
@@ -732,7 +738,7 @@ export default function Weather() {
 
                   <div>
                     <span>
-                      Precipitation
+                      Rain so far today
                     </span>
 
                     <strong>
@@ -778,7 +784,7 @@ export default function Weather() {
                 </span>
 
                 <h2>
-                  7-day forecast
+                  {weather.forecast.length}-day forecast
                 </h2>
 
               </div>
@@ -856,6 +862,9 @@ export default function Weather() {
                         {dayInfo.label}
                       </div>
 
+                      {/* The forecast carries one midday reading per day, not
+                          a high and a low - printing it twice only looked like
+                          a range the data cannot support. */}
                       <div className="forecast-temperature">
 
                         <strong>
@@ -865,11 +874,8 @@ export default function Weather() {
                           °
                         </strong>
 
-                        <span>
-                          {Math.round(
-                            day.temp
-                          )}
-                          °
+                        <span className="forecast-temperature-note">
+                          midday
                         </span>
 
                       </div>
@@ -892,7 +898,7 @@ export default function Weather() {
 
                         <span>
                           {day.wind_speed != null
-                            ? `${Math.round(day.wind_speed)} m/s`
+                            ? kmh(day.wind_speed)
                             : "No wind data"}
                         </span>
 

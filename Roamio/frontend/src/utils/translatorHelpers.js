@@ -50,7 +50,7 @@ export const SOURCE_LANGUAGES = LANGUAGES.filter(
 ).map((l) => ({ code: baseCode(l.code), name: l.name.replace(/ \(.*\)/, "") }));
 
 // Which target variant to use when a source language becomes the target (swap).
-const PREFERRED_TARGET = { EN: "EN-US", PT: "PT-BR" };
+const PREFERRED_TARGET = { EN: "EN-GB", PT: "PT-BR" };
 export function targetForBase(base) {
   const code = baseCode(base);
   if (PREFERRED_TARGET[code]) return PREFERRED_TARGET[code];

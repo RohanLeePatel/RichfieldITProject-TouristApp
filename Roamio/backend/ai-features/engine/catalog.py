@@ -48,9 +48,15 @@ def load_country_catalog() -> list[Candidate]:
         safety_indexes = [c["features"]["safety_index"] for c in cities if c["features"].get("safety_index") is not None]
 
         months: dict[str, list[float]] = {}
+        rain_months: dict[str, list[float]] = {}
         for c in cities:
-            for month, temp in (c["features"].get("climate") or {}).get("avg_temp_by_month", {}).items():
+            climate = c["features"].get("climate") or {}
+            for month, temp in climate.get("avg_temp_by_month", {}).items():
                 months.setdefault(month, []).append(temp)
+            # aggregated alongside temperature, or country-level scoring would
+            # silently keep using temperature only
+            for month, rain in climate.get("avg_rain_mm_by_month", {}).items():
+                rain_months.setdefault(month, []).append(rain)
 
         # Without this, a country candidate's own interest_density/counts stay
         # empty and its "interests" dimension only ever shows up diluted through
@@ -73,11 +79,19 @@ def load_country_catalog() -> list[Candidate]:
                 id=slugify_country(country_name),
                 name=country_name,
                 country=country_name,
+                image_url=next((c.get("image_url") for c in cities if c.get("image_url")), None),
                 features={
                     "cost_index": round(sum(cost_indexes) / len(cost_indexes)) if cost_indexes else None,
                     "safety_index": (sum(safety_indexes) / len(safety_indexes)) if safety_indexes else None,
                     "climate": (
-                        {"avg_temp_by_month": {m: round(sum(t) / len(t), 1) for m, t in months.items()}}
+                        {
+                            "avg_temp_by_month": {
+                                m: round(sum(t) / len(t), 1) for m, t in months.items()
+                            },
+                            "avg_rain_mm_by_month": {
+                                m: round(sum(r) / len(r), 1) for m, r in rain_months.items()
+                            },
+                        }
                         if months
                         else None
                     ),

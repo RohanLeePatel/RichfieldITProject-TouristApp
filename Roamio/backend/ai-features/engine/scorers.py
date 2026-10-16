@@ -5,12 +5,21 @@ import math
 from engine.currency import convert_from_zar
 from engine.dimension import DimensionScore
 from engine.weights import (
+    AVOID_INTEREST_PENALTY,
+    CHILD_AGE_BANDS,
+    CHILD_INTEREST_WEIGHT_MULTIPLIER,
     CLIMATE_TARGET_C,
     CLIMATE_TOLERANCE_C,
     COST_BAND_ZAR_RANGE,
     FAMILY_FOLD_IN_BASE,
     FAMILY_FOLD_IN_SCALE,
+    PACE_STRICTNESS,
+    PRIORITY_INTEREST_MIN_DENSITY,
+    PRIORITY_INTEREST_UNMET_CEILING,
     PRIORITY_INTEREST_WEIGHT_MULTIPLIER,
+    RAIN_COMFORTABLE_MM,
+    RAIN_SHARE_OF_CLIMATE,
+    RAIN_SOAKED_MM,
     WEIGHTS,
 )
 from schemas.recommendations import Candidate, Level, Preferences
@@ -18,6 +27,17 @@ from schemas.recommendations import Candidate, Level, Preferences
 
 def _base_weight(level: Level, dimension: str) -> float:
     return WEIGHTS[level].get(dimension, 0.0)
+
+
+def tags_for_children(ages: list[int]) -> set[str]:
+    """Interest tags the children of these ages actually use (CHILD_AGE_BANDS)."""
+    tags: set[str] = set()
+    for age in ages:
+        for upper_bound, band_tags in CHILD_AGE_BANDS:
+            if age < upper_bound:
+                tags.update(band_tags)
+                break
+    return tags
 
 
 def _clamp01(x: float) -> float:
@@ -125,7 +145,28 @@ def score_climate(prefs: Preferences, candidate: Candidate, level: Level) -> Dim
     avg_temp = sum(temps) / len(temps)
     target = CLIMATE_TARGET_C[prefer]
     diff = abs(avg_temp - target)
-    value = _clamp01(1.0 - diff / CLIMATE_TOLERANCE_C)
+    temp_value = _clamp01(1.0 - diff / CLIMATE_TOLERANCE_C)
+
+    # Temperature alone called a warm month in the middle of a monsoon a good
+    # month. Rain is folded in only where the seed carries it, so rows written
+    # before it was collected keep the temperature-only score rather than
+    # being penalised for missing data.
+    rains = (
+        [r for m in months_to_average if (r := normals.avg_rain_mm_by_month.get(str(m))) is not None]
+        if normals is not None
+        else []
+    )
+    value = temp_value
+    rain_note = ""
+    avg_rain = None
+    if rains:
+        avg_rain = sum(rains) / len(rains)
+        span = RAIN_SOAKED_MM - RAIN_COMFORTABLE_MM
+        rain_value = _clamp01(1.0 - (avg_rain - RAIN_COMFORTABLE_MM) / span)
+        value = _clamp01(
+            (1.0 - RAIN_SHARE_OF_CLIMATE) * temp_value + RAIN_SHARE_OF_CLIMATE * rain_value
+        )
+        rain_note = f" Typically {avg_rain:.0f}mm of rain then ({rain_value:.0%} on dryness)."
 
     period_label = (
         f"months {month}-{month_end}" if len(months_to_average) > 1 else f"month {month}"
@@ -140,10 +181,11 @@ def score_climate(prefs: Preferences, candidate: Candidate, level: Level) -> Dim
             "travel_month_end": month_end,
             "avg_temp_c": avg_temp,
             "target_c": target,
+            "avg_rain_mm": avg_rain,
         },
         explanation=(
             f"Average {avg_temp:.0f}°C across {period_label}, vs. your '{prefer}' preference "
-            f"(target ~{target:.0f}°C)."
+            f"(target ~{target:.0f}°C).{rain_note}"
         ),
     )
 
@@ -163,25 +205,62 @@ def score_interests(prefs: Preferences, candidate: Candidate, level: Level) -> D
         )
 
     matched = {tag: density.get(tag, 0.0) for tag in prefs.interests}
-    # A weighted geometric mean makes a missing requested interest matter, and
-    # missing a priority_interests tag matter more than missing a regular one.
-    # An option that only matches one of four interests should not score like
-    # one that matches all four merely because its arithmetic average is
-    # acceptable.
+
+    # Tags the children in the group actually use, by their ages. Only the
+    # count of children used to matter, so a toddler and a teenager pulled the
+    # score the same way; now a 4-year-old lifts playgrounds and a 15-year-old
+    # does not.
+    child_tags = tags_for_children(prefs.travellers.children)
+
     floor = 0.05
-    tag_weights = {
-        tag: PRIORITY_INTEREST_WEIGHT_MULTIPLIER if tag in prefs.priority_interests else 1.0
-        for tag in matched
-    }
+    tag_weights = {}
+    for tag in matched:
+        tag_weight = PRIORITY_INTEREST_WEIGHT_MULTIPLIER if tag in prefs.priority_interests else 1.0
+        if tag in child_tags:
+            tag_weight *= CHILD_INTEREST_WEIGHT_MULTIPLIER
+        tag_weights[tag] = tag_weight
     total_tag_weight = sum(tag_weights.values())
-    interest_value = (
-        1.0
-        if not matched
-        else math.exp(
+
+    if not matched:
+        interest_value = 1.0
+    else:
+        # The geometric mean punishes any weak tag; the arithmetic mean
+        # tolerates one. Which is right depends on pace: a group doing two
+        # things a day only needs one category to be excellent, a group doing
+        # five needs the whole spread to hold up. Pace was collected and then
+        # never reached scoring at all - this is where it lands.
+        geometric = math.exp(
             sum(tag_weights[tag] * math.log(max(value, floor)) for tag, value in matched.items())
             / total_tag_weight
         )
-    )
+        arithmetic = (
+            sum(tag_weights[tag] * value for tag, value in matched.items()) / total_tag_weight
+        )
+        strictness = PACE_STRICTNESS.get(prefs.pace, PACE_STRICTNESS["balanced"])
+        interest_value = strictness * geometric + (1.0 - strictness) * arithmetic
+
+    # A must-have the destination barely has should cap the score outright.
+    # Doubling its weight inside a mean let a strong showing elsewhere carry a
+    # candidate that misses the one thing the traveller insisted on.
+    unmet_priorities = [
+        tag
+        for tag in prefs.priority_interests
+        if tag in matched and matched[tag] < PRIORITY_INTEREST_MIN_DENSITY
+    ]
+    if unmet_priorities:
+        interest_value = min(interest_value, PRIORITY_INTEREST_UNMET_CEILING)
+
+    # Dealbreakers never reached the engine before - the browser stripped them
+    # from the request - so a destination whose whole appeal is the thing
+    # someone asked to avoid scored exactly like one without it.
+    avoided_present = {
+        tag: density.get(tag, 0.0)
+        for tag in prefs.avoid_interests
+        if density.get(tag, 0.0) > 0.0
+    }
+    if avoided_present:
+        worst = max(avoided_present.values())
+        interest_value = _clamp01(interest_value * (1.0 - AVOID_INTEREST_PENALTY * worst))
 
     value = interest_value
     family_note = ""
@@ -262,14 +341,22 @@ def score_safety(prefs: Preferences, candidate: Candidate, level: Level) -> Dime
     safety_index = candidate.features.safety_index
 
     if safety_index is None:
-        # don't have a safety data source hooked up yet, so treat as
-        # neutral/unknown rather than assuming it's unsafe
+        # No safety source is wired up yet, so nothing here is measured. Same
+        # rule as climate/accessibility above: an unmeasured dimension gets
+        # weight 0 rather than a neutral score at full weight.
+        #
+        # Scoring it 0.5 at the full weight was worse than useless: since no
+        # seeded candidate has a safety_index, every one of them collected the
+        # identical contribution, which discriminated between nothing and
+        # squeezed the dimensions that do discriminate into a smaller share of
+        # the total - enough to tie candidates that budget and interests would
+        # otherwise have separated.
         return DimensionScore(
             dimension="safety",
             value=0.5,
-            weight=weight,
+            weight=0.0,
             evidence={"safety_index": None},
-            explanation=f"No safety data available for '{candidate.name}' yet; treated as neutral.",
+            explanation=f"No safety data available for '{candidate.name}' yet; not counted.",
         )
 
     return DimensionScore(

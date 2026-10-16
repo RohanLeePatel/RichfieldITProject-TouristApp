@@ -4,7 +4,14 @@ from __future__ import annotations
 
 import pytest
 
-from engine.group import explain_merge, merge_preferences
+from engine.group import (
+    aggregate_scores,
+    describe_fit,
+    detect_conflicts,
+    explain_merge,
+    member_label,
+    merge_preferences,
+)
 from schemas.recommendations import Accessibility, ClimatePrefs, Preferences, Travellers
 
 
@@ -14,6 +21,7 @@ def member(**overrides) -> Preferences:
         "currency": "ZAR",
         "interests": [],
         "priority_interests": [],
+        "avoid_interests": [],
         "travellers": Travellers(adults=1),
         "accessibility": Accessibility(),
         "climate": ClimatePrefs(),
@@ -134,3 +142,92 @@ def test_explanation_names_the_rules_that_actually_changed_something():
     assert "lowest daily budget" in line
     assert "required" in line
     assert line.endswith(".")
+
+
+# --- scoring a group without flattening it first --------------------------
+
+
+def test_one_unhappy_member_costs_a_candidate_against_an_all_round_fit():
+    """
+    The whole point. Merging everyone into one traveller then scoring once
+    could not tell these apart: the union of interests meant one person's
+    match counted as the group's.
+    """
+    loved_by_most = aggregate_scores([0.95, 0.95, 0.95, 0.20])
+    fine_for_all = aggregate_scores([0.72, 0.72, 0.72, 0.72])
+    assert fine_for_all > loved_by_most
+
+
+def test_aggregate_sits_between_the_mean_and_the_worst():
+    scores = [0.9, 0.9, 0.3]
+    mean = sum(scores) / len(scores)
+    assert min(scores) < aggregate_scores(scores) < mean
+
+
+def test_a_group_that_agrees_scores_exactly_what_it_agreed_on():
+    assert aggregate_scores([0.6, 0.6, 0.6]) == pytest.approx(0.6)
+
+
+def test_one_member_aggregates_to_itself():
+    assert aggregate_scores([0.42]) == pytest.approx(0.42)
+
+
+def test_aggregate_rejects_an_empty_group():
+    with pytest.raises(ValueError):
+        aggregate_scores([])
+
+
+# --- naming the member a destination does not work for --------------------
+
+
+def test_members_are_named_by_their_label_and_the_organiser_is_you():
+    assert member_label(member(label="Ayanda"), 1) == "Ayanda"
+    assert member_label(member(), 0) == "You"
+    assert member_label(member(), 2) == "Traveller 3"
+    assert member_label(member(label="   "), 1) == "Traveller 2"
+
+
+def test_fit_names_only_the_members_who_are_badly_served():
+    assert describe_fit([("You", 0.9), ("Ayanda", 0.3)]) == "Works for the group except Ayanda."
+    assert (
+        describe_fit([("You", 0.9), ("Ayanda", 0.3), ("Sipho", 0.2)])
+        == "Works for the group except Ayanda and Sipho."
+    )
+
+
+def test_a_group_in_agreement_is_reported_as_such():
+    assert describe_fit([("You", 0.80), ("Ayanda", 0.78)]) == "Works for everyone in the group."
+
+
+def test_a_solo_traveller_has_no_fit_line():
+    assert describe_fit([("You", 0.8)]) is None
+
+
+# --- conflicts the group should be told about -----------------------------
+
+
+def test_a_must_have_that_another_member_ruled_out_is_surfaced():
+    conflicts = detect_conflicts([
+        member(label="Sipho", interests=["museums"], priority_interests=["museums"]),
+        member(label="Lerato", avoid_interests=["museums"]),
+    ])
+    assert any("Sipho" in c and "Lerato" in c and "museums" in c for c in conflicts)
+
+
+def test_widely_different_budgets_are_surfaced_with_whose_limit_binds():
+    conflicts = detect_conflicts([
+        member(label="Thandi", budget_per_day=3000.0),
+        member(label="Ayanda", budget_per_day=600.0),
+    ])
+    assert any("Ayanda" in c and "budget" in c.lower() for c in conflicts)
+
+
+def test_a_group_that_agrees_reports_no_conflicts():
+    assert detect_conflicts([
+        member(label="A", interests=["parks"], budget_per_day=1000.0),
+        member(label="B", interests=["parks"], budget_per_day=1100.0),
+    ]) == []
+
+
+def test_a_solo_traveller_cannot_conflict_with_anyone():
+    assert detect_conflicts([member(priority_interests=["museums"], avoid_interests=["museums"])]) == []

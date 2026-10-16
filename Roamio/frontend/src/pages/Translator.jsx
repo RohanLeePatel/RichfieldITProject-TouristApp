@@ -85,7 +85,9 @@ function Translator() {
   const { theme, toggle: toggleTheme } = useTheme();
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
-  const [targetLanguage, setTargetLanguage] = useState("EN-US");
+  // British rather than American English: this is a South African product,
+  // and its users write "colour" and "metre".
+  const [targetLanguage, setTargetLanguage] = useState("EN-GB");
   const [cameraOpen, setCameraOpen] = useState(false);
   const [translationResult, setTranslationResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -687,8 +689,12 @@ function Translator() {
                 </h3>
 
                 <p>
-                  Drag and drop an image here,
-                  or choose an option below.
+                  <span className="hint-pointer">
+                    Drag and drop an image here, or choose an option below.
+                  </span>
+                  <span className="hint-touch">
+                    Take a photo of the sign or menu, or choose one from your library.
+                  </span>
                 </p>
 
                 <div className="upload-buttons">

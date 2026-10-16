@@ -1654,3 +1654,47 @@
     line-height: 1.5;
   }
 }
+
+
+/* =========================================================
+   COMPACT HEADERS ON SMALL SCREENS
+   These are tools, not landing pages. At 390px the marketing
+   block pushed the first control to y=660 of an 844px viewport
+   and the primary action nearly two screens down, so a returning
+   user paid for the headline on every visit. The headline stays
+   as a page title; the decorative badge goes (it names the page
+   the user is already on) and the standfirst shrinks rather than
+   disappearing, so nothing is explained only once.
+========================================================= */
+
+@media (max-width: 768px) {
+  .translator-content { padding-top: 18px; }
+
+  .translator-intro { margin-bottom: 18px; }
+
+  .translator-badge { display: none; }
+
+  .translator-intro h1 {
+    margin: 0 0 8px;
+    font-size: 26px;
+    line-height: 1.15;
+    letter-spacing: -1px;
+  }
+
+  /* stays a block: the markup relies on the line break for the word gap,
+     so going inline ran "without" into "language" */
+
+  .translator-intro p {
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+}
+
+/* Devices with no hover have no drag-and-drop either; swap the instruction
+   for one that matches what the traveller can actually do. */
+.hint-touch { display: none; }
+
+@media (hover: none) {
+  .hint-pointer { display: none; }
+  .hint-touch { display: inline; }
+}

@@ -1,3 +1,8 @@
+/* Sentence case rather than tracked capitals. Capitals strip the word-shape
+   readers scan by, and these labels appear above nearly every block in the
+   planning flow, so the cost compounds. Tracking is dropped with them: the
+   extra letter-spacing exists to make capitals breathe and only loosens
+   lowercase text. */
 /* Climate / advice / best-time cards. Uses the trip pages' theme variables when
    present and sensible light fallbacks elsewhere (e.g. the weather page). */
 
@@ -37,8 +42,7 @@
   margin: 0 0 12px;
   color: var(--i-primary);
   font: 800 12px "Plus Jakarta Sans", sans-serif;
-  letter-spacing: .07em;
-  text-transform: uppercase;
+  letter-spacing: .01em;
 }
 
 .insights-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }

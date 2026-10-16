@@ -82,3 +82,90 @@ PRIORITY_INTEREST_WEIGHT_MULTIPLIER = 2.0
 # the group skews more toward kids (capped at base+scale when everyone's a kid)
 FAMILY_FOLD_IN_BASE = 0.15
 FAMILY_FOLD_IN_SCALE = 0.35
+
+
+# ---------------------------------------------------------------------------
+# Group aggregation
+# ---------------------------------------------------------------------------
+
+# How much the least happy member's score counts when combining a group's
+# individual scores: group = (1 - w) * mean + w * min.
+#
+# At 0 this is a plain average, which is what merging everyone into one
+# synthetic traveller amounted to: a destination three people love and one
+# cannot afford beat a destination all four merely like. At 1 only the worst
+# fit matters, which refuses to ever recommend anything with a weak spot.
+# 0.4 is enough that one member's misery can cost a candidate the top slot
+# without a single veto deciding the whole page.
+GROUP_MISERY_WEIGHT = 0.4
+
+# Members further than this below the group's best fit get named in the
+# explanation ("works for everyone except ...").
+MEMBER_FIT_CONCERN_GAP = 0.15
+
+
+# ---------------------------------------------------------------------------
+# Travelling with children
+# ---------------------------------------------------------------------------
+
+# Ages were collected and then thrown away - only the number of children
+# counted, so a toddler and a sixteen-year-old pulled the score identically.
+# Each band names the interest tags that age actually uses; a child's presence
+# lifts those tags rather than a generic "family" score.
+#
+# Upper bound is exclusive. Ages above the last band score as adults.
+CHILD_AGE_BANDS: list[tuple[int, tuple[str, ...]]] = [
+    (6, ("playgrounds", "parks", "zoos_aquariums")),
+    (13, ("theme_parks", "zoos_aquariums", "playgrounds", "beaches")),
+    (18, ("beaches", "theme_parks", "street_food", "museums")),
+]
+
+# A tag wanted by the children in the group is worth this much more in the
+# interest mean, on top of any priority multiplier.
+CHILD_INTEREST_WEIGHT_MULTIPLIER = 1.5
+
+
+# ---------------------------------------------------------------------------
+# Pace
+# ---------------------------------------------------------------------------
+
+# Pace was collected, merged, and then used only by the itinerary planner - it
+# never reached destination scoring. It should: a group doing two things a day
+# needs one category to be excellent, while a group doing five needs the whole
+# spread to hold up.
+#
+# This blends the tolerant arithmetic mean of matched interest densities with
+# the demanding geometric mean (which punishes any weak tag). Higher = stricter.
+PACE_STRICTNESS: dict[str, float] = {"relaxed": 0.2, "balanced": 0.6, "packed": 1.0}
+
+
+# ---------------------------------------------------------------------------
+# Must-haves and dealbreakers
+# ---------------------------------------------------------------------------
+
+# A starred tag that a destination barely has should cap the whole interest
+# score, not merely weigh twice as much inside an average. Below this density
+# a must-have counts as unmet.
+PRIORITY_INTEREST_MIN_DENSITY = 0.15
+PRIORITY_INTEREST_UNMET_CEILING = 0.35
+
+# Dealbreaker tags never reached the engine before (the browser stripped them
+# from the request). A candidate that is mostly the thing someone asked to
+# avoid loses this share of its interest score.
+AVOID_INTEREST_PENALTY = 0.5
+
+
+# ---------------------------------------------------------------------------
+# Rainfall
+# ---------------------------------------------------------------------------
+
+# Climate scoring was temperature-only, so a warm month in the middle of a
+# monsoon scored the same as a dry one. Rain is scored only where the seed has
+# it; rows written before it was collected keep the temperature-only score.
+#
+# mm of rain in the travel month at or below COMFORTABLE scores full marks,
+# at or above SOAKED scores zero, linear in between.
+RAIN_COMFORTABLE_MM = 60.0
+RAIN_SOAKED_MM = 350.0
+# how much of the climate dimension rainfall accounts for when it is known
+RAIN_SHARE_OF_CLIMATE = 0.35

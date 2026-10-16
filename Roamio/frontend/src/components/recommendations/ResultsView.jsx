@@ -3,6 +3,7 @@ import { Bookmark, ChevronLeft, MapPin } from "lucide-react";
 
 import CompareView from "./CompareView.jsx";
 import DestinationCard from "./DestinationCard.jsx";
+import ResultsAdvice from "./ResultsAdvice.jsx";
 
 export default function ResultsView({
   data, title, historyCount, loading, error, exploreCities, selectCity, selectExcluded,
@@ -30,6 +31,23 @@ export default function ResultsView({
           )}
         </div>
       </div>
+
+      {data.results.length > 0 && (
+        <>
+          <ResultsAdvice data={data} />
+          {data.comparison && <p className="recommendation-comparison">{data.comparison}</p>}
+          {/* how several travellers' preferences were combined - the engine
+              shows its working here the same way it does for each score */}
+          {data.group_merge_explanation && (
+            <p className="recommendation-comparison group-merge-note">{data.group_merge_explanation}</p>
+          )}
+          {data.group_conflicts?.length > 0 && (
+            <ul className="group-conflicts" aria-label="Where your group disagrees">
+              {data.group_conflicts.map((conflict) => <li key={conflict}>{conflict}</li>)}
+            </ul>
+          )}
+        </>
+      )}
 
       {data.results.length === 0 ? (
         <div className="results-empty">
@@ -69,12 +87,6 @@ export default function ResultsView({
         <CompareView items={shortlist} onRemove={toggleShortlist} onClose={() => setComparing(false)} />
       )}
 
-      {data.comparison && <p className="recommendation-comparison">{data.comparison}</p>}
-      {/* how several travellers' preferences were combined - the engine shows
-          its working here the same way it does for each result's score */}
-      {data.group_merge_explanation && (
-        <p className="recommendation-comparison group-merge-note">{data.group_merge_explanation}</p>
-      )}
       {data.excluded?.length > 0 && (
         <details className="excluded-dropdown">
           <summary>

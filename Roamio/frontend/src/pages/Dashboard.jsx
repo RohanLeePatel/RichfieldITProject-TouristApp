@@ -7,13 +7,11 @@ import {
   CalendarDays,
   Plus,
   ArrowRight,
-  Bell,
   Settings,
   LogOut,
   Home,
   Compass,
   ChevronRight,
-  MoreHorizontal,
   Clock3,
   CheckCircle2,
   Globe2,
@@ -566,19 +564,6 @@ export default function Dashboard() {
     navigate("/recommendations");
   };
 
-  const handleNotification = () => {
-    console.log("Notifications");
-  };
-
-  const handleTripOptions = (
-    tripTitle
-  ) => {
-    console.log(
-      "Trip options:",
-      tripTitle
-    );
-  };
-
   const handleAddGroup = () => {
     navigate("/family");
   };
@@ -703,7 +688,7 @@ export default function Dashboard() {
               <Compass size={18} />
 
               <span>
-                Explore
+                Explore destinations
               </span>
             </Link>
 
@@ -776,26 +761,6 @@ export default function Dashboard() {
 
               <span>
                 Weather
-              </span>
-            </Link>
-
-            <Link
-              to="/recommendations"
-              className={`sidebar-link ${
-                isActive(
-                  "/recommendations"
-                )
-                  ? "active"
-                  : ""
-              }`}
-              onClick={
-                closeMobileMenu
-              }
-            >
-              <Sparkles size={18} />
-
-              <span>
-                Recommendations
               </span>
             </Link>
 
@@ -936,20 +901,6 @@ export default function Dashboard() {
               title={theme === "dark" ? "Light mode" : "Dark mode"}
             >
               {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
-
-            <button
-              type="button"
-              className="header-icon-button"
-              title="Notifications"
-              aria-label="Notifications"
-              onClick={
-                handleNotification
-              }
-            >
-              <Bell size={19} />
-
-              <span className="notification-dot" />
             </button>
 
             <Link
@@ -1352,33 +1303,6 @@ export default function Dashboard() {
                                 </div>
 
                               </div>
-
-                              <button
-                                type="button"
-                                className="trip-more"
-                                aria-label={`More options for ${
-                                  trip.title ||
-                                  "trip"
-                                }`}
-                                onClick={(
-                                  event
-                                ) => {
-                                  event.preventDefault();
-                                  event.stopPropagation();
-
-                                  handleTripOptions(
-                                    trip.title
-                                  );
-                                }}
-                              >
-
-                                <MoreHorizontal
-                                  size={
-                                    19
-                                  }
-                                />
-
-                              </button>
 
                             </div>
 

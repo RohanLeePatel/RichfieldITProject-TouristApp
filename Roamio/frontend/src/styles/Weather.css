@@ -1976,3 +1976,42 @@
   justify-content: center;
   cursor: pointer;
 }
+
+
+/* =========================================================
+   COMPACT HEADERS ON SMALL SCREENS
+   These are tools, not landing pages. At 390px the marketing
+   block pushed the first control to y=660 of an 844px viewport
+   and the primary action nearly two screens down, so a returning
+   user paid for the headline on every visit. The headline stays
+   as a page title; the decorative badge goes (it names the page
+   the user is already on) and the standfirst shrinks rather than
+   disappearing, so nothing is explained only once.
+========================================================= */
+
+@media (max-width: 768px) {
+  .weather-intro { margin-bottom: 18px; }
+
+  .weather-page-badge { display: none; }
+
+  .weather-intro h1 {
+    margin: 0 0 8px;
+    font-size: 26px;
+    line-height: 1.15;
+    letter-spacing: -1px;
+  }
+
+
+  .weather-intro p {
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+}
+
+/* the forecast's second line labels the single reading rather than implying
+   a high/low the API does not provide */
+.forecast-temperature-note {
+  color: var(--wx-muted, #6b7f8a);
+  font-size: 11px;
+  font-weight: 600;
+}

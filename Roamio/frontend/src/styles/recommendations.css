@@ -1,3 +1,8 @@
+/* Sentence case rather than tracked capitals. Capitals strip the word-shape
+   readers scan by, and these labels appear above nearly every block in the
+   planning flow, so the cost compounds. Tracking is dropped with them: the
+   extra letter-spacing exists to make capitals breathe and only loosens
+   lowercase text. */
 /* Trip planning pages (wizard, results, landmarks, itinerary, trips list/detail).
    Forest & sand palette, light + dark via data-theme on .recommendations-page. */
 
@@ -182,8 +187,7 @@
   color: var(--primary);
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: .07em;
-  text-transform: uppercase;
+  letter-spacing: .01em;
 }
 
 .wizard-help {
@@ -345,8 +349,7 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
   color: var(--ink-soft);
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: .06em;
-  text-transform: uppercase;
+  letter-spacing: .01em;
 }
 
 .wizard-field input,
@@ -387,8 +390,7 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
   color: var(--ink-soft);
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: .07em;
-  text-transform: uppercase;
+  letter-spacing: .01em;
 }
 
 .interest-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
@@ -456,7 +458,7 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
 
 .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 8px; }
 .review-grid > div { position: relative; display: grid; gap: 4px; padding: 16px 18px; border-radius: var(--radius-tile); background: var(--surface-2); }
-.review-grid span { color: var(--ink-soft); font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.review-grid span { color: var(--ink-soft); font-size: 12px; font-weight: 800; letter-spacing: .01em; }
 .review-grid strong { padding-right: 44px; font-size: 16px; }
 .review-grid button { position: absolute; top: 14px; right: 14px; border: 0; background: none; color: var(--primary); font: 800 13px "DM Sans", sans-serif; text-decoration: underline; cursor: pointer; }
 
@@ -530,8 +532,12 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
 .score-ring svg { position: absolute; }
 .score-ring-track { fill: none; stroke: var(--surface-2); stroke-width: 5; }
 .score-ring-fill { fill: none; stroke: var(--primary); stroke-width: 5; stroke-linecap: round; }
-.score-ring b { font: 800 15px "Plus Jakarta Sans", sans-serif; }
-.score-ring small { font-size: 9px; }
+/* The ring sits inside .recommendation-card-cover, which sets a near-white
+   text colour for the watermark icon. Without an explicit colour here the
+   percentage inherited it and rendered white-on-white: the ring looked like a
+   loading spinner that never resolved. */
+.score-ring b { color: var(--ink); font: 800 15px "Plus Jakarta Sans", sans-serif; }
+.score-ring small { color: var(--ink-soft); font-size: 9px; }
 
 .recommendation-card-body { display: flex; flex: 1; flex-direction: column; gap: 10px; padding: 22px 16px 16px; }
 .recommendation-card-body h3 { margin: 0; padding-right: 56px; font-size: 18px; letter-spacing: -.5px; }
@@ -539,7 +545,11 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
 .recommendation-explanation { margin: 0; color: var(--ink-soft); font-size: 14px; }
 .recommendation-evidence { margin-top: auto; }
 
-.recommendation-card-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px; }
+/* wrap between controls, never inside a label - "View map" was breaking into
+   "View / map" in the narrow card column, which reads as a layout fault */
+.recommendation-card-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px; }
+.recommendation-card-actions a,
+.recommendation-card-actions button { white-space: nowrap; }
 .recommendation-card-actions a { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-soft); font-size: 13px; font-weight: 700; }
 .recommendation-card-actions button {
   display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 18px;
@@ -798,8 +808,7 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
   color: var(--primary);
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: .07em;
-  text-transform: uppercase;
+  letter-spacing: .01em;
 }
 
 .panel .interest-group-label { margin-top: 0; }
@@ -976,7 +985,7 @@ path.map-route.day-6 { stroke: var(--day-6); }
 .recommendation-list:has(.card-insights) { align-items: start; }
 
 /* why-matched label, per-card feedback buttons, shortlist bar, compare table */
-.recommendation-why { margin: 4px 0 -2px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft); }
+.recommendation-why { margin: 4px 0 -2px; font-size: 12px; font-weight: 700; letter-spacing: .01em; color: var(--ink-soft); }
 .recommendation-feedback { display: flex; flex-wrap: wrap; gap: 8px; }
 .recommendation-feedback .card-link-button.active { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); }
 .recommendation-feedback .card-link-button:disabled { opacity: .5; cursor: not-allowed; }
@@ -1014,4 +1023,100 @@ path.map-route.day-6 { stroke: var(--day-6); }
    merge rule decided what, so it reads as a second line of the same thought. */
 .group-merge-note {
   margin-top: 8px;
+}
+
+
+/* =========================================================
+   COMPACT HEADERS ON SMALL SCREENS
+   These are tools, not landing pages. At 390px the marketing
+   block pushed the first control to y=660 of an 844px viewport
+   and the primary action nearly two screens down, so a returning
+   user paid for the headline on every visit. The headline stays
+   as a page title; the decorative badge goes (it names the page
+   the user is already on) and the standfirst shrinks rather than
+   disappearing, so nothing is explained only once.
+========================================================= */
+
+@media (max-width: 768px) {
+  .rx-hero-body { padding: 4px 0 18px; }
+
+  .rx-hero:has(+ .recommendations-content .wizard-card) .rx-hero-body {
+    padding-bottom: 24px;
+  }
+
+  .rx-hero-body h1 {
+    margin: 0 0 6px;
+    font-size: 24px;
+    letter-spacing: -.6px;
+  }
+
+  .rx-hero-body .recommendations-eyebrow { display: none; }
+
+  .rx-hero-body p:not(.recommendations-eyebrow) {
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+
+  .recommendations-content { padding-top: 16px; }
+}
+
+/* ---- What this means for your trip -------------------------------------
+   Mirrors the Weather page's advice panel: derived from the response already
+   on screen, placed before the cards because it tells the reader how to read
+   them. */
+
+.results-advice {
+  margin: 0 0 18px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--primary);
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
+}
+
+.results-advice-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.results-advice ul {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.results-advice li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.results-advice li svg { margin-top: 3px; color: var(--primary); }
+
+/* disagreements the group should see rather than have silently resolved */
+.group-conflicts {
+  margin: 0 0 14px;
+  padding: 0 0 0 18px;
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/* The shortlist bar sits under six cards, so without this the traveller got
+   no visible acknowledgement that a shortlist action had registered. */
+.shortlist-bar {
+  position: sticky;
+  bottom: 12px;
+  z-index: 5;
+  box-shadow: var(--shadow-lift);
 }

@@ -5,7 +5,13 @@ from urllib.parse import quote_plus
 from engine.blend import blended_score
 from engine.explain import build_comparison, build_explanation
 from engine.gates import run_gates
-from engine.group import explain_merge, merge_preferences
+from engine.group import (
+    aggregate_scores,
+    detect_conflicts,
+    explain_merge,
+    member_label,
+    merge_preferences,
+)
 from engine.scorers import score_all_dimensions
 from engine.weights import BASE_RELEVANCE_FLOOR, MAX_RESULTS
 from schemas.recommendations import (
@@ -13,6 +19,7 @@ from schemas.recommendations import (
     EvidenceEntry,
     ExcludedCandidate,
     Level,
+    MemberFit,
     Preferences,
     RecommendationRequest,
     RecommendationResponse,
@@ -51,10 +58,17 @@ def score_candidate_own(
 
 
 def score_candidates(
-    prefs: Preferences, level: Level, candidates: list[Candidate]
+    prefs: Preferences,
+    level: Level,
+    candidates: list[Candidate],
+    members: list[Preferences] | None = None,
 ) -> tuple[list[RecommendationResult], list[ExcludedCandidate], str | None]:
     excluded: list[ExcludedCandidate] = []
     scored: list[tuple[Candidate, float, list[EvidenceEntry]]] = []
+    # Per-member scores for each candidate that survives gating, keyed by id.
+    fits: dict[str, list[MemberFit]] = {}
+    # Several travellers only - a solo request has nobody to disagree with.
+    group_members = members if members and len(members) > 1 else []
 
     for candidate in candidates:
         reason = run_gates(prefs, candidate)
@@ -84,6 +98,30 @@ def score_candidates(
                 ),
             ),
         ]
+        if group_members:
+            # Score the candidate against each traveller on their own, then
+            # combine with a rule that lets one unhappy member cost it the top
+            # slot. The merged-preferences score above cannot see this: the
+            # union of everyone's interests means one person's match counts as
+            # the group's.
+            member_fits: list[MemberFit] = []
+            for index, member in enumerate(group_members):
+                member_score, member_breakdown = score_candidate_own(member, candidate, level)
+                weighted = [e for e in member_breakdown if e.weight > 0]
+                weakest = min(weighted, key=lambda e: e.value).dimension if weighted else None
+                member_fits.append(
+                    MemberFit(
+                        label=member_label(member, index),
+                        score=round(max(0.0, min(1.0, member_score)), 4),
+                        weakest_dimension=weakest,
+                        explanation=build_explanation(candidate.name, member_breakdown),
+                    )
+                )
+            fits[candidate.id] = member_fits
+            final_score = max(
+                0.0, min(1.0, aggregate_scores([fit.score for fit in member_fits]))
+            )
+
         scored.append((candidate, final_score, breakdown))
 
     scored.sort(key=lambda t: t[1], reverse=True)
@@ -150,16 +188,32 @@ def score_candidates(
                     break
         selected.append(remaining.pop(next_index))
 
+    lowest_selected = min((score for _, score, _ in selected), default=0.0)
     for candidate, score, breakdown in remaining:
         excluded.append(
             ExcludedCandidate(
                 id=candidate.id,
                 name=candidate.name,
                 country=candidate.country,
-                reason=f"Ranked below the top {max_results} relevant matches.",
+                reason=(
+                    # be honest about which of the two rules dropped it: a
+                    # higher-scoring candidate left out so the page isn't six
+                    # variations on one interest was not "ranked below" anything
+                    f"Scored well, but the top {max_results} already cover its strongest interest."
+                    if score > lowest_selected
+                    else f"Ranked below the top {max_results} relevant matches."
+                ),
             )
         )
 
+    # The loop above chooses *which* candidates appear, trading a little score
+    # for variety of interest. It must not also decide the order they appear
+    # in: leaving its output order in place published rank badges that
+    # contradicted the scores beside them (a 33% match sitting above a 47%
+    # one at #4). Diversity picks the set; score alone ranks it.
+    selected.sort(key=lambda item: item[1], reverse=True)
+
+    peer_breakdowns = [breakdown for _, _, breakdown in selected]
     results = [
         RecommendationResult(
             id=candidate.id,
@@ -170,7 +224,21 @@ def score_candidates(
             rank=rank,
             total_score=round(score, 4),
             breakdown=breakdown,
-            explanation=build_explanation(candidate.name, breakdown),
+            explanation=build_explanation(
+                candidate.name,
+                breakdown,
+                peers=[b for b in peer_breakdowns if b is not breakdown],
+            ),
+            member_fit=fits.get(candidate.id, []),
+            fit_spread=(
+                round(
+                    max(f.score for f in fits[candidate.id])
+                    - min(f.score for f in fits[candidate.id]),
+                    4,
+                )
+                if fits.get(candidate.id)
+                else None
+            ),
         )
         for rank, (candidate, score, breakdown) in enumerate(selected, start=1)
     ]
@@ -196,9 +264,14 @@ def build_response(
     request: RecommendationRequest, candidates: list[Candidate] | None = None
 ) -> RecommendationResponse:
     candidates = candidates if candidates is not None else request.candidates
-    # one preference set from here down, however many travellers were sent
-    prefs, merge_notes = merge_preferences([request.preferences, *request.member_preferences])
-    results, excluded, comparison = score_candidates(prefs, request.level, candidates)
+    members = [request.preferences, *request.member_preferences]
+    # The merged set decides what the group jointly wants, which is what the
+    # gates need; the members are carried through so each candidate can also
+    # be scored against them individually (see engine/group.py).
+    prefs, merge_notes = merge_preferences(members)
+    results, excluded, comparison = score_candidates(
+        prefs, request.level, candidates, members=members
+    )
     return RecommendationResponse(
         request_id=request.request_id,
         session_id=request.session_id,
@@ -208,4 +281,5 @@ def build_response(
         comparison=comparison,
         group_merge=merge_notes if merge_notes.get("merged") else None,
         group_merge_explanation=explain_merge(merge_notes),
+        group_conflicts=detect_conflicts(members),
     )

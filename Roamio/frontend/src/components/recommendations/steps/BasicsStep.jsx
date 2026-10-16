@@ -1,10 +1,19 @@
 import { CalendarDays, Check, Globe, MapPin, Wallet, Wand2 } from "lucide-react";
 
-import { DEFAULT_TRIP_DAYS, TRIP_PRESETS, PACE_OPTIONS, formatDimension } from "../../../pages/recommendations/constants.js";
+import { CURRENCIES, DEFAULT_TRIP_DAYS, TRIP_PRESETS, PACE_OPTIONS, formatDimension } from "../../../pages/recommendations/constants.js";
 
 const sameSet = (a, b) => a.length === b.length && a.every((tag) => b.includes(tag));
 
+// Mirrors buildPreferences() in constants.js, so what the traveller is shown
+// here is exactly what the engine will receive.
+const parseAges = (value) =>
+  value
+    .split(",")
+    .map((age) => Number(age.trim()))
+    .filter((age) => Number.isInteger(age) && age >= 0);
+
 export default function BasicsStep({ form, updateForm, countries, applyPreset }) {
+  const parsedAges = parseAges(form.children);
   // A preset only changes interests/pace (set on later steps), so show which
   // one is active and what it filled in - otherwise clicking looks like a no-op.
   const active = TRIP_PRESETS.find(
@@ -64,10 +73,33 @@ export default function BasicsStep({ form, updateForm, countries, applyPreset })
           <h3 className="panel-title"><Wallet size={15} /> Budget &amp; group</h3>
           <div className="field-grid wizard-fields">
             <label className="wizard-field">Daily budget<input type="number" min="1" value={form.budget} onChange={(event) => updateForm("budget", event.target.value)} /></label>
-            <label className="wizard-field">Currency<input maxLength="3" value={form.currency} onChange={(event) => updateForm("currency", event.target.value)} /></label>
+            {/* A free-text code could only fail late, as a 422 from the
+                engine that the traveller had no way to diagnose. */}
+            <label className="wizard-field">Currency
+              <select value={form.currency} onChange={(event) => updateForm("currency", event.target.value)}>
+                {CURRENCIES.map((code) => (
+                  <option key={code} value={code}>{code}</option>
+                ))}
+              </select>
+            </label>
             <label className="wizard-field">Adults<input type="number" min="1" value={form.adults} onChange={(event) => updateForm("adults", event.target.value)} /></label>
-            <label className="wizard-field">Children&apos;s ages<input placeholder="e.g. 8, 12" value={form.children} onChange={(event) => updateForm("children", event.target.value)} /></label>
+            <label className="wizard-field">Children&apos;s ages
+              <input
+                inputMode="numeric"
+                placeholder="e.g. 8, 12"
+                value={form.children}
+                onChange={(event) => updateForm("children", event.target.value)}
+                aria-describedby="children-ages-read"
+              />
+            </label>
           </div>
+          <p className="wizard-help" id="children-ages-read">
+            {form.children.trim()
+              ? parsedAges.length > 0
+                ? `Travelling with ${parsedAges.length} ${parsedAges.length === 1 ? "child" : "children"}, aged ${parsedAges.join(", ")}.`
+                : "We couldn't read any ages there - separate them with commas, like 8, 12."
+              : "Leave blank if no children are coming. Ages shape which places we suggest."}
+          </p>
         </section>
 
         <section className="panel">

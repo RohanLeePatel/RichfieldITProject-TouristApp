@@ -61,7 +61,9 @@ export default function DestinationCard({
       </div>
       <div className="recommendation-card-body">
         <h3>{destinationName}</h3>
-        {recommendation.country && (
+        {/* At country level the API sets country to the candidate's own name,
+            so this line read "Vietnam" directly under the heading "Vietnam". */}
+        {recommendation.country && recommendation.country !== destinationName && (
           <p className="recommendation-location"><MapPin size={14} /> {recommendation.country}</p>
         )}
         <p className="recommendation-explanation">{recommendation.explanation}</p>

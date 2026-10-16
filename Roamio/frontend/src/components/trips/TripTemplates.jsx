@@ -28,7 +28,7 @@ export default function TripTemplates() {
             </p>
             <p className="template-blurb">{template.blurb}</p>
             <p className="trips-grid-dates">
-              {paceLabel(template.pace)} pace · around {template.budget} a day
+              {paceLabel(template.pace)} pace · around R{template.budget} a day
             </p>
             <span className="trips-grid-link">
               <Compass size={15} /> Use this starting point

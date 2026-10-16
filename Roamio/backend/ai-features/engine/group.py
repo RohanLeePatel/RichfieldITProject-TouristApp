@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from collections import Counter
 
+from engine.weights import GROUP_MISERY_WEIGHT, MEMBER_FIT_CONCERN_GAP
 from schemas.recommendations import (
     Accessibility,
     ClimatePrefs,
@@ -158,3 +159,95 @@ def explain_merge(notes: dict) -> str | None:
     if notes["climate"]["chosen"] is None and any(notes["climate"]["submitted"]):
         parts.append("no climate preference won a majority")
     return ": ".join([parts[0], ", ".join(parts[1:])]) + "." if len(parts) > 1 else parts[0] + "."
+
+
+# ---------------------------------------------------------------------------
+# Scoring a group without flattening it first
+# ---------------------------------------------------------------------------
+#
+# merge_preferences above answers "what does this group jointly want", which
+# the gates need. It cannot answer "does this destination work for everyone",
+# because the union of interests hides whose interest was matched: a city with
+# superb museums and nothing else scores well for a party of four as long as
+# one of them said museums. Nobody's dissatisfaction is represented anywhere.
+#
+# So candidates are also scored against each member on their own, and those
+# scores are combined with a rule that lets one unhappy member cost a
+# candidate the top slot. Standard group-recommender practice: an average
+# damped toward the least happy member, rather than a plain mean (which
+# ignores misery) or a pure minimum (which lets one veto decide everything).
+
+
+def aggregate_scores(member_scores: list[float]) -> float:
+    """
+    Combine one candidate's per-member scores into the group's score:
+    (1 - w) * mean + w * min, with w = GROUP_MISERY_WEIGHT.
+    """
+    if not member_scores:
+        raise ValueError("aggregate_scores needs at least one member score")
+    mean = sum(member_scores) / len(member_scores)
+    worst = min(member_scores)
+    return (1.0 - GROUP_MISERY_WEIGHT) * mean + GROUP_MISERY_WEIGHT * worst
+
+
+def member_label(preferences: Preferences, index: int) -> str:
+    """What to call this traveller in an explanation."""
+    label = (preferences.label or "").strip()
+    return label or ("You" if index == 0 else f"Traveller {index + 1}")
+
+
+def describe_fit(labels_and_scores: list[tuple[str, float]]) -> str | None:
+    """
+    One line naming who a destination does not work for. None when the group
+    is in agreement, so the UI says nothing rather than something empty.
+    """
+    if len(labels_and_scores) < 2:
+        return None
+
+    best = max(score for _, score in labels_and_scores)
+    unhappy = [
+        label for label, score in labels_and_scores if best - score >= MEMBER_FIT_CONCERN_GAP
+    ]
+    if not unhappy:
+        return "Works for everyone in the group."
+    if len(unhappy) == 1:
+        return f"Works for the group except {unhappy[0]}."
+    return f"Works for the group except {', '.join(unhappy[:-1])} and {unhappy[-1]}."
+
+
+def detect_conflicts(members: list[Preferences]) -> list[str]:
+    """
+    Disagreements worth telling the group about rather than resolving in
+    silence. A dealbreaker quietly beating someone else's must-have is the
+    kind of thing that makes a recommendation look broken to the person who
+    asked for it.
+    """
+    if len(members) < 2:
+        return []
+
+    conflicts: list[str] = []
+    labelled = [(member_label(m, i), m) for i, m in enumerate(members)]
+
+    for label, member in labelled:
+        for tag in member.priority_interests:
+            objectors = [
+                other_label
+                for other_label, other in labelled
+                if other is not member and tag in other.avoid_interests
+            ]
+            if objectors:
+                conflicts.append(
+                    f"{label} marked '{tag}' a must-have, but "
+                    f"{' and '.join(objectors)} asked to avoid it - it has been excluded."
+                )
+
+    budgets = [(label, m.budget_per_day) for label, m in labelled]
+    lowest_label, lowest = min(budgets, key=lambda pair: pair[1])
+    highest = max(budget for _, budget in budgets)
+    if highest > 0 and lowest < highest / 2:
+        conflicts.append(
+            f"Daily budgets differ widely ({lowest:.0f} to {highest:.0f}); "
+            f"{lowest_label}'s limit sets the group's."
+        )
+
+    return conflicts

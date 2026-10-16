@@ -7,8 +7,10 @@ from engine.scorers import (
     score_climate,
     score_interests,
     score_safety,
+    tags_for_children,
 )
-from tests.conftest import make_candidate
+from engine.weights import PRIORITY_INTEREST_UNMET_CEILING
+from tests.conftest import make_candidate, make_prefs
 
 # --- score_budget ------------------------------------------------------
 
@@ -183,10 +185,26 @@ def test_priority_interest_weighted_higher_than_regular(destinations, prefs_fact
 # --- score_safety --------------------------------------------------------
 
 
-def test_safety_missing_is_neutral(destinations, prefs_factory):
+def test_safety_with_no_data_carries_no_weight(destinations, prefs_factory):
+    """
+    No safety source is wired up, so every seeded candidate has safety_index
+    None. Scoring that 0.5 at the full country weight (0.25) handed every
+    candidate the same contribution: it separated nothing, and shrank the
+    dimensions that do separate into a smaller share of the total - enough to
+    tie destinations that budget and interests would have split. An unmeasured
+    dimension counts for nothing, exactly like climate and accessibility when
+    the traveller states no preference.
+    """
     prefs = prefs_factory()
     result = score_safety(prefs, destinations["mid_no_climate_data"], "country")
     assert result.value == 0.5
+    assert result.weight == 0.0
+
+
+def test_safety_that_is_known_still_counts(destinations, prefs_factory):
+    prefs = prefs_factory()
+    result = score_safety(prefs, destinations["mid_safe_interest_rich"], "country")
+    assert result.weight > 0.0
 
 
 def test_safety_reflects_index(destinations, prefs_factory):
@@ -208,3 +226,118 @@ def test_no_stated_interests_scores_neutral(destinations):
     score = score_interests(prefs, destinations["cheap_accessible_historic"], "city")
     assert score.value == 0.5
     assert "No interests stated" in score.explanation
+
+
+# --- children's ages, not just how many there are -------------------------
+
+
+def test_a_toddler_and_a_teenager_no_longer_score_the_same():
+    """Ages were collected and then discarded - only len(children) counted."""
+    playground_city = make_candidate(
+        "c1", "Playground City", cost_index=2,
+        interest_density={"playgrounds": 0.95, "museums": 0.2},
+    )
+    with_toddler = make_prefs(interests=["playgrounds", "museums"], children=[3])
+    with_teenager = make_prefs(interests=["playgrounds", "museums"], children=[16])
+
+    toddler_score = score_interests(with_toddler, playground_city, "city").value
+    teen_score = score_interests(with_teenager, playground_city, "city").value
+    assert toddler_score > teen_score
+
+
+def test_age_bands_pick_out_the_tags_that_age_actually_uses():
+    assert "playgrounds" in tags_for_children([4])
+    assert "theme_parks" in tags_for_children([9])
+    assert tags_for_children([]) == set()
+    assert tags_for_children([25]) == set()  # above every band, scores as an adult
+
+
+# --- pace reaches destination scoring at all ------------------------------
+
+
+def test_pace_decides_how_much_a_weak_category_hurts():
+    """
+    Pace was merged and then used only by the itinerary planner. A group doing
+    two things a day only needs one category to be excellent; a group doing
+    five needs the spread to hold up.
+    """
+    lopsided = make_candidate(
+        "c2", "One Great Thing", cost_index=2,
+        interest_density={"museums": 1.0, "beaches": 0.05},
+    )
+    relaxed = score_interests(make_prefs(interests=["museums", "beaches"], pace="relaxed"), lopsided, "city")
+    packed = score_interests(make_prefs(interests=["museums", "beaches"], pace="packed"), lopsided, "city")
+    assert relaxed.value > packed.value
+
+
+# --- must-haves actually bind ---------------------------------------------
+
+
+def test_a_must_have_the_destination_barely_has_caps_the_score():
+    """Doubling a starred tag's weight inside a mean still let a strong
+    showing elsewhere carry a candidate past the one thing that was insisted on."""
+    almost_no_museums = make_candidate(
+        "c3", "Great Beaches No Museums", cost_index=1,
+        interest_density={"beaches": 1.0, "museums": 0.10},
+    )
+    starred = make_prefs(interests=["beaches", "museums"], priority_interests=["museums"])
+    unstarred = make_prefs(interests=["beaches", "museums"], pace="relaxed")
+
+    starred_score = score_interests(starred, almost_no_museums, "city").value
+    # the cap binds, and insisting on the missing thing must cost it something
+    assert starred_score <= PRIORITY_INTEREST_UNMET_CEILING
+    assert starred_score < score_interests(unstarred, almost_no_museums, "city").value
+
+
+def test_a_must_have_that_is_met_is_not_capped():
+    has_both = make_candidate(
+        "c4", "Both", cost_index=1, interest_density={"beaches": 0.9, "museums": 0.8},
+    )
+    starred = make_prefs(interests=["beaches", "museums"], priority_interests=["museums"])
+    assert score_interests(starred, has_both, "city").value > PRIORITY_INTEREST_UNMET_CEILING
+
+
+# --- dealbreakers reach the engine ----------------------------------------
+
+
+def test_a_destination_built_on_an_avoided_tag_is_penalised():
+    """Dealbreakers were applied in the browser and stripped from the request,
+    so the engine scored a place defined by the avoided thing exactly like one
+    without it."""
+    party_town = make_candidate(
+        "c5", "Theme Park Town", cost_index=2,
+        interest_density={"beaches": 0.8, "theme_parks": 1.0},
+    )
+    indifferent = make_prefs(interests=["beaches"])
+    avoiding = make_prefs(interests=["beaches"], avoid_interests=["theme_parks"])
+    assert score_interests(avoiding, party_town, "city").value < score_interests(indifferent, party_town, "city").value
+
+
+def test_avoiding_something_the_destination_lacks_costs_it_nothing():
+    quiet = make_candidate("c6", "Quiet Town", cost_index=2, interest_density={"beaches": 0.8})
+    assert (
+        score_interests(make_prefs(interests=["beaches"], avoid_interests=["theme_parks"]), quiet, "city").value
+        == score_interests(make_prefs(interests=["beaches"]), quiet, "city").value
+    )
+
+
+# --- rainfall -------------------------------------------------------------
+
+
+def test_a_wet_month_scores_below_a_dry_one_at_the_same_temperature():
+    """Temperature alone called a warm month mid-monsoon a good month."""
+    prefs = make_prefs(climate_prefer="hot", travel_month=1)
+    dry = make_candidate("c7", "Dry", avg_temp_by_month={"1": 30.0})
+    wet = make_candidate("c8", "Wet", avg_temp_by_month={"1": 30.0})
+    dry.features.climate.avg_rain_mm_by_month = {"1": 20.0}
+    wet.features.climate.avg_rain_mm_by_month = {"1": 400.0}
+    assert score_climate(prefs, dry, "country").value > score_climate(prefs, wet, "country").value
+
+
+def test_seed_rows_without_rainfall_keep_the_temperature_only_score():
+    """Older rows must not be penalised for data that was never collected."""
+    prefs = make_prefs(climate_prefer="hot", travel_month=1)
+    no_rain_data = make_candidate("c9", "No Rain Data", avg_temp_by_month={"1": 30.0})
+    result = score_climate(prefs, no_rain_data, "country")
+    assert result.evidence["avg_rain_mm"] is None
+    assert result.value == pytest.approx(1.0)

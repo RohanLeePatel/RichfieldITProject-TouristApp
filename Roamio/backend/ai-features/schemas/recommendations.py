@@ -41,10 +41,18 @@ class ClimatePrefs(BaseModel):
 class Preferences(BaseModel):
     budget_per_day: float = Field(gt=0)
     currency: str = Field(min_length=3, max_length=3, description="ISO 4217, e.g. ZAR.")
+    # Who this is, for group explanations ("too pricey for Ayanda"). Optional:
+    # a solo request has nobody to name.
+    label: Optional[str] = Field(default=None, max_length=60)
     interests: list[str] = Field(default_factory=list)
     # subset of `interests` the user flagged as must-have rather than nice-to-have;
     # not enforced to be a subset, just given extra weight where it overlaps
     priority_interests: list[str] = Field(default_factory=list)
+    # tags this traveller wants kept out. Until now dealbreakers were applied
+    # in the browser and stripped before the request, so the engine never knew
+    # about them and could not report that one member's must-have is another's
+    # dealbreaker.
+    avoid_interests: list[str] = Field(default_factory=list)
     travellers: Travellers
     accessibility: Accessibility = Field(default_factory=Accessibility)
     climate: ClimatePrefs = Field(default_factory=ClimatePrefs)
@@ -53,13 +61,16 @@ class Preferences(BaseModel):
 
 class ClimateNormals(BaseModel):
     """
-    Monthly average temp in °C, keyed '1'..'12'. Comes from Open-Meteo for
-    the offline seed data - not the same as the live OpenWeather forecast
-    the app shows elsewhere (see enrich_destinations.py for why we use two
-    different weather APIs here).
+    Monthly averages keyed '1'..'12'. Comes from Open-Meteo for the offline
+    seed data - not the same as the live OpenWeather forecast the app shows
+    elsewhere (see enrich_destinations.py for why we use two different weather
+    APIs here).
     """
 
     avg_temp_by_month: dict[str, float] = Field(default_factory=dict)
+    # Total rainfall for the month, in mm. Empty for seed rows written before
+    # rainfall was collected; scored only where present, like safety_index.
+    avg_rain_mm_by_month: dict[str, float] = Field(default_factory=dict)
 
 
 class CandidateFeatures(BaseModel):
@@ -146,6 +157,17 @@ class EvidenceEntry(BaseModel):
     explanation: str
 
 
+class MemberFit(BaseModel):
+    """How one traveller in the group scores this candidate on their own."""
+
+    label: str
+    score: float = Field(ge=0, le=1)
+    # the dimension dragging their score down most, so the UI can say who it
+    # does not work for and why
+    weakest_dimension: Optional[str] = None
+    explanation: str
+
+
 class RecommendationResult(BaseModel):
     id: str
     name: str
@@ -156,6 +178,11 @@ class RecommendationResult(BaseModel):
     total_score: float = Field(ge=0, le=1)
     breakdown: list[EvidenceEntry]
     explanation: str
+    # Present only when the request carried several travellers. The group
+    # score is not the mean of these - see engine/group.py aggregate_scores.
+    member_fit: list[MemberFit] = Field(default_factory=list)
+    # how far apart the happiest and least happy member are, 0..1
+    fit_spread: Optional[float] = None
 
 
 class ExcludedCandidate(BaseModel):
@@ -178,3 +205,6 @@ class RecommendationResponse(BaseModel):
     # decided each field. null when the request carried only one traveller.
     group_merge: Optional[dict] = None
     group_merge_explanation: Optional[str] = None
+    # Disagreements worth telling the group about rather than silently
+    # resolving - one member's must-have that another ruled out, say.
+    group_conflicts: list[str] = Field(default_factory=list)
