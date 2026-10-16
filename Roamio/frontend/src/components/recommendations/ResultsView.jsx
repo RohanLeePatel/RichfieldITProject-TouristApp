@@ -70,6 +70,11 @@ export default function ResultsView({
       )}
 
       {data.comparison && <p className="recommendation-comparison">{data.comparison}</p>}
+      {/* how several travellers' preferences were combined - the engine shows
+          its working here the same way it does for each result's score */}
+      {data.group_merge_explanation && (
+        <p className="recommendation-comparison group-merge-note">{data.group_merge_explanation}</p>
+      )}
       {data.excluded?.length > 0 && (
         <details className="excluded-dropdown">
           <summary>

@@ -77,6 +77,85 @@ export const TRIP_PRESETS = [
   },
 ];
 
+// Destination-led starting points, browsable from the trips page. A preset
+// (above) only sets interests and pace inside the wizard; a template also
+// picks the country, budget and climate, so a group can start from a whole
+// shape of trip instead of a blank form.
+//
+// Deliberately no hard-coded stops: the template sets preferences and the
+// normal pipeline (ranking -> /landmarks -> itinerary planner) fills in real
+// places with real coordinates. Canned stop lists would go stale and could
+// not be mapped.
+export const TRIP_TEMPLATES = [
+  {
+    id: "cape-town-weekend",
+    label: "Cape Town long weekend",
+    blurb: "Museums and the waterfront food scene at an easy pace.",
+    country: "South Africa",
+    budget: "1200",
+    climate: "mild",
+    pace: "balanced",
+    interests: ["historic_sites", "museums", "restaurants", "cafes"],
+    priorityInterests: ["historic_sites"],
+  },
+  {
+    id: "kids-first-beach",
+    label: "Kids-first beach week",
+    blurb: "Short days, playgrounds and somewhere to swim.",
+    country: "Thailand",
+    budget: "900",
+    climate: "hot",
+    pace: "relaxed",
+    interests: ["beaches", "playgrounds", "zoos_aquariums", "restaurants"],
+    priorityInterests: ["beaches", "playgrounds"],
+  },
+  {
+    id: "culture-deep-dive",
+    label: "Culture deep dive",
+    blurb: "Packed days of museums, historic sites and street food.",
+    country: "Japan",
+    budget: "2200",
+    climate: "mild",
+    pace: "packed",
+    interests: ["museums", "historic_sites", "street_food", "cafes"],
+    priorityInterests: ["museums"],
+  },
+  {
+    id: "hiking-escape",
+    label: "Hiking and parks escape",
+    blurb: "Trails and open country, with somewhere to eat afterwards.",
+    country: "Namibia",
+    budget: "1100",
+    climate: "mild",
+    pace: "balanced",
+    interests: ["hiking", "parks", "restaurants"],
+    priorityInterests: ["hiking"],
+  },
+  {
+    id: "food-first",
+    label: "Food-first city break",
+    blurb: "Built around markets, cafes and long dinners.",
+    country: "Italy",
+    budget: "1600",
+    climate: "mild",
+    pace: "balanced",
+    interests: ["restaurants", "cafes", "street_food", "historic_sites"],
+    priorityInterests: ["restaurants", "street_food"],
+  },
+  {
+    id: "step-free-city",
+    label: "Step-free city break",
+    blurb: "Flat, well-served cities with step-free attractions.",
+    country: "Netherlands",
+    budget: "1800",
+    climate: "mild",
+    pace: "relaxed",
+    wheelchair: "required",
+    interests: ["museums", "cafes", "parks"],
+    priorityInterests: [],
+  },
+];
+
 export const COUNTRIES = [
   "Argentina", "Australia", "Brazil", "Canada", "Egypt", "France",
   "Germany", "Italy", "Japan", "Kenya", "Mexico", "Namibia", "Netherlands",
@@ -99,8 +178,9 @@ export const initialForm = {
   // tags the group wants hard-excluded from landmark picks and city scoring,
   // independent of anyone's positive interests - see resolveInterests().
   dealbreakers: [],
-  // additional travelers' own interest picks, blended in at submit time -
-  // see blendTravelerInterests(). Session-only, see its TODO(db) note.
+  // additional travelers' own picks and constraints, sent as
+  // `member_preferences` and merged by the engine (engine/group.py).
+  // Session-only, see the TODO(db) note on blendTravelerInterests().
   travelers: [],
   adults: "2",
   children: "",
@@ -112,6 +192,20 @@ export const initialForm = {
   preciseStops: false,
   dayStopCounts: [],
 };
+
+// A traveler's own constraints. "" means "no view of their own, use the
+// group's" - only the ones actually set get sent, so an untouched traveler
+// never drags the merge around.
+export const emptyTraveler = () => ({
+  id: Date.now() + Math.random(),
+  interests: [],
+  priorityInterests: [],
+  dealbreakers: [],
+  budget: "",
+  wheelchair: "",
+  climate: "",
+  pace: "",
+});
 
 export const steps = ["Trip basics", "Interests", "Accessibility & climate", "Review"];
 
@@ -233,6 +327,31 @@ export const ACCESSIBILITY_LABELS = {
 
 // The organizer's avoid list plus every added traveler's - one person's
 // "please not" applies to the whole group, same rule as before.
+// One Preferences object per traveler who set a constraint of their own, for
+// the request's `member_preferences`. The engine merges these with the
+// organiser's (engine/group.py): tightest budget, strictest access need,
+// majority climate/pace, pooled interests.
+//
+// Travelers who only picked interests are left out - blendTravelerInterests()
+// already folds those into the organiser's set, and sending a member with no
+// constraints would only add noise to the merge notes.
+export function buildMemberPreferences(form) {
+  const base = buildPreferences(form);
+  const dealbreakers = new Set(allDealbreakers(form));
+
+  return form.travelers
+    .filter((traveler) => traveler.budget || traveler.wheelchair || traveler.climate || traveler.pace)
+    .map((traveler) => ({
+      ...base,
+      budget_per_day: traveler.budget ? Number(traveler.budget) : base.budget_per_day,
+      interests: traveler.interests.filter((tag) => !dealbreakers.has(tag)),
+      priority_interests: traveler.priorityInterests.filter((tag) => !dealbreakers.has(tag)),
+      accessibility: { wheelchair: traveler.wheelchair || base.accessibility.wheelchair },
+      climate: { ...base.climate, ...(traveler.climate ? { prefer: traveler.climate } : {}) },
+      pace: traveler.pace || base.pace,
+    }));
+}
+
 export function allDealbreakers(form) {
   return [...new Set([...form.dealbreakers, ...form.travelers.flatMap((t) => t.dealbreakers || [])])];
 }

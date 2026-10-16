@@ -9,6 +9,7 @@ const tripRoutes = require('./routes/trips');
 const recommendationRoutes = require('./routes/recommendations');
 const translationRoutes = require('./routes/translation');
 const weatherRoutes = require('./routes/weather');
+const { router: tripDocumentRoutes } = require('./routes/tripDocuments');
 const rateLimit = require('./middleware/rateLimit');
 
 const app = express();
@@ -57,6 +58,10 @@ app.use(rateLimit({ max: 300, windowMs: 60_000 }));
 // Mount Routes
 app.use('/api/auth', rateLimit({ max: 10, windowMs: 60_000 }), authRoutes); // password guessing / mass signups
 app.use('/api/trips', tripRoutes);
+// Documents are base64 in a JSON body, so this path needs a bigger limit than
+// the global express.json() default (100kb) for a 1 MB file. Capped tighter
+// than Vercel's ~4.5MB body limit; the route re-checks the decoded size.
+app.use('/api/trips', express.json({ limit: '2mb' }), tripDocumentRoutes);
 app.use('/api/recommendations', rateLimit({ max: 30, windowMs: 60_000 }), recommendationRoutes); // hits the AI service
 app.use('/api/translate', translationRoutes);
 app.use('/api/weather', rateLimit({ max: 60, windowMs: 60_000 }), weatherRoutes); // shared OpenWeather quota

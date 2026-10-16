@@ -10,6 +10,33 @@ function packMeta({ destination, budget, notes }) {
   return JSON.stringify({ destination: destination ?? null, budget: budget ?? null, notes: notes ?? null });
 }
 
+// ItineraryItem has no lat/lon columns either, so a stop's coordinates ride
+// along in its description next to the notes - same trick as packMeta above.
+// Without them a saved trip can't be drawn on a map: the only other thing
+// stored is `location`, a display string, which would need re-geocoding.
+function packItemMeta({ notes, lat, lon }) {
+  const hasCoords = Number.isFinite(lat) && Number.isFinite(lon);
+  if (!hasCoords) return notes ?? null;
+  return JSON.stringify({ notes: notes ?? null, lat, lon });
+}
+
+function unpackItemMeta(description) {
+  try {
+    const meta = JSON.parse(description);
+    // a bare number or string parses as JSON too, so check it's really an object
+    if (meta && typeof meta === 'object') {
+      return {
+        notes: meta.notes ?? null,
+        lat: Number.isFinite(meta.lat) ? meta.lat : null,
+        lon: Number.isFinite(meta.lon) ? meta.lon : null,
+      };
+    }
+  } catch {
+    // plain-text notes, written before coordinates were stored
+  }
+  return { notes: description || null, lat: null, lon: null };
+}
+
 function unpackMeta(description) {
   try {
     const meta = JSON.parse(description);
@@ -34,13 +61,16 @@ function formatTime(date) {
 }
 
 function formatItem(item) {
+  const { notes, lat, lon } = unpackItemMeta(item.description);
   return {
     id: item.id,
     title: item.title,
     location: item.location,
     dayNumber: item.dayNumber,
     startTime: formatTime(item.startTime),
-    notes: item.description,
+    notes,
+    lat,
+    lon,
   };
 }
 
@@ -68,4 +98,4 @@ const accessibleTrips = (userId, extra = {}) => ({
   ...extra,
 });
 
-module.exports = { packMeta, unpackMeta, itemStartDate, formatTime, formatItem, formatTrip, accessibleTrips };
+module.exports = { packMeta, unpackMeta, packItemMeta, unpackItemMeta, itemStartDate, formatTime, formatItem, formatTrip, accessibleTrips };

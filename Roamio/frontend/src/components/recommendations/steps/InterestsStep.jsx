@@ -24,8 +24,58 @@ function AvoidChips({ avoided, onToggle }) {
   );
 }
 
+// A traveller's own budget/access/climate/pace. Left blank they follow the
+// group; set, they go to the engine as member_preferences and the merge rules
+// in engine/group.py decide what wins (tightest budget, strictest access
+// need, majority climate and pace).
+function TravelerConstraints({ traveler, index, currency, onChange }) {
+  return (
+    <div className="field-grid wizard-fields traveler-constraints">
+      <label className="wizard-field">
+        Their daily budget ({currency})
+        <input
+          type="number"
+          min="1"
+          inputMode="numeric"
+          placeholder="Same as group"
+          value={traveler.budget}
+          onChange={(event) => onChange(traveler.id, "budget", event.target.value)}
+          aria-label={`Traveler ${index + 2} daily budget`}
+        />
+      </label>
+      <label className="wizard-field">
+        Their accessibility need
+        <select value={traveler.wheelchair} onChange={(event) => onChange(traveler.id, "wheelchair", event.target.value)}>
+          <option value="">Same as group</option>
+          <option value="none">No specific need</option>
+          <option value="preferred">Wheelchair preferred</option>
+          <option value="required">Wheelchair required</option>
+        </select>
+      </label>
+      <label className="wizard-field">
+        Their climate
+        <select value={traveler.climate} onChange={(event) => onChange(traveler.id, "climate", event.target.value)}>
+          <option value="">Same as group</option>
+          <option value="mild">Mild</option>
+          <option value="hot">Hot</option>
+          <option value="cold">Cold</option>
+        </select>
+      </label>
+      <label className="wizard-field">
+        Their pace
+        <select value={traveler.pace} onChange={(event) => onChange(traveler.id, "pace", event.target.value)}>
+          <option value="">Same as group</option>
+          <option value="relaxed">Relaxed</option>
+          <option value="balanced">Balanced</option>
+          <option value="packed">Packed</option>
+        </select>
+      </label>
+    </div>
+  );
+}
+
 export default function InterestsStep({
-  form, cycleInterest, cycleTravelerInterest, addTraveler, removeTraveler, toggleDealbreaker, toggleTravelerDealbreaker,
+  form, cycleInterest, cycleTravelerInterest, addTraveler, removeTraveler, updateTraveler, toggleDealbreaker, toggleTravelerDealbreaker,
 }) {
   return (
     <>
@@ -38,7 +88,7 @@ export default function InterestsStep({
 
       <section className="panel">
         <h3 className="panel-title"><Users size={15} /> Travelling with others?</h3>
-        <p className="wizard-help">Add each person&apos;s own picks - we blend them so the plan works for everyone.</p>
+        <p className="wizard-help">Add each person&apos;s own picks and limits - we merge them so the plan works for everyone. The tightest budget and the strictest access need always win.</p>
         {form.travelers.map((traveler, index) => (
           <div key={traveler.id} className="traveler-block">
             <div className="traveler-block-header">
@@ -55,6 +105,8 @@ export default function InterestsStep({
             />
             <h4 className="interest-group-label">Traveler {index + 2} wants to avoid</h4>
             <AvoidChips avoided={traveler.dealbreakers || []} onToggle={(tagId) => toggleTravelerDealbreaker(traveler.id, tagId)} />
+            <h4 className="interest-group-label">Traveler {index + 2}&apos;s own limits</h4>
+            <TravelerConstraints traveler={traveler} index={index} currency={form.currency} onChange={updateTraveler} />
           </div>
         ))}
         <button type="button" className="secondary-button" onClick={addTraveler}>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 
 import ItineraryEditor from "../components/recommendations/ItineraryEditor.jsx";
@@ -17,12 +18,15 @@ import { buildDayPlan, recomputeDayStopTimes, STOPS_PER_DAY_BY_PACE } from "../u
 import {
   COUNTRIES,
   ITINERARY_HISTORY_LIMIT,
+  buildMemberPreferences,
   buildPreferences,
   cycleTagState,
+  emptyTraveler,
   initialForm,
   resolveInterests,
   slugify,
   steps,
+  TRIP_TEMPLATES,
   tripLengthDays,
 } from "./recommendations/constants.js";
 
@@ -115,12 +119,17 @@ export default function Recommendations() {
   };
 
   const addTraveler = () => {
+    setForm((current) => ({ ...current, travelers: [...current.travelers, emptyTraveler()] }));
+  };
+
+  // one traveller's own budget/access/climate/pace - "" means they defer to
+  // the group, so it's left out of the request entirely
+  const updateTraveler = (travelerId, field, value) => {
     setForm((current) => ({
       ...current,
-      travelers: [
-        ...current.travelers,
-        { id: Date.now() + Math.random(), interests: [], priorityInterests: [], dealbreakers: [] },
-      ],
+      travelers: current.travelers.map((traveler) =>
+        traveler.id === travelerId ? { ...traveler, [field]: value } : traveler
+      ),
     }));
   };
 
@@ -153,6 +162,33 @@ export default function Recommendations() {
       }),
     }));
   };
+
+  // A template from the trips page fills the form and drops the user on the
+  // review step, so they land on something they can check and change rather
+  // than straight into results they didn't ask for.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const templateId = searchParams.get("template");
+    if (!templateId) return;
+
+    const template = TRIP_TEMPLATES.find((item) => item.id === templateId);
+    if (template) {
+      setForm((current) => ({
+        ...current,
+        country: template.country,
+        budget: template.budget,
+        climate: template.climate,
+        pace: template.pace,
+        interests: template.interests,
+        priorityInterests: template.priorityInterests,
+        ...(template.wheelchair ? { wheelchair: template.wheelchair } : {}),
+      }));
+      setStep(steps.length - 1);
+    }
+    // drop the param so a later reload or back-navigation doesn't re-apply it
+    // over edits the user has since made
+    setSearchParams({}, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const applyPreset = (preset) => {
     setForm((current) => ({
@@ -216,7 +252,8 @@ export default function Recommendations() {
         buildPreferences(form),
         level,
         parentId,
-        excludeIds
+        excludeIds,
+        buildMemberPreferences(form)
       );
       if (requestId !== requestIdRef.current) return; // superseded by a newer request
       setRecommendationData(data);
@@ -535,6 +572,9 @@ export default function Recommendations() {
         title: landmark.name,
         location: landmark.address || undefined,
         startTime,
+        // kept so the saved trip can be mapped later, not just this session
+        lat: Number.isFinite(landmark.lat) ? landmark.lat : undefined,
+        lon: Number.isFinite(landmark.lon) ? landmark.lon : undefined,
       }))
     );
     // allSettled instead of all - one failed stop shouldn't hide whether the
@@ -614,6 +654,7 @@ export default function Recommendations() {
           cycleTravelerInterest={cycleTravelerInterest}
           addTraveler={addTraveler}
           removeTraveler={removeTraveler}
+          updateTraveler={updateTraveler}
           toggleDealbreaker={toggleDealbreaker}
           toggleTravelerDealbreaker={toggleTravelerDealbreaker}
           togglePreciseStops={togglePreciseStops}

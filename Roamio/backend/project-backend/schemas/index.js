@@ -30,6 +30,23 @@ const createItinerarySchema = z.object({
   startTime: z.string().optional().nullable(),
   cost: z.number().nonnegative('Cost cannot be negative').optional().nullable(),
   notes: z.string().optional().nullable(),
+  // stored in the item's description (see tripFormat.packItemMeta) so the
+  // saved trip can be drawn on a map
+  lat: z.number().min(-90).max(90).optional().nullable(),
+  lon: z.number().min(-180).max(180).optional().nullable(),
+});
+
+// Trip Document Schema - the file itself arrives base64-encoded in JSON (see
+// routes/tripDocuments.js). The decoded byte length is what gets capped, so the
+// limit here is only a cheap early reject on the encoded string.
+const createDocumentSchema = z.object({
+  filename: z.string().min(1, 'Filename is required').max(255, 'Filename is too long'),
+  mimeType: z.string().min(1, 'File type is required'),
+  kind: z.enum(['TICKET', 'BOOKING', 'RECEIPT', 'VISA', 'INSURANCE', 'OTHER']).optional(),
+  dataBase64: z
+    .string()
+    .min(1, 'File data is required')
+    .max(2_000_000, 'That file is too large (1 MB max)'),
 });
 
 module.exports = {
@@ -37,4 +54,5 @@ module.exports = {
   loginSchema,
   createTripSchema,
   createItinerarySchema,
+  createDocumentSchema,
 };

@@ -998,3 +998,20 @@ path.map-route.day-6 { stroke: var(--day-6); }
 .compare-bar { display: block; height: 6px; margin-bottom: 4px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
 .compare-bar i { display: block; height: 100%; background: var(--primary); }
 .compare-remove { margin-left: 6px; border: 0; background: none; color: var(--ink-soft); cursor: pointer; vertical-align: middle; }
+
+/* One traveller's own budget/access/climate/pace inside their block. Tighter
+   than the top-level wizard grid since it sits nested inside a panel. */
+.traveler-constraints {
+  margin-top: 10px;
+}
+
+.traveler-constraints .wizard-field input::placeholder {
+  color: var(--ink-soft);
+  opacity: .75;
+}
+
+/* The group merge note sits under the #1-vs-#2 comparison and explains which
+   merge rule decided what, so it reads as a second line of the same thought. */
+.group-merge-note {
+  margin-top: 8px;
+}

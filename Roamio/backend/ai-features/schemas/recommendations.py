@@ -111,6 +111,12 @@ class RecommendationRequest(BaseModel):
     level: Level
     parent_id: Optional[str] = None
     preferences: Preferences
+    # Other travellers on the same trip - preference profiles for people
+    # already counted in `preferences.travellers`, not extra heads. The
+    # organiser's own preferences stay in `preferences`; these get folded in by
+    # engine/group.py before scoring, so the pipeline itself still only ever
+    # sees one preference set.
+    member_preferences: list[Preferences] = Field(default_factory=list, max_length=10)
     # optional - leave this out and the service will just use its built-in
     # catalog (engine/catalog.py) based on level/preferences. pass it in if you
     # want to score your own specific set of candidates instead
@@ -168,3 +174,7 @@ class RecommendationResponse(BaseModel):
     # one-line "why #1 beat #2" comparison, based on whichever dimension had the
     # biggest gap between them. null if fewer than 2 results made it through gating
     comparison: Optional[str] = None
+    # how several travellers' preferences were combined, and the rule that
+    # decided each field. null when the request carried only one traveller.
+    group_merge: Optional[dict] = None
+    group_merge_explanation: Optional[str] = None

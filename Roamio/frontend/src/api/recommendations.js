@@ -33,13 +33,21 @@ async function readJsonResponse(response, invalidMessage, fallbackMessage) {
   return data;
 }
 
-export async function fetchRecommendations(preferences, level, parentId, excludeIds = []) {
+export async function fetchRecommendations(
+  preferences,
+  level,
+  parentId,
+  excludeIds = [],
+  memberPreferences = []
+) {
   const request = {
     request_id: crypto.randomUUID(),
     session_id: getSessionId(),
     level,
     preferences,
     exclude_ids: excludeIds,
+    // other travellers' own constraints; the engine merges them server side
+    ...(memberPreferences.length > 0 ? { member_preferences: memberPreferences } : {}),
   };
 
   if (level === "city" && parentId) {

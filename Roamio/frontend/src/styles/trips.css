@@ -77,10 +77,114 @@
   }
 }
 
+/* ---- Document vault (TripDocuments.jsx) ---- */
+
+.trip-document-upload {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.trip-document-upload .wizard-field {
+  margin: 0;
+  min-width: 130px;
+}
+
+.trip-document-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trip-document {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
+}
+
+.trip-document-icon {
+  display: grid;
+  place-items: center;
+  color: var(--primary);
+}
+
+/* a button, not a link, because the bytes need the bearer token - styled as a
+   link so it still reads as "open this file" */
+.trip-document-name {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  font-weight: 700;
+  color: var(--primary);
+  text-align: left;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.trip-document-name:hover {
+  text-decoration: underline;
+}
+
+.trip-document-meta {
+  color: var(--ink-soft);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.trip-document-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+@media (max-width: 560px) {
+  .trip-document {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  /* drop the metadata line onto its own row rather than squeezing the filename */
+  .trip-document-meta {
+    grid-column: 2 / -1;
+    white-space: normal;
+  }
+}
+
+/* ---- Starting-point templates (TripTemplates.jsx) ---- */
+
+.trip-templates {
+  margin-top: 26px;
+}
+
+.template-blurb {
+  margin: 2px 0 6px;
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* ---- Map on a saved trip (reuses ItineraryMap from the wizard) ---- */
+
+.trip-map-section .itinerary-map {
+  margin-top: 4px;
+}
+
 /* Print always uses the light palette on a plain white page. */
 @media print {
   .print-hide,
-  .rx-hero .recommendations-header {
+  .rx-hero .recommendations-header,
+  /* Leaflet renders to tiles that print as grey boxes, so the map is dropped
+     from the PDF; the day-by-day list below carries the same information. */
+  .trip-map-section {
     display: none !important;
   }
 

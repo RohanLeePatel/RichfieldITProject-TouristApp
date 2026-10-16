@@ -23,18 +23,19 @@ model User {
   updatedAt    DateTime  @updatedAt
   deletedAt    DateTime?
 
-  groupMemberships TravelGroupMember[]
-  tripMemberships  TripMember[]
+  groupMemberships  TravelGroupMember[]
+  tripMemberships   TripMember[]
+  uploadedDocuments TripDocument[]
 }
 
 model TravelGroup {
-  id         Int       @id @default(autoincrement())
-  name       String
+  id          Int       @id @default(autoincrement())
+  name        String
   description String?
-  inviteCode String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  deletedAt  DateTime?
+  inviteCode  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
 
   members TravelGroupMember[]
   trips   Trip[]
@@ -65,10 +66,11 @@ model Trip {
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
 
-  travelGroup TravelGroup    @relation(fields: [travelGroupId], references: [id])
+  travelGroup TravelGroup     @relation(fields: [travelGroupId], references: [id])
   members     TripMember[]
   itinerary   ItineraryItem[]
   expenses    Expense[]
+  documents   TripDocument[]
 }
 
 model TripMember {
@@ -107,4 +109,24 @@ model Expense {
   createdAt DateTime @default(now())
 
   trip Trip @relation(fields: [tripId], references: [id])
+}
+
+// Booking confirmations, tickets and receipts attached to a trip. Added to the
+// live DB by prisma/live-sql/001_trip_document.sql, then mirrored here.
+// `data` holds the file itself - see that file for why, and when to move it out.
+model TripDocument {
+  id           String   @id
+  tripId       Int
+  uploadedById Int
+  filename     String
+  mimeType     String
+  sizeBytes    Int
+  kind         String   @default("OTHER")
+  data         Bytes
+  createdAt    DateTime @default(now())
+
+  trip       Trip @relation(fields: [tripId], references: [id])
+  uploadedBy User @relation(fields: [uploadedById], references: [id])
+
+  @@index([tripId])
 }

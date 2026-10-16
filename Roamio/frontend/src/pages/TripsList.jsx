@@ -10,6 +10,7 @@ import {
 import { Link, useSearchParams } from "react-router-dom";
 
 import PageShell from "../components/recommendations/PageShell.jsx";
+import TripTemplates from "../components/trips/TripTemplates.jsx";
 import { fetchTrips } from "../api/trips.js";
 import "../styles/trips.css";
 
@@ -189,6 +190,10 @@ export default function TripsList() {
           </div>
         )}
       </section>
+
+      {/* Starting points, shown alongside existing trips - most useful on an
+          empty list, but worth offering either way. */}
+      {!showingCompleted && !loading && <TripTemplates />}
     </PageShell>
   );
 }

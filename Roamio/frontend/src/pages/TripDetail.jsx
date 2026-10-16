@@ -3,7 +3,9 @@ import { CalendarDays, LoaderCircle, MapPin, Printer, Sparkles, Trash2, X } from
 import { useNavigate, useParams } from "react-router-dom";
 
 import ClimateInsights from "../components/insights/ClimateInsights.jsx";
+import ItineraryMap from "../components/recommendations/ItineraryMap.jsx";
 import PageShell from "../components/recommendations/PageShell.jsx";
+import TripDocuments from "../components/trips/TripDocuments.jsx";
 
 import { fetchTrip, deleteTrip, removeItineraryItem } from "../api/trips.js";
 import { groupItineraryByDay } from "../utils/itineraryPlanner.js";
@@ -35,6 +37,26 @@ export default function TripDetail() {
   useEffect(load, [tripId]);
 
   const dayGroups = useMemo(() => groupItineraryByDay(trip?.itinerary), [trip]);
+
+  // ItineraryMap was built for the wizard, where a stop carries its whole
+  // landmark object. A saved stop only has the coordinates that came back from
+  // the API, so reshape rather than duplicate the map component.
+  const mapDays = useMemo(
+    () =>
+      dayGroups
+        .filter((group) => group.dayNumber)
+        .map((group) => ({
+          dayNumber: group.dayNumber,
+          stops: group.items
+            .filter((item) => Number.isFinite(item.lat) && Number.isFinite(item.lon))
+            .map((item) => ({
+              startTime: item.startTime,
+              landmark: { name: item.title, lat: item.lat, lon: item.lon },
+            })),
+        }))
+        .filter((group) => group.stops.length > 0),
+    [dayGroups]
+  );
 
   const handleDeleteItem = async (itemId) => {
     setBusy(true);
@@ -143,6 +165,20 @@ export default function TripDetail() {
                 </div>
               )}
             </section>
+
+            {mapDays.length > 0 && (
+              <section className="recommendations-results trip-map-section">
+                <div className="results-heading">
+                  <div>
+                    <h2>On the map</h2>
+                    <p>Every stop with a known location, numbered in visiting order.</p>
+                  </div>
+                </div>
+                <ItineraryMap itineraryDays={mapDays} />
+              </section>
+            )}
+
+            <TripDocuments tripId={tripId} />
 
             {trip.destination && (
               <section className="recommendations-results trip-insights">

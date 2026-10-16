@@ -7,7 +7,7 @@ const authenticateToken = require('../middleware/authMiddleware');
 const prisma = require('../db');
 const validate = require('../middleware/validate');
 const { createTripSchema, createItinerarySchema } = require('../schemas');
-const { packMeta, unpackMeta, itemStartDate, formatItem, formatTrip, accessibleTrips } = require('./tripFormat');
+const { packMeta, unpackMeta, packItemMeta, itemStartDate, formatItem, formatTrip, accessibleTrips } = require('./tripFormat');
 
 // Written against the LIVE Supabase schema (see prisma/schema.prisma): trips
 // belong to a TravelGroup, users reach them through TripMember/TravelGroupMember,
@@ -176,7 +176,7 @@ router.post('/:tripId/itinerary', validate(createItinerarySchema), async (req, r
     const tripId = parseId(req.params.tripId);
     if (tripId === null) return res.status(400).json({ message: 'Invalid trip ID parameter.' });
 
-    const { title, location, dayNumber, startTime, notes } = req.body;
+    const { title, location, dayNumber, startTime, notes, lat, lon } = req.body;
 
     const trip = await prisma.trip.findFirst({ where: accessibleTrips(req.user.userId, { id: tripId }) });
     if (!trip) {
@@ -189,7 +189,7 @@ router.post('/:tripId/itinerary', validate(createItinerarySchema), async (req, r
         tripId,
         title,
         location,
-        description: notes,
+        description: packItemMeta({ notes, lat, lon }),
         dayNumber: dayNumber || 1,
         startTime: itemStartDate(trip.startDate, dayNumber, startTime),
       },

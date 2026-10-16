@@ -5,6 +5,7 @@ from urllib.parse import quote_plus
 from engine.blend import blended_score
 from engine.explain import build_comparison, build_explanation
 from engine.gates import run_gates
+from engine.group import explain_merge, merge_preferences
 from engine.scorers import score_all_dimensions
 from engine.weights import BASE_RELEVANCE_FLOOR, MAX_RESULTS
 from schemas.recommendations import (
@@ -195,7 +196,9 @@ def build_response(
     request: RecommendationRequest, candidates: list[Candidate] | None = None
 ) -> RecommendationResponse:
     candidates = candidates if candidates is not None else request.candidates
-    results, excluded, comparison = score_candidates(request.preferences, request.level, candidates)
+    # one preference set from here down, however many travellers were sent
+    prefs, merge_notes = merge_preferences([request.preferences, *request.member_preferences])
+    results, excluded, comparison = score_candidates(prefs, request.level, candidates)
     return RecommendationResponse(
         request_id=request.request_id,
         session_id=request.session_id,
@@ -203,4 +206,6 @@ def build_response(
         results=results,
         excluded=excluded,
         comparison=comparison,
+        group_merge=merge_notes if merge_notes.get("merged") else None,
+        group_merge_explanation=explain_merge(merge_notes),
     )

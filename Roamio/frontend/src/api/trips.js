@@ -65,11 +65,11 @@ export async function deleteTrip(tripId) {
   await authedFetch(`/api/trips/${tripId}`, { method: "DELETE" });
 }
 
-export async function addItineraryItem(tripId, { title, location, dayNumber, startTime }) {
+export async function addItineraryItem(tripId, { title, location, dayNumber, startTime, lat, lon }) {
   if (isDevBypass()) {
     const trips = readDevTrips();
     const trip = trips.find((t) => t.id === tripId);
-    const item = { id: Date.now() + Math.random(), title, location, dayNumber, startTime };
+    const item = { id: Date.now() + Math.random(), title, location, dayNumber, startTime, lat, lon };
     if (trip) {
       trip.itinerary.push(item);
       writeDevTrips(trips);
@@ -79,7 +79,7 @@ export async function addItineraryItem(tripId, { title, location, dayNumber, sta
 
   const result = await authedFetch(`/api/trips/${tripId}/itinerary`, {
     method: "POST",
-    body: JSON.stringify({ title, location, dayNumber, startTime }),
+    body: JSON.stringify({ title, location, dayNumber, startTime, lat, lon }),
   });
   return result.item;
 }
