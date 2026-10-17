@@ -52,6 +52,30 @@ class AuthController {
     }
   }
 
+  async forgotPassword(req, res, next) {
+    try {
+      const { otp } = await authService.forgotPassword(req.body);
+      res.status(200).json({
+        message: 'If an account exists with that email, a reset code has been sent.',
+        // Only exposed when explicitly enabled; never inferred from NODE_ENV
+        devOtp: otp && process.env.ENABLE_DEV_OTP === 'true' ? otp : undefined
+      });
+    } catch (err) {
+      fail(res, next, err);
+    }
+  }
+
+  async resetPassword(req, res, next) {
+    try {
+      await authService.resetPassword(req.body);
+      res.status(200).json({
+        message: 'Password has been successfully reset. Please log in with your new password.'
+      });
+    } catch (err) {
+      fail(res, next, err);
+    }
+  }
+
   async login(req, res, next) {
     try {
       const { accessToken, refreshToken } = await authService.login(req.body);

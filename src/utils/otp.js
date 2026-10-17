@@ -19,8 +19,8 @@ const otpMatches = (otp, storedHash) => {
 };
 
 // Stand-in for an email provider: prints the code outside production
-const logDevOtp = (email, otp) => {
-  if (process.env.NODE_ENV !== 'production') console.log(`[DEV OTP] ${email}:${otp}`);
+const logDevOtp = (email, otp, label = 'DEV OTP') => {
+  if (process.env.NODE_ENV !== 'production') console.log(`[${label}] ${email}:${otp}`);
 };
 
 module.exports = { generateOtp, hashOtp, otpExpiry, otpMatches, logDevOtp, MAX_OTP_ATTEMPTS };

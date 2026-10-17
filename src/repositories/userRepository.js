@@ -84,6 +84,45 @@ class UserRepository {
     return result.count === 1;
   }
 
+  // Stores a fresh reset code hash and resets the failed-attempt counter
+  async setResetPasswordOtp(userId, hash, expiresAt) {
+    return await prisma.user.update({
+      where: { id: userId },
+      data: { resetPasswordOtpHash: hash, resetPasswordExpiresAt: expiresAt, resetPasswordAttempts: 0 },
+      select: { id: true },
+    });
+  }
+
+  // Returns the new failed-attempt count; the code is invalidated once the limit is reached
+  async recordFailedResetAttempt(userId, maxAttempts = 5) {
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { resetPasswordAttempts: { increment: 1 } },
+      select: { resetPasswordAttempts: true },
+    });
+    if (user.resetPasswordAttempts >= maxAttempts) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { resetPasswordOtpHash: null, resetPasswordExpiresAt: null },
+      });
+    }
+    return user.resetPasswordAttempts;
+  }
+
+  // Single-use: when expectedHash is given, only succeeds if that exact code is still the stored one
+  async updatePasswordAndClearResetOtp(userId, hashedPassword, expectedHash) {
+    const result = await prisma.user.updateMany({
+      where: { id: userId, ...(expectedHash && { resetPasswordOtpHash: expectedHash }) },
+      data: {
+        passwordHash: hashedPassword,
+        resetPasswordOtpHash: null,
+        resetPasswordExpiresAt: null,
+        resetPasswordAttempts: 0,
+      },
+    });
+    return result.count === 1;
+  }
+
   async update(id, updateData) {
     return await prisma.user.update({
       where: { id },

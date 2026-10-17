@@ -27,6 +27,11 @@ model User {
   otpExpiresAt DateTime?
   otpAttempts  Int       @default(0)
 
+  // Forgot-password OTP (hash only)
+  resetPasswordOtpHash   String?
+  resetPasswordExpiresAt DateTime?
+  resetPasswordAttempts  Int       @default(0)
+
   preferences       UserPreference?
   groupMemberships  TravelGroupMember[]
   sentInvitations   Invitation[]        @relation("SenderInvitations")

@@ -5,6 +5,8 @@ const { httpError } = require('./tripAccessService');
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const INVALID_OTP = 'Invalid or expired OTP.';
+const INVALID_RESET_CODE = 'Invalid or expired reset code.';
+const MIN_PASSWORD_LENGTH = 8;
 
 const normalizeEmail = (email) => (typeof email === 'string' ? email.trim().toLowerCase() : '');
 
@@ -80,6 +82,42 @@ class AuthService {
 
     // Unknown emails get the same response so this endpoint can't be used to probe for accounts
     if (user) logDevOtp(normalizedEmail, await issueOtp(user.id));
+  }
+
+  // Always resolves without revealing whether the email exists; returns the code only for a real account
+  async forgotPassword({ email } = {}) {
+    const normalizedEmail = normalizeEmail(email);
+    if (!EMAIL_PATTERN.test(normalizedEmail)) throw httpError(400, 'A valid email is required.');
+
+    const user = await userRepository.findByEmail(normalizedEmail);
+    if (!user) return { otp: null };
+
+    const otp = generateOtp();
+    await userRepository.setResetPasswordOtp(user.id, hashOtp(otp), otpExpiry());
+    logDevOtp(normalizedEmail, otp, 'DEV RESET OTP');
+    return { otp };
+  }
+
+  async resetPassword({ email, otp, newPassword } = {}) {
+    // Checked first so a too-short password doesn't burn an attempt or the code
+    if (typeof newPassword !== 'string' || newPassword.length < MIN_PASSWORD_LENGTH) {
+      throw httpError(400, `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+    }
+
+    const user = await userRepository.findByEmail(normalizeEmail(email));
+    if (!user || !user.resetPasswordOtpHash || !user.resetPasswordExpiresAt
+        || user.resetPasswordExpiresAt <= new Date() || user.resetPasswordAttempts >= MAX_OTP_ATTEMPTS) {
+      throw httpError(400, INVALID_RESET_CODE);
+    }
+
+    if (!otpMatches(otp, user.resetPasswordOtpHash)) {
+      await userRepository.recordFailedResetAttempt(user.id, MAX_OTP_ATTEMPTS);
+      throw httpError(400, INVALID_RESET_CODE);
+    }
+
+    const passwordHash = await tokenService.hashPassword(newPassword);
+    const updated = await userRepository.updatePasswordAndClearResetOtp(user.id, passwordHash, user.resetPasswordOtpHash);
+    if (!updated) throw httpError(400, INVALID_RESET_CODE);
   }
 
   async login({ email, password } = {}) {
