@@ -208,6 +208,7 @@ export const initialForm = {
 // never drags the merge around.
 export const emptyTraveler = () => ({
   id: Date.now() + Math.random(),
+  name: "",
   interests: [],
   priorityInterests: [],
   dealbreakers: [],
@@ -300,7 +301,8 @@ export function buildPreferences(form) {
         .filter((age) => Number.isInteger(age) && age >= 0)
     : [];
 
-  const { interests, priority_interests } = resolveInterests(form);
+  const { interests } = resolveInterests(form);
+  const { priority_interests } = blendTravelerInterests(form);
   const startMonth = form.startDate ? new Date(form.startDate).getMonth() + 1 : null;
   const endMonth = form.endDate ? new Date(form.endDate).getMonth() + 1 : null;
 
@@ -309,6 +311,8 @@ export function buildPreferences(form) {
     currency: form.currency.toUpperCase(),
     interests,
     priority_interests,
+    // the organiser's own "please not" list; the engine pools everyone's
+    avoid_interests: form.dealbreakers,
     travellers: { adults: Number(form.adults), children },
     accessibility: { wheelchair: form.wheelchair },
     climate: {
@@ -350,12 +354,24 @@ export function buildMemberPreferences(form) {
   const dealbreakers = new Set(allDealbreakers(form));
 
   return form.travelers
-    .filter((traveler) => traveler.budget || traveler.wheelchair || traveler.climate || traveler.pace)
+    .filter(
+      (traveler) =>
+        traveler.budget ||
+        traveler.wheelchair ||
+        traveler.climate ||
+        traveler.pace ||
+        // someone whose only input was "not this" still has to reach the
+        // engine, or their dealbreaker is attributed to the organiser
+        traveler.dealbreakers?.length ||
+        traveler.name?.trim()
+    )
     .map((traveler) => ({
       ...base,
+      label: traveler.name?.trim() || undefined,
       budget_per_day: traveler.budget ? Number(traveler.budget) : base.budget_per_day,
       interests: traveler.interests.filter((tag) => !dealbreakers.has(tag)),
-      priority_interests: traveler.priorityInterests.filter((tag) => !dealbreakers.has(tag)),
+      priority_interests: traveler.priorityInterests,
+      avoid_interests: traveler.dealbreakers || [],
       accessibility: { wheelchair: traveler.wheelchair || base.accessibility.wheelchair },
       climate: { ...base.climate, ...(traveler.climate ? { prefer: traveler.climate } : {}) },
       pace: traveler.pace || base.pace,

@@ -6,7 +6,6 @@ import pytest
 
 from engine.group import (
     aggregate_scores,
-    describe_fit,
     detect_conflicts,
     explain_merge,
     member_label,
@@ -33,7 +32,9 @@ def member(**overrides) -> Preferences:
 def test_single_member_passes_through_untouched():
     only = member(interests=["museums"])
     merged, notes = merge_preferences([only])
-    assert merged is only
+    # equality, not identity: the solo path now applies the traveller's own
+    # avoid list, so it returns an equal copy rather than the same object
+    assert merged == only
     assert notes == {"merged": False, "member_count": 1}
     assert explain_merge(notes) is None
 
@@ -187,22 +188,6 @@ def test_members_are_named_by_their_label_and_the_organiser_is_you():
     assert member_label(member(label="   "), 1) == "Traveller 2"
 
 
-def test_fit_names_only_the_members_who_are_badly_served():
-    assert describe_fit([("You", 0.9), ("Ayanda", 0.3)]) == "Works for the group except Ayanda."
-    assert (
-        describe_fit([("You", 0.9), ("Ayanda", 0.3), ("Sipho", 0.2)])
-        == "Works for the group except Ayanda and Sipho."
-    )
-
-
-def test_a_group_in_agreement_is_reported_as_such():
-    assert describe_fit([("You", 0.80), ("Ayanda", 0.78)]) == "Works for everyone in the group."
-
-
-def test_a_solo_traveller_has_no_fit_line():
-    assert describe_fit([("You", 0.8)]) is None
-
-
 # --- conflicts the group should be told about -----------------------------
 
 
@@ -227,6 +212,26 @@ def test_a_group_that_agrees_reports_no_conflicts():
         member(label="A", interests=["parks"], budget_per_day=1000.0),
         member(label="B", interests=["parks"], budget_per_day=1100.0),
     ]) == []
+
+
+def test_the_merge_carries_a_dealbreaker_instead_of_dropping_it():
+    # The merge built its Preferences field by field and never mentioned
+    # avoid_interests, so the field reverted to empty and the penalty in
+    # score_interests could not fire however the request was filled in.
+    merged, notes = merge_preferences([
+        member(label="You", interests=["museums"], priority_interests=["museums"]),
+        member(label="Lerato", interests=["beaches"], avoid_interests=["museums"]),
+    ])
+    assert merged.avoid_interests == ["museums"]
+    # and the conflict line promises the tag "has been excluded", so it is
+    assert "museums" not in merged.interests
+    assert "museums" not in merged.priority_interests
+    assert notes["avoid_interests"] == {"rule": "union", "chosen": ["museums"]}
+
+
+def test_a_solo_traveller_keeps_their_own_avoid_list():
+    merged, _ = merge_preferences([member(interests=["parks"], avoid_interests=["casinos"])])
+    assert merged.avoid_interests == ["casinos"]
 
 
 def test_a_solo_traveller_cannot_conflict_with_anyone():

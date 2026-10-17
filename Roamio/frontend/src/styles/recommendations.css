@@ -1112,6 +1112,32 @@ path.map-route.day-6 { stroke: var(--day-6); }
   line-height: 1.55;
 }
 
+/* Per-traveller fit: the engine scores each traveller separately, so a
+   destination that suits the organiser and nobody else says so here. */
+.member-fit {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.member-fit li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--ink-soft);
+}
+
+.member-fit b { color: var(--ink); font-weight: 600; }
+.member-fit-score { font-variant-numeric: tabular-nums; }
+.member-fit-weak { font-size: 12px; }
+
+.traveler-name-field {
+  margin-bottom: 12px;
+}
+
 /* The shortlist bar sits under six cards, so without this the traveller got
    no visible acknowledgement that a shortlist action had registered. */
 .shortlist-bar {

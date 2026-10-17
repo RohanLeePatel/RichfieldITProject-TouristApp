@@ -99,10 +99,6 @@ FAMILY_FOLD_IN_SCALE = 0.35
 # without a single veto deciding the whole page.
 GROUP_MISERY_WEIGHT = 0.4
 
-# Members further than this below the group's best fit get named in the
-# explanation ("works for everyone except ...").
-MEMBER_FIT_CONCERN_GAP = 0.15
-
 
 # ---------------------------------------------------------------------------
 # Travelling with children
