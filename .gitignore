@@ -33,3 +33,6 @@ dist-ssr
 
 .env
 >>>>>>> 0266a0d62866dd7a5c3eaad06c2422d77dca211c
+
+.vscode/
+.postman/
