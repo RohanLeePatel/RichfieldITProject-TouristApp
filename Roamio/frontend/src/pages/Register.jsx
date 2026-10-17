@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import {
+  ArrowLeft,
   ArrowRight,
   Eye,
   EyeOff,
@@ -97,7 +98,7 @@ export default function Register() {
 
         {/* LOGO */}
 
-        <div className="logo">
+        <Link to="/" className="logo" aria-label="Roamio home">
           <div className="logo-icon">
             <Plane size={20} />
           </div>
@@ -105,7 +106,7 @@ export default function Register() {
           <span className="logo-word">
             Roam<span className="logo-blue">io</span>
           </span>
-        </div>
+        </Link>
 
         {/* CONTENT */}
 
@@ -177,6 +178,11 @@ export default function Register() {
       ===================================================== */}
 
       <section className="auth-panel">
+        <Link to="/" className="auth-back-link">
+          <ArrowLeft size={16} />
+          Back to home
+        </Link>
+
         <div className="panel-dots" />
 
         <div className="panel-blob" />

@@ -14,7 +14,6 @@ import {
   ChevronRight,
   Clock3,
   CheckCircle2,
-  Globe2,
   Menu,
   Moon,
   X,
@@ -28,6 +27,7 @@ import {
   Droplets,
   Wind,
   RefreshCw,
+  Luggage,
 } from "lucide-react";
 
 import { useCallback, useEffect, useState } from "react";
@@ -39,10 +39,13 @@ import {
 
 import { fetchWeather as fetchWeatherFromApi } from "../api/weather";
 import { fetchTrips } from "../api/trips";
-import { TOKEN_KEY } from "../api/client";
+import { useAuthStore } from "../store/authStore.js";
 
 import useTheme from "../components/recommendations/useTheme.js";
 import "../styles/dashboard.css";
+
+// Unsplash photo (free to use under the Unsplash License)
+import heroPhoto from "../assets/dashboard/hero-alps.jpg";
 
 // =========================================================
 // CONSTANTS
@@ -51,10 +54,17 @@ import "../styles/dashboard.css";
 const GROUP_STORAGE_KEY =
   "roamio_family_members_v1";
 
+// how many group members the dashboard card lists before "+N more"
+const GROUP_PREVIEW_LIMIT = 4;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 // =========================================================
 // TRIP HELPERS
 // =========================================================
 
+// "Upcoming" used to mean "happening now" and every future trip read
+// "Planning" - now a dated future trip is Upcoming and a current one In progress.
 function tripStatus(trip) {
   if (!trip.startDate) return "Planning";
 
@@ -66,24 +76,53 @@ function tripStatus(trip) {
   const now = new Date();
 
   if (now > end) return "Completed";
-  if (now >= start) return "Upcoming";
+  if (now >= start) return "In progress";
 
-  return "Planning";
+  return "Upcoming";
 }
+
+const STATUS_STYLE = {
+  Planning: { className: "planning", icon: Clock3 },
+  Upcoming: { className: "upcoming", icon: CalendarDays },
+  "In progress": { className: "active", icon: CheckCircle2 },
+};
 
 function tripDateLabel(trip) {
   if (!trip.startDate) return "Dates not set";
 
   const format = (iso) =>
     new Date(iso).toLocaleDateString("en-ZA", {
-      day: "2-digit",
+      day: "numeric",
       month: "short",
-      year: "numeric",
     });
 
   return trip.endDate
-    ? `${format(trip.startDate)} — ${format(trip.endDate)}`
+    ? `${format(trip.startDate)} – ${format(trip.endDate)}`
     : format(trip.startDate);
+}
+
+// whole days from today to the trip start (0 = today), or null without dates
+function daysUntil(trip) {
+  if (!trip?.startDate) return null;
+
+  const start = new Date(trip.startDate);
+  const today = new Date();
+
+  start.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+
+  return Math.round((start - today) / DAY_MS);
+}
+
+function countdownLabel(trip) {
+  const days = daysUntil(trip);
+
+  if (days === null) return "Add dates";
+  if (days < 0) return "Happening now";
+  if (days === 0) return "Today";
+  if (days === 1) return "Tomorrow";
+
+  return `In ${days} days`;
 }
 
 // =========================================================
@@ -193,7 +232,7 @@ function getDashboardWeatherInfo(description) {
 }
 
 // =========================================================
-// DATE
+// DATE / GREETING
 // =========================================================
 
 function getDashboardDate() {
@@ -201,11 +240,21 @@ function getDashboardDate() {
     "en-ZA",
     {
       weekday: "long",
-      day: "2-digit",
+      day: "numeric",
       month: "long",
       year: "numeric",
     }
   );
+}
+
+// the hero always said "Good morning", even at night
+function getGreeting() {
+  const hour = new Date().getHours();
+
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+
+  return "Good evening";
 }
 
 // =========================================================
@@ -272,6 +321,62 @@ function loadGroupMembers(
 }
 
 // =========================================================
+// NAVIGATION
+// =========================================================
+
+const NAV_SECTIONS = [
+  {
+    label: "Your space",
+    links: [
+      { to: "/dashboard", label: "Dashboard", icon: Home },
+      { to: "/trips", label: "My Trips", icon: Map, showTripCount: true },
+      { to: "/explore", label: "Explore destinations", icon: Compass },
+      { to: "/family", label: "Travel Group", icon: Users },
+    ],
+  },
+  {
+    label: "Planning",
+    links: [
+      { to: "/calendar", label: "Calendar", icon: CalendarDays },
+      { to: "/weather", label: "Weather", icon: CloudSun },
+      { to: "/translator", label: "Travel Translator", icon: Languages },
+      { to: "/settings", label: "Settings", icon: Settings },
+    ],
+  },
+];
+
+// =========================================================
+// COUNT-UP
+// =========================================================
+
+const prefersReducedMotion = () =>
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+
+// Animates a stat from 0 up to its value (ease-out), e.g. once trips load.
+function CountUp({ value, duration = 900 }) {
+  const [shown, setShown] = useState(0);
+
+  useEffect(() => {
+    if (prefersReducedMotion()) return undefined;
+
+    let frame;
+    const start = performance.now();
+
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      setShown(Math.round(value * (1 - Math.pow(1 - t, 3))));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+
+    frame = requestAnimationFrame(tick);
+
+    return () => cancelAnimationFrame(frame);
+  }, [value, duration]);
+
+  return prefersReducedMotion() ? value : shown;
+}
+
+// =========================================================
 // DASHBOARD
 // =========================================================
 
@@ -279,6 +384,7 @@ export default function Dashboard() {
   const { theme, toggle: toggleTheme } = useTheme(); // app-wide theme, also set in Settings
   const navigate = useNavigate();
   const location = useLocation();
+  const logout = useAuthStore((state) => state.logout);
 
   // =========================================================
   // MOBILE MENU
@@ -512,6 +618,9 @@ export default function Dashboard() {
   const nextTrip =
     getNextTrip(trips);
 
+  const nextTripDays =
+    daysUntil(nextTrip);
+
   const completedTrips =
     trips.filter(
       (trip) =>
@@ -520,7 +629,44 @@ export default function Dashboard() {
     );
 
   const displayedTrips =
-    relevantTrips.slice(0, 3);
+    relevantTrips.slice(0, 4);
+
+  const shownMembers =
+    groupMembers.slice(0, GROUP_PREVIEW_LIMIT);
+
+  const hiddenMemberCount =
+    groupMembers.length - shownMembers.length;
+
+  const stats = [
+    {
+      to: "/trips",
+      label: "Upcoming trips",
+      value: relevantTrips.length,
+      icon: Plane,
+      tone: "blue",
+    },
+    {
+      to: "/trips",
+      label: "Total trips",
+      value: trips.length,
+      icon: Compass,
+      tone: "teal",
+    },
+    {
+      to: "/trips?status=completed",
+      label: "Completed",
+      value: completedTrips.length,
+      icon: CheckCircle2,
+      tone: "purple",
+    },
+    {
+      to: "/family",
+      label: "Group members",
+      value: groupMembers.length,
+      icon: Users,
+      tone: "orange",
+    },
+  ];
 
   // =========================================================
   // NAVIGATION
@@ -547,11 +693,10 @@ export default function Dashboard() {
   // ACTIONS
   // =========================================================
 
+  // Goes through the auth store: clearing localStorage alone left the store
+  // still "signed in", so "/" kept bouncing back to the dashboard.
   const handleLogout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem(
-      TOKEN_KEY
-    );
+    logout();
 
     setMobileMenu(false);
 
@@ -564,12 +709,153 @@ export default function Dashboard() {
     navigate("/recommendations");
   };
 
-  const handleAddGroup = () => {
+  const handleOpenGroup = () => {
     navigate("/family");
   };
 
-  const handleInviteGroup = () => {
-    navigate("/family");
+  // =========================================================
+  // WEATHER BODY
+  // =========================================================
+
+  const renderWeather = () => {
+    if (weatherLoading) {
+      return (
+        <div className="weather-state">
+          <RefreshCw
+            size={22}
+            className="weather-refresh-spin"
+          />
+
+          <div>
+            <strong>Checking the skies…</strong>
+            <span>Getting the latest weather for your next trip.</span>
+          </div>
+        </div>
+      );
+    }
+
+    if (weatherError) {
+      return (
+        <div className="weather-state">
+          <CloudSun size={22} />
+
+          <div>
+            <strong>Weather unavailable</strong>
+            <span>{weatherError}</span>
+
+            <button
+              type="button"
+              className="text-button"
+              onClick={fetchDashboardWeather}
+            >
+              Try again
+              <ArrowRight size={14} />
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (!weather) {
+      return (
+        <div className="weather-state">
+          <CloudSun size={22} />
+
+          <div>
+            <strong>Your trip weather awaits</strong>
+            <span>
+              Create a trip with a destination and we'll show its current
+              weather here.
+            </span>
+
+            <button
+              type="button"
+              className="text-button"
+              onClick={handleCreateTrip}
+            >
+              Plan a trip
+              <ArrowRight size={14} />
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    const weatherInfo =
+      getDashboardWeatherInfo(
+        weather?.current?.description
+      );
+
+    const WeatherIcon =
+      weatherInfo.icon;
+
+    const temperature =
+      Math.round(
+        weather?.current?.temp ?? 0
+      );
+
+    const humidity =
+      weather?.current?.humidity;
+
+    const windSpeed =
+      weather?.current?.wind_speed;
+
+    return (
+      <>
+        <div className="weather-now">
+          <div
+            className={`weather-now-icon weather-icon-${weatherInfo.className}`}
+          >
+            <WeatherIcon
+              size={40}
+              strokeWidth={1.6}
+            />
+          </div>
+
+          <div className="weather-now-copy">
+            <strong className="weather-temp">
+              {temperature}°
+            </strong>
+
+            <span className="weather-condition">
+              {weatherInfo.label}
+            </span>
+          </div>
+        </div>
+
+        <dl className="weather-metrics">
+          <div>
+            <dt>
+              <Droplets size={15} />
+              Humidity
+            </dt>
+
+            <dd>{humidity ?? "--"}%</dd>
+          </div>
+
+          <div>
+            <dt>
+              <Wind size={15} />
+              Wind
+            </dt>
+
+            <dd>
+              {windSpeed != null
+                ? `${Math.round(windSpeed)} km/h`
+                : "--"}
+            </dd>
+          </div>
+        </dl>
+
+        <Link
+          to="/weather"
+          className="card-footer-link"
+        >
+          Full forecast
+          <ArrowRight size={15} />
+        </Link>
+      </>
+    );
   };
 
   // =========================================================
@@ -596,25 +882,19 @@ export default function Dashboard() {
           <Link
             to="/dashboard"
             className="dashboard-logo"
-            onClick={
-              closeMobileMenu
-            }
+            onClick={closeMobileMenu}
           >
             <div className="dashboard-logo-icon">
-              <Plane size={20} />
+              <Plane size={19} />
             </div>
 
-            <span>
-              Roamio
-            </span>
+            <span>Roamio</span>
           </Link>
 
           <button
             type="button"
             className="mobile-close"
-            onClick={
-              closeMobileMenu
-            }
+            onClick={closeMobileMenu}
             aria-label="Close menu"
           >
             <X size={20} />
@@ -622,221 +902,59 @@ export default function Dashboard() {
 
         </div>
 
-        <div className="sidebar-section">
+        {NAV_SECTIONS.map((section) => (
+          <div
+            className="sidebar-section"
+            key={section.label}
+          >
 
-          <p className="sidebar-label">
-            Your space
-          </p>
+            <p className="sidebar-label">
+              {section.label}
+            </p>
 
-          <nav className="sidebar-nav">
+            <nav className="sidebar-nav">
 
-            <Link
-              to="/dashboard"
-              className={`sidebar-link ${
-                isActive(
-                  "/dashboard"
+              {section.links.map(
+                ({ to, label, icon: Icon, showTripCount }) => (
+                  <Link
+                    key={to}
+                    to={to}
+                    className={`sidebar-link ${
+                      isActive(to)
+                        ? "active"
+                        : ""
+                    }`}
+                    aria-current={
+                      isActive(to)
+                        ? "page"
+                        : undefined
+                    }
+                    onClick={closeMobileMenu}
+                  >
+                    <Icon size={18} />
+
+                    <span>{label}</span>
+
+                    {showTripCount && trips.length > 0 && (
+                      <span className="nav-count">
+                        {trips.length}
+                      </span>
+                    )}
+                  </Link>
                 )
-                  ? "active"
-                  : ""
-              }`}
-              onClick={
-                closeMobileMenu
-              }
-            >
-              <Home size={18} />
+              )}
 
-              <span>
-                Dashboard
-              </span>
-            </Link>
-
-            <Link
-              to="/trips"
-              className={`sidebar-link ${
-                isActive("/trips")
-                  ? "active"
-                  : ""
-              }`}
-              onClick={
-                closeMobileMenu
-              }
-            >
-              <Map size={18} />
-
-              <span>
-                My Trips
-              </span>
-
-              <span className="nav-count">
-                {trips.length}
-              </span>
-            </Link>
-
-            <Link
-              to="/explore"
-              className={`sidebar-link ${
-                isActive(
-                  "/explore"
-                )
-                  ? "active"
-                  : ""
-              }`}
-              onClick={
-                closeMobileMenu
-              }
-            >
-              <Compass size={18} />
-
-              <span>
-                Explore destinations
-              </span>
-            </Link>
-
-            <Link
-              to="/family"
-              className={`sidebar-link ${
-                isActive(
-                  "/family"
-                )
-                  ? "active"
-                  : ""
-              }`}
-              onClick={
-                closeMobileMenu
-              }
-            >
-              <Users size={18} />
-
-              <span>
-                Travel Group
-              </span>
-            </Link>
-
-          </nav>
-
-        </div>
-
-        <div className="sidebar-section">
-
-          <p className="sidebar-label">
-            Planning
-          </p>
-
-          <nav className="sidebar-nav">
-
-            <Link
-              to="/calendar"
-              className={`sidebar-link ${
-                isActive(
-                  "/calendar"
-                )
-                  ? "active"
-                  : ""
-              }`}
-              onClick={
-                closeMobileMenu
-              }
-            >
-              <CalendarDays size={18} />
-
-              <span>
-                Calendar
-              </span>
-            </Link>
-
-            <Link
-              to="/weather"
-              className={`sidebar-link ${
-                isActive(
-                  "/weather"
-                )
-                  ? "active"
-                  : ""
-              }`}
-              onClick={
-                closeMobileMenu
-              }
-            >
-              <CloudSun size={18} />
-
-              <span>
-                Weather
-              </span>
-            </Link>
-
-            <Link
-              to="/translator"
-              className={`sidebar-link ${
-                isActive(
-                  "/translator"
-                )
-                  ? "active"
-                  : ""
-              }`}
-              onClick={
-                closeMobileMenu
-              }
-            >
-              <Languages size={18} />
-
-              <span>
-                Travel Translator
-              </span>
-            </Link>
-
-            <Link
-              to="/settings"
-              className={`sidebar-link ${
-                isActive(
-                  "/settings"
-                )
-                  ? "active"
-                  : ""
-              }`}
-              onClick={
-                closeMobileMenu
-              }
-            >
-              <Settings size={18} />
-
-              <span>
-                Settings
-              </span>
-            </Link>
-
-          </nav>
-
-        </div>
-
-        <div className="sidebar-bottom">
-
-          <div className="sidebar-tip">
-
-            <div className="tip-icon">
-              <Sparkles size={17} />
-            </div>
-
-            <div>
-
-              <strong>
-                Travel smarter
-              </strong>
-
-              <p>
-                Keep your group plans
-                in one place.
-              </p>
-
-            </div>
+            </nav>
 
           </div>
+        ))}
+
+        <div className="sidebar-bottom">
 
           <button
             type="button"
             className="sidebar-logout"
-            onClick={
-              handleLogout
-            }
+            onClick={handleLogout}
           >
             <LogOut size={17} />
 
@@ -854,9 +972,7 @@ export default function Dashboard() {
       {mobileMenu && (
         <div
           className="mobile-overlay"
-          onClick={
-            closeMobileMenu
-          }
+          onClick={closeMobileMenu}
         />
       )}
 
@@ -878,17 +994,13 @@ export default function Dashboard() {
             }
             aria-label="Open menu"
           >
-            <Menu size={21} />
+            <Menu size={20} />
           </button>
 
           <div className="header-date">
-
             <CalendarDays size={16} />
 
-            <span>
-              {getDashboardDate()}
-            </span>
-
+            <span>{getDashboardDate()}</span>
           </div>
 
           <div className="header-actions">
@@ -906,6 +1018,7 @@ export default function Dashboard() {
             <Link
               to="/settings"
               className="header-profile"
+              aria-label="Profile and settings"
             >
 
               <div className="profile-avatar">
@@ -913,15 +1026,8 @@ export default function Dashboard() {
               </div>
 
               <div className="profile-details">
-
-                <strong>
-                  {userName}
-                </strong>
-
-                <span>
-                  Roamio
-                </span>
-
+                <strong>{userName}</strong>
+                <span>Profile & settings</span>
               </div>
 
               <ChevronRight size={16} />
@@ -936,228 +1042,181 @@ export default function Dashboard() {
             DASHBOARD CONTENT
         =================================================== */}
 
-        <div className="dashboard-content">
+        {/* HERO - full-width photo band; the stat cards overlap its edge */}
 
-          {/* HERO */}
+        <section className="hero-band">
 
-          <section className="hero-section">
+          <div
+            className="hero-photo"
+            style={{ backgroundImage: `url(${heroPhoto})` }}
+            aria-hidden="true"
+          />
 
-            <div className="hero-background" />
+          <div className="hero-shade" aria-hidden="true" />
 
-            <div className="hero-glow hero-glow-one" />
-
-            <div className="hero-glow hero-glow-two" />
-
-            <div className="hero-flight-path">
-
-              <span />
-              <span />
-              <span />
-
-            </div>
+          <div className="hero-section">
 
             <div className="hero-content">
 
-              <div className="hero-badge">
-
+              <p className="hero-badge">
                 <Sparkles size={14} />
-
                 Smart group travel
-
-              </div>
+              </p>
 
               <h1>
-
-                Good morning,
-                <br />
-
-                <span>
-                  {firstName}!
-                </span>
-
+                {getGreeting()}, <span>{firstName}</span>
               </h1>
 
               <p className="hero-subtitle">
-                Ready to plan your next
-                group adventure?
+                {nextTrip
+                  ? "Here's where your group's plans stand today."
+                  : "Ready to plan your next group adventure? Everything you need is in one place."}
               </p>
 
-              <p className="hero-description">
-                Start planning an
-                unforgettable adventure
-                together. Everything you
-                need, all in one place.
-              </p>
+              <div className="hero-actions">
 
-              <button
-                type="button"
-                className="hero-button"
-                onClick={
-                  handleCreateTrip
-                }
+                <button
+                  type="button"
+                  className="hero-button"
+                  onClick={handleCreateTrip}
+                >
+                  <Plus size={18} />
+                  Plan a new trip
+                </button>
+
+                <Link
+                  to="/trips"
+                  className="hero-button secondary"
+                >
+                  View my trips
+                </Link>
+
+              </div>
+
+            </div>
+
+            {/* NEXT TRIP SPOTLIGHT */}
+
+            {nextTrip ? (
+              <Link
+                to={`/trips/${nextTrip.id}`}
+                className="hero-spotlight"
               >
 
-                <Plus size={18} />
+                <span className="spotlight-label">
+                  <Luggage size={14} />
+                  Next trip
+                </span>
 
-                Create a new trip
+                <div className="spotlight-countdown">
+                  {nextTripDays === null ? (
+                    <strong className="spotlight-word">
+                      Dates TBC
+                    </strong>
+                  ) : nextTripDays <= 0 ? (
+                    <strong className="spotlight-word">
+                      {nextTripDays === 0 ? "Today" : "Underway"}
+                    </strong>
+                  ) : (
+                    <>
+                      <strong>{nextTripDays}</strong>
+                      <span>
+                        {nextTripDays === 1 ? "day to go" : "days to go"}
+                      </span>
+                    </>
+                  )}
+                </div>
 
-                <ArrowRight size={16} />
+                <div className="spotlight-route" aria-hidden="true">
+                  <span className="route-dot" />
 
-              </button>
+                  <span className="route-line">
+                    <Plane size={16} className="route-plane" />
+                  </span>
 
-            </div>
+                  <MapPin size={16} className="route-pin" />
+                </div>
 
-            <div className="hero-visual">
+                <div className="spotlight-trip">
+                  <strong>
+                    {nextTrip.title || "Untitled trip"}
+                  </strong>
 
-              <div className="floating-pin floating-pin-one">
-                <MapPin size={18} />
+                  <span>
+                    <MapPin size={14} />
+                    {nextTrip.destination || "Destination not set"}
+                  </span>
+
+                  <span>
+                    <CalendarDays size={14} />
+                    {tripDateLabel(nextTrip)}
+                  </span>
+                </div>
+
+                <span className="spotlight-link">
+                  Open trip
+                  <ArrowRight size={15} />
+                </span>
+
+              </Link>
+            ) : (
+              <div className="hero-spotlight is-empty">
+
+                <span className="spotlight-label">
+                  <Luggage size={14} />
+                  Next trip
+                </span>
+
+                <div className="spotlight-trip">
+                  <strong>Nothing booked yet</strong>
+
+                  <span>
+                    Answer a few questions and Roamio suggests destinations
+                    your whole group will enjoy.
+                  </span>
+                </div>
+
               </div>
+            )}
 
-              <div className="floating-pin floating-pin-two">
-                <MapPin size={18} />
-              </div>
+          </div>
 
-              <div className="floating-pin floating-pin-three">
-                <MapPin size={18} />
-              </div>
+        </section>
 
-              <div className="dashboard-plane">
-                <Plane size={35} />
-              </div>
-
-              <div className="hero-globe">
-                <Globe2 size={150} />
-              </div>
-
-            </div>
-
-          </section>
+        <div className="dashboard-content">
 
           {/* =================================================
               STATS
           ================================================= */}
 
-          <section className="stats-grid">
+          <section
+            className="stats-grid"
+            aria-label="Trip summary"
+          >
 
-            <div className="stat-card">
+            {stats.map(({ to, label, value, icon: Icon, tone }) => (
+              <Link
+                key={label}
+                to={to}
+                className="stat-card"
+              >
 
-              <div className="stat-icon blue">
-                <Plane size={20} />
-              </div>
+                <div className={`stat-icon ${tone}`}>
+                  <Icon size={19} />
+                </div>
 
-              <div className="stat-info">
+                <div className="stat-info">
+                  <strong>
+                    {tripsLoading && label !== "Group members"
+                      ? "–"
+                      : <CountUp value={value} />}
+                  </strong>
 
-                <span>
-                  Next destination
-                </span>
+                  <span>{label}</span>
+                </div>
 
-                <strong>
-                  {nextTrip?.destination ||
-                    "Anywhere"}
-                </strong>
-
-              </div>
-
-              <div className="stat-decoration">
-                <MapPin size={45} />
-              </div>
-
-            </div>
-
-            {/* TOTAL TRIPS - CLICKABLE */}
-
-            <Link
-              to="/trips"
-              className="stat-card"
-            >
-
-              <div className="stat-icon teal">
-                <Compass size={20} />
-              </div>
-
-              <div className="stat-info">
-
-                <span>
-                  Total trips
-                </span>
-
-                <strong>
-                  {trips.length}
-                </strong>
-
-              </div>
-
-              <div className="stat-decoration">
-                <Plane size={42} />
-              </div>
-
-            </Link>
-
-            {/* COMPLETED TRIPS - CLICKABLE */}
-
-            <Link
-              to="/trips?status=completed"
-              className="stat-card"
-            >
-
-              <div className="stat-icon purple">
-                <Map size={20} />
-              </div>
-
-              <div className="stat-info">
-
-                <span>
-                  Trips completed
-                </span>
-
-                <strong>
-                  {completedTrips.length}
-                </strong>
-
-                <small>
-                  Adventures completed
-                </small>
-
-              </div>
-
-              <div className="stat-decoration">
-                <Globe2 size={45} />
-              </div>
-
-            </Link>
-
-            {/* GROUP MEMBERS */}
-
-            <Link
-              to="/family"
-              className="stat-card"
-            >
-
-              <div className="stat-icon orange">
-                <Users size={20} />
-              </div>
-
-              <div className="stat-info">
-
-                <span>
-                  Group members
-                </span>
-
-                <strong>
-                  {groupMembers.length}
-                </strong>
-
-                <small>
-                  Planning together
-                </small>
-
-              </div>
-
-              <div className="stat-decoration">
-                <Users size={43} />
-              </div>
-
-            </Link>
+              </Link>
+            ))}
 
           </section>
 
@@ -1169,176 +1228,167 @@ export default function Dashboard() {
 
             {/* TRIPS */}
 
-            <section className="trips-section">
+            <section className="dashboard-card trips-section">
 
-              <div className="section-heading">
+              <div className="card-heading">
 
-                <div>
+                <h2>Upcoming trips</h2>
 
-                  <span className="section-eyebrow">
-                    Your journeys
-                  </span>
-
-                  <h2>
-                    Upcoming trips
-                  </h2>
-
-                </div>
-
-                <Link
-                  to="/trips"
-                  className="view-all"
-                >
-                  View all
-
-                  <ArrowRight size={15} />
-                </Link>
+                {relevantTrips.length > 0 && (
+                  <Link
+                    to="/trips"
+                    className="view-all"
+                  >
+                    View all
+                    <ArrowRight size={15} />
+                  </Link>
+                )}
 
               </div>
 
               {tripsLoading ? (
 
-                <p className="trips-empty-note">
-                  Loading your trips...
-                </p>
+                <div
+                  className="trip-list"
+                  aria-busy="true"
+                  aria-label="Loading your trips"
+                >
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      className="trip-row skeleton"
+                      key={i}
+                    />
+                  ))}
+                </div>
 
               ) : tripsError ? (
 
-                <p className="trips-empty-note">
-                  {tripsError}
-                </p>
+                <div className="empty-state">
+                  <div className="empty-icon">
+                    <Map size={22} />
+                  </div>
 
-              ) : displayedTrips.length ===
-                0 ? (
+                  <strong>We couldn't load your trips</strong>
 
-                <p className="trips-empty-note">
-                  No upcoming trips yet —
-                  use "Create a new trip"
-                  above to plan your
-                  next adventure.
-                </p>
+                  <p>{tripsError}</p>
+
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={() => window.location.reload()}
+                  >
+                    <RefreshCw size={16} />
+                    Try again
+                  </button>
+                </div>
+
+              ) : displayedTrips.length === 0 ? (
+
+                <div className="empty-state">
+                  <div className="empty-icon">
+                    <Plane size={22} />
+                  </div>
+
+                  <strong>No upcoming trips yet</strong>
+
+                  <p>
+                    Plan your next adventure and it will show up here with a
+                    countdown and live weather.
+                  </p>
+
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={handleCreateTrip}
+                  >
+                    <Plus size={16} />
+                    Plan a new trip
+                  </button>
+                </div>
 
               ) : (
 
-                <div className="trip-list">
+                <ul className="trip-list">
 
-                  {displayedTrips.map(
-                    (trip) => {
+                  {displayedTrips.map((trip) => {
+                    const status =
+                      tripStatus(trip);
 
-                      const status =
-                        tripStatus(
-                          trip
-                        );
+                    const { className, icon: StatusIcon } =
+                      STATUS_STYLE[status];
 
-                      return (
+                    const start = trip.startDate
+                      ? new Date(trip.startDate)
+                      : null;
 
+                    return (
+                      <li key={trip.id}>
                         <Link
                           to={`/trips/${trip.id}`}
-                          className="trip-card"
-                          key={
-                            trip.id
-                          }
+                          className="trip-row"
                         >
 
-                          <div className="trip-image trip-image-fallback">
+                          <div
+                            className={`trip-date-tile ${
+                              start ? "" : "is-empty"
+                            }`}
+                            aria-hidden="true"
+                          >
+                            {start ? (
+                              <>
+                                <span>
+                                  {start.toLocaleDateString("en-ZA", {
+                                    month: "short",
+                                  })}
+                                </span>
 
-                            <MapPin
-                              size={26}
-                            />
-
-                            <span
-                              className={`trip-status ${
-                                status ===
-                                "Upcoming"
-                                  ? "upcoming"
-                                  : "planning"
-                              }`}
-                            >
-
-                              {status ===
-                              "Upcoming" ? (
-                                <CheckCircle2
-                                  size={
-                                    13
-                                  }
-                                />
-                              ) : (
-                                <Clock3
-                                  size={
-                                    13
-                                  }
-                                />
-                              )}
-
-                              {status}
-
-                            </span>
-
+                                <strong>{start.getDate()}</strong>
+                              </>
+                            ) : (
+                              <CalendarDays size={20} />
+                            )}
                           </div>
 
                           <div className="trip-info">
+                            <h3>
+                              {trip.title || "Untitled trip"}
+                            </h3>
 
-                            <div className="trip-title-row">
+                            <div className="trip-meta">
+                              <span>
+                                <MapPin size={14} />
+                                {trip.destination || "Destination not set"}
+                              </span>
 
-                              <div>
-
-                                <h3>
-                                  {
-                                    trip.title ||
-                                    "Untitled trip"
-                                  }
-                                </h3>
-
-                                <div className="trip-location">
-
-                                  <MapPin
-                                    size={
-                                      14
-                                    }
-                                  />
-
-                                  {trip.destination ||
-                                    "Destination not set"}
-
-                                </div>
-
-                              </div>
-
+                              <span>
+                                <CalendarDays size={14} />
+                                {tripDateLabel(trip)}
+                              </span>
                             </div>
-
-                            <div className="trip-footer">
-
-                              <div className="trip-date">
-
-                                <CalendarDays
-                                  size={
-                                    14
-                                  }
-                                />
-
-                                {tripDateLabel(
-                                  trip
-                                )}
-
-                              </div>
-
-                              <ArrowRight
-                                size={
-                                  16
-                                }
-                              />
-
-                            </div>
-
                           </div>
 
+                          <div className="trip-side">
+                            <span className={`trip-status ${className}`}>
+                              <StatusIcon size={13} />
+                              {status}
+                            </span>
+
+                            <span className="trip-countdown">
+                              {countdownLabel(trip)}
+                            </span>
+                          </div>
+
+                          <ChevronRight
+                            size={18}
+                            className="trip-chevron"
+                          />
+
                         </Link>
+                      </li>
+                    );
+                  })}
 
-                      );
-                    }
-                  )}
-
-                </div>
+                </ul>
 
               )}
 
@@ -1348,148 +1398,27 @@ export default function Dashboard() {
 
             <aside className="dashboard-right-column">
 
-              {/* TRAVEL GROUP */}
+              {/* WEATHER */}
 
-              <section className="family-card">
+              <section className="dashboard-card weather-card">
 
-                <div className="section-heading compact">
+                <div className="card-heading">
 
                   <div>
+                    <h2>Weather</h2>
 
-                    <span className="section-eyebrow">
-                      Your travel group
-                    </span>
-
-                    <h2>
-                      Travel Group
-                    </h2>
-
+                    {nextTrip?.destination && (
+                      <p className="section-sub">
+                        <MapPin size={13} />
+                        {nextTrip.destination} · now
+                      </p>
+                    )}
                   </div>
 
                   <button
                     type="button"
-                    className="small-add"
-                    aria-label="Add group member"
-                    onClick={
-                      handleAddGroup
-                    }
-                  >
-
-                    <Plus size={16} />
-
-                  </button>
-
-                </div>
-
-                <div className="family-list">
-
-                  {groupMembers.map(
-                    (member) => (
-                      <div
-                        className="family-member"
-                        key={
-                          member.id
-                        }
-                      >
-
-                        <div
-                          className={`family-avatar avatar-${String(
-                            member.id
-                          ).replace(
-                            "member-",
-                            ""
-                          )}`}
-                        >
-                          {member.initials}
-                        </div>
-
-                        <div className="family-member-info">
-
-                          <strong>
-                            {
-                              member.name
-                            }
-                          </strong>
-
-                          <span>
-                            {member.role ||
-                              member.relationship ||
-                              "Group member"}
-                          </span>
-
-                        </div>
-
-                        {member.status ===
-                          "Organizer" && (
-                          <span className="organizer-badge">
-                            You
-                          </span>
-                        )}
-
-                      </div>
-                    )
-                  )}
-
-                </div>
-
-                <button
-                  type="button"
-                  className="invite-family"
-                  onClick={
-                    handleInviteGroup
-                  }
-                >
-
-                  <Users size={16} />
-
-                  Invite group member
-
-                  <ArrowRight
-                    size={15}
-                  />
-
-                </button>
-
-              </section>
-
-              {/* =================================================
-                  PREMIUM WEATHER
-              ================================================= */}
-
-              <section className="dashboard-weather-card">
-
-                <div className="weather-card-glow weather-card-glow-one" />
-
-                <div className="weather-card-glow weather-card-glow-two" />
-
-                <div className="weather-cloud-decoration weather-cloud-one">
-                  <CloudSun size={72} />
-                </div>
-
-                <div className="weather-cloud-decoration weather-cloud-two">
-                  <Cloud size={48} />
-                </div>
-
-                <div className="weather-card-header">
-
-                  <div>
-
-                    <span className="section-eyebrow">
-                      Travel weather
-                    </span>
-
-                    <h2>
-                      Today's conditions
-                    </h2>
-
-                  </div>
-
-                  <button
-                    type="button"
-                    className="weather-refresh-button"
-                    onClick={
-                      fetchDashboardWeather
-                    }
+                    className="icon-button"
+                    onClick={fetchDashboardWeather}
                     disabled={
                       weatherLoading ||
                       !nextTrip?.destination
@@ -1497,7 +1426,6 @@ export default function Dashboard() {
                     aria-label="Refresh weather"
                     title="Refresh weather"
                   >
-
                     <RefreshCw
                       size={15}
                       className={
@@ -1506,305 +1434,97 @@ export default function Dashboard() {
                           : ""
                       }
                     />
-
                   </button>
 
                 </div>
 
-                {weatherLoading ? (
+                {renderWeather()}
 
-                  <div className="dashboard-weather-loading">
+              </section>
 
-                    <div className="weather-loading-icon">
-                      <RefreshCw
-                        size={25}
-                        className="weather-refresh-spin"
-                      />
-                    </div>
+              {/* TRAVEL GROUP */}
 
-                    <div>
+              <section className="dashboard-card group-card">
 
-                      <strong>
-                        Checking the skies...
-                      </strong>
+                <div className="card-heading">
 
-                      <span>
-                        Getting the latest weather for your next trip.
-                      </span>
+                  <div>
+                    <h2>Travel group</h2>
 
-                    </div>
-
+                    <p className="section-sub">
+                      {groupMembers.length}{" "}
+                      {groupMembers.length === 1 ? "member" : "members"}
+                    </p>
                   </div>
 
-                ) : weatherError ? (
+                  <button
+                    type="button"
+                    className="icon-button"
+                    aria-label="Add group member"
+                    title="Add group member"
+                    onClick={handleOpenGroup}
+                  >
+                    <Plus size={16} />
+                  </button>
 
-                  <div className="dashboard-weather-error">
+                </div>
 
-                    <div className="weather-error-icon">
-                      <CloudSun size={24} />
-                    </div>
+                <ul className="group-list">
 
-                    <div className="weather-error-content">
+                  {shownMembers.map((member, index) => (
+                    <li
+                      className="group-member"
+                      key={member.id}
+                    >
 
-                      <strong>
-                        Weather unavailable
-                      </strong>
-
-                      <p>
-                        {weatherError}
-                      </p>
-
-                      <button
-                        type="button"
-                        onClick={
-                          fetchDashboardWeather
-                        }
+                      <div
+                        className={`group-avatar tone-${index % 4}`}
                       >
-                        Try again
-                        <ArrowRight size={14} />
-                      </button>
-
-                    </div>
-
-                  </div>
-
-                ) : weather ? (
-
-                  (() => {
-
-                    const weatherInfo =
-                      getDashboardWeatherInfo(
-                        weather?.current?.description
-                      );
-
-                    const WeatherIcon =
-                      weatherInfo.icon;
-
-                    const temperature =
-                      Math.round(
-                        weather?.current?.temp ?? 0
-                      );
-
-                    const humidity =
-                      weather?.current?.humidity;
-
-                    const windSpeed =
-                      weather?.current?.wind_speed;
-
-                    return (
-
-                      <>
-
-                        <div className="dashboard-weather-destination">
-
-                          <div className="weather-destination-icon">
-                            <MapPin size={15} />
-                          </div>
-
-                          <div>
-
-                            <span>
-                              Next trip
-                            </span>
-
-                            <strong>
-                              {nextTrip?.destination ||
-                                "Destination"}
-                            </strong>
-
-                          </div>
-
-                          <div className="weather-live-badge">
-
-                            <span />
-
-                            Live
-
-                          </div>
-
-                        </div>
-
-                        <div className="dashboard-weather-main">
-
-                          <div
-                            className={`dashboard-weather-icon weather-icon-${weatherInfo.className}`}
-                          >
-
-                            <WeatherIcon
-                              size={54}
-                              strokeWidth={1.6}
-                            />
-
-                            <div className="weather-icon-ring" />
-
-                          </div>
-
-                          <div className="dashboard-weather-temperature">
-
-                            <div className="weather-temperature-row">
-
-                              <strong>
-                                {temperature}
-                              </strong>
-
-                              <span className="weather-degree">
-                                °
-                              </span>
-
-                            </div>
-
-                            <span className="weather-condition">
-                              {weatherInfo.label}
-                            </span>
-
-                            <span className="weather-updated">
-                              Current conditions
-                            </span>
-
-                          </div>
-
-                        </div>
-
-                        <div className="dashboard-weather-stats">
-
-                          <div className="weather-stat">
-
-                            <div className="weather-stat-icon weather-stat-humidity">
-                              <Droplets size={17} />
-                            </div>
-
-                            <div className="weather-stat-copy">
-
-                              <span>
-                                Humidity
-                              </span>
-
-                              <strong>
-                                {humidity ?? "--"}%
-                              </strong>
-
-                            </div>
-
-                          </div>
-
-                          <div className="weather-stat">
-
-                            <div className="weather-stat-icon weather-stat-wind">
-                              <Wind size={17} />
-                            </div>
-
-                            <div className="weather-stat-copy">
-
-                              <span>
-                                Wind
-                              </span>
-
-                              <strong>
-                                {windSpeed != null
-                                  ? `${Math.round(
-                                      windSpeed
-                                    )} km/h`
-                                  : "--"}
-                              </strong>
-
-                            </div>
-
-                          </div>
-
-                        </div>
-
-                        <Link
-                          to="/weather"
-                          className="dashboard-weather-button"
-                        >
-
-                          <span>
-                            Open full weather forecast
-                          </span>
-
-                          <span className="weather-button-arrow">
-                            <ArrowRight size={15} />
-                          </span>
-
-                        </Link>
-
-                      </>
-
-                    );
-
-                  })()
-
-                ) : (
-
-                  <div className="dashboard-weather-empty">
-
-                    <div className="weather-empty-icon">
-                      <CloudSun size={30} />
-                    </div>
-
-                    <div>
-
-                      <strong>
-                        Your trip weather awaits
-                      </strong>
-
-                      <p>
-                        Create a trip with a destination
-                        and we'll show its current weather here.
-                      </p>
-
-                      <button
-                        type="button"
-                        onClick={
-                          handleCreateTrip
-                        }
-                      >
-                        Plan a trip
-                        <ArrowRight size={14} />
-                      </button>
-
-                    </div>
-
-                  </div>
-
+                        {member.initials}
+                      </div>
+
+                      <div className="group-member-info">
+                        <strong>{member.name}</strong>
+
+                        <span>
+                          {member.role ||
+                            member.relationship ||
+                            "Group member"}
+                        </span>
+                      </div>
+
+                      {member.status === "Organizer" && (
+                        <span className="organizer-badge">
+                          You
+                        </span>
+                      )}
+
+                    </li>
+                  ))}
+
+                </ul>
+
+                {hiddenMemberCount > 0 && (
+                  <p className="group-more">
+                    +{hiddenMemberCount} more
+                  </p>
                 )}
+
+                <Link
+                  to="/family"
+                  className="card-footer-link"
+                >
+                  {groupMembers.length > 1
+                    ? "Manage group"
+                    : "Invite your travel group"}
+                  <ArrowRight size={15} />
+                </Link>
 
               </section>
 
             </aside>
 
           </div>
-
-          {/* =================================================
-              BOTTOM MESSAGE
-          ================================================= */}
-
-          <section className="bottom-message">
-
-            <div className="bottom-message-icon">
-              <Sparkles size={18} />
-            </div>
-
-            <div>
-
-              <strong>
-                Every great adventure
-                starts with a plan.
-              </strong>
-
-              <span>
-                Make your next group
-                memory unforgettable.
-              </span>
-
-            </div>
-
-            <Plane
-              className="bottom-plane"
-              size={23}
-            />
-
-          </section>
 
         </div>
 

@@ -5,6 +5,7 @@ import {
   Navigate,
 } from "react-router-dom";
 
+import Landing from "./pages/Landing.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 
@@ -41,6 +42,27 @@ function ProtectedRoute({ children }) {
   }
 
   return children;
+}
+
+// =========================================================
+// HOME - landing page for visitors, dashboard once signed in
+// =========================================================
+
+function HomeRoute() {
+  const isAuthenticated = useAuthStore(
+    (state) => state.isAuthenticated
+  );
+
+  if (isAuthenticated) {
+    return (
+      <Navigate
+        to="/dashboard"
+        replace
+      />
+    );
+  }
+
+  return <Landing />;
 }
 
 // =========================================================
@@ -198,12 +220,7 @@ function App() {
 
         <Route
           path="/"
-          element={
-            <Navigate
-              to="/dashboard"
-              replace
-            />
-          }
+          element={<HomeRoute />}
         />
 
         {/* =================================================
