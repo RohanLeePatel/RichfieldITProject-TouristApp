@@ -25,6 +25,8 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
+import { useAuthStore } from "../store/authStore.js";
+
 import heroImage from "../assets/landing/hero-capetown.jpg";
 import ctaImage from "../assets/landing/cta-safari.jpg";
 import beachImage from "../assets/landing/beach.jpg";
@@ -419,6 +421,7 @@ function DestinationCarousel({ items }) {
 
 export default function Landing() {
   const { theme } = useTheme();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const pageRef = useRef(null);
 
   const [scrolled, setScrolled] = useState(false);
@@ -471,13 +474,21 @@ export default function Landing() {
               </a>
             ))}
 
-            <Link to="/login" className="landing-nav-login" onClick={closeMenu}>
-              Log in
-            </Link>
+            {isAuthenticated ? (
+              <Link to="/dashboard" className="landing-btn landing-btn-primary landing-nav-cta" onClick={closeMenu}>
+                Go to dashboard
+              </Link>
+            ) : (
+              <>
+                <Link to="/login" className="landing-nav-login" onClick={closeMenu}>
+                  Log in
+                </Link>
 
-            <Link to="/register" className="landing-btn landing-btn-primary landing-nav-cta" onClick={closeMenu}>
-              Get started
-            </Link>
+                <Link to="/register" className="landing-btn landing-btn-primary landing-nav-cta" onClick={closeMenu}>
+                  Get started
+                </Link>
+              </>
+            )}
           </nav>
 
           <button

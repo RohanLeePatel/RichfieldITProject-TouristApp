@@ -45,27 +45,6 @@ function ProtectedRoute({ children }) {
 }
 
 // =========================================================
-// HOME - landing page for visitors, dashboard once signed in
-// =========================================================
-
-function HomeRoute() {
-  const isAuthenticated = useAuthStore(
-    (state) => state.isAuthenticated
-  );
-
-  if (isAuthenticated) {
-    return (
-      <Navigate
-        to="/dashboard"
-        replace
-      />
-    );
-  }
-
-  return <Landing />;
-}
-
-// =========================================================
 // APP
 // =========================================================
 
@@ -220,7 +199,7 @@ function App() {
 
         <Route
           path="/"
-          element={<HomeRoute />}
+          element={<Landing />}
         />
 
         {/* =================================================
@@ -231,7 +210,7 @@ function App() {
           path="*"
           element={
             <Navigate
-              to="/dashboard"
+              to="/"
               replace
             />
           }
