@@ -31,7 +31,7 @@ exports.joinGroup = async (req, res, next) => {
     const userId = req.user.id;
     const { inviteCode } = req.body;
 
-    if (!inviteCode) {
+    if (!inviteCode || typeof inviteCode !== 'string') {
       return res.status(400).json({ error: 'Invite code is required.' });
     }
 
@@ -41,6 +41,7 @@ exports.joinGroup = async (req, res, next) => {
     if (error.code === 'P2002') {
       return res.status(400).json({ error: 'You are already a member of this group.' });
     }
+    if (error.statusCode) return res.status(error.statusCode).json({ error: error.message });
     next(error);
   }
 };

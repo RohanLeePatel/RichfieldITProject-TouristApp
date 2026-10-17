@@ -56,8 +56,8 @@ const travelGroupRepository = {
 
   // Join a group via invite code
   joinGroupByCode: async (userId, inviteCode) => {
-    const group = await prisma.travelGroup.findUnique({
-      where: { inviteCode: inviteCode.trim().toUpperCase() },
+    const group = await prisma.travelGroup.findFirst({
+      where: { inviteCode: inviteCode.trim().toUpperCase(), deletedAt: null },
     });
 
     if (!group) {

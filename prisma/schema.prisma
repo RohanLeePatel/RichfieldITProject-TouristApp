@@ -87,6 +87,7 @@ model Invitation {
   email         String
   token         String      @unique
   status        String      @default("PENDING") // "PENDING", "ACCEPTED", "DECLINED", "EXPIRED"
+  role          String      @default("MEMBER") // role granted on acceptance: "ADMIN", "MEMBER", "VIEWER"
   expiresAt     DateTime
   createdAt     DateTime    @default(now())
 
