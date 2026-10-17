@@ -2,48 +2,66 @@ const authService = require('../services/authService');
 const tokenService = require('../auth/tokenService');
 const userRepository = require('../repositories/userRepository');
 
+// Expected errors (validation/auth) use the { error } shape; anything else goes to the global handler
+const fail = (res, next, err) => {
+  if (err.statusCode) return res.status(err.statusCode).json({ error: err.message });
+  return next(err);
+};
+
+const setSession = (res, accessToken, refreshToken) => {
+  tokenService.setRefreshTokenCookie(res, refreshToken);
+  res.cookie('accessToken', accessToken, {
+    httpOnly: true,
+    signed: true,
+    maxAge: 15 * 60 * 1000 // 15 minutes
+  });
+};
+
 class AuthController {
+  // No session is issued here: the account must verify its email first
   async register(req, res, next) {
     try {
-      const { user, accessToken, refreshToken } = await authService.register(req.body);
-      
-      // Set the refresh token using your service
-      tokenService.setRefreshTokenCookie(res, refreshToken);
-      
-      // Set the access token in a signed cookie so you are logged in immediately
-      res.cookie('accessToken', accessToken, {
-        httpOnly: true,
-        signed: true,
-        maxAge: 15 * 60 * 1000 // 15 minutes
+      const { email, otp } = await authService.register(req.body);
+      res.status(201).json({
+        message: 'Registration successful. Please verify the code sent to your email.',
+        email,
+        // Only exposed when explicitly enabled; never inferred from NODE_ENV
+        devOtp: process.env.ENABLE_DEV_OTP === 'true' ? otp : undefined
       });
-
-      res.status(201).json({ user, accessToken });
     } catch (err) {
-      next(err);
+      fail(res, next, err);
+    }
+  }
+
+  async verifyOtp(req, res, next) {
+    try {
+      const { user, accessToken, refreshToken } = await authService.verifyOtp(req.body);
+      setSession(res, accessToken, refreshToken);
+      res.status(200).json({ message: 'Email verified successfully.', user, accessToken });
+    } catch (err) {
+      fail(res, next, err);
+    }
+  }
+
+  async resendOtp(req, res, next) {
+    try {
+      await authService.resendOtp(req.body);
+      res.status(200).json({ message: 'New OTP sent.' });
+    } catch (err) {
+      fail(res, next, err);
     }
   }
 
   async login(req, res, next) {
     try {
-      // Call your auth service to handle the login logic
-      const { user, accessToken, refreshToken } = await authService.login(req.body);
-
-      // Set the refresh token using your service
-      tokenService.setRefreshTokenCookie(res, refreshToken);
-
-      // Set the access token in a signed cookie
-      res.cookie('accessToken', accessToken, {
-        httpOnly: true,
-        signed: true,
-        maxAge: 15 * 60 * 1000 // 15 minutes
-      });
-
+      const { accessToken, refreshToken } = await authService.login(req.body);
+      setSession(res, accessToken, refreshToken);
       res.status(200).json({
         message: 'Login successful',
         accessToken
       });
     } catch (err) {
-      next(err);
+      fail(res, next, err);
     }
   }
 
@@ -64,7 +82,7 @@ class AuthController {
 
       res.json({ accessToken });
     } catch (err) {
-      next(err);
+      fail(res, next, err);
     }
   }
 

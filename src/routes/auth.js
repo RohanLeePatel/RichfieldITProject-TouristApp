@@ -5,6 +5,8 @@ const requireAuth = require('../middleware/authMiddleware');
 
 // Auth endpoints (FR-001 - FR-004)
 router.post('/register', authController.register);
+router.post('/verify-otp', authController.verifyOtp);
+router.post('/resend-otp', authController.resendOtp);
 router.post('/login', authController.login);
 router.post('/refresh', authController.refresh);
 router.post('/logout', authController.logout);

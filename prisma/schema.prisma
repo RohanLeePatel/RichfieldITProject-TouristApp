@@ -21,6 +21,12 @@ model User {
   updatedAt    DateTime  @updatedAt
   deletedAt    DateTime?
 
+  // Email OTP verification (hash only; the plain code is never stored)
+  isVerified   Boolean   @default(false)
+  otpHash      String?
+  otpExpiresAt DateTime?
+  otpAttempts  Int       @default(0)
+
   preferences       UserPreference?
   groupMemberships  TravelGroupMember[]
   sentInvitations   Invitation[]        @relation("SenderInvitations")

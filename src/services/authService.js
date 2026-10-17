@@ -1,80 +1,121 @@
 const userRepository = require('../repositories/userRepository');
 const tokenService = require('../auth/tokenService');
+const { generateOtp, hashOtp, otpExpiry, otpMatches, logDevOtp, MAX_OTP_ATTEMPTS } = require('../utils/otp');
+const { httpError } = require('./tripAccessService');
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const INVALID_OTP = 'Invalid or expired OTP.';
+
+const normalizeEmail = (email) => (typeof email === 'string' ? email.trim().toLowerCase() : '');
+
+// Issues a new code, stores only its hash, and returns the plain code for delivery
+const issueOtp = async (userId, extra = {}) => {
+  const otp = generateOtp();
+  await userRepository.setOtp(userId, { otpHash: hashOtp(otp), otpExpiresAt: otpExpiry(), ...extra });
+  return otp;
+};
+
+const toProfile = (user) => ({ id: user.id, email: user.email, fullName: user.fullName });
 
 class AuthService {
-  async register({ email, password, fullName }) {
-    const existing = await userRepository.findByEmail(email);
-    if (existing) {
-      const error = new Error('Email already registered');
-      error.statusCode = 409;
-      throw error;
+  async register({ email, password, fullName } = {}) {
+    const normalizedEmail = normalizeEmail(email);
+    if (!EMAIL_PATTERN.test(normalizedEmail)) throw httpError(400, 'A valid email is required.');
+    if (typeof password !== 'string' || password.length < 8) {
+      throw httpError(400, 'Password must be at least 8 characters.');
     }
+    if (typeof fullName !== 'string' || !fullName.trim()) throw httpError(400, 'Full name is required.');
 
     const passwordHash = await tokenService.hashPassword(password);
-    const user = await userRepository.create({ email, passwordHash, fullName });
+    const existing = await userRepository.findByEmail(normalizedEmail);
 
-    const accessToken = tokenService.generateAccessToken(user);
-    const refreshToken = tokenService.generateRefreshToken(user);
+    let otp;
+    if (existing) {
+      if (existing.isVerified) throw httpError(409, 'Email already registered');
+      // An unverified registration can be retried (e.g. lost code); only the inbox owner can finish it
+      otp = await issueOtp(existing.id, { passwordHash, fullName: fullName.trim() });
+    } else {
+      otp = generateOtp();
+      await userRepository.create({
+        email: normalizedEmail,
+        passwordHash,
+        fullName: fullName.trim(),
+        otpHash: hashOtp(otp),
+        otpExpiresAt: otpExpiry(),
+      });
+    }
 
-    return { user, accessToken, refreshToken };
+    logDevOtp(normalizedEmail, otp);
+    return { email: normalizedEmail, otp };
   }
 
-  async login({ email, password }) {
-    const user = await userRepository.findByEmail(email);
-    if (!user) {
-      const error = new Error('Invalid email or password');
-      error.statusCode = 401;
-      throw error;
+  async verifyOtp({ email, otp } = {}) {
+    const user = await userRepository.findByEmail(normalizeEmail(email));
+    // One generic error for unknown user, no/expired/exhausted code, or wrong code
+    if (!user || user.isVerified || !user.otpHash || !user.otpExpiresAt
+        || user.otpExpiresAt <= new Date() || user.otpAttempts >= MAX_OTP_ATTEMPTS) {
+      throw httpError(400, INVALID_OTP);
     }
 
-    const valid = await tokenService.comparePassword(password, user.passwordHash);
-    if (!valid) {
-      const error = new Error('Invalid email or password');
-      error.statusCode = 401;
-      throw error;
+    if (!otpMatches(otp, user.otpHash)) {
+      await userRepository.recordFailedOtp(user.id, MAX_OTP_ATTEMPTS);
+      throw httpError(400, INVALID_OTP);
     }
 
-    const accessToken = tokenService.generateAccessToken(user);
-    const refreshToken = tokenService.generateRefreshToken(user);
+    if (!(await userRepository.markVerified(user.id, user.otpHash))) throw httpError(400, INVALID_OTP);
 
     return {
-      user: {
-        id: user.id,
-        email: user.email,
-        fullName: user.fullName,
-      },
-      accessToken,
-      refreshToken,
+      user: toProfile(user),
+      accessToken: tokenService.generateAccessToken(user),
+      refreshToken: tokenService.generateRefreshToken(user),
+    };
+  }
+
+  async resendOtp({ email } = {}) {
+    const normalizedEmail = normalizeEmail(email);
+    if (!EMAIL_PATTERN.test(normalizedEmail)) throw httpError(400, 'A valid email is required.');
+
+    const user = await userRepository.findByEmail(normalizedEmail);
+    if (user?.isVerified) throw httpError(400, 'Account is already verified.');
+
+    // Unknown emails get the same response so this endpoint can't be used to probe for accounts
+    if (user) logDevOtp(normalizedEmail, await issueOtp(user.id));
+  }
+
+  async login({ email, password } = {}) {
+    const user = typeof password === 'string' ? await userRepository.findByEmail(normalizeEmail(email)) : null;
+    if (!user) throw httpError(401, 'Invalid email or password');
+
+    const valid = await tokenService.comparePassword(password, user.passwordHash);
+    if (!valid) throw httpError(401, 'Invalid email or password');
+
+    if (!user.isVerified) throw httpError(403, 'Account not verified. Please verify your email first.');
+
+    return {
+      user: toProfile(user),
+      accessToken: tokenService.generateAccessToken(user),
+      refreshToken: tokenService.generateRefreshToken(user),
     };
   }
 
   async refreshTokens(refreshToken) {
-    if (!refreshToken) {
-      const error = new Error('Refresh token missing');
-      error.statusCode = 401;
-      throw error;
-    }
+    if (!refreshToken) throw httpError(401, 'Refresh token missing');
 
     let payload;
     try {
       payload = tokenService.verifyRefreshToken(refreshToken);
     } catch {
-      const error = new Error('Invalid or expired refresh token');
-      error.statusCode = 403;
-      throw error;
+      throw httpError(403, 'Invalid or expired refresh token');
     }
 
     const user = await userRepository.findById(payload.userId);
-    if (!user) {
-      const error = new Error('User not found');
-      error.statusCode = 404;
-      throw error;
-    }
+    if (!user) throw httpError(404, 'User not found');
+    if (!user.isVerified) throw httpError(403, 'Account not verified. Please verify your email first.');
 
-    const newAccessToken = tokenService.generateAccessToken(user);
-    const newRefreshToken = tokenService.generateRefreshToken(user);
-
-    return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+    return {
+      accessToken: tokenService.generateAccessToken(user),
+      refreshToken: tokenService.generateRefreshToken(user),
+    };
   }
 }
 
