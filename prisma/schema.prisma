@@ -117,6 +117,7 @@ model Trip {
   itineraries  ItineraryItem[]
   expenses     Expense[]
   budget       Budget?
+  safetyAlerts SafetyAlert[]
 
   @@index([travelGroupId])
   @@index([status])
@@ -141,10 +142,11 @@ model TripMember {
 // -------------------------------------------------------------
 
 model Country {
-  id     Int    @id @default(autoincrement())
-  code   String @unique // ISO Alpha-2 (e.g. "ZA", "FR")
-  name   String @unique
-  cities City[]
+  id             Int             @id @default(autoincrement())
+  code           String          @unique // ISO Alpha-2 (e.g. "ZA", "FR")
+  name           String          @unique
+  cities         City[]
+  safetyAdvisory SafetyAdvisory?
 }
 
 model City {
@@ -169,7 +171,7 @@ model Destination {
   tags             DestinationTagMapping[]
   tripDestinations TripDestination[]
 
-  safetyAdvisory SafetyAdvisory?
+  safetyAlerts SafetyAlert[]
 
   @@index([cityId])
 }
@@ -204,18 +206,39 @@ model TripDestination {
   @@index([orderIndex])
 }
 
+// One advisory per country; destinations resolve it via City -> Country
 model SafetyAdvisory {
-  id            Int    @id @default(autoincrement())
-  destinationId Int    @unique // One-to-one relationship with Destination
-  countryIso    String @unique // e.g., "ZAF" (ISO 3-letter code)
+  id         Int     @id @default(autoincrement())
+  countryIso String  @unique // ISO alpha-3, matches Country.code (e.g. "ZAF")
+  country    Country @relation(fields: [countryIso], references: [code], onDelete: Cascade)
 
-  compositeScore    Int // The 1-5 risk score from TravelRiskAPI
-  advisoryLevel     String // e.g., "Level 2: Exercise Increased Caution"
+  riskLevel         Int // 1 (normal) .. 4 (do not travel)
+  compositeScore    Int // raw score from the provider
+  advisoryLevel     String // short label, e.g. "Exercise increased caution"
+  summary           String? // plain-text advisory description
   activeAlertsCount Int      @default(0)
+  policeNumber      String?
+  medicalNumber     String?
+  source            String   @default("TRAVEL_RISK_API") // or "MOCK"
   lastUpdated       DateTime @default(now())
 
-  // Relations
-  destination Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  @@index([riskLevel])
+}
+
+// Persisted risk alert for a trip + destination (deduplicated per risk level)
+model SafetyAlert {
+  id            Int         @id @default(autoincrement())
+  tripId        Int
+  trip          Trip        @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  destinationId Int
+  destination   Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  riskLevel     Int
+  message       String
+  createdAt     DateTime    @default(now())
+  resolvedAt    DateTime?
+
+  @@unique([tripId, destinationId, riskLevel])
+  @@index([tripId])
 }
 
 // -------------------------------------------------------------

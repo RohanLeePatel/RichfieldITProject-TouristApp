@@ -7,13 +7,13 @@ const requireAuth = require('../middleware/authMiddleware');
 router.use(requireAuth);
 
 // Fetch inbox and unread count
-router.get('/notifications', notificationController.getMyNotifications);
+router.get('/', notificationController.getMyNotifications);
 
 // Mark everything as read
-router.patch('/notifications/read-all', notificationController.markAllAsRead);
+router.patch('/read-all', notificationController.markAllAsRead);
 
 // Manage a specific notification
-router.patch('/notifications/:notificationId/read', notificationController.markAsRead);
-router.delete('/notifications/:notificationId', notificationController.deleteNotification);
+router.patch('/:notificationId/read', notificationController.markAsRead);
+router.delete('/:notificationId', notificationController.deleteNotification);
 
 module.exports = router;

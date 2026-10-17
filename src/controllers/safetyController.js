@@ -1,19 +1,11 @@
-const safetyRepository = require('../repositories/safetyRepository');
+const safetyService = require('../services/safetyService');
+const { parseId } = require('../services/tripAccessService');
 
 class SafetyController {
   async getDestinationSafety(req, res, next) {
     try {
-      const { destinationId } = req.params;
-      
-      const safetyData = await safetyRepository.getByDestinationId(destinationId);
-
-      if (!safetyData) {
-        return res.status(404).json({ 
-          message: 'Safety advisory data is not yet available for this destination.' 
-        });
-      }
-
-      return res.status(200).json({ safety: safetyData });
+      const destinationId = parseId(req.params.destinationId, 'destinationId');
+      res.status(200).json({ safety: await safetyService.getDestinationSafety(destinationId) });
     } catch (error) {
       next(error);
     }
@@ -21,17 +13,17 @@ class SafetyController {
 
   async getCountrySafety(req, res, next) {
     try {
-      const { countryIso } = req.params;
+      res.status(200).json({ safety: await safetyService.getCountrySafety(req.params.countryIso) });
+    } catch (error) {
+      next(error);
+    }
+  }
 
-      const safetyData = await safetyRepository.getByCountryIso(countryIso);
-
-      if (!safetyData) {
-        return res.status(404).json({ 
-          message: `No safety data found for country code: ${countryIso}` 
-        });
-      }
-
-      return res.status(200).json({ safety: safetyData });
+  async getTripSafetyAlerts(req, res, next) {
+    try {
+      const tripId = parseId(req.params.tripId, 'tripId');
+      const alerts = await safetyService.getTripSafetyAlerts(tripId, req.user.id);
+      res.status(200).json({ alerts, count: alerts.length });
     } catch (error) {
       next(error);
     }
