@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from engine.currency import convert_from_zar
+from engine.dimension import tag_list
 from engine.weights import ACCESSIBILITY_HARD_FAIL_STATE, COST_BAND_ZAR_RANGE
 from schemas.recommendations import Candidate, Preferences
 
@@ -64,7 +65,7 @@ def check_landmark_availability_gate(prefs: Preferences, candidate: Candidate) -
         return None
 
     return (
-        f"No known spots for {', '.join(prefs.interests)} found near '{candidate.name}' in our data."
+        f"No known spots for {tag_list(prefs.interests)} found near '{candidate.name}' in our data."
     )
 
 

@@ -14,6 +14,7 @@ def _contribution(entry: EvidenceEntry) -> float:
     return entry.weight * entry.value
 
 
+
 def build_explanation(
     candidate_name: str,
     breakdown: list[EvidenceEntry],
@@ -47,35 +48,56 @@ def build_explanation(
                 if entry.weight > 0:
                     peer_contributions.setdefault(entry.dimension, []).append(_contribution(entry))
 
-        def margin(entry: EvidenceEntry) -> float:
+        def margin(entry: EvidenceEntry) -> float | None:
+            # None, not 0.0: a dimension no peer was scored on cannot show a
+            # lead *or* a tie. Counting it as level made "nothing separates
+            # it" fire on candidates that had simply never been compared.
             others = peer_contributions.get(entry.dimension)
             if not others:
-                return 0.0
+                return None
             return _contribution(entry) - median(others)
 
-        standout = max(weighted, key=margin)
-        best_margin = margin(standout)
+        compared = [(e, m) for e in weighted if (m := margin(e)) is not None]
 
-        if best_margin >= MEANINGFUL_GAP:
-            return f"{candidate_name}: {standout.explanation}"
+        if compared:
+            standout, best_margin = max(compared, key=lambda pair: pair[1])
 
-        # Below the pack on everything is not the same as tied with it. Only
-        # a candidate whose best margin is ~0 is genuinely inseparable; one
-        # with a clearly negative margin is simply weaker, and saying
-        # "nothing separates it" there would be false.
-        # Tied means tied on *everything* compared, not merely level on the
-        # one dimension it happens to do best on: a candidate matching the
-        # others on budget while trailing them on interests is behind, not
-        # inseparable.
-        comparable = any(e.dimension in peer_contributions for e in weighted)
-        all_square = all(abs(margin(e)) < MEANINGFUL_GAP for e in weighted)
-        if comparable and all_square:
-            # The live tie: interest density saturates at 1.0 for many
-            # countries, so four results scored identically. Repeating the
-            # budget line for each implied a reason it could not support.
+            if best_margin >= MEANINGFUL_GAP:
+                return f"{candidate_name}: {standout.explanation}"
+
+            # Leads on nothing. Prefixing the biggest raw contribution here is
+            # what produced identical lines in the first place - the heaviest
+            # dimension is the same for every candidate scored against the
+            # same preferences, so three results all opened "Cost band 2/5
+            # (~700 ZAR/day) against your 1000 ZAR/day budget". Worse, the
+            # tie sentence then contradicted the reason it had just given.
+            # Say only what is true of *this* candidate relative to the rest.
+            if all(abs(m) < MEANINGFUL_GAP for _, m in compared):
+                # Too close to call a lead, but "too close" is not "identical".
+                # Three results sat on the same cost band while their interest
+                # densities ran 81% / 80% / 78%, so budget was the one thing
+                # that could say nothing about any of them - and printing the
+                # biggest contribution picked exactly that, three times over.
+                # The dimension this candidate differs on at all is the only
+                # one carrying a figure of its own.
+                nearest, off_by = max(compared, key=lambda pair: abs(pair[1]))
+                if off_by:
+                    return f"{candidate_name}: {nearest.explanation}"
+
+                # Genuinely flat across every dimension compared. The live
+                # tie: interest density saturates at 1.0 for many countries,
+                # so several results scored identically.
+                return (
+                    f"Nothing in the data separates {candidate_name} from the others "
+                    f"shown here - it met your requirements just as evenly."
+                )
+
+            # Level on its best dimension but behind on another: naming where
+            # it gives way is both honest and specific to this candidate.
+            behind, _ = min(compared, key=lambda pair: pair[1])
             return (
-                f"{candidate_name}: {standout.explanation} "
-                f"Nothing in the data separates it from the others shown here."
+                f"{candidate_name} is here on overall fit rather than any single "
+                f"strength - it trails the others shown here on {behind.dimension}."
             )
 
     top = max(weighted, key=_contribution)

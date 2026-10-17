@@ -84,6 +84,8 @@ export function monthAdvice(stats) {
   return tips;
 }
 
+export const NOTHING_TO_REPORT = "The coming days look settled - no weather-driven changes needed.";
+
 const RAIN_WORDS = /rain|drizzle|shower|thunder|storm/;
 const SNOW_WORDS = /snow|sleet/;
 
@@ -100,6 +102,23 @@ export function forecastAdvice(forecast) {
   if (snowy.length) tips.push({ kind: "cold", text: `Snow possible on ${snowy.slice(0, 3).map((f) => day(f.date)).join(", ")} - check transport before heading out.` });
   if (temps.length && Math.max(...temps) >= 32) tips.push({ kind: "hot", text: "Some forecast days reach 32°C or more - avoid midday walking tours." });
   if (temps.length && Math.min(...temps) <= 3) tips.push({ kind: "cold", text: "Some forecast days are near freezing - pack warm layers." });
-  if (!tips.length) tips.push({ kind: "mild", text: "The coming days look settled - no weather-driven changes needed." });
+  if (!tips.length) tips.push({ kind: "mild", text: NOTHING_TO_REPORT });
   return tips;
+}
+
+// The two sources answer different questions - forecastAdvice covers the next
+// few days, monthAdvice a typical year - and the Weather page printed them as
+// one list. That shipped a panel reading "The coming days look settled - no
+// weather-driven changes needed." directly above "Showers are possible - a
+// packable rain jacket is worth the space."
+//
+// The settled line is only forecastAdvice saying it found nothing, so it holds
+// just while nothing else does. Where both horizons raise the same kind of
+// concern the forecast wins: it can name the actual days.
+export function combineAdvice(forecast, stats) {
+  const tips = forecastAdvice(forecast).filter((tip) => tip.text !== NOTHING_TO_REPORT);
+  for (const tip of monthAdvice(stats)) {
+    if (!tips.some((seen) => seen.kind === tip.kind)) tips.push(tip);
+  }
+  return tips.length ? tips : [{ kind: "mild", text: NOTHING_TO_REPORT }];
 }

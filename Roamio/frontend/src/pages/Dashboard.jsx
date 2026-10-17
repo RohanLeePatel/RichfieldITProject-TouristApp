@@ -625,7 +625,7 @@ export default function Dashboard() {
         <div className="sidebar-section">
 
           <p className="sidebar-label">
-            YOUR SPACE
+            Your space
           </p>
 
           <nav className="sidebar-nav">
@@ -719,7 +719,7 @@ export default function Dashboard() {
         <div className="sidebar-section">
 
           <p className="sidebar-label">
-            PLANNING
+            Planning
           </p>
 
           <nav className="sidebar-nav">
@@ -962,7 +962,7 @@ export default function Dashboard() {
 
                 <Sparkles size={14} />
 
-                SMART GROUP TRAVEL
+                Smart group travel
 
               </div>
 
@@ -1176,7 +1176,7 @@ export default function Dashboard() {
                 <div>
 
                   <span className="section-eyebrow">
-                    YOUR JOURNEYS
+                    Your journeys
                   </span>
 
                   <h2>
@@ -1357,7 +1357,7 @@ export default function Dashboard() {
                   <div>
 
                     <span className="section-eyebrow">
-                      YOUR TRAVEL GROUP
+                      Your travel group
                     </span>
 
                     <h2>
@@ -1475,7 +1475,7 @@ export default function Dashboard() {
                   <div>
 
                     <span className="section-eyebrow">
-                      TRAVEL WEATHER
+                      Travel weather
                     </span>
 
                     <h2>
@@ -1604,7 +1604,7 @@ export default function Dashboard() {
                           <div>
 
                             <span>
-                              NEXT TRIP
+                              Next trip
                             </span>
 
                             <strong>

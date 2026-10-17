@@ -81,8 +81,13 @@ def test_a_candidate_that_leads_on_nothing_admits_it():
     reason; the honest answer is that the data cannot separate them."""
     shared = [entry("budget", 0.65, 0.45, "Cost band 2/5."), entry("interests", 0.4, 0.3, "Some parks.")]
     line = build_explanation("Hanoi", shared, peers=[list(shared), list(shared)])
-    assert line.startswith("Hanoi: Cost band 2/5.")
-    assert "Nothing in the data separates it" in line
+    assert line == (
+        "Nothing in the data separates Hanoi from the others shown here - "
+        "it met your requirements just as evenly."
+    )
+    # the budget line is what every candidate shares, so it must not also be
+    # offered as this one's own reason
+    assert "Cost band" not in line
 
 
 def test_without_peers_there_is_no_claim_about_separation():
@@ -111,7 +116,7 @@ def test_a_candidate_that_simply_trails_is_not_called_inseparable():
     strong = [entry("budget", 0.9, 0.5, "Very cheap."), entry("interests", 0.9, 0.5, "Loads to do.")]
     weak = [entry("budget", 0.2, 0.5, "Pricey."), entry("interests", 0.2, 0.5, "Little to do.")]
     line = build_explanation("Laggard", weak, peers=[strong, list(strong)])
-    assert "Nothing in the data separates it" not in line
+    assert "Nothing in the data separates" not in line
 
 
 def test_level_on_one_dimension_but_behind_on_another_is_not_a_tie():
@@ -120,4 +125,43 @@ def test_level_on_one_dimension_but_behind_on_another_is_not_a_tie():
     peer = [entry("budget", 0.65, 0.5, "Cost band 2/5."), entry("interests", 1.0, 0.5, "Saturated.")]
     behind = [entry("budget", 0.65, 0.5, "Cost band 2/5."), entry("interests", 0.6, 0.5, "Less on offer.")]
     line = build_explanation("Colombia", behind, peers=[peer, list(peer)])
-    assert "Nothing in the data separates it" not in line
+    assert "Nothing in the data separates" not in line
+
+
+def test_a_candidate_that_only_trails_names_where_it_gives_way():
+    """Live defect: three results in a row opened with the identical budget
+    line because the fallback picked the heaviest dimension, which is the
+    same for everyone scored against one budget. A candidate that leads on
+    nothing has to be described by what is true of it alone."""
+    peer = [entry("budget", 0.65, 0.5, "Cost band 2/5."), entry("interests", 1.0, 0.5, "Saturated.")]
+    behind = [entry("budget", 0.65, 0.5, "Cost band 2/5."), entry("interests", 0.6, 0.5, "Less on offer.")]
+    line = build_explanation("Indonesia", behind, peers=[peer, list(peer)])
+    assert "trails the others shown here on interests" in line
+    assert "Cost band" not in line
+
+
+def test_a_dimension_no_peer_has_is_not_counted_as_level():
+    """margin() returned 0.0 for a dimension with no peer figures, so an
+    uncompared dimension read as a tie and could tip a candidate into
+    'nothing separates it' without a single real comparison."""
+    candidate = [entry("budget", 0.65, 0.5, "Cost band 2/5."), entry("safety", 0.9, 0.5, "Low crime.")]
+    peers = [[entry("budget", 0.65, 0.5, "Cost band 2/5.")]]
+    line = build_explanation("Hanoi", candidate, peers=peers)
+    # budget is level and safety was never compared, so this is still a tie -
+    # but it must be decided on budget alone, not on the uncompared dimension
+    assert "Nothing in the data separates Hanoi" in line
+
+
+def test_a_near_tie_is_explained_by_the_dimension_that_actually_differs():
+    """Live: Peru / Philippines / Malaysia sat on one cost band with interest
+    densities of 81 / 80 / 78%. Too close to call a lead, but budget was the
+    one dimension that could say nothing about any of them - and it was
+    exactly what the biggest-contribution fallback printed, three times."""
+    peers = [
+        [entry("budget", 0.65, 0.67, "Cost band 2/5."), entry("interests", 0.798, 0.33, "80% density.")],
+        [entry("budget", 0.65, 0.67, "Cost band 2/5."), entry("interests", 0.782, 0.33, "78% density.")],
+    ]
+    peru = [entry("budget", 0.65, 0.67, "Cost band 2/5."), entry("interests", 0.810, 0.33, "81% density.")]
+    line = build_explanation("Peru", peru, peers=peers)
+    assert line == "Peru: 81% density."
+    assert "Cost band" not in line

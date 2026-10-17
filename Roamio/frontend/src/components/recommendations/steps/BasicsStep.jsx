@@ -37,7 +37,8 @@ export default function BasicsStep({ form, updateForm, countries, applyPreset })
         </div>
         {active && (
           <p className="wizard-help preset-note">
-            Applied: {active.interests.map(formatDimension).join(", ")} · {PACE_OPTIONS.find((o) => o.id === active.pace)?.label} pace. Fine-tune on the next steps.
+            Applied: {active.interests.map(formatDimension).join(", ")} · {PACE_OPTIONS.find((o) => o.id === active.pace)?.label} pace
+            {active.children ? ", and suggested ages below" : ""}. Fine-tune on the next steps.
           </p>
         )}
       </section>

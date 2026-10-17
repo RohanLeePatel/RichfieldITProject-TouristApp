@@ -5,7 +5,7 @@ import {
 
 import { fetchClimate, fetchPlaceSummary, geocodePlace } from "../../api/climate.js";
 import {
-  MONTH_NAMES, bestMonths, comfortScore, forecastAdvice, monthAdvice,
+  MONTH_NAMES, bestMonths, combineAdvice, comfortScore,
 } from "../../utils/travelAdvice.js";
 import "../../styles/insights.css";
 
@@ -56,7 +56,7 @@ export default function ClimateInsights({ name, country, latitude, longitude, mo
   const { climate, about } = state;
   const stats = climate.months[selectedMonth - 1];
   const best = bestMonths(climate.months, 3);
-  const tips = [...forecastAdvice(forecast), ...monthAdvice(stats)];
+  const tips = combineAdvice(forecast, stats);
   // stretch bars across the actual min-max so small differences are visible
   const scores = climate.months.map((m) => comfortScore(m)).filter((s) => s !== null);
   const lo = Math.min(...scores);

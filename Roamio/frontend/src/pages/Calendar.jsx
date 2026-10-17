@@ -349,7 +349,7 @@ export default function Calendar() {
         <aside className="calendar-sidebar">
           <div className="agenda-header">
             <div>
-              <span className="agenda-eyebrow">AGENDA</span>
+              <span className="agenda-eyebrow">Agenda</span>
               <h3>
                 {selectedDate.toLocaleDateString("en-ZA", {
                   weekday: "long",

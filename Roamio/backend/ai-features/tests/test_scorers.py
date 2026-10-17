@@ -341,3 +341,12 @@ def test_seed_rows_without_rainfall_keep_the_temperature_only_score():
     result = score_climate(prefs, no_rain_data, "country")
     assert result.evidence["avg_rain_mm"] is None
     assert result.value == pytest.approx(1.0)
+
+
+def test_interest_tags_are_spelled_out_for_readers_not_for_the_catalogue():
+    """Cards shipped reading "Matches playgrounds, theme_parks,
+    zoos_aquariums" with the Geoapify ids still underscored, beside chips
+    that already read "theme parks"."""
+    from engine.dimension import tag_list
+
+    assert tag_list(["playgrounds", "theme_parks"]) == "playgrounds, theme parks"

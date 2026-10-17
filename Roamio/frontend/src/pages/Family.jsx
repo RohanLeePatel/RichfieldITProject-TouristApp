@@ -1068,7 +1068,7 @@ export default function Family() {
               <div>
                 <span className="family-section-eyebrow">
                   <Users size={14} />
-                  YOUR TRAVEL GROUP
+                  Your travel group
                 </span>
 
                 <h2>

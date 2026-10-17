@@ -1,6 +1,6 @@
 // node src/utils/travelAdvice.selfcheck.mjs
 import assert from "node:assert/strict";
-import { summarizeClimate, comfortScore, bestMonths, monthAdvice, forecastAdvice } from "./travelAdvice.js";
+import { summarizeClimate, comfortScore, bestMonths, monthAdvice, forecastAdvice, combineAdvice, NOTHING_TO_REPORT } from "./travelAdvice.js";
 
 // two years of synthetic data: January hot + wet, July mild + dry
 const time = [], hi = [], lo = [], rain = [], wind = [];
@@ -30,4 +30,17 @@ assert.ok(f.some((t) => t.kind === "rain" && t.text.includes("Monday")));
 assert.ok(f.some((t) => t.kind === "hot"));
 assert.equal(forecastAdvice([{ date: "2026-10-05", description: "clear sky", temp: 20 }])[0].kind, "mild");
 assert.deepEqual(forecastAdvice([]), []);
+// the live contradiction: a settled 5-day forecast above "showers are possible"
+// from October climate normals, in one list
+const settled = [{ date: "2026-10-05", description: "clear sky", temp: 20 }];
+const mixed = combineAdvice(settled, months[0]);
+assert.ok(!mixed.some((t) => t.text === NOTHING_TO_REPORT), "settled filler must go once anything else is said");
+assert.ok(mixed.some((t) => t.kind === "rain"), "the climate rain tip still has to survive");
+// forecast rain wins over the climate rain tip - it can name the days
+const wetAhead = combineAdvice([{ date: "2026-10-05", description: "light rain", temp: 20 }], months[0]);
+assert.equal(wetAhead.filter((t) => t.kind === "rain").length, 1);
+assert.ok(wetAhead.find((t) => t.kind === "rain").text.includes("Monday"));
+// nothing from either source still leaves the panel something to say
+assert.deepEqual(combineAdvice([], null), [{ kind: "mild", text: NOTHING_TO_REPORT }]);
+
 console.log("travelAdvice selfcheck: all assertions passed");

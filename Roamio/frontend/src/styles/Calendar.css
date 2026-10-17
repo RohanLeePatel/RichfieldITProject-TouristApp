@@ -292,7 +292,7 @@
   font-size: 0.7rem;
   color: var(--primary, #0f766e);
   font-weight: 800;
-  letter-spacing: 1px;
+  letter-spacing: .2px;
 }
 
 .agenda-header h3 {

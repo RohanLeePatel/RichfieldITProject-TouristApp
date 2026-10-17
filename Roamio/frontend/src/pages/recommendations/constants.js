@@ -60,6 +60,11 @@ export const TRIP_PRESETS = [
     interests: ["playgrounds", "theme_parks", "zoos_aquariums", "restaurants"],
     priorityInterests: ["playgrounds"],
     pace: "relaxed",
+    // The one preset explicitly about children left the ages field empty, so
+    // none of the age-band scoring ever ran for it. A starting point, not an
+    // assumption: applyPreset fills it only while the field is untouched, and
+    // it lands in an input the traveller can see and edit.
+    children: "6, 9",
   },
   {
     id: "weekend",

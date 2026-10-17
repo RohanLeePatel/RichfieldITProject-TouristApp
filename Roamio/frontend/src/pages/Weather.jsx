@@ -441,7 +441,7 @@ export default function Weather() {
 
             <div>
               <span>
-                CHOOSE YOUR DESTINATION
+                Choose your destination
               </span>
 
               <strong>
@@ -592,7 +592,7 @@ export default function Weather() {
                 <div>
 
                   <span className="weather-card-eyebrow">
-                    TODAY'S WEATHER
+                    Today's weather
                   </span>
 
                   <div className="current-weather-location">
@@ -780,7 +780,7 @@ export default function Weather() {
               <div>
 
                 <span className="section-eyebrow">
-                  YOUR WEEK AHEAD
+                  Your week ahead
                 </span>
 
                 <h2>
@@ -827,7 +827,7 @@ export default function Weather() {
 
                       {isToday && (
                         <div className="forecast-today-badge">
-                          TODAY
+                          Today
                         </div>
                       )}
 
@@ -922,7 +922,7 @@ export default function Weather() {
           <section className="weather-insights">
             <div className="section-heading">
               <div>
-                <span className="section-eyebrow">KNOW BEFORE YOU GO</span>
+                <span className="section-eyebrow">Know before you go</span>
                 <h2>Climate, best time &amp; advice for {weather.location.name}</h2>
               </div>
             </div>
@@ -949,7 +949,7 @@ export default function Weather() {
           <div className="weather-tip-content">
 
             <span className="section-eyebrow">
-              ROAMIO TRAVEL TIP
+              Roamio travel tip
             </span>
 
             <strong>

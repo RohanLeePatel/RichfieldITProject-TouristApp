@@ -196,6 +196,8 @@ export default function Recommendations() {
       interests: preset.interests,
       priorityInterests: preset.priorityInterests,
       pace: preset.pace,
+      // never overwrite ages the traveller has already typed
+      children: preset.children && !current.children.trim() ? preset.children : current.children,
     }));
   };
 

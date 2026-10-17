@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 
 from engine.currency import convert_from_zar
-from engine.dimension import DimensionScore
+from engine.dimension import DimensionScore, tag_list
 from engine.weights import (
     AVOID_INTEREST_PENALTY,
     CHILD_AGE_BANDS,
@@ -290,7 +290,7 @@ def score_interests(prefs: Preferences, candidate: Candidate, level: Level) -> D
             "family_poi_density": family_density,
         },
         explanation=(
-            f"Matches {', '.join(prefs.interests)} at {interest_value:.0%} average density "
+            f"Matches {tag_list(prefs.interests)} at {interest_value:.0%} average density "
             f"for '{candidate.name}'.{family_note}"
         ),
     )
