@@ -17,9 +17,7 @@ const tripController = {
   getTripsByGroup: async (req, res, next) => {
     try {
       const groupId = parseId(req.params.groupId, 'groupId');
-      const userId = req.user.id;
-
-      const trips = await tripRepository.getTripsByGroup(groupId, userId);
+      const trips = await tripService.getTripsByGroup(groupId, req.user.id);
       return res.status(200).json({ trips });
     } catch (error) {
       if (error.statusCode) return res.status(error.statusCode).json({ error: error.message });

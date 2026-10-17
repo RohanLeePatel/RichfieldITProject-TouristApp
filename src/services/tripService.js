@@ -31,14 +31,25 @@ const buildTripData = (body) => {
   return data;
 };
 
+// Non-members (or a missing/soft-deleted group) get 404 so group existence isn't leaked
+const requireActiveGroupMembership = async (groupId, userId) => {
+  const membership = await travelGroupRepository.findActiveMembership(groupId, userId);
+  if (!membership) throw httpError(404, 'Travel group not found.');
+  return membership;
+};
+
 class TripService {
   // Non-members (or a missing/deleted group) get 404; VIEWERs may not create trips
   async createTrip(groupId, userId, body) {
-    const membership = await travelGroupRepository.findActiveMembership(groupId, userId);
-    if (!membership) throw httpError(404, 'Travel group not found.');
+    const membership = await requireActiveGroupMembership(groupId, userId);
     if (membership.role === 'VIEWER') throw httpError(403, 'Viewers cannot create trips.');
 
     return await tripRepository.createTrip(groupId, userId, buildTripData(body || {}));
+  }
+
+  async getTripsByGroup(groupId, userId) {
+    await requireActiveGroupMembership(groupId, userId);
+    return await tripRepository.getTripsByGroup(groupId, userId);
   }
 }
 
