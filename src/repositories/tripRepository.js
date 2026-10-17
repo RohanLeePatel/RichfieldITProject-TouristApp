@@ -65,6 +65,22 @@ const tripRepository = {
         expenses: true
       }
     });
+  },
+
+  // Membership row for access checks; null if the user isn't on an active trip
+  findActiveMembership: async (tripId, userId) => {
+    return await prisma.tripMember.findFirst({
+      where: { tripId, userId, trip: { deletedAt: null } }
+    });
+  },
+
+  findMemberUserIds: async (tripId) => {
+    const members = await prisma.tripMember.findMany({
+      where: { tripId },
+      select: { userId: true },
+      orderBy: { userId: 'asc' }
+    });
+    return members.map((m) => m.userId);
   }
 };
 

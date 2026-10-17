@@ -20,6 +20,7 @@ const itineraryRoutes = require('./src/routes/itinerary');
 const activityRoutes = require('./src/routes/activity');
 const safetyRoutes = require('./src/routes/safety');
 const expenseRoutes = require('./src/routes/expense');
+const budgetRoutes = require('./src/routes/budget');
 
 // 4. App Initialization
 const app = express();
@@ -60,7 +61,8 @@ app.use('/api', invitationRoutes);
 app.use('/api', tripRoutes);
 app.use('/api', destinationRoutes);
 app.use('/api', itineraryRoutes); 
-app.use('/api', expenseRoutes);
+app.use('/api/trips/:tripId/expenses', expenseRoutes);
+app.use('/api/trips/:tripId/budget', budgetRoutes);
 app.use('/api', activityRoutes);
 app.use('/api', safetyRoutes);
 

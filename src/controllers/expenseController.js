@@ -1,113 +1,56 @@
-const expenseRepo = require('../repositories/expenseRepository');
-const prisma = require('../config/prisma');
+const expenseService = require('../services/expenseService');
+const { parseId } = require('../services/tripAccessService');
 
-const verifyTripAccess = async (tripId, userId) => {
-  return await prisma.trip.findFirst({
-    where: {
-      id: parseInt(tripId, 10),
-      members: {
-        some: { userId: userId }
-      }
+const expenseController = {
+  async createExpense(req, res, next) {
+    try {
+      const tripId = parseId(req.params.tripId, 'tripId');
+      const result = await expenseService.createExpense(tripId, req.user.id, req.body || {});
+      res.status(201).json(result);
+    } catch (error) {
+      next(error);
     }
-  });
-};
+  },
 
-const addExpense = async (req, res) => {
-  try {
-    const { tripId } = req.params;
-    const userId = req.user.id;
+  async getTripExpenses(req, res, next) {
+    try {
+      const tripId = parseId(req.params.tripId, 'tripId');
+      const expenses = await expenseService.listExpenses(tripId, req.user.id, { category: req.query.category });
+      res.status(200).json({ expenses });
+    } catch (error) {
+      next(error);
+    }
+  },
 
-    const trip = await verifyTripAccess(tripId, userId);
-    if (!trip) return res.status(403).json({ error: 'Access denied.' });
+  async getExpenseById(req, res, next) {
+    try {
+      const tripId = parseId(req.params.tripId, 'tripId');
+      const expense = await expenseService.getExpense(tripId, req.user.id, req.params.expenseId);
+      res.status(200).json({ expense });
+    } catch (error) {
+      next(error);
+    }
+  },
 
-    const newExpense = await expenseRepo.createExpense({
-      ...req.body,
-      tripId: parseInt(tripId, 10),
-      amount: parseFloat(req.body.amount),
-      date: req.body.date ? new Date(req.body.date) : new Date()
-    });
+  async updateExpense(req, res, next) {
+    try {
+      const tripId = parseId(req.params.tripId, 'tripId');
+      const result = await expenseService.updateExpense(tripId, req.user.id, req.params.expenseId, req.body || {});
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
 
-    return res.status(201).json({ expense: newExpense });
-  } catch (error) {
-    return res.status(500).json({ error: 'Server error' });
+  async deleteExpense(req, res, next) {
+    try {
+      const tripId = parseId(req.params.tripId, 'tripId');
+      await expenseService.deleteExpense(tripId, req.user.id, req.params.expenseId);
+      res.status(200).json({ message: 'Expense deleted' });
+    } catch (error) {
+      next(error);
+    }
   }
 };
 
-const getTripExpenses = async (req, res) => {
-  try {
-    const { tripId } = req.params;
-    const userId = req.user.id;
-
-    const trip = await verifyTripAccess(tripId, userId);
-    if (!trip) return res.status(403).json({ error: 'Access denied.' });
-
-    const expenses = await expenseRepo.findExpensesByTripId(tripId);
-    return res.status(200).json({ expenses });
-  } catch (error) {
-    return res.status(500).json({ error: 'Server error' });
-  }
-};
-
-const getTripBudgetSummary = async (req, res) => {
-  try {
-    const { tripId } = req.params;
-    const userId = req.user.id;
-
-    const trip = await verifyTripAccess(tripId, userId);
-    if (!trip) return res.status(403).json({ error: 'Access denied.' });
-
-    const summary = await expenseRepo.getExpenseSummaryByTripId(tripId);
-    const totalBudget = trip.totalBudget || 0;
-
-    return res.status(200).json({
-      totalBudget,
-      totalSpent: summary.totalSpent,
-      remainingBudget: totalBudget - summary.totalSpent,
-      categoryBreakdown: summary.byCategory
-    });
-  } catch (error) {
-    return res.status(500).json({ error: 'Server error' });
-  }
-};
-
-const updateExpense = async (req, res) => {
-  try {
-    const { expenseId } = req.params;
-    const userId = req.user.id;
-
-    const existingExpense = await expenseRepo.findExpenseById(expenseId);
-    if (!existingExpense) return res.status(404).json({ error: 'Not found.' });
-
-    const isMember = existingExpense.trip.members.some(member => member.userId === userId);
-    if (!isMember) return res.status(403).json({ error: 'Access denied.' });
-
-    const updateData = { ...req.body };
-    if (updateData.amount) updateData.amount = parseFloat(updateData.amount);
-    if (updateData.date) updateData.date = new Date(updateData.date);
-
-    const updated = await expenseRepo.updateExpense(expenseId, updateData);
-    return res.status(200).json({ expense: updated });
-  } catch (error) {
-    return res.status(500).json({ error: 'Server error' });
-  }
-};
-
-const deleteExpense = async (req, res) => {
-  try {
-    const { expenseId } = req.params;
-    const userId = req.user.id;
-
-    const existingExpense = await expenseRepo.findExpenseById(expenseId);
-    if (!existingExpense) return res.status(404).json({ error: 'Not found.' });
-
-    const isMember = existingExpense.trip.members.some(member => member.userId === userId);
-    if (!isMember) return res.status(403).json({ error: 'Access denied.' });
-
-    await expenseRepo.deleteExpense(expenseId);
-    return res.status(200).json({ message: 'Expense deleted.' });
-  } catch (error) {
-    return res.status(500).json({ error: 'Server error' });
-  }
-};
-
-module.exports = { addExpense, getTripExpenses, getTripBudgetSummary, updateExpense, deleteExpense };
+module.exports = expenseController;
