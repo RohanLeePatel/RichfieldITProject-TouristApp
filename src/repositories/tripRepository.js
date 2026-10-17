@@ -10,7 +10,7 @@ const tripRepository = {
         members: {
           create: {
             userId: userId,
-            // role: 'ADMIN'
+            role: 'ORGANIZER'
           }
         }
       },
@@ -25,6 +25,7 @@ const tripRepository = {
     return await prisma.trip.findMany({
       where: { 
         travelGroupId: parseInt(groupId, 10),
+        deletedAt: null,
         members: {
           some: { userId: userId }
         }
@@ -35,7 +36,7 @@ const tripRepository = {
           include: { destination: true } 
         },
         members: {
-          include: { user: { select: { id: true, name: true, email: true } } }
+          include: { user: { select: { id: true, fullName: true, email: true } } }
         }
       }
     });
@@ -46,6 +47,7 @@ const tripRepository = {
     return await prisma.trip.findFirst({
       where: { 
         id: parseInt(tripId, 10),
+        deletedAt: null,
         members: {
           some: { userId: userId }
         }
@@ -59,9 +61,9 @@ const tripRepository = {
           }
         },
         members: {
-          include: { user: { select: { id: true, name: true, email: true } } }
+          include: { user: { select: { id: true, fullName: true, email: true } } }
         },
-        itineraryItems: true, // Updated to 'itineraryItems' to match your Prisma migration logs
+        itineraries: true,
         expenses: true
       }
     });

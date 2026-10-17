@@ -45,3 +45,44 @@ exports.joinGroup = async (req, res, next) => {
     next(error);
   }
 };
+
+// --- Group details & member management (errors use the { error } shape) ---
+const travelGroupService = require('../services/travelGroupService');
+const { parseId } = require('../services/tripAccessService');
+
+const sendError = (res, next, error) => {
+  if (error.statusCode) return res.status(error.statusCode).json({ error: error.message });
+  return next(error);
+};
+
+exports.getGroupDetails = async (req, res, next) => {
+  try {
+    const groupId = parseId(req.params.groupId, 'groupId');
+    const group = await travelGroupService.getGroupDetails(groupId, req.user.id);
+    return res.status(200).json({ group });
+  } catch (error) {
+    return sendError(res, next, error);
+  }
+};
+
+exports.updateMemberRole = async (req, res, next) => {
+  try {
+    const groupId = parseId(req.params.groupId, 'groupId');
+    const memberId = parseId(req.params.memberId, 'memberId');
+    const member = await travelGroupService.updateMemberRole(groupId, req.user.id, memberId, (req.body || {}).role);
+    return res.status(200).json({ message: 'Member role updated.', member });
+  } catch (error) {
+    return sendError(res, next, error);
+  }
+};
+
+exports.removeMember = async (req, res, next) => {
+  try {
+    const groupId = parseId(req.params.groupId, 'groupId');
+    const memberId = parseId(req.params.memberId, 'memberId');
+    const { left } = await travelGroupService.removeMember(groupId, req.user.id, memberId);
+    return res.status(200).json({ message: left ? 'You have left the group.' : 'Member removed from the group.' });
+  } catch (error) {
+    return sendError(res, next, error);
+  }
+};

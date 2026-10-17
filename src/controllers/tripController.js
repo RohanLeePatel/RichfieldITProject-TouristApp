@@ -1,34 +1,35 @@
 const tripRepository = require('../repositories/tripRepository');
+const tripService = require('../services/tripService');
+const { parseId } = require('../services/tripAccessService');
 
 const tripController = {
   createTrip: async (req, res, next) => {
     try {
-      const { groupId } = req.params;
-      const userId = req.user.id; // Assuming authMiddleware attaches the user
-      const tripData = req.body;
-
-      const newTrip = await tripRepository.createTrip(groupId, userId, tripData);
+      const groupId = parseId(req.params.groupId, 'groupId');
+      const newTrip = await tripService.createTrip(groupId, req.user.id, req.body);
       return res.status(201).json({ message: 'Trip created successfully', trip: newTrip });
     } catch (error) {
+      if (error.statusCode) return res.status(error.statusCode).json({ error: error.message });
       next(error);
     }
   },
 
   getTripsByGroup: async (req, res, next) => {
     try {
-      const { groupId } = req.params;
+      const groupId = parseId(req.params.groupId, 'groupId');
       const userId = req.user.id;
 
       const trips = await tripRepository.getTripsByGroup(groupId, userId);
       return res.status(200).json({ trips });
     } catch (error) {
+      if (error.statusCode) return res.status(error.statusCode).json({ error: error.message });
       next(error);
     }
   },
 
   getTripById: async (req, res, next) => {
     try {
-      const { tripId } = req.params;
+      const tripId = parseId(req.params.tripId, 'tripId');
       const userId = req.user.id;
 
       const trip = await tripRepository.getTripById(tripId, userId);
@@ -39,6 +40,7 @@ const tripController = {
 
       return res.status(200).json({ trip });
     } catch (error) {
+      if (error.statusCode) return res.status(error.statusCode).json({ error: error.message });
       next(error);
     }
   }

@@ -78,6 +78,75 @@ const travelGroupRepository = {
       },
     });
   },
+
+  // Group with its member list (membership id, role, user info); null if missing or soft-deleted
+  findActiveGroupDetails: async (groupId) => {
+    return await prisma.travelGroup.findFirst({
+      where: { id: groupId, deletedAt: null },
+      include: {
+        members: {
+          orderBy: { joinedAt: 'asc' },
+          select: {
+            id: true,
+            userId: true,
+            role: true,
+            joinedAt: true,
+            user: { select: { id: true, fullName: true, email: true, avatarUrl: true } },
+          },
+        },
+      },
+    });
+  },
+
+  findMembership: async (groupId, userId) => {
+    return await prisma.travelGroupMember.findUnique({
+      where: { travelGroupId_userId: { travelGroupId: groupId, userId } },
+    });
+  },
+
+  // Caller's membership, only if the group still exists (not soft-deleted)
+  findActiveMembership: async (groupId, userId) => {
+    return await prisma.travelGroupMember.findFirst({
+      where: { travelGroupId: groupId, userId, travelGroup: { deletedAt: null } },
+    });
+  },
+
+  // Membership by its own id, scoped to the group so ids from other groups can't be targeted
+  findMembershipById: async (groupId, memberId) => {
+    return await prisma.travelGroupMember.findFirst({
+      where: { id: memberId, travelGroupId: groupId },
+    });
+  },
+
+  updateMemberRole: async (memberId, role) => {
+    return await prisma.travelGroupMember.update({
+      where: { id: memberId },
+      data: { role },
+      select: {
+        id: true,
+        userId: true,
+        role: true,
+        joinedAt: true,
+        user: { select: { id: true, fullName: true, email: true, avatarUrl: true } },
+      },
+    });
+  },
+
+  countOwners: async (groupId) => {
+    return await prisma.travelGroupMember.count({
+      where: { travelGroupId: groupId, role: 'OWNER' },
+    });
+  },
+
+  // Removes the membership and the user's access to the group's trips in one transaction
+  removeMember: async (membership) => {
+    return await prisma.$transaction([
+      prisma.tripMember.deleteMany({
+        where: { userId: membership.userId, trip: { travelGroupId: membership.travelGroupId } },
+      }),
+      prisma.travelGroupMember.delete({ where: { id: membership.id } }),
+    ]);
+  },
 };
 
 module.exports = travelGroupRepository;
