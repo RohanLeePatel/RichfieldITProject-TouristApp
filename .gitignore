@@ -14,3 +14,11 @@ node_modules/
 # IDE & API tools
 .vscode/
 .postman/
+
+.env
+*.env
+cookies.txt
+node_modules/
+**/node_modules/
+.vscode/
+.postman/
