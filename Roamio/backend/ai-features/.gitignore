@@ -1,4 +1,0 @@
-
-# raw per-city API results from scripts/enrich_destinations.py
-data/.enrich_cache/
-data/*.bak

@@ -1,16 +1,14 @@
-// Mirrors the LIVE Supabase database (verified against information_schema on
-// 2026-09-19) - the live DB is the source of truth. Only the tables this API
-// uses are modelled; the rest (Destination, City, Notification, ...) exist in
-// the DB and are simply not mapped here. Do NOT run `prisma migrate` against
-// it: the files in prisma/migrations describe an older, different schema.
+datasource db {
+  provider = "postgresql"
+}
 
 generator client {
   provider = "prisma-client-js"
 }
 
-datasource db {
-  provider = "postgresql"
-}
+// -------------------------------------------------------------
+// 1. AUTHENTICATION, USERS & PROFILES
+// -------------------------------------------------------------
 
 model User {
   id           Int       @id @default(autoincrement())
@@ -23,70 +21,292 @@ model User {
   updatedAt    DateTime  @updatedAt
   deletedAt    DateTime?
 
+  // Email OTP verification (hash only; the plain code is never stored)
+  isVerified   Boolean   @default(false)
+  otpHash      String?
+  otpExpiresAt DateTime?
+  otpAttempts  Int       @default(0)
+
+  // Forgot-password OTP (hash only)
+  resetPasswordOtpHash   String?
+  resetPasswordExpiresAt DateTime?
+  resetPasswordAttempts  Int       @default(0)
+
+  preferences       UserPreference?
   groupMemberships  TravelGroupMember[]
+  sentInvitations   Invitation[]        @relation("SenderInvitations")
   tripMemberships   TripMember[]
-  uploadedDocuments TripDocument[]
+  notifications     Notification[]
+  pushSubscriptions PushSubscription[]
+  activityLogs      ActivityLog[]
+  paidExpenses      Expense[]           @relation("ExpensePaidBy")
+  expenseSplits     ExpenseSplit[]
+
+  @@index([email])
 }
+
+model UserPreference {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currency    String   @default("ZAR")
+  language    String   @default("en")
+  theme       String   @default("system")
+  emailAlerts Boolean  @default(true)
+  pushAlerts  Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+}
+
+// -------------------------------------------------------------
+// 2. TRAVEL GROUPS, ROLES & INVITATIONS
+// -------------------------------------------------------------
 
 model TravelGroup {
   id          Int       @id @default(autoincrement())
   name        String
   description String?
-  inviteCode  String?
+  inviteCode  String?   @unique
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
 
-  members TravelGroupMember[]
-  trips   Trip[]
+  members     TravelGroupMember[]
+  invitations Invitation[]
+  trips       Trip[]
 }
 
 model TravelGroupMember {
-  id            Int      @id @default(autoincrement())
+  id            Int         @id @default(autoincrement())
   travelGroupId Int
+  travelGroup   TravelGroup @relation(fields: [travelGroupId], references: [id], onDelete: Cascade)
   userId        Int
-  role          String   @default("MEMBER")
-  joinedAt      DateTime @default(now())
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role          String      @default("MEMBER") // "OWNER", "ADMIN", "MEMBER", "VIEWER"
+  joinedAt      DateTime    @default(now())
 
-  travelGroup TravelGroup @relation(fields: [travelGroupId], references: [id])
-  user        User        @relation(fields: [userId], references: [id])
+  @@unique([travelGroupId, userId])
+  @@index([travelGroupId])
+  @@index([userId])
 }
 
-model Trip {
-  id            Int       @id @default(autoincrement())
+model Invitation {
+  id            Int         @id @default(autoincrement())
   travelGroupId Int
+  travelGroup   TravelGroup @relation(fields: [travelGroupId], references: [id], onDelete: Cascade)
+  inviterId     Int
+  inviter       User        @relation("SenderInvitations", fields: [inviterId], references: [id], onDelete: Cascade)
+  email         String
+  token         String      @unique
+  status        String      @default("PENDING") // "PENDING", "ACCEPTED", "DECLINED", "EXPIRED"
+  role          String      @default("MEMBER") // role granted on acceptance: "ADMIN", "MEMBER", "VIEWER"
+  expiresAt     DateTime
+  createdAt     DateTime    @default(now())
+
+  @@index([token])
+  @@index([email])
+}
+
+// -------------------------------------------------------------
+// 3. TRIPS, LIFECYCLE & MEMBERS
+// -------------------------------------------------------------
+
+model Trip {
+  id            Int         @id @default(autoincrement())
+  travelGroupId Int
+  travelGroup   TravelGroup @relation(fields: [travelGroupId], references: [id], onDelete: Cascade)
   title         String
-  // The live Trip has no destination/budget/notes columns, so this API keeps
-  // them as JSON in `description` (see routes/trips.js tripMeta helpers).
   description   String?
   startDate     DateTime?
   endDate       DateTime?
-  status        String    @default("PLANNING")
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  status        String      @default("PLANNING") // "PLANNING", "CONFIRMED", "ONGOING", "COMPLETED", "CANCELLED"
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
   deletedAt     DateTime?
 
-  travelGroup TravelGroup     @relation(fields: [travelGroupId], references: [id])
-  members     TripMember[]
-  itinerary   ItineraryItem[]
-  expenses    Expense[]
-  documents   TripDocument[]
+  members      TripMember[]
+  destinations TripDestination[]
+  activityLogs ActivityLog[]
+  itineraries  ItineraryItem[]
+  expenses     Expense[]
+  budget       Budget?
+  safetyAlerts SafetyAlert[]
+
+  @@index([travelGroupId])
+  @@index([status])
 }
 
 model TripMember {
   id       Int      @id @default(autoincrement())
   tripId   Int
+  trip     Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
   userId   Int
-  role     String   @default("COLLABORATOR")
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     String   @default("COLLABORATOR") // "ORGANIZER", "COLLABORATOR", "VIEWER"
   joinedAt DateTime @default(now())
 
-  trip Trip @relation(fields: [tripId], references: [id])
-  user User @relation(fields: [userId], references: [id])
+  @@unique([tripId, userId])
+  @@index([tripId])
+  @@index([userId])
 }
 
+// -------------------------------------------------------------
+// 4. DESTINATIONS, GEOGRAPHY & TAGS
+// -------------------------------------------------------------
+
+model Country {
+  id             Int             @id @default(autoincrement())
+  code           String          @unique // ISO Alpha-2 (e.g. "ZA", "FR")
+  name           String          @unique
+  cities         City[]
+  safetyAdvisory SafetyAdvisory?
+}
+
+model City {
+  id           Int           @id @default(autoincrement())
+  countryId    Int
+  country      Country       @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  name         String
+  destinations Destination[]
+
+  @@index([countryId])
+}
+
+model Destination {
+  id               Int                     @id @default(autoincrement())
+  cityId           Int
+  city             City                    @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  name             String
+  description      String?
+  latitude         Float?
+  longitude        Float?
+  estimatedCost    Float?
+  tags             DestinationTagMapping[]
+  tripDestinations TripDestination[]
+
+  safetyAlerts SafetyAlert[]
+
+  @@index([cityId])
+}
+
+model DestinationTag {
+  id           Int                     @id @default(autoincrement())
+  name         String                  @unique
+  destinations DestinationTagMapping[]
+}
+
+model DestinationTagMapping {
+  destinationId Int
+  destination   Destination    @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  tagId         Int
+  tag           DestinationTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([destinationId, tagId])
+}
+
+model TripDestination {
+  id            Int         @id @default(autoincrement())
+  tripId        Int
+  trip          Trip        @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  destinationId Int
+  destination   Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  orderIndex    Int         @default(0)
+  scheduledDay  Int?
+  notes         String?
+  createdAt     DateTime    @default(now())
+
+  @@index([tripId])
+  @@index([orderIndex])
+}
+
+// One advisory per country; destinations resolve it via City -> Country
+model SafetyAdvisory {
+  id         Int     @id @default(autoincrement())
+  countryIso String  @unique // ISO alpha-3, matches Country.code (e.g. "ZAF")
+  country    Country @relation(fields: [countryIso], references: [code], onDelete: Cascade)
+
+  riskLevel         Int // 1 (normal) .. 4 (do not travel)
+  compositeScore    Int // raw score from the provider
+  advisoryLevel     String // short label, e.g. "Exercise increased caution"
+  summary           String? // plain-text advisory description
+  activeAlertsCount Int      @default(0)
+  policeNumber      String?
+  medicalNumber     String?
+  source            String   @default("TRAVEL_RISK_API") // or "MOCK"
+  lastUpdated       DateTime @default(now())
+
+  @@index([riskLevel])
+}
+
+// Persisted risk alert for a trip + destination (deduplicated per risk level)
+model SafetyAlert {
+  id            Int         @id @default(autoincrement())
+  tripId        Int
+  trip          Trip        @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  destinationId Int
+  destination   Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  riskLevel     Int
+  message       String
+  createdAt     DateTime    @default(now())
+  resolvedAt    DateTime?
+
+  @@unique([tripId, destinationId, riskLevel])
+  @@index([tripId])
+}
+
+// -------------------------------------------------------------
+// 5. NOTIFICATIONS, PUSH & AUDIT LOGS
+// -------------------------------------------------------------
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("INFO") // "INVITE", "TRIP_UPDATE", "ALERT", "INFO"
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model ActivityLog {
+  id         Int      @id @default(autoincrement())
+  tripId     Int?
+  trip       Trip?    @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action     String
+  entityType String // "TRIP", "GROUP", "DESTINATION"
+  entityId   Int?
+  details    String?
+  createdAt  DateTime @default(now())
+
+  @@index([tripId])
+  @@index([userId])
+}
+
+//-----------------------------------------
+// ITINERARY
+//-----------------------------------------
+
 model ItineraryItem {
-  id          String    @id
+  id          String    @id @default(uuid())
   tripId      Int
+  trip        Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
   title       String
   description String?
   location    String?
@@ -95,38 +315,78 @@ model ItineraryItem {
   dayNumber   Int?      @default(1)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
 
-  trip Trip @relation(fields: [tripId], references: [id])
+//---------------------------------------
+// EXPENSES & BUDGET
+//---------------------------------------
+enum ExpenseCategory {
+  TRANSPORT
+  FOOD
+  ACCOMMODATION
+  ACTIVITY
+  MISC
+}
+
+enum SplitType {
+  EQUAL
+  EXACT
+  PERCENT
 }
 
 model Expense {
-  id        String   @id
+  id        String          @id @default(uuid())
   tripId    Int
   title     String
-  amount    Float
-  category  String
-  date      DateTime @default(now())
-  createdAt DateTime @default(now())
+  amount    Decimal         @db.Decimal(12, 2)
+  currency  String          @default("ZAR")
+  category  ExpenseCategory
+  splitType SplitType       @default(EQUAL)
+  paidById  Int
+  date      DateTime        @default(now())
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
 
-  trip Trip @relation(fields: [tripId], references: [id])
-}
-
-// Booking confirmations, tickets and receipts attached to a trip. Added to the
-// live DB by prisma/live-sql/001_trip_document.sql, then mirrored here.
-// `data` holds the file itself - see that file for why, and when to move it out.
-model TripDocument {
-  id           String   @id
-  tripId       Int
-  uploadedById Int
-  filename     String
-  mimeType     String
-  sizeBytes    Int
-  kind         String   @default("OTHER")
-  data         Bytes
-  createdAt    DateTime @default(now())
-
-  trip       Trip @relation(fields: [tripId], references: [id])
-  uploadedBy User @relation(fields: [uploadedById], references: [id])
+  trip   Trip           @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  paidBy User           @relation("ExpensePaidBy", fields: [paidById], references: [id], onDelete: Cascade)
+  splits ExpenseSplit[]
 
   @@index([tripId])
+  @@index([tripId, category])
+  @@index([paidById])
+}
+
+model ExpenseSplit {
+  id          Int     @id @default(autoincrement())
+  expenseId   String
+  expense     Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  userId      Int
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shareAmount Decimal @db.Decimal(12, 2)
+  isSettled   Boolean @default(false)
+
+  @@unique([expenseId, userId])
+  @@index([userId])
+}
+
+model Budget {
+  id          Int      @id @default(autoincrement())
+  tripId      Int      @unique
+  trip        Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  totalAmount Decimal  @db.Decimal(12, 2)
+  currency    String   @default("ZAR")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  categoryLimits BudgetCategoryLimit[]
+}
+
+model BudgetCategoryLimit {
+  id          Int             @id @default(autoincrement())
+  budgetId    Int
+  budget      Budget          @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  category    ExpenseCategory
+  limitAmount Decimal         @db.Decimal(12, 2)
+
+  @@unique([budgetId, category])
 }
