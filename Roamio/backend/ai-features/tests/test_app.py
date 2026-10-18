@@ -44,6 +44,10 @@ def test_every_feature_route_is_mounted(client):
         "/recommendations/catalog",
         "/text",
         "/weather/{city}",
+        "/api/translate/camera",
+        "/api/translate/history",
+        "/api/translate/history/{record_id}",
+        "/api/translate/text",
     }
 
 

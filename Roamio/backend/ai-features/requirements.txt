@@ -4,3 +4,4 @@ uvicorn[standard]
 python-multipart
 requests
 python-dotenv
+supabase~=2.10
