@@ -737,6 +737,33 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Text-to-speech button for original text */
+.original-listen-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: 1px solid var(--tr-line-strong);
+  border-radius: 999px;
+  background: var(--tr-surface);
+  color: var(--tr-teal);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.original-listen-btn:hover {
+  border-color: rgba(22, 132, 154, 0.35);
+  background: var(--tr-teal-tint);
+}
+
+.original-listen-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .mic-button {
   display: inline-flex;
   align-items: center;
@@ -841,6 +868,59 @@
   cursor: pointer;
 }
 
+/* Custom Combobox / Searchable Dropdown Popup */
+.custom-select-container {
+  position: relative;
+  width: 100%;
+}
+
+.searchable-dropdown-menu {
+  position: absolute;
+  top: 105%;
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--tr-line-strong);
+  border-radius: 14px;
+  background: var(--tr-surface);
+  box-shadow: var(--tr-shadow);
+  z-index: 100;
+  padding: 8px;
+}
+
+.dropdown-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border: 1px solid var(--tr-line);
+  border-radius: 8px;
+  background: var(--tr-subtle);
+  color: var(--tr-ink);
+  font-size: 13px;
+  outline: none;
+  margin-bottom: 6px;
+}
+
+.dropdown-search-input:focus {
+  border-color: var(--tr-teal);
+}
+
+.dropdown-option {
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: var(--tr-ink);
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.dropdown-option:hover,
+.dropdown-option.selected {
+  background: var(--tr-teal-tint);
+  color: var(--tr-teal);
+}
+
 .language-select select:focus-visible {
   box-shadow: none;
 }
@@ -900,6 +980,32 @@
   cursor: pointer;
   box-shadow: 0 14px 28px rgba(22, 132, 154, 0.25);
   transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+/* Wrapper for tooltip on disabled state */
+.translate-button-wrapper {
+  position: relative;
+  width: 100%;
+  display: inline-block;
+}
+
+.translate-button-wrapper[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 110%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--tr-ink);
+  color: var(--tr-surface);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: var(--tr-shadow-sm);
+  z-index: 10;
+  animation: tr-rise 0.2s ease both;
 }
 
 /* shine sweep */
