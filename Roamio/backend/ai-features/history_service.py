@@ -9,6 +9,7 @@ logger = logging.getLogger("roamio.history")
 
 TABLE = "translation_history"
 TYPES = ("TEXT", "IMAGE_CAMERA")
+PHOTO_LIMIT = 15  # per traveller; keeps the free Supabase storage tier small
 
 
 def save_record(record: dict) -> str | None:
@@ -35,4 +36,18 @@ def delete_record(user_id: str, record_id: str) -> dict | None:
     return rows[0] if rows else None
 
 
-__all__ = ["StorageError", "save_record", "list_records", "delete_record", "TYPES"]
+def prune_photos(user_id: str) -> list[str]:
+    """Deletes the user's photo rows past the newest PHOTO_LIMIT and returns
+    their image URLs, so the caller can remove the files too."""
+    rows = (
+        get_client().table(TABLE).select("id,image_url").eq("user_id", user_id)
+        .eq("translation_type", "IMAGE_CAMERA").order("created_at", desc=True)
+        .range(PHOTO_LIMIT, PHOTO_LIMIT + 99).execute().data
+    )
+    if not rows:
+        return []
+    get_client().table(TABLE).delete().in_("id", [r["id"] for r in rows]).eq("user_id", user_id).execute()
+    return [r["image_url"] for r in rows if r.get("image_url")]
+
+
+__all__ = ["StorageError", "save_record", "list_records", "delete_record", "prune_photos", "PHOTO_LIMIT", "TYPES"]

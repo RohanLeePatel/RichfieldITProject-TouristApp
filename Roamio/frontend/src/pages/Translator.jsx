@@ -60,7 +60,7 @@ function authHeaders() {
 // in Supabase the endpoint answers 503, which is not the traveller's problem.
 async function fetchHistory() {
   try {
-    const response = await fetch(`${HISTORY_URL}?limit=10`, { headers: authHeaders() });
+    const response = await fetch(`${HISTORY_URL}?limit=30`, { headers: authHeaders() });
     if (!response.ok) return [];
     return (await response.json())?.items || [];
   } catch {
@@ -131,6 +131,7 @@ function Translator() {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
+  const resultRef = useRef(null);
 
   useEffect(() => {
     return () => {
@@ -327,6 +328,35 @@ function Translator() {
       headers: authHeaders(),
     }).catch(() => null);
     if (response?.ok) setHistory((items) => items.filter((item) => item.id !== id));
+  };
+
+  // Shows a saved translation again from what was stored - no new OCR or
+  // DeepL call. Photos get their overlay back from the saved ocr_data.
+  const openHistoryItem = (item) => {
+    setError("");
+    setCopied(false);
+    setCameraOpen(false);
+    setTranslationResult({
+      text: item.source_text,
+      translation: item.translated_text,
+      detected_lang: item.detected_lang,
+      lines: item.ocr_data || [],
+    });
+    if (item.image_url) {
+      setMode("photo");
+      setSelectedFile(null);
+      setPhotoSize(null);
+      setPreviewUrl(item.image_url);
+      const img = new Image();
+      img.onload = () => setPhotoSize({ width: img.naturalWidth, height: img.naturalHeight });
+      img.src = item.image_url;
+    } else {
+      setMode("text");
+      setInputText(item.source_text || "");
+    }
+    requestAnimationFrame(() =>
+      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    );
   };
 
   const handleTranslate = async () => {
@@ -969,7 +999,7 @@ function Translator() {
 
             {translationResult && (
 
-              <div className="translation-result">
+              <div className="translation-result" ref={resultRef}>
 
                 <div className="detected-language">
 
@@ -1091,11 +1121,18 @@ function Translator() {
             <ul>
               {history.map((item) => (
                 <li key={item.id}>
-                  {item.image_url && <img src={item.image_url} alt="" loading="lazy" />}
-                  <div>
-                    <p className="translator-history-source">{item.source_text}</p>
-                    <p className="translator-history-translation">{item.translated_text}</p>
-                  </div>
+                  <button
+                    type="button"
+                    className="translator-history-open"
+                    onClick={() => openHistoryItem(item)}
+                    aria-label={`Open this translation: ${item.translated_text || ""}`}
+                  >
+                    {item.image_url && <img src={item.image_url} alt="" loading="lazy" />}
+                    <div>
+                      <p className="translator-history-source">{item.source_text}</p>
+                      <p className="translator-history-translation">{item.translated_text}</p>
+                    </div>
+                  </button>
                   <button type="button" onClick={() => deleteHistoryItem(item.id)} aria-label="Delete this translation">
                     <Trash2 size={15} />
                   </button>

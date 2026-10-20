@@ -143,6 +143,12 @@ def translate_camera_with_history(
         response["image_url"] = image_url
         response["history_id"] = history_id
         response["history_saved"] = history_id is not None
+        if history_id:
+            try:
+                for old_url in history_service.prune_photos(user_id):
+                    storage_service.delete_translation_image(old_url)
+            except Exception:
+                logger.exception("could not prune old photo history")
     return response
 
 
