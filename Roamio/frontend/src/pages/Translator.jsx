@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Copy,
   Globe2,
+  History,
   ImagePlus,
   Loader2,
   MapPin,
@@ -14,6 +15,7 @@ import {
   Plane,
   RefreshCw,
   Sparkles,
+  Trash2,
   Type,
   Upload,
   Volume2,
@@ -30,6 +32,7 @@ import {
   speechLang,
   targetForBase,
 } from "../utils/translatorHelpers";
+import { TOKEN_KEY } from "../api/client";
 import "../styles/Translator.css";
 
 const MAX_TEXT_CHARS = 2000;
@@ -43,6 +46,27 @@ const canSpeak =
 // the node-secretkey server side - nothing secret in the browser bundle.
 const API_BASE_URL =
   import.meta.env.VITE_BACKEND_API_URL || "http://127.0.0.1:3000";
+
+const HISTORY_URL = API_BASE_URL.replace(/\/$/, "") + "/api/translate/history";
+
+// The proxy works out who you are from your sign-in and saves the translation
+// to your history; without it the translation still works, it just isn't kept.
+function authHeaders() {
+  const token = localStorage.getItem(TOKEN_KEY);
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+// Empty on any failure: history is a convenience, and until its table exists
+// in Supabase the endpoint answers 503, which is not the traveller's problem.
+async function fetchHistory() {
+  try {
+    const response = await fetch(`${HISTORY_URL}?limit=10`, { headers: authHeaders() });
+    if (!response.ok) return [];
+    return (await response.json())?.items || [];
+  } catch {
+    return [];
+  }
+}
 
 // One translated line drawn over the photo. Boxes are sized from the original
 // text, so a longer translation is shrunk (down to ~45%) until it fits between
@@ -88,6 +112,11 @@ function Translator() {
   const [targetLanguage, setTargetLanguage] = useState("EN-US");
   const [cameraOpen, setCameraOpen] = useState(false);
   const [translationResult, setTranslationResult] = useState(null);
+  const [history, setHistory] = useState([]);
+
+  useEffect(() => {
+    fetchHistory().then(setHistory);
+  }, []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
@@ -292,6 +321,14 @@ function Translator() {
     };
   }, []);
 
+  const deleteHistoryItem = async (id) => {
+    const response = await fetch(`${HISTORY_URL}/${id}`, {
+      method: "DELETE",
+      headers: authHeaders(),
+    }).catch(() => null);
+    if (response?.ok) setHistory((items) => items.filter((item) => item.id !== id));
+  };
+
   const handleTranslate = async () => {
     const isPhoto = mode === "photo";
 
@@ -322,11 +359,11 @@ function Translator() {
         formData.append("image", blob, "photo.jpg");
         formData.append("target_lang", targetLanguage);
         if (from) formData.append("source_lang", from);
-        request = fetch(`${base}/ocr`, { method: "POST", body: formData });
+        request = fetch(`${base}/ocr`, { method: "POST", body: formData, headers: authHeaders() });
       } else {
         request = fetch(`${base}/text`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...authHeaders() },
           body: JSON.stringify({
             text: inputText,
             target_lang: targetLanguage,
@@ -351,6 +388,7 @@ function Translator() {
       }
 
       setTranslationResult(data);
+      if (data.history_saved) fetchHistory().then(setHistory);
     } catch (requestError) {
       console.error("Translation error:", requestError);
 
@@ -1046,6 +1084,26 @@ function Translator() {
           </div>
 
         </section>
+
+        {history.length > 0 && (
+          <section className="translator-history" aria-label="Recent translations">
+            <h2><History size={17} /> Recent translations</h2>
+            <ul>
+              {history.map((item) => (
+                <li key={item.id}>
+                  {item.image_url && <img src={item.image_url} alt="" loading="lazy" />}
+                  <div>
+                    <p className="translator-history-source">{item.source_text}</p>
+                    <p className="translator-history-translation">{item.translated_text}</p>
+                  </div>
+                  <button type="button" onClick={() => deleteHistoryItem(item.id)} aria-label="Delete this translation">
+                    <Trash2 size={15} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         <section className="translator-info">
 

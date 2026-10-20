@@ -1,7 +1,16 @@
--- Translation history + camera image bucket. Run in the Supabase SQL editor.
+-- Run this by hand in the Supabase SQL editor.
+--
+-- Same convention as 001_trip_document.sql: the live DB is the source of truth,
+-- prisma/migrations must NOT be run against it, and this table is mirrored into
+-- schema.prisma by hand. It was first committed as ai-features/migrations/,
+-- a third place schema changes could live; moved here so there is one.
+--
+-- Adds translation history for the Translator page, plus the bucket camera
+-- photos are stored in. Safe to re-run: every statement is a no-op if it
+-- already happened.
 create table if not exists public.translation_history (
     id               uuid primary key default gen_random_uuid(),
-    user_id          text,                       -- null = guest; text so it matches whatever id the Core API sends
+    user_id          text,                       -- text so it matches whatever id the Core API sends
     translation_type text not null check (translation_type in ('TEXT', 'IMAGE_CAMERA')),
     source_text      text,
     translated_text  text,

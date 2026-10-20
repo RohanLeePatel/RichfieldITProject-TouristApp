@@ -32,3 +32,5 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
+# Windows shortcuts point at someone's own machine
+*.lnk

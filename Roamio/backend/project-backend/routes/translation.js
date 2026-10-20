@@ -1,4 +1,6 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
+const authenticateToken = require('../middleware/authMiddleware');
 const rateLimit = require('../middleware/rateLimit');
 
 const router = express.Router();
@@ -14,9 +16,25 @@ const MAX_TEXT_CHARS = 2000;
 // DeepL/OCR quota is shared by everyone on the public site
 router.use(rateLimit({ max: 20, windowMs: 60_000 }));
 
+// Who is translating, for their history. Read from a verified token only:
+// ai-features trusts x-user-id because this API vouches for it, so it must
+// never come from anything the browser can set. No valid token is not an
+// error - the translation still happens, it just isn't saved anywhere.
+function verifiedUserId(req) {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token || !process.env.JWT_SECRET) return null;
+  try {
+    const { userId } = jwt.verify(token, process.env.JWT_SECRET);
+    return userId == null ? null : String(userId);
+  } catch {
+    return null;
+  }
+}
+
 // Sends the request to ai-features with node-secretkey added server side and
-// relays the reply (or a readable error) to the browser.
-async function forward(res, path, init) {
+// relays the reply (or a readable error) to the browser. Headers are built
+// here rather than copied from req, so a client-sent x-user-id never passes.
+async function forward(res, path, init, userId = null) {
   const nodeSecretKey = process.env.superSecretKey;
 
   if (!nodeSecretKey) {
@@ -27,7 +45,11 @@ async function forward(res, path, init) {
     const response = await fetch(`${aiFeaturesUrl}${path}`, {
       method: 'POST',
       ...init,
-      headers: { ...init.headers, 'node-secretkey': nodeSecretKey },
+      headers: {
+        ...init.headers,
+        'node-secretkey': nodeSecretKey,
+        ...(userId ? { 'x-user-id': userId } : {}),
+      },
     });
     const data = await response.json().catch(() => null);
     return res.status(response.status).json(data ?? { detail: 'Invalid response from translation service.' });
@@ -53,7 +75,12 @@ router.post('/ocr', (req, res) => {
     return res.status(413).json({ detail: 'That photo is too large (1 MB max). Try a tighter crop of just the text.' });
   }
 
-  return forward(res, '/ocr', { headers: { 'content-type': type }, body: req, duplex: 'half' });
+  return forward(
+    res,
+    '/api/translate/camera',
+    { headers: { 'content-type': type }, body: req, duplex: 'half' },
+    verifiedUserId(req)
+  );
 });
 
 // Typed / spoken text translation.
@@ -67,10 +94,34 @@ router.post('/text', (req, res) => {
     return res.status(413).json({ detail: `Text is too long (${MAX_TEXT_CHARS} characters max).` });
   }
 
-  return forward(res, '/text', {
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ text, target_lang, source_lang }),
-  });
+  return forward(
+    res,
+    '/api/translate/text',
+    {
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text, target_lang, source_lang }),
+    },
+    verifiedUserId(req)
+  );
+});
+
+// The signed-in traveller's saved translations. Unlike the two routes above
+// these need a user, so a missing or bad token is a 401/403 here.
+router.get('/history', authenticateToken, (req, res) => {
+  const query = new URLSearchParams();
+  for (const key of ['limit', 'offset', 'type']) {
+    if (typeof req.query[key] === 'string') query.set(key, req.query[key]);
+  }
+  return forward(res, `/api/translate/history?${query}`, { method: 'GET' }, String(req.user.userId));
+});
+
+router.delete('/history/:id', authenticateToken, (req, res) => {
+  return forward(
+    res,
+    `/api/translate/history/${encodeURIComponent(req.params.id)}`,
+    { method: 'DELETE' },
+    String(req.user.userId)
+  );
 });
 
 module.exports = router;

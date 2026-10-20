@@ -46,6 +46,15 @@ def test_text_not_saved_when_opted_out_or_guest(app):
     assert app.saved == []
 
 
+def test_camera_does_not_store_a_guest_photo(app, monkeypatch):
+    uploaded = []
+    monkeypatch.setattr(app.router.storage_service, "upload_translation_image", lambda *a: uploaded.append(a))
+    r = app.client.post("/api/translate/camera", files={"image": ("s.jpg", JPEG, "image/jpeg")},
+                        headers={"node-secretkey": "test-secret"})
+    assert r.status_code == 200 and r.json()["translation"] == "Emergency exit"
+    assert uploaded == [] and app.saved == []
+
+
 def test_camera_survives_upload_failure(app, monkeypatch):
     def boom(*a, **k):
         raise StorageError("down")

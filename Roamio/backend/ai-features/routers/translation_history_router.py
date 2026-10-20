@@ -113,7 +113,10 @@ def translate_camera_with_history(
         "history_id": None,
     }
 
-    if save_history and result["translation"]:
+    # Guests are not saved, same rule as /text. Without a user there is no one
+    # who can list or delete the row, so a guest's photo would sit in a public
+    # bucket for good.
+    if save_history and user_id and result["translation"]:
         # a failure from here on must not cost the traveller their translation
         image_url = None
         content_type = sniff_content_type(image_bytes)

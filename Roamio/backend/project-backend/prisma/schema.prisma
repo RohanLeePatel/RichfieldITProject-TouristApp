@@ -130,3 +130,23 @@ model TripDocument {
 
   @@index([tripId])
 }
+
+// Saved translations for the Translator page. Added to the live DB by
+// prisma/live-sql/002_translation_history.sql, then mirrored here. Written and
+// read by ai-features over PostgREST, not by this API - mirrored only so the
+// schema stays a true picture of the live database.
+model translation_history {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String?
+  translation_type String
+  source_text      String?
+  translated_text  String?
+  ocr_data         Json?
+  source_lang      String?
+  detected_lang    String?
+  target_lang      String
+  image_url        String?
+  created_at       DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([user_id, created_at(sort: Desc)], map: "translation_history_user_created_idx")
+}
