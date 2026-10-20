@@ -83,6 +83,8 @@ def translate_camera_with_history(
     x_user_id: str | None = Header(None),
 ):
     user_id = _user(x_user_id)
+    # ponytail: temporary, to find why live photo history isn't saved; remove once fixed
+    logger.warning("camera history check: has_user=%s save_history=%s", bool(user_id), save_history)
     try:
         image_bytes = image.file.read()
     except Exception as e:
