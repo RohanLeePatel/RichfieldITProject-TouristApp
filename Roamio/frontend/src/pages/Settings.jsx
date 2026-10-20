@@ -20,29 +20,59 @@ import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import useTheme from "../components/recommendations/useTheme.js";
+import { useAuthStore } from "../store/authStore.js";
 import "../styles/Settings.css";
+
+// Photos are shrunk before saving: a full-size photo as a data URL is
+// several MB and overflows localStorage, so the save silently failed.
+const PHOTO_SIZE = 256;
+
+function resizePhoto(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+
+    image.onload = () => {
+      // crop to a centred square, then scale down
+      const side = Math.min(image.width, image.height);
+      const canvas = document.createElement("canvas");
+
+      canvas.width = PHOTO_SIZE;
+      canvas.height = PHOTO_SIZE;
+
+      canvas
+        .getContext("2d")
+        .drawImage(
+          image,
+          (image.width - side) / 2,
+          (image.height - side) / 2,
+          side,
+          side,
+          0,
+          0,
+          PHOTO_SIZE,
+          PHOTO_SIZE
+        );
+
+      resolve(canvas.toDataURL("image/jpeg", 0.85));
+    };
+
+    image.onerror = reject;
+    image.src = dataUrl;
+  });
+}
 
 export default function Settings() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
-  /*
-   * Get the currently saved user.
-   * If there is no user yet, create an empty/default profile.
-   */
-  const getStoredUser = () => {
-    try {
-      return JSON.parse(localStorage.getItem("user") || "{}");
-    } catch {
-      return {};
-    }
-  };
-
-  const storedUser = getStoredUser();
+  const storedUser = useAuthStore((state) => state.user) || {};
+  const updateProfile = useAuthStore((state) => state.updateProfile);
 
   /* ---------------- PROFILE STATE ---------------- */
 
-  const [name, setName] = useState(storedUser.name || "");
+  const [name, setName] = useState(
+    storedUser.name || storedUser.fullName || ""
+  );
   const [email, setEmail] = useState(storedUser.email || "");
   const [photo, setPhoto] = useState(storedUser.photo || "");
 
@@ -85,7 +115,11 @@ export default function Settings() {
     const reader = new FileReader();
 
     reader.onload = () => {
-      setPhoto(reader.result);
+      resizePhoto(reader.result)
+        .then(setPhoto)
+        .catch(() =>
+          setPhotoError("We couldn't load that image. Please try again.")
+        );
     };
 
     reader.onerror = () => {
@@ -120,20 +154,18 @@ export default function Settings() {
       return;
     }
 
-    /*
-     * Keep any other user properties that may already
-     * exist in localStorage.
-     */
-    const currentUser = getStoredUser();
-
-    const updatedUser = {
-      ...currentUser,
-      name: trimmedName,
-      email: trimmedEmail,
-      photo,
-    };
-
-    localStorage.setItem("user", JSON.stringify(updatedUser));
+    try {
+      updateProfile({
+        name: trimmedName,
+        email: trimmedEmail,
+        photo,
+      });
+    } catch {
+      setPhotoError(
+        "We couldn't save your profile - your browser storage is full."
+      );
+      return;
+    }
 
     setName(trimmedName);
     setEmail(trimmedEmail);
