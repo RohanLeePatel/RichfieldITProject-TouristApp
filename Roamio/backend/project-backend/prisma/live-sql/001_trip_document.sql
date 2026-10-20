@@ -25,3 +25,7 @@ create table if not exists "TripDocument" (
 );
 
 create index if not exists "TripDocument_tripId_idx" on "TripDocument" ("tripId");
+
+-- No policies: only the Node backend (direct Postgres role) reads this table;
+-- the anon/authenticated Supabase API keys get nothing.
+alter table "TripDocument" enable row level security;
