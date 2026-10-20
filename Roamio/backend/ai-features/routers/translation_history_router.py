@@ -79,12 +79,13 @@ def translate_camera_with_history(
     image: UploadFile = File(...),
     target_lang: str | None = Form(None),
     source_lang: str | None = Form(None),
-    save_history: bool = Form(True),
+    # text, not bool: some FastAPI versions read a missing bool form field as
+    # False (unticked-checkbox rule), which silently turned history off
+    save_history: str = Form("true"),
     x_user_id: str | None = Header(None),
 ):
     user_id = _user(x_user_id)
-    # ponytail: temporary, to find why live photo history isn't saved; remove once fixed
-    logger.warning("camera history check: has_user=%s save_history=%s", bool(user_id), save_history)
+    save_history = save_history.strip().lower() not in ("false", "0", "no", "off")
     try:
         image_bytes = image.file.read()
     except Exception as e:

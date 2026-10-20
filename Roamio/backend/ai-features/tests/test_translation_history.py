@@ -67,6 +67,14 @@ def test_camera_survives_upload_failure(app, monkeypatch):
     assert body["image_url"] is None and app.saved[0]["image_url"] is None
 
 
+def test_camera_saves_unless_opted_out(app, monkeypatch):
+    monkeypatch.setattr(app.router.storage_service, "upload_translation_image", lambda *a: None)
+    photo = {"image": ("s.jpg", JPEG, "image/jpeg")}
+    app.client.post("/api/translate/camera", files=photo, headers=H)  # flag omitted, like the frontend
+    app.client.post("/api/translate/camera", files=photo, data={"save_history": "false"}, headers=H)
+    assert [r["translation_type"] for r in app.saved] == ["IMAGE_CAMERA"]
+
+
 def test_camera_survives_db_failure(app, monkeypatch):
     monkeypatch.setattr(app.router.storage_service, "upload_translation_image", lambda *a: "http://x/img.jpg")
     monkeypatch.setattr(app.router.history_service, "save_record", lambda r: None)
