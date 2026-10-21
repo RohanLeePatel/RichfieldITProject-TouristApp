@@ -1507,6 +1507,42 @@ input {
     gap 0.2s ease;
 }
 
+/* Text-style buttons in the sign-up footer (resend code, change email) */
+.signup-text-wrap {
+  flex-wrap: wrap;
+}
+
+.signup-text .link-button {
+  padding: 0;
+
+  border: 0;
+
+  background: none;
+
+  color:
+    var(--teal-700);
+
+  font: inherit;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    color 0.2s ease;
+}
+
+.signup-text .link-button:hover:not(:disabled) {
+  color:
+    var(--teal-500);
+}
+
+.signup-text .link-button:disabled {
+  opacity: 0.6;
+
+  cursor: default;
+}
+
 .signup-text a:hover {
   color:
     var(--teal-500);

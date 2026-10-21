@@ -1,6 +1,7 @@
 const userRepository = require('../repositories/userRepository');
 const tokenService = require('../auth/tokenService');
-const { generateOtp, hashOtp, otpExpiry, otpMatches, logDevOtp, MAX_OTP_ATTEMPTS } = require('../utils/otp');
+const { generateOtp, hashOtp, otpExpiry, otpMatches, MAX_OTP_ATTEMPTS } = require('../utils/otp');
+const { sendOtpEmail } = require('./emailService');
 const { httpError } = require('./tripAccessService');
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -47,7 +48,7 @@ class AuthService {
       });
     }
 
-    logDevOtp(normalizedEmail, otp);
+    await sendOtpEmail(normalizedEmail, otp, 'verify');
     return { email: normalizedEmail, otp };
   }
 
@@ -80,8 +81,9 @@ class AuthService {
     const user = await userRepository.findByEmail(normalizedEmail);
     if (user?.isVerified) throw httpError(400, 'Account is already verified.');
 
-    // Unknown emails get the same response so this endpoint can't be used to probe for accounts
-    if (user) logDevOtp(normalizedEmail, await issueOtp(user.id));
+    // Unknown emails get the same response so this endpoint can't be used to probe for accounts.
+    // A failed send is logged, not returned, for the same reason.
+    if (user) await sendOtpEmail(normalizedEmail, await issueOtp(user.id), 'verify').catch(() => {});
   }
 
   // Always resolves without revealing whether the email exists; returns the code only for a real account
@@ -94,7 +96,8 @@ class AuthService {
 
     const otp = generateOtp();
     await userRepository.setResetPasswordOtp(user.id, hashOtp(otp), otpExpiry());
-    logDevOtp(normalizedEmail, otp, 'DEV RESET OTP');
+    // logged, not returned: an error only for real accounts would reveal which emails exist
+    await sendOtpEmail(normalizedEmail, otp, 'reset').catch(() => {});
     return { otp };
   }
 

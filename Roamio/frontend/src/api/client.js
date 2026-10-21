@@ -30,8 +30,13 @@ async function request(path, { auth = false, headers, ...options } = {}) {
   }
 
   if (!response.ok) {
+    // routes send { message } or { error: "..." }; the global error handler
+    // sends { error: { message } }
     throw new Error(
-      data?.message || data?.error || "Request failed. Please try again."
+      data?.message ||
+        data?.error?.message ||
+        (typeof data?.error === "string" ? data.error : null) ||
+        "Request failed. Please try again."
     );
   }
 

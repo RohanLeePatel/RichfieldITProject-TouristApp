@@ -16,7 +16,11 @@ import {
 
 import { Link, useNavigate } from "react-router-dom";
 
-import { useRegister } from "../hooks/useRegister";
+import {
+  useRegister,
+  useVerifyEmail,
+  useResendCode,
+} from "../hooks/useRegister";
 
 import "../styles/auth.css";
 
@@ -33,11 +37,54 @@ export default function Register() {
 
   const [passwordError, setPasswordError] = useState("");
 
+  // Set once the account is created: the page then asks for the emailed code
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [codeNotice, setCodeNotice] = useState(null); // { text, isError }
+
   const {
     mutate: registerUser,
     isPending,
     error,
   } = useRegister();
+
+  const {
+    mutate: verifyEmail,
+    isPending: isVerifying,
+    error: verifyError,
+  } = useVerifyEmail();
+
+  const {
+    mutate: resendCode,
+    isPending: isResending,
+  } = useResendCode();
+
+  const handleVerify = (e) => {
+    e.preventDefault();
+
+    setCodeNotice(null);
+
+    verifyEmail(
+      { email: pendingEmail, otp: code.trim() },
+      {
+        onSuccess: () => {
+          navigate("/dashboard");
+        },
+      }
+    );
+  };
+
+  const handleResend = () => {
+    setCodeNotice(null);
+
+    resendCode(
+      { email: pendingEmail },
+      {
+        onSuccess: () => setCodeNotice({ text: "A new code is on its way.", isError: false }),
+        onError: (err) => setCodeNotice({ text: err.message, isError: true }),
+      }
+    );
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -62,8 +109,8 @@ export default function Register() {
       return;
     }
 
-    if (password.length < 6) {
-      setPasswordError("Password must be at least 6 characters.");
+    if (password.length < 8) {
+      setPasswordError("Password must be at least 8 characters.");
       return;
     }
 
@@ -74,8 +121,10 @@ export default function Register() {
         password,
       },
       {
-        onSuccess: () => {
-          navigate("/dashboard");
+        onSuccess: ({ email: registeredEmail, devOtp }) => {
+          setPendingEmail(registeredEmail || trimmedEmail);
+          // only sent by a backend running with ENABLE_DEV_OTP=true
+          if (devOtp) setCode(devOtp);
         },
       }
     );
@@ -196,6 +245,107 @@ export default function Register() {
             <Plane size={21} />
           </div>
 
+          {pendingEmail ? (
+            <>
+              {/* VERIFY EMAIL */}
+
+              <div className="auth-title">
+                <span className="auth-eyebrow">
+                  VERIFY EMAIL
+                </span>
+
+                <h2>Check your inbox</h2>
+
+                <p>
+                  We sent a 6-digit code to <strong>{pendingEmail}</strong>.
+                  It expires in 10 minutes.
+                </p>
+              </div>
+
+              <form onSubmit={handleVerify}>
+                <div className="input-group">
+                  <label htmlFor="register-code">
+                    Verification code
+                  </label>
+
+                  <div className="input-box">
+                    <LockKeyhole size={18} />
+
+                    <input
+                      id="register-code"
+                      type="text"
+                      name="code"
+                      placeholder="123456"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      pattern="\d{6}"
+                      maxLength={6}
+                      value={code}
+                      onChange={(e) =>
+                        setCode(e.target.value.replace(/\D/g, ""))
+                      }
+                      required
+                    />
+                  </div>
+                </div>
+
+                {(verifyError || codeNotice) && (
+                  <p
+                    style={{
+                      color: codeNotice && !codeNotice.isError ? "inherit" : "#e05252",
+                      fontSize: "12px",
+                      lineHeight: "1.5",
+                      margin: "0 0 10px",
+                    }}
+                  >
+                    {codeNotice?.text || verifyError?.message}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  className="travel-button"
+                  disabled={isVerifying || code.length !== 6}
+                >
+                  <span>
+                    {isVerifying
+                      ? "Verifying..."
+                      : "Verify and continue"}
+                  </span>
+
+                  {!isVerifying && (
+                    <ArrowRight size={18} />
+                  )}
+                </button>
+              </form>
+
+              <div className="signup-text signup-text-wrap">
+                <span>Didn't get it?</span>
+
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={handleResend}
+                  disabled={isResending}
+                >
+                  {isResending ? "Sending..." : "Send a new code"}
+                </button>
+
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() => {
+                    setPendingEmail("");
+                    setCode("");
+                    setCodeNotice(null);
+                  }}
+                >
+                  Use a different email
+                </button>
+              </div>
+            </>
+          ) : (
+          <>
           {/* TITLE */}
 
           <div className="auth-title">
@@ -401,6 +551,8 @@ export default function Register() {
               )}
             </button>
           </form>
+          </>
+          )}
 
           {/* LOGIN */}
 

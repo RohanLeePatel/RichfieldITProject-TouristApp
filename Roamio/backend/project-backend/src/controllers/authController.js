@@ -37,7 +37,8 @@ class AuthController {
     try {
       const { user, accessToken, refreshToken } = await authService.verifyOtp(req.body);
       setSession(res, accessToken, refreshToken);
-      res.status(200).json({ message: 'Email verified successfully.', user, accessToken });
+      // token: the name the frontend stores (same value as accessToken)
+      res.status(200).json({ message: 'Email verified successfully.', user, accessToken, token: accessToken });
     } catch (err) {
       fail(res, next, err);
     }
@@ -78,11 +79,13 @@ class AuthController {
 
   async login(req, res, next) {
     try {
-      const { accessToken, refreshToken } = await authService.login(req.body);
+      const { user, accessToken, refreshToken } = await authService.login(req.body);
       setSession(res, accessToken, refreshToken);
       res.status(200).json({
         message: 'Login successful',
-        accessToken
+        user,
+        accessToken,
+        token: accessToken // the name the frontend stores
       });
     } catch (err) {
       fail(res, next, err);
