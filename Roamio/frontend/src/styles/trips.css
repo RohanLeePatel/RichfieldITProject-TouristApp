@@ -1,0 +1,232 @@
+.trips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.trips-grid-card {
+  display: grid;
+  gap: 8px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: inherit;
+  text-decoration: none;
+  transition: box-shadow .18s ease, transform .18s ease;
+}
+
+.trips-grid-card:hover {
+  box-shadow: var(--shadow-lift);
+  transform: translateY(-3px);
+}
+
+.trips-grid-card h3 {
+  margin: 0 0 4px;
+  font-size: 20px;
+  letter-spacing: -.4px;
+}
+
+.trips-grid-destination,
+.trips-grid-dates {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.trips-grid-destination svg,
+.trips-grid-dates svg {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.trips-grid-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.trip-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Trip detail day list reuses .itinerary-day / .itinerary-stop from
+   recommendations.css, but stacked full-width instead of scrolling columns. */
+.recommendations-results .itinerary-days-stacked {
+  display: grid;
+  grid-auto-flow: row;
+  grid-auto-columns: auto;
+  overflow: visible;
+}
+
+.rx-hero-body svg { vertical-align: -2px; }
+
+@media (max-width: 520px) {
+  .trips-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- Document vault (TripDocuments.jsx) ---- */
+
+.trip-document-upload {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.trip-document-upload .wizard-field {
+  margin: 0;
+  min-width: 130px;
+}
+
+.trip-document-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trip-document {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
+}
+
+.trip-document-icon {
+  display: grid;
+  place-items: center;
+  color: var(--primary);
+}
+
+/* a button, not a link, because the bytes need the bearer token - styled as a
+   link so it still reads as "open this file" */
+.trip-document-name {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  font-weight: 700;
+  color: var(--primary);
+  text-align: left;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.trip-document-name:hover {
+  text-decoration: underline;
+}
+
+.trip-document-meta {
+  color: var(--ink-soft);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.trip-document-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+@media (max-width: 560px) {
+  .trip-document {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  /* drop the metadata line onto its own row rather than squeezing the filename */
+  .trip-document-meta {
+    grid-column: 2 / -1;
+    white-space: normal;
+  }
+}
+
+/* ---- Starting-point templates (TripTemplates.jsx) ---- */
+
+.trip-templates {
+  margin-top: 26px;
+}
+
+.template-blurb {
+  margin: 2px 0 6px;
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* ---- Map on a saved trip (reuses ItineraryMap from the wizard) ---- */
+
+.trip-map-section .itinerary-map {
+  margin-top: 4px;
+}
+
+/* Print always uses the light palette on a plain white page. */
+@media print {
+  .print-hide,
+  .rx-hero .recommendations-header,
+  /* Leaflet renders to tiles that print as grey boxes, so the map is dropped
+     from the PDF; the day-by-day list below carries the same information. */
+  .trip-map-section {
+    display: none !important;
+  }
+
+  @page {
+    margin: 16mm;
+  }
+
+  .recommendations-page,
+  .recommendations-page[data-theme="dark"] {
+    --bg: #fff;
+    --surface: #fff;
+    --surface-2: #f4f4f4;
+    --ink: #111;
+    --ink-soft: #555;
+    --line: #ccc;
+    --primary: #14532D;
+    --shadow: none;
+    --shadow-lift: none;
+    background: #fff;
+    color: #111;
+    zoom: 1;
+  }
+
+  .rx-hero {
+    background: none;
+    color: #111;
+  }
+
+  .rx-hero-body { padding: 0 0 16px; }
+  .rx-hero-body h1,
+  .rx-hero-body p:not(.recommendations-eyebrow),
+  .rx-hero-body .recommendations-eyebrow { color: #111; }
+
+  .itinerary-days { display: block; overflow: visible; }
+
+  .itinerary-day {
+    break-inside: avoid;
+    margin-bottom: 14px;
+    box-shadow: none;
+  }
+
+  .itinerary-stop {
+    break-inside: avoid;
+  }
+}

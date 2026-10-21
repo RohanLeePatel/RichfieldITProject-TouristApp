@@ -1,0 +1,1805 @@
+/* =========================================================
+   ROAMIO FAMILY
+   Uses the existing Recommendations / Trip theme variables.
+   Light + dark mode are inherited from .recommendations-page.
+   ========================================================= */
+
+.family-page-content {
+  width: 100%;
+  display: grid;
+  gap: 22px;
+}
+
+/* =========================================================
+   Shared
+   ========================================================= */
+
+.family-page-content button,
+.family-page-content input,
+.family-page-content select {
+  font: inherit;
+}
+
+.family-page-content button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.family-page-content a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.family-page-content h2,
+.family-page-content h3,
+.family-page-content p {
+  margin-top: 0;
+}
+
+.family-page-content h2,
+.family-page-content h3 {
+  color: var(--ink);
+  font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+.family-section-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .01em;
+  line-height: 1;
+}
+
+.family-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 17px;
+  border-radius: 999px;
+  font: 800 13px "Plus Jakarta Sans", sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform .18s ease,
+    background .18s ease,
+    border-color .18s ease,
+    box-shadow .18s ease;
+}
+
+.family-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.family-button:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
+.family-button-primary {
+  border: 0;
+  background: var(--primary);
+  color: var(--primary-ink);
+  box-shadow: 0 8px 22px rgba(4, 85, 112, .18);
+}
+
+.family-button-primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+  box-shadow: 0 12px 26px rgba(4, 85, 112, .24);
+}
+
+.family-button-secondary {
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.family-button-secondary:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.family-button-light {
+  border: 0;
+  background: rgba(255, 255, 255, .94);
+  color: #04262E;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .16);
+}
+
+.family-button-light:hover {
+  background: #fff;
+}
+
+/* =========================================================
+   Hero
+   ========================================================= */
+
+.family-hero-eyebrow {
+  color: #E1F0D0 !important;
+}
+
+.rx-hero-body h1 span {
+  color: #B5D330;
+}
+
+.rx-hero-body p:not(.recommendations-eyebrow) {
+  max-width: 620px;
+}
+
+/* =========================================================
+   Overview
+   ========================================================= */
+
+.family-overview {
+  display: grid;
+  gap: 18px;
+}
+
+.family-overview-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.family-overview-heading h2,
+.family-panel-header h2,
+.family-section-heading-row h2,
+.family-card-heading h2,
+.family-together-content h2,
+.family-invite-card h2 {
+  margin: 7px 0 5px;
+  font-size: clamp(22px, 2.4vw, 27px);
+  letter-spacing: -.7px;
+}
+
+.family-overview-heading p,
+.family-panel-header p,
+.family-section-heading-row p,
+.family-card-description,
+.family-together-content p,
+.family-invite-card p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 13.5px;
+}
+
+.family-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.family-stat-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-height: 108px;
+  overflow: hidden;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease;
+}
+
+.family-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lift);
+}
+
+.family-stat-card > div:not(.family-stat-icon):not(.family-stat-decoration) {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 1px;
+}
+
+.family-stat-card > div > span {
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.family-stat-card strong {
+  color: var(--ink);
+  font: 800 27px/1 "Plus Jakarta Sans", sans-serif;
+}
+
+.family-stat-card small {
+  color: var(--ink-soft);
+  font-size: 10px;
+}
+
+.family-stat-icon {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  width: 43px;
+  height: 43px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--primary);
+  color: var(--primary-ink);
+}
+
+.family-stat-icon-teal {
+  background: #DCEFEA;
+  color: #045570;
+}
+
+.family-stat-icon-purple {
+  background: #EEE9FF;
+  color: #7054D8;
+}
+
+.family-stat-icon-orange {
+  background: #FFF0D8;
+  color: #B46B00;
+}
+
+.recommendations-page[data-theme="dark"] .family-stat-icon-teal {
+  background: #19483F;
+  color: #77D0B6;
+}
+
+.recommendations-page[data-theme="dark"] .family-stat-icon-purple {
+  background: #342B55;
+  color: #B9A9FF;
+}
+
+.recommendations-page[data-theme="dark"] .family-stat-icon-orange {
+  background: #4B3519;
+  color: #FFC56C;
+}
+
+.family-stat-decoration {
+  position: absolute;
+  right: -14px;
+  bottom: -18px;
+  color: var(--primary);
+  opacity: .055;
+}
+
+/* =========================================================
+   Main two-column area
+   ========================================================= */
+
+.family-main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(310px, .8fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.family-members-panel,
+.family-preferences-card,
+.family-activity-card {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.family-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.family-mobile-add {
+  display: none;
+}
+
+/* =========================================================
+   Search / filter
+   ========================================================= */
+
+.family-member-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.family-search {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 230px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--ink-soft);
+}
+
+.family-search:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(
+    in srgb,
+    var(--primary) 14%,
+    transparent
+  );
+}
+
+.family-search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 12.5px;
+}
+
+.family-search input::placeholder {
+  color: var(--ink-soft);
+  opacity: .8;
+}
+
+.family-search > button {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.family-search > button:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.family-filter-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.family-filter-tabs button {
+  min-width: 54px;
+  height: 31px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.family-filter-tabs button:hover {
+  color: var(--ink);
+}
+
+.family-filter-tabs button.active {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 2px 7px rgba(4, 38, 46, .08);
+}
+
+/* =========================================================
+   Member cards
+   ========================================================= */
+
+.family-member-list {
+  display: grid;
+  gap: 10px;
+}
+
+.family-member-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-tile);
+  background: var(--surface);
+  transition:
+    transform .18s ease,
+    border-color .18s ease,
+    box-shadow .18s ease;
+}
+
+.family-member-card:hover {
+  border-color: color-mix(
+    in srgb,
+    var(--primary) 35%,
+    var(--line)
+  );
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+}
+
+.family-avatar {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 14px;
+  font: 800 12px "Plus Jakarta Sans", sans-serif;
+}
+
+.family-avatar-large {
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+}
+
+.family-avatar-blue {
+  background: linear-gradient(145deg, #16849A, #3B82F6);
+  color: #fff;
+  box-shadow: 0 7px 18px rgba(59, 130, 246, .2);
+}
+
+.family-avatar-teal {
+  background: linear-gradient(145deg, #16849A, #23A89E);
+  color: #fff;
+  box-shadow: 0 7px 18px rgba(22, 132, 154, .2);
+}
+
+.family-avatar-purple {
+  background: linear-gradient(145deg, #7C62DD, #8B5CF6);
+  color: #fff;
+  box-shadow: 0 7px 18px rgba(139, 92, 246, .2);
+}
+
+.family-avatar-orange {
+  background: linear-gradient(145deg, #F59E0B, #F97316);
+  color: #fff;
+  box-shadow: 0 7px 18px rgba(245, 158, 11, .2);
+}
+
+.family-avatar-green {
+  background: linear-gradient(145deg, #16849A, #6A9470);
+  color: #fff;
+  box-shadow: 0 7px 18px rgba(106, 148, 112, .2);
+}
+
+.family-member-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.family-member-name-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.family-member-name-row h3 {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: -.2px;
+}
+
+.family-organizer-badge,
+.family-active-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+
+.family-organizer-badge {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.family-active-dot {
+  color: var(--ink-soft);
+}
+
+.family-active-dot i {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #5DBB83;
+}
+
+.family-member-role {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 3px 0 7px;
+  color: var(--ink-soft);
+  font-size: 11.5px;
+}
+
+.family-member-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.family-member-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  color: var(--ink-soft);
+  font-size: 10.5px;
+}
+
+.family-member-interests {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.family-member-interests span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink-soft);
+  font-size: 9.5px;
+  font-weight: 700;
+}
+
+.family-member-interests span svg {
+  color: var(--primary);
+}
+
+.family-member-interests .family-no-interests {
+  border-style: dashed;
+  background: transparent;
+  font-weight: 500;
+}
+
+.family-member-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.family-icon-button {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition:
+    background .18s ease,
+    color .18s ease,
+    border-color .18s ease;
+}
+
+.family-icon-button:hover {
+  border-color: var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.family-more-wrap {
+  position: relative;
+}
+
+.family-member-menu {
+  position: absolute;
+  top: 37px;
+  right: 0;
+  z-index: 20;
+  display: grid;
+  width: 160px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-lift);
+}
+
+.family-member-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.family-member-menu button:hover {
+  background: var(--surface-2);
+}
+
+.family-member-menu button.danger {
+  color: var(--danger);
+}
+
+.family-list-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 13px;
+  padding-top: 13px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-soft);
+  font-size: 10.5px;
+}
+
+.family-list-footer button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font-size: 10.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.family-list-footer button:hover {
+  text-decoration: underline;
+}
+
+/* =========================================================
+   Empty state
+   ========================================================= */
+
+.family-empty-state {
+  display: grid;
+  justify-items: center;
+  padding: 48px 20px;
+  text-align: center;
+}
+
+.family-empty-icon {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 12px;
+  place-items: center;
+  border-radius: 18px;
+  background: var(--surface-2);
+  color: var(--primary);
+}
+
+.family-empty-state h3 {
+  margin: 0 0 5px;
+  font-size: 16px;
+}
+
+.family-empty-state p {
+  margin: 0 0 16px;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+/* =========================================================
+   Right sidebar
+   ========================================================= */
+
+.family-sidebar {
+  display: grid;
+  gap: 18px;
+}
+
+.family-preferences-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.family-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.family-card-heading > svg {
+  color: var(--accent);
+}
+
+.family-card-heading h2 {
+  font-size: 19px;
+}
+
+.family-card-description {
+  margin-top: 11px;
+  line-height: 1.6;
+}
+
+.family-interest-bars {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.family-interest-bar {
+  display: grid;
+  gap: 6px;
+}
+
+.family-interest-bar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.family-interest-bar-top span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.family-interest-bar-top span svg {
+  color: var(--primary);
+}
+
+.family-interest-bar-top strong {
+  color: var(--ink-soft);
+  font-size: 10px;
+}
+
+.family-interest-track {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+
+.family-interest-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    var(--primary),
+    var(--sage)
+  );
+  transition: width .5s ease;
+}
+
+.family-card-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 20px;
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.family-card-link:hover {
+  text-decoration: underline;
+}
+
+/* =========================================================
+   Together visual card
+   ========================================================= */
+
+.family-together-card {
+  position: relative;
+  overflow: hidden;
+  min-height: 320px;
+  border-radius: var(--radius-card);
+  color: #fff;
+  background:
+    radial-gradient(
+      circle at 85% 18%,
+      rgba(181, 211, 48, .2),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 12% 95%,
+      rgba(74, 179, 211, .28),
+      transparent 34%
+    ),
+    linear-gradient(
+      145deg,
+      #04262E 0%,
+      #045570 58%,
+      #4D8A8C 100%
+    );
+  box-shadow: var(--shadow-lift);
+}
+
+.family-together-art {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.family-together-circle {
+  position: absolute;
+  border: 1px solid rgba(255, 255, 255, .13);
+  border-radius: 999px;
+}
+
+.circle-one {
+  width: 190px;
+  height: 190px;
+  top: -70px;
+  right: -30px;
+}
+
+.circle-two {
+  width: 280px;
+  height: 280px;
+  top: -115px;
+  right: -75px;
+}
+
+.family-together-plane {
+  position: absolute;
+  top: 53px;
+  right: 58px;
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, .22);
+  border-radius: 18px;
+  background: rgba(59, 130, 246, .85);
+  color: #fff;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .18);
+  transform: rotate(-8deg);
+}
+
+.family-mini-pin {
+  position: absolute;
+  display: grid;
+  width: 29px;
+  height: 29px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, .24);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .1);
+}
+
+.pin-one {
+  top: 38px;
+  right: 145px;
+}
+
+.pin-two {
+  top: 118px;
+  right: 25px;
+}
+
+.family-together-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  min-height: 320px;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 24px;
+}
+
+.family-together-content .family-section-eyebrow {
+  color: #B5D330;
+}
+
+.family-together-content h2 {
+  max-width: 270px;
+  margin-top: 9px;
+  color: #fff;
+  font-size: 22px;
+  letter-spacing: -.6px;
+}
+
+.family-together-content p {
+  max-width: 280px;
+  margin-bottom: 18px;
+  color: rgba(255, 255, 255, .76);
+  line-height: 1.6;
+}
+
+.family-together-content .family-button {
+  align-self: flex-start;
+}
+
+/* =========================================================
+   Upcoming trips
+   ========================================================= */
+
+.family-trips-section {
+  display: grid;
+  gap: 17px;
+}
+
+.family-section-heading-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.family-section-heading-row.compact {
+  align-items: flex-start;
+}
+
+.family-section-heading-row h2 {
+  font-size: 24px;
+}
+
+.family-outline-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--primary);
+  font-size: 11.5px;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.family-outline-link:hover {
+  text-decoration: underline;
+}
+
+.family-trip-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.family-trip-card {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  color: inherit;
+  text-decoration: none;
+  box-shadow: var(--shadow);
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease;
+}
+
+.family-trip-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lift);
+}
+
+.family-trip-cover {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-height: 112px;
+  padding: 16px;
+  overflow: hidden;
+  color: #fff;
+}
+
+.family-trip-teal .family-trip-cover {
+  background:
+    radial-gradient(
+      circle at 85% 25%,
+      rgba(61, 219, 196, .35),
+      transparent 30%
+    ),
+    linear-gradient(135deg, #04262E, #16849A);
+}
+
+.family-trip-blue .family-trip-cover {
+  background:
+    radial-gradient(
+      circle at 80% 15%,
+      rgba(59, 130, 246, .38),
+      transparent 32%
+    ),
+    linear-gradient(135deg, #16324F, #16849A);
+}
+
+.family-trip-purple .family-trip-cover {
+  background:
+    radial-gradient(
+      circle at 80% 15%,
+      rgba(139, 92, 246, .38),
+      transparent 32%
+    ),
+    linear-gradient(135deg, #27203F, #7054D8);
+}
+
+.family-trip-cover::before,
+.family-trip-cover::after {
+  content: "";
+  position: absolute;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 999px;
+}
+
+.family-trip-cover::before {
+  width: 160px;
+  height: 160px;
+  top: -105px;
+  right: -35px;
+}
+
+.family-trip-cover::after {
+  width: 230px;
+  height: 230px;
+  top: -145px;
+  right: -70px;
+}
+
+.family-trip-cover-glow {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  right: 38px;
+  bottom: -65px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .08);
+  filter: blur(5px);
+}
+
+.family-trip-icon {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  width: 43px;
+  height: 43px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .12);
+  backdrop-filter: blur(5px);
+}
+
+.family-trip-status {
+  position: relative;
+  z-index: 2;
+  margin-left: auto;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, .2);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.family-trip-body {
+  display: grid;
+  gap: 8px;
+  padding: 17px;
+}
+
+.family-trip-body h3 {
+  margin: 0;
+  font-size: 16px;
+  letter-spacing: -.3px;
+}
+
+.family-trip-body > p {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 11px;
+}
+
+.family-trip-body > p svg {
+  flex-shrink: 0;
+  color: var(--primary);
+}
+
+.family-trip-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 3px;
+}
+
+.family-trip-details span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink-soft);
+  font-size: 10px;
+}
+
+.family-trip-details svg {
+  color: var(--primary);
+}
+
+.family-trip-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 5px;
+  color: var(--primary);
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+/* =========================================================
+   Bottom section
+   ========================================================= */
+
+.family-bottom-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.family-activity-card {
+  display: grid;
+  gap: 16px;
+}
+
+.family-activity-list {
+  display: grid;
+}
+
+.family-activity-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-top: 1px solid var(--line);
+}
+
+.family-activity-item:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.family-activity-icon {
+  display: grid;
+  width: 35px;
+  height: 35px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--sage-bg);
+  color: var(--primary);
+}
+
+.family-activity-item > div:last-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.family-activity-item strong {
+  color: var(--ink);
+  font-size: 11px;
+}
+
+.family-activity-item span {
+  color: var(--ink-soft);
+  font-size: 9.5px;
+}
+
+.family-invite-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  overflow: hidden;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      color-mix(in srgb, var(--accent) 12%, transparent),
+      transparent 42%
+    ),
+    var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.family-invite-card::after {
+  content: "";
+  position: absolute;
+  right: -45px;
+  bottom: -60px;
+  width: 170px;
+  height: 170px;
+  border: 1px solid color-mix(
+    in srgb,
+    var(--primary) 15%,
+    transparent
+  );
+  border-radius: 999px;
+}
+
+.family-invite-icon {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 15px;
+  background: linear-gradient(
+    145deg,
+    var(--primary),
+    var(--sage)
+  );
+  color: #fff;
+  box-shadow: 0 9px 22px rgba(4, 85, 112, .18);
+}
+
+.family-invite-card > div:last-child {
+  position: relative;
+  z-index: 2;
+}
+
+.family-invite-card h2 {
+  max-width: 330px;
+  font-size: 20px;
+}
+
+.family-invite-card p {
+  max-width: 370px;
+  margin-bottom: 15px;
+  line-height: 1.55;
+}
+
+/* =========================================================
+   Modal
+   ========================================================= */
+
+.family-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(4, 22, 29, .58);
+  backdrop-filter: blur(7px);
+  animation: family-fade-in .18s ease;
+}
+
+.family-modal {
+  width: min(580px, 100%);
+  max-height: min(760px, calc(100vh - 40px));
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 25px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, .28);
+  animation: family-modal-in .2s ease;
+}
+
+.family-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 24px 18px;
+}
+
+.family-modal-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .09em;
+}
+
+.family-modal-header h2 {
+  margin: 7px 0 5px;
+  font-size: 23px;
+  letter-spacing: -.6px;
+}
+
+.family-modal-header p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.family-modal-close {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.family-modal-close:hover {
+  color: var(--ink);
+}
+
+.family-modal form {
+  padding: 0 24px 24px;
+}
+
+.family-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+}
+
+.family-form-field {
+  display: grid;
+  gap: 7px;
+}
+
+.family-form-field-wide {
+  grid-column: 1 / -1;
+}
+
+.family-form-field > span {
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.family-form-field > span small {
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.family-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface-2);
+  color: var(--ink-soft);
+}
+
+.family-input-wrap:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(
+    in srgb,
+    var(--primary) 13%,
+    transparent
+  );
+}
+
+.family-input-wrap input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.family-form-field select {
+  height: 42px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  outline: 0;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.family-form-field select:focus {
+  border-color: var(--primary);
+}
+
+.family-form-section {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.family-form-section-heading {
+  margin-bottom: 11px;
+}
+
+.family-form-section-heading strong {
+  display: block;
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.family-form-section-heading span {
+  display: block;
+  margin-top: 2px;
+  color: var(--ink-soft);
+  font-size: 10.5px;
+}
+
+.family-interest-picker {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+}
+
+.family-interest-option {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 39px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.family-interest-option svg:first-child {
+  color: var(--primary);
+}
+
+.family-interest-option svg:last-child {
+  margin-left: auto;
+}
+
+.family-interest-option:hover {
+  background: var(--surface-2);
+}
+
+.family-interest-option.selected {
+  border-color: var(--primary);
+  background: var(--sage-bg);
+  color: var(--ink);
+}
+
+.family-colour-picker {
+  display: flex;
+  gap: 9px;
+}
+
+.family-colour-option {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  color: #fff;
+  cursor: pointer;
+}
+
+.family-colour-option.selected {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.family-colour-blue {
+  background: linear-gradient(145deg, #16849A, #3B82F6);
+}
+
+.family-colour-teal {
+  background: linear-gradient(145deg, #16849A, #23A89E);
+}
+
+.family-colour-purple {
+  background: linear-gradient(145deg, #7054D8, #8B5CF6);
+}
+
+.family-colour-orange {
+  background: linear-gradient(145deg, #F59E0B, #F97316);
+}
+
+.family-colour-green {
+  background: linear-gradient(145deg, #16849A, #6A9470);
+}
+
+.family-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 23px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+/* =========================================================
+   Toast
+   ========================================================= */
+
+.family-toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 11px 14px 11px 11px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-lift);
+  font-size: 11px;
+  font-weight: 700;
+  animation: family-toast-in .22s ease;
+}
+
+.family-toast-icon {
+  display: grid;
+  width: 25px;
+  height: 25px;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--sage-bg);
+  color: var(--primary);
+}
+
+/* =========================================================
+   Animations
+   ========================================================= */
+
+@keyframes family-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes family-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes family-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =========================================================
+   Responsive
+   ========================================================= */
+
+@media (max-width: 1050px) {
+  .family-main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .family-sidebar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .family-together-card {
+    min-height: 100%;
+  }
+
+  .family-together-content {
+    min-height: 100%;
+  }
+}
+
+@media (max-width: 850px) {
+  .family-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .family-trip-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .family-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .family-sidebar {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 650px) {
+  .family-overview-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .family-add-top {
+    width: 100%;
+  }
+
+  .family-stat-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .family-stat-card {
+    min-height: 96px;
+    padding: 14px;
+  }
+
+  .family-stat-icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .family-stat-card strong {
+    font-size: 23px;
+  }
+
+  .family-member-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .family-search {
+    width: 100%;
+  }
+
+  .family-filter-tabs {
+    width: 100%;
+  }
+
+  .family-filter-tabs button {
+    flex: 1;
+  }
+
+  .family-member-card {
+    padding: 13px;
+  }
+
+  .family-member-actions {
+    position: absolute;
+    top: 10px;
+    right: 9px;
+  }
+
+  .family-member-main {
+    padding-right: 58px;
+  }
+
+  .family-list-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .family-section-heading-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .family-outline-link {
+    margin-top: -5px;
+  }
+
+  .family-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .family-form-field-wide {
+    grid-column: auto;
+  }
+
+  .family-interest-picker {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .family-modal-header {
+    padding: 20px 18px 15px;
+  }
+
+  .family-modal form {
+    padding: 0 18px 18px;
+  }
+}
+
+@media (max-width: 460px) {
+  .family-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .family-stat-card {
+    min-height: 86px;
+  }
+
+  .family-avatar-large {
+    width: 42px;
+    height: 42px;
+  }
+
+  .family-member-card {
+    gap: 10px;
+  }
+
+  .family-member-interests span:nth-child(n + 3) {
+    display: none;
+  }
+
+  .family-interest-picker {
+    grid-template-columns: 1fr;
+  }
+
+  .family-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .family-modal-actions .family-button {
+    width: 100%;
+  }
+
+  .family-toast {
+    right: 16px;
+    bottom: 16px;
+    left: 16px;
+    max-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .family-page-content *,
+  .family-modal-backdrop,
+  .family-modal,
+  .family-toast {
+    animation: none !important;
+    transition: none !important;
+  }
+}

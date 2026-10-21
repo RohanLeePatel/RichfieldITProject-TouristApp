@@ -1,0 +1,159 @@
+"""
+Hits POST /recommendations through the actual FastAPI app (not just the
+functions directly), auth header included, so we're testing the real
+boundary Node will actually call. Not testing the deployed Vercel URL from
+Node itself here - this is the local equivalent against the app object.
+"""
+
+import importlib
+
+import pytest
+from fastapi.testclient import TestClient
+
+from engine.catalog import load_city_candidates, load_country_catalog
+from tests.test_contract import VALID_PAYLOAD
+
+
+@pytest.fixture
+def client(monkeypatch):
+    monkeypatch.setenv("superSecretKey", "test-secret")
+    # config.auth reads the env var at import time, so it needs a fresh reload
+    # after setting it, and same for the router/app that already imported it
+    import config.auth as auth_module
+
+    importlib.reload(auth_module)
+    import main as main_module
+
+    importlib.reload(main_module)
+    return TestClient(main_module.app)
+
+
+def test_recommendations_requires_auth_header(client):
+    response = client.post("/recommendations", json=VALID_PAYLOAD)
+    assert response.status_code == 422  # FastAPI: missing required header
+
+
+def test_recommendation_catalog_returns_expanded_country_metadata(client):
+    response = client.get(
+        "/recommendations/catalog", headers={"node-secretkey": "test-secret"}
+    )
+    assert response.status_code == 200
+    countries = response.json()["countries"]
+    assert len(countries) >= 50
+    south_africa = next(country for country in countries if country["id"] == "south-africa")
+    assert south_africa["city_count"] >= 20
+
+
+def test_recommendations_rejects_wrong_secret(client):
+    response = client.post(
+        "/recommendations", json=VALID_PAYLOAD, headers={"node-secretkey": "wrong"}
+    )
+    assert response.status_code == 401
+
+
+def test_recommendations_succeeds_with_correct_secret(client):
+    response = client.post(
+        "/recommendations", json=VALID_PAYLOAD, headers={"node-secretkey": "test-secret"}
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["level"] == "city"
+    assert len(body["results"]) == 1
+    assert body["results"][0]["id"] == "za-dbn"
+    assert body["results"][0]["name"] == "Durban"
+    assert body["results"][0]["map_url"].startswith("https://www.google.com/maps/search/")
+
+
+def test_recommendations_rejects_malformed_body(client):
+    response = client.post(
+        "/recommendations",
+        json={"level": "city"},
+        headers={"node-secretkey": "test-secret"},
+    )
+    assert response.status_code == 422
+
+
+def test_recommendations_uses_seed_catalog_when_candidates_omitted(client):
+    payload = {**VALID_PAYLOAD}
+    del payload["candidates"]
+    del payload["parent_id"]
+    response = client.post(
+        "/recommendations", json=payload, headers={"node-secretkey": "test-secret"}
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["results"]) + len(body["excluded"]) == len(load_city_candidates())
+
+
+def test_recommendations_rejects_omitted_candidates_at_place_level(client):
+    payload = {**VALID_PAYLOAD, "level": "place"}
+    del payload["candidates"]
+    response = client.post(
+        "/recommendations", json=payload, headers={"node-secretkey": "test-secret"}
+    )
+    assert response.status_code == 400
+
+
+def test_recommendations_country_level_uses_synthesized_catalog(client):
+    payload = {**VALID_PAYLOAD, "level": "country"}
+    del payload["candidates"]
+    del payload["parent_id"]
+    response = client.post(
+        "/recommendations", json=payload, headers={"node-secretkey": "test-secret"}
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["results"]) + len(body["excluded"]) == len(load_country_catalog())
+    # which specific country wins depends on real interest/cost/climate data
+    # (see engine/catalog.py country-level interest aggregation) and isn't
+    # pinned here - just check the response shape is sane.
+    assert len(body["results"]) > 0
+    assert {r["id"] for r in body["results"]}.isdisjoint({e["id"] for e in body["excluded"]})
+
+
+def test_recommendations_city_level_filters_by_parent_country(client):
+    payload = {**VALID_PAYLOAD, "level": "city", "parent_id": "south-africa"}
+    del payload["candidates"]
+    response = client.post(
+        "/recommendations", json=payload, headers={"node-secretkey": "test-secret"}
+    )
+    assert response.status_code == 200
+    body = response.json()
+    result_ids = {r["id"] for r in body["results"]} | {e["id"] for e in body["excluded"]}
+    assert result_ids == {c.id for c in load_city_candidates(country_id="south-africa")}
+
+
+def test_recommendations_city_level_unknown_parent_country_404s(client):
+    payload = {**VALID_PAYLOAD, "level": "city", "parent_id": "atlantis"}
+    del payload["candidates"]
+    response = client.post(
+        "/recommendations", json=payload, headers={"node-secretkey": "test-secret"}
+    )
+    assert response.status_code == 404
+
+
+def test_a_pipeline_failure_is_a_502_without_internals(client, monkeypatch):
+    """NFR-22: the traveller gets a sentence, the traceback goes to the log."""
+    import routers.recommendations_router as router_module
+
+    def boom(*a, **k):
+        raise ZeroDivisionError("weights summed to zero somehow")
+
+    monkeypatch.setattr(router_module, "build_response", boom)
+
+    response = client.post(
+        "/recommendations", json=VALID_PAYLOAD, headers={"node-secretkey": "test-secret"}
+    )
+    assert response.status_code == 502
+    detail = response.json()["detail"]
+    assert "ZeroDivisionError" not in detail and "weights summed" not in detail
+
+
+def test_dismissing_every_candidate_still_returns_something(client):
+    """A run of "not quite right" must not empty the candidate set and 500."""
+    payload = {**VALID_PAYLOAD, "exclude_ids": [c["id"] for c in VALID_PAYLOAD["candidates"]]}
+    response = client.post(
+        "/recommendations", json=payload, headers={"node-secretkey": "test-secret"}
+    )
+    assert response.status_code == 200
+    assert response.json()["results"]
