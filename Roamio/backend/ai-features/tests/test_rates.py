@@ -29,7 +29,7 @@ class _Response:
         pass
 
     def json(self):
-        return {"result": "success", "conversion_rate": 0.055}
+        return {"base": "ZAR", "result": {"USD": 0.055}}
 
 
 def test_rates_requires_auth_header(client):

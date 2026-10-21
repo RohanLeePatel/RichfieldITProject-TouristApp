@@ -6,7 +6,7 @@ const aiFeaturesUrl = (
 ).replace(/\/$/, '');
 
 // One unit of `base` in `target`, from the ai-features /rates route (which
-// holds the ExchangeRate-API key and caches). Same currency -> 1 with no call.
+// holds the fastFOREX key and caches). Same currency -> 1 with no call.
 // Throws 503 rather than guessing: an expense saved at a wrong rate would
 // quietly corrupt every total after it.
 async function fetchRate(base, target) {

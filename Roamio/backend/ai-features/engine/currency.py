@@ -13,8 +13,8 @@ None and lets the caller decide what to do - same pattern as the rest of the
 engine, missing data shouldn't get treated as a red flag.
 
 Rates get cached in memory for a day. Without caching, one recommendation
-request would hit the API once per candidate, and the free tier is only
-1500 requests/month. An expired entry is still served when the provider is
+request would hit the API once per candidate, and the provider (fastFOREX)
+meters requests. An expired entry is still served when the provider is
 failing, flagged as stale (NFR-13).
 """
 
@@ -31,7 +31,7 @@ from cache_utils import ttl_cache_get, ttl_cache_set
 logger = logging.getLogger(__name__)
 
 EXCHANGE_RATE_API_KEY = os.environ.get("exchangeRateAPIKey")
-EXCHANGE_RATE_PAIR_URL = "https://v6.exchangerate-api.com/v6/{key}/pair/{base}/{target}"
+EXCHANGE_RATE_PAIR_URL = "https://api.fastforex.io/fetch-one?from={base}&to={target}&api_key={key}"
 CACHE_TTL_SECONDS = 24 * 60 * 60  # rates don't need to be up to the second for a travel budget guess
 REQUEST_TIMEOUT_SECONDS = 5
 
@@ -71,15 +71,17 @@ def rate_detail(base: str, target: str) -> dict | None:
             EXCHANGE_RATE_PAIR_URL.format(key=EXCHANGE_RATE_API_KEY, base=base, target=target),
             timeout=REQUEST_TIMEOUT_SECONDS,
         )
-        response.raise_for_status()
+        # {"base": "USD", "result": {"ZAR": 18.2}, ...}, or {"error": "..."}
+        # with a 4xx - read the body either way so the reason gets logged
         data = response.json()
-        if data.get("result") != "success":
-            logger.warning("ExchangeRate-API refused %s->%s: %s", base, target, data.get("error-type"))
+        rate = (data.get("result") or {}).get(target)
+        if rate is None:
+            logger.warning("fastFOREX refused %s->%s: %s", base, target, data.get("error"))
             return _stale_or_none(base, target)
-        rate = float(data["conversion_rate"])
+        rate = float(rate)
     except Exception as e:
         # the URL carries the API key, so log the exception type only
-        logger.warning("ExchangeRate-API request failed: %s", type(e).__name__)
+        logger.warning("fastFOREX request failed: %s", type(e).__name__)
         return _stale_or_none(base, target)
 
     fetched_at = datetime.now(timezone.utc).isoformat(timespec="seconds")

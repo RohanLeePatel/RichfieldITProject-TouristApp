@@ -173,7 +173,7 @@ export const COUNTRIES = [
 ];
 
 // Offered in the wizard's currency picker. The engine converts any ISO 4217
-// code through ExchangeRate-API, so this list is about keeping travellers out
+// code through fastFOREX, so this list is about keeping travellers out
 // of a late 422 rather than a limit on what is supported.
 export const CURRENCIES = ["ZAR", "USD", "EUR", "GBP", "AUD", "CAD", "AED", "INR", "JPY", "KES"];
 

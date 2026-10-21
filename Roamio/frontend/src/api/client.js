@@ -29,6 +29,16 @@ async function request(path, { auth = false, headers, ...options } = {}) {
     // No JSON body (e.g. a 204) - leave data as null.
   }
 
+  // The access token lasts 15 minutes and can't be refreshed from this site
+  // (the refresh cookie is SameSite=Strict on another domain), so an expired
+  // session signs out and comes back here after logging in.
+  if (auth && response.status === 401 && localStorage.getItem(TOKEN_KEY)) {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem("user");
+    const here = window.location.pathname + window.location.search;
+    window.location.assign(`/login?next=${encodeURIComponent(here)}`);
+  }
+
   if (!response.ok) {
     // routes send { message } or { error: "..." }; the global error handler
     // sends { error: { message } }
