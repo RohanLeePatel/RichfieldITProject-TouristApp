@@ -74,6 +74,8 @@ function TravelerConstraints({ traveler, index, currency, onChange }) {
   );
 }
 
+const travelerName = (traveler, index) => traveler.name?.trim() || `Traveler ${index + 2}`;
+
 export default function InterestsStep({
   form, cycleInterest, cycleTravelerInterest, addTraveler, removeTraveler, updateTraveler, toggleDealbreaker, toggleTravelerDealbreaker,
 }) {
@@ -92,20 +94,30 @@ export default function InterestsStep({
         {form.travelers.map((traveler, index) => (
           <div key={traveler.id} className="traveler-block">
             <div className="traveler-block-header">
-              <h4>Traveler {index + 2}&apos;s picks</h4>
+              <h4>{travelerName(traveler, index)}&apos;s picks</h4>
               <button type="button" onClick={() => removeTraveler(traveler.id)} aria-label="Remove this traveler">
                 <X size={14} />
               </button>
             </div>
+            <label className="wizard-field traveler-name-field">
+              Name (optional)
+              <input
+                type="text"
+                value={traveler.name || ""}
+                maxLength={60}
+                placeholder="So we can say who a place suits"
+                onChange={(event) => updateTraveler(traveler.id, "name", event.target.value)}
+              />
+            </label>
             <InterestPicker
               flat
               interests={traveler.interests}
               priorityInterests={traveler.priorityInterests}
               onCycle={(tagId) => cycleTravelerInterest(traveler.id, tagId)}
             />
-            <h4 className="interest-group-label">Traveler {index + 2} wants to avoid</h4>
+            <h4 className="interest-group-label">{travelerName(traveler, index)} wants to avoid</h4>
             <AvoidChips avoided={traveler.dealbreakers || []} onToggle={(tagId) => toggleTravelerDealbreaker(traveler.id, tagId)} />
-            <h4 className="interest-group-label">Traveler {index + 2}&apos;s own limits</h4>
+            <h4 className="interest-group-label">{travelerName(traveler, index)}&apos;s own limits</h4>
             <TravelerConstraints traveler={traveler} index={index} currency={form.currency} onChange={updateTraveler} />
           </div>
         ))}

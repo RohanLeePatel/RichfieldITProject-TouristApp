@@ -67,6 +67,19 @@ export default function DestinationCard({
           <p className="recommendation-location"><MapPin size={14} /> {recommendation.country}</p>
         )}
         <p className="recommendation-explanation">{recommendation.explanation}</p>
+        {recommendation.member_fit?.length > 1 && (
+          <ul className="member-fit" aria-label="How this suits each traveller">
+            {recommendation.member_fit.map((fit) => (
+              <li key={fit.label}>
+                <b>{fit.label}</b>
+                <span className="member-fit-score">{Math.round(fit.score * 100)}%</span>
+                {fit.weakest_dimension && (
+                  <span className="member-fit-weak">weakest on {formatDimension(fit.weakest_dimension)}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
         <p className="recommendation-why">Why it matched</p>
         <div className="chip-list recommendation-evidence">
           {otherEvidence?.map((entry) => (

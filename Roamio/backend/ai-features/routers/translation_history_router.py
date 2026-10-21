@@ -79,10 +79,13 @@ def translate_camera_with_history(
     image: UploadFile = File(...),
     target_lang: str | None = Form(None),
     source_lang: str | None = Form(None),
-    save_history: bool = Form(True),
+    # text, not bool: some FastAPI versions read a missing bool form field as
+    # False (unticked-checkbox rule), which silently turned history off
+    save_history: str = Form("true"),
     x_user_id: str | None = Header(None),
 ):
     user_id = _user(x_user_id)
+    save_history = save_history.strip().lower() not in ("false", "0", "no", "off")
     try:
         image_bytes = image.file.read()
     except Exception as e:
@@ -113,7 +116,10 @@ def translate_camera_with_history(
         "history_id": None,
     }
 
-    if save_history and result["translation"]:
+    # Guests are not saved, same rule as /text. Without a user there is no one
+    # who can list or delete the row, so a guest's photo would sit in a public
+    # bucket for good.
+    if save_history and user_id and result["translation"]:
         # a failure from here on must not cost the traveller their translation
         image_url = None
         content_type = sniff_content_type(image_bytes)
@@ -137,6 +143,12 @@ def translate_camera_with_history(
         response["image_url"] = image_url
         response["history_id"] = history_id
         response["history_saved"] = history_id is not None
+        if history_id:
+            try:
+                for old_url in history_service.prune_photos(user_id):
+                    storage_service.delete_translation_image(old_url)
+            except Exception:
+                logger.exception("could not prune old photo history")
     return response
 
 

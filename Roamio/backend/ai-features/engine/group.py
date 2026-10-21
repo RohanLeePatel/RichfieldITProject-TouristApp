@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from collections import Counter
 
-from engine.weights import GROUP_MISERY_WEIGHT, MEMBER_FIT_CONCERN_GAP
+from engine.weights import GROUP_MISERY_WEIGHT
 from schemas.recommendations import (
     Accessibility,
     ClimatePrefs,
@@ -53,6 +53,29 @@ def _majority(values: list[str], tie_breaker: str | None) -> str | None:
     return counts[0][0]
 
 
+def _without_avoided(preferences: Preferences, avoided: list[str]) -> Preferences:
+    """
+    Apply the group's avoid list to the merged preferences.
+
+    Two reasons this has to happen here rather than in the browser. The merge
+    used to build its Preferences field by field and simply never mentioned
+    avoid_interests, so the field defaulted back to empty and the penalty in
+    score_interests could never fire however the request was filled in. And
+    detect_conflicts tells the group a must-have "has been excluded", which was
+    only true if something actually excluded it.
+    """
+    blocked = set(avoided)
+    return preferences.model_copy(
+        update={
+            "avoid_interests": avoided,
+            "interests": [tag for tag in preferences.interests if tag not in blocked],
+            "priority_interests": [
+                tag for tag in preferences.priority_interests if tag not in blocked
+            ],
+        }
+    )
+
+
 def merge_preferences(members: list[Preferences]) -> tuple[Preferences, dict]:
     """
     Combine one or more travellers' preferences. members[0] is the organiser.
@@ -70,13 +93,17 @@ def merge_preferences(members: list[Preferences]) -> tuple[Preferences, dict]:
 
     organiser = members[0]
     if len(members) == 1:
-        return organiser, {"merged": False, "member_count": 1}
+        return _without_avoided(organiser, organiser.avoid_interests), {
+            "merged": False,
+            "member_count": 1,
+        }
 
     # Shared wallet: the group can only spend what its tightest budget allows.
     # Averaging would hand everyone a daily figure the cheapest traveller
     # cannot actually afford.
     budget = min(member.budget_per_day for member in members)
 
+    avoided = _union([member.avoid_interests for member in members])
     interests = _union([member.interests for member in members])
     # one person's must-have is the group's must-have - if it were averaged
     # away, the engine would rank destinations that miss it just as highly
@@ -113,6 +140,8 @@ def merge_preferences(members: list[Preferences]) -> tuple[Preferences, dict]:
         pace=pace,
     )
 
+    merged = _without_avoided(merged, avoided)
+
     notes = {
         "merged": True,
         "member_count": len(members),
@@ -121,8 +150,9 @@ def merge_preferences(members: list[Preferences]) -> tuple[Preferences, dict]:
             "chosen": budget,
             "submitted": [member.budget_per_day for member in members],
         },
-        "interests": {"rule": "union", "chosen": interests},
-        "priority_interests": {"rule": "union", "chosen": priority},
+        "interests": {"rule": "union", "chosen": merged.interests},
+        "priority_interests": {"rule": "union", "chosen": merged.priority_interests},
+        "avoid_interests": {"rule": "union", "chosen": avoided},
         "accessibility": {
             "rule": "strictest",
             "chosen": wheelchair,
@@ -194,25 +224,6 @@ def member_label(preferences: Preferences, index: int) -> str:
     """What to call this traveller in an explanation."""
     label = (preferences.label or "").strip()
     return label or ("You" if index == 0 else f"Traveller {index + 1}")
-
-
-def describe_fit(labels_and_scores: list[tuple[str, float]]) -> str | None:
-    """
-    One line naming who a destination does not work for. None when the group
-    is in agreement, so the UI says nothing rather than something empty.
-    """
-    if len(labels_and_scores) < 2:
-        return None
-
-    best = max(score for _, score in labels_and_scores)
-    unhappy = [
-        label for label, score in labels_and_scores if best - score >= MEMBER_FIT_CONCERN_GAP
-    ]
-    if not unhappy:
-        return "Works for everyone in the group."
-    if len(unhappy) == 1:
-        return f"Works for the group except {unhappy[0]}."
-    return f"Works for the group except {', '.join(unhappy[:-1])} and {unhappy[-1]}."
 
 
 def detect_conflicts(members: list[Preferences]) -> list[str]:

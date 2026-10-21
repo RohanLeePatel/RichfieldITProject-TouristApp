@@ -31,6 +31,7 @@ def app(monkeypatch):
     monkeypatch.setattr(router_module, "translate_lines", lambda *a, **k: [])
     monkeypatch.setattr(router_module, "run_ocr", lambda b: ("Salida", []))
     monkeypatch.setattr(router_module.history_service, "save_record", lambda r: saved.append(r) or "hid-1")
+    monkeypatch.setattr(router_module.history_service, "prune_photos", lambda user_id: [])
     return SimpleNamespace(router=router_module, client=TestClient(main_module.app), saved=saved)
 
 
@@ -46,6 +47,15 @@ def test_text_not_saved_when_opted_out_or_guest(app):
     assert app.saved == []
 
 
+def test_camera_does_not_store_a_guest_photo(app, monkeypatch):
+    uploaded = []
+    monkeypatch.setattr(app.router.storage_service, "upload_translation_image", lambda *a: uploaded.append(a))
+    r = app.client.post("/api/translate/camera", files={"image": ("s.jpg", JPEG, "image/jpeg")},
+                        headers={"node-secretkey": "test-secret"})
+    assert r.status_code == 200 and r.json()["translation"] == "Emergency exit"
+    assert uploaded == [] and app.saved == []
+
+
 def test_camera_survives_upload_failure(app, monkeypatch):
     def boom(*a, **k):
         raise StorageError("down")
@@ -56,6 +66,40 @@ def test_camera_survives_upload_failure(app, monkeypatch):
     body = r.json()
     assert r.status_code == 200 and body["translation"] == "Emergency exit"
     assert body["image_url"] is None and app.saved[0]["image_url"] is None
+
+
+def test_camera_saves_unless_opted_out(app, monkeypatch):
+    monkeypatch.setattr(app.router.storage_service, "upload_translation_image", lambda *a: None)
+    photo = {"image": ("s.jpg", JPEG, "image/jpeg")}
+    app.client.post("/api/translate/camera", files=photo, headers=H)  # flag omitted, like the frontend
+    app.client.post("/api/translate/camera", files=photo, data={"save_history": "false"}, headers=H)
+    assert [r["translation_type"] for r in app.saved] == ["IMAGE_CAMERA"]
+
+
+def test_camera_removes_photos_past_the_limit(app, monkeypatch):
+    removed = []
+    monkeypatch.setattr(app.router.storage_service, "upload_translation_image", lambda *a: "http://x/new.jpg")
+    monkeypatch.setattr(app.router.history_service, "prune_photos", lambda user_id: [f"http://x/{user_id}-old.jpg"])
+    monkeypatch.setattr(app.router.storage_service, "delete_translation_image", removed.append)
+    r = app.client.post("/api/translate/camera", files={"image": ("s.jpg", JPEG, "image/jpeg")}, headers=H)
+    assert r.json()["history_saved"] is True and removed == ["http://x/user-1-old.jpg"]
+
+
+def test_prune_photos_keeps_the_newest(monkeypatch):
+    import history_service
+
+    calls = []
+
+    class Query:
+        def __init__(self):
+            self.data = [{"id": "a", "image_url": "u1"}, {"id": "b", "image_url": None}]
+
+        def __getattr__(self, name):
+            return lambda *a, **k: calls.append((name, a)) or self
+
+    monkeypatch.setattr(history_service, "get_client", lambda: SimpleNamespace(table=lambda t: Query()))
+    assert history_service.prune_photos("user-1") == ["u1"]
+    assert ("range", (15, 114)) in calls and ("in_", ("id", ["a", "b"])) in calls
 
 
 def test_camera_survives_db_failure(app, monkeypatch):

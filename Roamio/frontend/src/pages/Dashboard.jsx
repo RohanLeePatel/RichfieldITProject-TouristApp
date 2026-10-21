@@ -410,21 +410,9 @@ export default function Dashboard() {
   // USER
   // =========================================================
 
-  let savedUser = {};
-
-  try {
-    const storedUser =
-      localStorage.getItem("user");
-
-    if (storedUser) {
-      savedUser = JSON.parse(storedUser);
-    }
-  } catch (error) {
-    console.error(
-      "Could not read saved user:",
-      error
-    );
-  }
+  // from the auth store, which merges in the name/photo saved in Settings
+  const savedUser =
+    useAuthStore((state) => state.user) || {};
 
   let userName =
     savedUser?.name ||
@@ -1022,7 +1010,11 @@ export default function Dashboard() {
             >
 
               <div className="profile-avatar">
-                {initials}
+                {savedUser.photo ? (
+                  <img src={savedUser.photo} alt="" />
+                ) : (
+                  initials
+                )}
               </div>
 
               <div className="profile-details">
