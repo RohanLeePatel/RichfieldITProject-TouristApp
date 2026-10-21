@@ -80,6 +80,19 @@ const server = app.listen(0, async () => {
     r = await call('/', { method: 'POST', body: JSON.stringify({ title: '' }) });
     assert.equal(r.status, 400);
 
+    // a trip planned in a shared group: allowed for its non-viewer members only
+    personalMembership = { travelGroupId: 12, role: 'MEMBER' };
+    r = await call('/', { method: 'POST', body: JSON.stringify({ title: 'G', destination: 'D', travelGroupId: 12 }) });
+    assert.equal(r.status, 201);
+    assert.equal(last('trip.create').data.travelGroupId, 12);
+    assert.deepEqual(last('travelGroupMember.findFirst').where, {
+      userId: 7, travelGroupId: 12, role: { not: 'VIEWER' }, travelGroup: { deletedAt: null },
+    });
+    personalMembership = null; // not a member (or a viewer)
+    r = await call('/', { method: 'POST', body: JSON.stringify({ title: 'G', destination: 'D', travelGroupId: 13 }) });
+    assert.equal(r.status, 404);
+    personalMembership = { travelGroupId: 3 };
+
     // the list covers personal and group trips, in the frontend's shape
     r = await call('/');
     assert.equal(r.status, 200);

@@ -106,7 +106,7 @@ export default function TripsList() {
       </p>
 
       <h1>
-        {showingCompleted ? "Trips you&apos;ve completed." : "All your trips."}
+        {showingCompleted ? "Trips you've completed." : "All your trips."}
       </h1>
 
       <p>
@@ -114,6 +114,12 @@ export default function TripsList() {
           ? "Every trip you've finished, all in one place."
           : "Every trip you've planned, in one place."}
       </p>
+
+      {!showingCompleted && (
+        <Link to="/recommendations" className="recommendations-submit trips-plan-button">
+          <Plus size={16} /> Plan a new trip
+        </Link>
+      )}
     </>
   );
 
@@ -182,8 +188,14 @@ export default function TripsList() {
                   {tripDateLabel(trip)}
                 </p>
 
+                {trip._count && (
+                  <p className="trips-grid-dates">
+                    {trip._count.itinerary} stop{trip._count.itinerary === 1 ? "" : "s"} planned
+                  </p>
+                )}
+
                 <span className="trips-grid-link">
-                  View itinerary <ArrowRight size={14} />
+                  Open trip <ArrowRight size={14} />
                 </span>
               </Link>
             ))}

@@ -33,7 +33,7 @@ export default function WizardView({ step, setStep, error, setError, loading, on
         {step === 0 && <BasicsStep {...stepProps} />}
         {step === 1 && <InterestsStep {...stepProps} />}
         {step === 2 && <GroupStep {...stepProps} />}
-        {step === 3 && <ReviewStep form={stepProps.form} goToStep={goToStep} />}
+        {step === 3 && <ReviewStep form={stepProps.form} goToStep={goToStep} updateForm={stepProps.updateForm} />}
 
         {error && <p className="recommendations-error" role="alert">{error}</p>}
         <div className="panel wizard-actions">

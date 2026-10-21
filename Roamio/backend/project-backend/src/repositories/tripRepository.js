@@ -1,3 +1,4 @@
+const { unpackMeta } = require('../utils/tripFormat');
 const prisma = require('../prismaClient');
 
 const tripRepository = {
@@ -76,13 +77,33 @@ const tripRepository = {
     });
   },
 
-  findMemberUserIds: async (tripId) => {
-    const members = await prisma.tripMember.findMany({
-      where: { tripId },
-      select: { userId: true },
-      orderBy: { userId: 'asc' }
+  // A group member reaches the group's trips without a TripMember row (the
+  // rule GET /api/trips uses - utils/tripFormat.accessibleTrips). Their group
+  // role stands in; null if they're not in the trip's group either.
+  findGroupMembershipForTrip: async (tripId, userId) => {
+    return await prisma.travelGroupMember.findFirst({
+      where: { userId, travelGroup: { deletedAt: null, trips: { some: { id: tripId, deletedAt: null } } } },
+      select: { role: true }
     });
-    return members.map((m) => m.userId);
+  },
+
+  // Everyone who can share this trip's costs: its TripMembers plus the members
+  // of its travel group (the same people assertTripAccess lets in).
+  findMemberUserIds: async (tripId) => {
+    const [members, groupMembers] = await Promise.all([
+      prisma.tripMember.findMany({ where: { tripId }, select: { userId: true } }),
+      prisma.travelGroupMember.findMany({
+        where: { travelGroup: { deletedAt: null, trips: { some: { id: tripId } } } },
+        select: { userId: true }
+      })
+    ]);
+    return [...new Set([...members, ...groupMembers].map((m) => m.userId))].sort((a, b) => a - b);
+  },
+
+  // Title + the currency the wizard saved on the trip (Trip.description JSON)
+  findTripMeta: async (tripId) => {
+    const trip = await prisma.trip.findUnique({ where: { id: tripId }, select: { title: true, description: true } });
+    return { title: trip?.title || null, currency: unpackMeta(trip?.description).currency || null };
   }
 };
 

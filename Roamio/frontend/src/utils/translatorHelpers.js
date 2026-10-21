@@ -57,6 +57,16 @@ export function targetForBase(base) {
   return LANGUAGES.find((l) => baseCode(l.code) === code)?.code || null;
 }
 
+// Languages for a trip: translate from the destination's language (null =
+// DeepL doesn't have it, so auto-detect) into the traveller's saved preference
+// ("FR", "EN-GB", or an old "en"). Same language both ways -> auto-detect.
+export function tripLanguages(countryLanguage, preference) {
+  const pref = String(preference || "").toUpperCase();
+  const target = LANGUAGES.find((l) => l.code === pref)?.code || targetForBase(pref) || "EN-US";
+  const source = countryLanguage && baseCode(countryLanguage) !== baseCode(target) ? baseCode(countryLanguage) : "auto";
+  return { source, target };
+}
+
 // BCP-47 tag for the browser's speech APIs.
 const SPEECH_TAGS = { "ZH-HANT": "zh-TW", ZH: "zh-CN", NB: "nb-NO", "ES-419": "es-419", UK: "uk-UA", EL: "el-GR", CS: "cs-CZ", DA: "da-DK", ET: "et-EE", HE: "he-IL", SV: "sv-SE", JA: "ja-JP", KO: "ko-KR", SL: "sl-SI", AR: "ar-SA" };
 export function speechLang(code) {

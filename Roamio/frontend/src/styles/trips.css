@@ -230,3 +230,208 @@
     break-inside: avoid;
   }
 }
+
+/* "Plan a new trip" under the My Trips headline */
+.trips-plan-button {
+  width: fit-content;
+  margin-top: 18px;
+}
+
+/* =========================================================
+   TRIP HUB (components/trips/TripHub.jsx)
+========================================================= */
+
+.trip-hub-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+.trip-hub-big {
+  margin: 0 0 6px;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.trip-hub-big span {
+  margin-left: 6px;
+  color: var(--ink-soft);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* advisory levels 3-4 ("reconsider", "do not travel") in the danger colour */
+.trip-risk-3,
+.trip-risk-4 {
+  color: var(--danger);
+}
+
+.trip-hub-link {
+  display: inline-block;
+  margin-top: 10px;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.trip-hub-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trip-hub-list li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  align-items: center;
+}
+
+.trip-hub-list li span {
+  grid-column: 1;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.trip-hub-list li button {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.trip-hub-search {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.trip-hub-search select {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.trip-hub-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.trip-hub-tools a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: inherit;
+  font-weight: 600;
+}
+
+@media (max-width: 760px) {
+  .trip-hub-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   BUDGET (pages/TripBudget.jsx, trip hub budget card)
+========================================================= */
+
+.budget-bar {
+  height: 10px;
+  margin-top: 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+
+.budget-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+}
+
+.budget-bar.near i {
+  background: var(--accent);
+}
+
+.budget-bar.over i {
+  background: var(--danger);
+}
+
+.budget-warnings {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+}
+
+.budget-warnings li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.budget-categories {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.budget-categories li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.budget-categories li.over span:nth-child(2) {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.budget-categories form {
+  display: flex;
+  gap: 6px;
+}
+
+.budget-categories input,
+.trip-hub-search input {
+  width: 120px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.trip-hub-search .wizard-field input {
+  width: 100%;
+}
+
+.budget-expenses li span {
+  grid-column: 1;
+}
+
+@media (max-width: 640px) {
+  .budget-categories li {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* no dark --danger-bg in the theme: a tint of the dark danger colour instead */
+.recommendations-page[data-theme="dark"] .budget-warnings li {
+  background: rgba(242, 145, 123, 0.14);
+}

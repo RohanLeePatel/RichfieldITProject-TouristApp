@@ -131,7 +131,9 @@ class AuthController {
 
   async updateMe(req, res, next) {
     try {
-      const updated = await userRepository.update(req.user.userId, req.body);
+      const data = profileUpdate(req.body);
+      if (!data) return res.status(400).json({ message: 'Nothing to update.' });
+      const updated = await userRepository.update(req.user.userId, data);
       res.json(updated);
     } catch (err) {
       next(err);
@@ -139,4 +141,23 @@ class AuthController {
   }
 }
 
+// PATCH /users/me used to write req.body straight into User, so a client
+// could set passwordHash, isVerified, email... Only these fields are editable;
+// email and password have their own verified flows.
+const PREFERENCE_FIELDS = { currency: 'string', language: 'string', theme: 'string', emailAlerts: 'boolean', pushAlerts: 'boolean' };
+
+function profileUpdate(body = {}) {
+  const data = {};
+  if (typeof body.fullName === 'string' && body.fullName.trim()) data.fullName = body.fullName.trim().slice(0, 120);
+  if (body.avatarUrl === null || (typeof body.avatarUrl === 'string' && /^https:\/\//.test(body.avatarUrl))) {
+    data.avatarUrl = body.avatarUrl;
+  }
+  const prefs = Object.fromEntries(
+    Object.entries(body.preferences || {}).filter(([key, value]) => typeof value === PREFERENCE_FIELDS[key])
+  );
+  if (Object.keys(prefs).length) data.preferences = { upsert: { create: prefs, update: prefs } };
+  return Object.keys(data).length ? data : null;
+}
+
 module.exports = new AuthController();
+module.exports.profileUpdate = profileUpdate;

@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, LoaderCircle, MapPin, Printer, Sparkles, Trash2, X } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { CalendarDays, CloudSun, Languages, LoaderCircle, MapPin, Printer, Sparkles, Trash2, Wallet, X } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import ClimateInsights from "../components/insights/ClimateInsights.jsx";
 import ItineraryMap from "../components/recommendations/ItineraryMap.jsx";
 import PageShell from "../components/recommendations/PageShell.jsx";
 import TripDocuments from "../components/trips/TripDocuments.jsx";
+import { AddLandmark, TripBudgetCard, TripPeople, TripSnapshot } from "../components/trips/TripHub.jsx";
+import useActiveTrip from "../hooks/useActiveTrip.js";
 
 import { fetchTrip, deleteTrip, removeItineraryItem } from "../api/trips.js";
 import { groupItineraryByDay } from "../utils/itineraryPlanner.js";
+import { useTripStore } from "../store/tripStore.js";
 import "../styles/trips.css";
 
 function formatDate(iso) {
@@ -22,6 +25,11 @@ export default function TripDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const { setActiveTrip } = useActiveTrip();
+
+  useEffect(() => {
+    setActiveTrip(tripId);
+  }, [tripId, setActiveTrip]);
 
   const load = () => {
     setLoading(true);
@@ -35,6 +43,8 @@ export default function TripDetail() {
   };
 
   useEffect(load, [tripId]);
+
+  const refresh = () => fetchTrip(tripId).then(setTrip).catch(() => {});
 
   const dayGroups = useMemo(() => groupItineraryByDay(trip?.itinerary), [trip]);
 
@@ -58,7 +68,8 @@ export default function TripDetail() {
     [dayGroups]
   );
 
-  const handleDeleteItem = async (itemId) => {
+  const handleDeleteItem = async (itemId, title) => {
+    if (!window.confirm(`Remove ${title} from this trip?`)) return;
     setBusy(true);
     try {
       await removeItineraryItem(tripId, itemId);
@@ -70,9 +81,11 @@ export default function TripDetail() {
   };
 
   const handleDeleteTrip = async () => {
+    if (!window.confirm(`Delete ${trip.title}? Its itinerary and documents go with it.`)) return;
     setBusy(true);
     try {
       await deleteTrip(tripId);
+      useTripStore.getState().load(true);
       navigate("/trips");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Could not delete this trip.");
@@ -92,6 +105,13 @@ export default function TripDetail() {
             {trip.endDate ? ` → ${formatDate(trip.endDate)}` : ""}
           </>
         )}
+      </p>
+      {/* the same trip, carried into each tool - no retyping */}
+      <p className="trip-hub-tools print-hide">
+        <Link to={`/weather?trip=${trip.id}`}><CloudSun size={14} /> Weather</Link>
+        <Link to={`/translator?trip=${trip.id}`}><Languages size={14} /> Translator</Link>
+        <Link to="/calendar"><CalendarDays size={14} /> Calendar</Link>
+        <Link to={`/trips/${trip.id}/budget`}><Wallet size={14} /> Budget</Link>
       </p>
     </>
   ) : null;
@@ -152,7 +172,7 @@ export default function TripDetail() {
                           <button
                             type="button"
                             className="itinerary-stop-remove print-hide"
-                            onClick={() => handleDeleteItem(item.id)}
+                            onClick={() => handleDeleteItem(item.id, item.title)}
                             disabled={busy}
                             aria-label={`Remove ${item.title}`}
                           >
@@ -164,6 +184,42 @@ export default function TripDetail() {
                   ))}
                 </div>
               )}
+            </section>
+
+            <AddLandmark trip={trip} onAdded={refresh} />
+
+            {trip.destination && (
+              <section className="recommendations-results">
+                <div className="results-heading">
+                  <div>
+                    <h2>Right now</h2>
+                    <p>Live weather and the current travel advisory for {trip.destination}.</p>
+                  </div>
+                </div>
+                <TripSnapshot trip={trip} />
+              </section>
+            )}
+
+            <section className="recommendations-results">
+              <div className="results-heading">
+                <div>
+                  <h2>Money</h2>
+                  <p>What's been spent, in the trip's currency.</p>
+                </div>
+              </div>
+              <div className="insights trip-hub-grid">
+                <TripBudgetCard trip={trip} />
+              </div>
+            </section>
+
+            <section className="recommendations-results">
+              <div className="results-heading">
+                <div>
+                  <h2>Travelling together</h2>
+                  <p>Everyone on this trip, and what's changed lately.</p>
+                </div>
+              </div>
+              <TripPeople trip={trip} />
             </section>
 
             {mapDays.length > 0 && (

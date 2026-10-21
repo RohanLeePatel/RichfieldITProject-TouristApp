@@ -275,7 +275,8 @@
   border: 1px solid rgba(255, 255, 255, 0.22);
 }
 
-.cal-hero-pin.pin-a { left: 4%; bottom: 10%; }
+/* clear of the stat chips at bottom-left */
+.cal-hero-pin.pin-a { left: 44%; bottom: 14%; }
 .cal-hero-pin.pin-b { right: 3%; top: 44%; }
 
 .cal-hero-globe {
@@ -1046,6 +1047,26 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+/* the selected day's itinerary stops, under its trip ticket */
+.cal-day-stops {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 14px;
+  list-style: none;
+  border: 1px dashed var(--cal-line);
+  border-radius: 12px;
+  color: var(--cal-ink);
+  font-size: 13px;
+}
+
+.cal-day-stops span {
+  display: inline-block;
+  min-width: 44px;
+  color: var(--cal-primary);
+  font-weight: 700;
 }
 
 /* trip ticket */

@@ -59,9 +59,11 @@ def main() -> None:
             skipped += 1
             continue
 
-        # "Durban, South Africa" disambiguates better than "Durban" alone, but
-        # the bare name is the more common article title - try it first.
-        for title in (city["name"], f"{city['name']}, {city['country']}"):
+        # try "Name, Country" first: the bare name can land on a different
+        # place entirely ("East London" is London's East End, not the South
+        # African city). Wikipedia redirects the qualified title when the bare
+        # one is the real article, so nothing is lost.
+        for title in (f"{city['name']}, {city['country']}", city["name"]):
             url = fetch_thumbnail(title)
             time.sleep(PAUSE_SECONDS)
             if url:

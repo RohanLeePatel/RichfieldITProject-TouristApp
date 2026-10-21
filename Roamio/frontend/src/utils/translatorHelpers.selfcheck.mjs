@@ -1,5 +1,5 @@
 import assert from "node:assert";
-import { SOURCE_LANGUAGES, baseCode, speechLang, targetForBase } from "./translatorHelpers.js";
+import { SOURCE_LANGUAGES, baseCode, speechLang, targetForBase, tripLanguages } from "./translatorHelpers.js";
 
 assert.equal(baseCode("EN-US"), "EN");
 assert.equal(SOURCE_LANGUAGES.filter((l) => l.code === "EN").length, 1);
@@ -17,4 +17,10 @@ assert.equal(speechLang("PT-BR"), "pt-BR");
 assert.equal(speechLang("FR"), "fr");
 assert.equal(speechLang("ZH-HANT"), "zh-TW");
 assert.equal(speechLang("ES-419"), "es-419");
+// starting languages for a trip: from the destination's language into the saved preference
+assert.deepEqual(tripLanguages("FR", "en"), { source: "FR", target: "EN-US" });
+assert.deepEqual(tripLanguages("FR", "EN-GB"), { source: "FR", target: "EN-GB" });
+assert.deepEqual(tripLanguages(null, "EN-GB"), { source: "auto", target: "EN-GB" }); // South Africa
+assert.deepEqual(tripLanguages("EN", "EN-GB"), { source: "auto", target: "EN-GB" }); // nothing to translate
+assert.deepEqual(tripLanguages("JA", undefined), { source: "JA", target: "EN-US" });
 console.log("translatorHelpers: all assertions passed");

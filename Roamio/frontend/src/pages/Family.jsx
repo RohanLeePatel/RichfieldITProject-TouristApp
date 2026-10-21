@@ -19,47 +19,42 @@ import {
   X,
   Plane,
   Compass,
-  Camera,
+  Castle,
+  Coffee,
+  Droplets,
+  FerrisWheel,
+  Fish,
+  Landmark,
+  Sandwich,
   Utensils,
   Waves,
   Mountain,
   Trees,
-  Globe2,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
+import TravelGroups from "../components/groups/TravelGroups.jsx";
 import PageShell from "../components/recommendations/PageShell.jsx";
 import { fetchTrips } from "../api/trips";
+import { INTEREST_TAGS } from "./recommendations/constants.js";
 import "../styles/Family.css";
 
 const STORAGE_KEY = "roamio_family_members_v1";
 
-const INTERESTS = [
-  {
-    name: "Beach",
-    icon: Waves,
-  },
-  {
-    name: "Adventure",
-    icon: Mountain,
-  },
-  {
-    name: "Nature",
-    icon: Trees,
-  },
-  {
-    name: "Culture",
-    icon: Globe2,
-  },
-  {
-    name: "Food",
-    icon: Utensils,
-  },
-  {
-    name: "Photography",
-    icon: Camera,
-  },
-];
+// The wizard's own interest tags, so a member's picks can pre-fill the
+// wizard's group step as-is (one vocabulary across the app).
+const TAG_ICONS = {
+  parks: Trees, hiking: Mountain, beaches: Waves, waterparks: Droplets,
+  museums: Landmark, historic_sites: Castle,
+  restaurants: Utensils, cafes: Coffee, street_food: Sandwich,
+  theme_parks: FerrisWheel, zoos_aquariums: Fish, playgrounds: Baby,
+};
+
+const INTERESTS = INTEREST_TAGS.map((tag) => ({ id: tag.id, name: tag.label, icon: TAG_ICONS[tag.id] || Compass }));
+
+// picks saved under the old list, mapped to the closest wizard tag
+// ("Photography" has none and is dropped)
+const LEGACY_INTERESTS = { Beach: "Beaches", Adventure: "Hiking", Nature: "Parks", Culture: "Museums", Food: "Restaurants" };
 
 const COLOR_OPTIONS = [
   "blue",
@@ -73,6 +68,8 @@ const EMPTY_FORM = {
   name: "",
   relationship: "Group member",
   type: "Adult",
+  // children only: the wizard's "children's ages" comes from these
+  age: "",
   email: "",
   interests: [],
   color: "teal",
@@ -99,7 +96,8 @@ function normalizeMember(member) {
         : member.relationship || "Group member",
     trips: Number(member.trips || 0),
     interests: Array.isArray(member.interests)
-      ? member.interests
+      ? [...new Set(member.interests.map((name) => LEGACY_INTERESTS[name] || name))]
+          .filter((name) => INTERESTS.some((interest) => interest.name === name))
       : [],
     initials:
       member.initials || getInitials(member.name || ""),
@@ -344,6 +342,27 @@ function MemberModal({
                 <option>Child</option>
               </select>
             </label>
+
+            {form.type === "Child" && (
+              <label className="family-form-field">
+                <span>Age</span>
+
+                <input
+                  type="number"
+                  min="0"
+                  max="17"
+                  inputMode="numeric"
+                  value={form.age}
+                  onChange={(event) =>
+                    setForm({
+                      ...form,
+                      age: event.target.value,
+                    })
+                  }
+                  placeholder="e.g. 8"
+                />
+              </label>
+            )}
 
             <label className="family-form-field family-form-field-wide">
               <span>
@@ -775,6 +794,7 @@ export default function Family() {
           : member.relationship ||
             "Group member",
       type: member.type || "Adult",
+      age: member.age ?? "",
       email: member.email || "",
       interests:
         member.interests || [],
@@ -821,6 +841,7 @@ export default function Family() {
                     ? "Group member"
                     : form.relationship,
                 type: form.type,
+                age: form.type === "Child" ? form.age : "",
                 email:
                   form.email.trim(),
                 initials:
@@ -849,6 +870,7 @@ export default function Family() {
             ? "Group member"
             : form.relationship,
         type: form.type,
+                age: form.type === "Child" ? form.age : "",
         email:
           form.email.trim(),
         initials:
@@ -981,12 +1003,13 @@ export default function Family() {
                   Group members
                 </span>
 
+                {/* +1 for you - Dashboard counts you too */}
                 <strong>
-                  {members.length}
+                  {members.length + 1}
                 </strong>
 
                 <small>
-                  Planning together
+                  Including you
                 </small>
               </div>
 
@@ -1040,7 +1063,7 @@ export default function Family() {
 
               <div>
                 <span>
-                  Group trips
+                  Your trips
                 </span>
 
                 <strong>
@@ -1056,7 +1079,10 @@ export default function Family() {
           </div>
         </section>
 
-        {/* MAIN TRAVEL GROUP GRID */}
+        {/* REAL GROUPS - accounts on the server, shared trips, invites */}
+        <TravelGroups />
+
+        {/* MAIN TRAVEL GROUP GRID - companions kept on this device */}
 
         <div className="family-main-grid">
 
@@ -1072,12 +1098,13 @@ export default function Family() {
                 </span>
 
                 <h2>
-                  Group members
+                  Companions
                 </h2>
 
                 <p>
-                  Manage the people you travel and plan
-                  with.
+                  People you plan for who don&apos;t need an
+                  account, kept on this device. The trip
+                  wizard starts with them.
                 </p>
               </div>
 
@@ -1355,13 +1382,13 @@ export default function Family() {
 
                 <h3>
                   {members.length === 0
-                    ? "Your travel group is empty"
+                    ? "It's just you so far"
                     : "No group members found"}
                 </h3>
 
                 <p>
                   {members.length === 0
-                    ? "Add your first group member to start planning together."
+                    ? "Add the people you travel with to plan trips together."
                     : "Try another search or clear the current filter."}
                 </p>
 
@@ -1568,8 +1595,8 @@ export default function Family() {
 
                 <p>
                   Build trips around everyone's
-                  interests and create memories worth
-                  keeping.
+                  interests, and keep the plan in
+                  one place.
                 </p>
 
                 <Link
@@ -1602,12 +1629,12 @@ export default function Family() {
               </span>
 
               <h2>
-                Upcoming group trips
+                Your upcoming trips
               </h2>
 
               <p>
-                Trips where your group can plan,
-                explore and travel together.
+                Trips you&apos;re planning, solo or
+                with your group.
               </p>
 
             </div>

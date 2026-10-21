@@ -38,4 +38,12 @@ assert.deepEqual(fromPrisma._count, { itinerary: 1 });
 assert.equal(fromPrisma.travelGroupId, 9);
 assert.equal('members' in fromPrisma, false); // only present when loaded
 
+// the wizard's extras round-trip (B2); a trip saved without them reads back as before
+const extras = { currency: 'ZAR', travellers: { adults: 2, childAges: [8] }, interests: ['beaches'] };
+const withExtras = formatTrip({ id: 4, title: 'd', description: packMeta({ destination: 'Durban, South Africa', budget: 4000, ...extras }) });
+assert.deepEqual([withExtras.currency, withExtras.travellers, withExtras.interests], [extras.currency, extras.travellers, extras.interests]);
+assert.equal(packMeta({ destination: 'A' }), '{"destination":"A","budget":null,"notes":null}');
+const plain = formatTrip({ id: 5, title: 'e', description: packMeta({ destination: 'A' }) });
+assert.deepEqual([plain.currency, plain.travellers, plain.interests], [null, null, []]);
+
 console.log('tripFormat selfcheck: all assertions passed');

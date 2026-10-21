@@ -1,13 +1,11 @@
 const activityRepo = require('../repositories/activityRepository');
 const prisma = require('../config/prisma');
+const { accessibleTrips } = require('../utils/tripFormat');
 
-// Helper to verify group/trip access
+// Same reach as GET /api/trips: a trip member, or a member of the trip's group
 const verifyTripAccess = async (tripId, userId) => {
   return await prisma.trip.findFirst({
-    where: {
-      id: parseInt(tripId, 10),
-      members: { some: { userId: parseInt(userId, 10) } },
-    },
+    where: accessibleTrips(parseInt(userId, 10), { id: parseInt(tripId, 10) }),
   });
 };
 

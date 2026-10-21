@@ -19,8 +19,11 @@ import Recommendations from "./pages/Recommendations.jsx";
 
 import TripsList from "./pages/TripsList.jsx";
 import TripDetail from "./pages/TripDetail.jsx";
+import TripBudget from "./pages/TripBudget.jsx";
 import Calendar from "./pages/Calendar.jsx";
+import Invite from "./pages/Invite.jsx";
 
+import AppShell from "./components/layout/AppShell.jsx";
 import { useAuthStore } from "./store/authStore.js";
 
 // =========================================================
@@ -81,116 +84,36 @@ function App() {
         />
 
         {/* =================================================
-            FAMILY / TRAVEL GROUP
+            EVERY OTHER SIGNED-IN PAGE
+            Rendered inside AppShell: the shared sidebar with the
+            active-trip switcher, the page itself unchanged beside it.
         ================================================= */}
 
         <Route
-          path="/family"
           element={
             <ProtectedRoute>
-              <Family />
+              <AppShell />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route path="/family" element={<Family />} />
+          <Route path="/trips" element={<TripsList />} />
+          <Route path="/trips/:tripId" element={<TripDetail />} />
+          <Route path="/trips/:tripId/budget" element={<TripBudget />} />
+          <Route path="/calendar" element={<Calendar />} />
+          <Route path="/weather" element={<Weather />} />
+          <Route path="/translator" element={<Translator />} />
+          <Route path="/recommendations" element={<Recommendations />} />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
 
-        {/* =================================================
-            TRIPS
-        ================================================= */}
+        {/* an invite link: public, so an invitee can see it before signing in */}
+        <Route path="/invite/:token" element={<Invite />} />
 
-        <Route
-          path="/trips"
-          element={
-            <ProtectedRoute>
-              <TripsList />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/trips/:tripId"
-          element={
-            <ProtectedRoute>
-              <TripDetail />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* =================================================
-            CALENDAR
-        ================================================= */}
-
-        <Route
-          path="/calendar"
-          element={
-            <ProtectedRoute>
-              <Calendar />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* =================================================
-            EXPLORE
-        ================================================= */}
-
+        {/* the wizard used to live at two addresses */}
         <Route
           path="/explore"
-          element={
-            <ProtectedRoute>
-              <Recommendations />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* =================================================
-            WEATHER
-        ================================================= */}
-
-        <Route
-          path="/weather"
-          element={
-            <ProtectedRoute>
-              <Weather />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* =================================================
-            TRANSLATOR
-        ================================================= */}
-
-        <Route
-          path="/translator"
-          element={
-            <ProtectedRoute>
-              <Translator />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* =================================================
-            RECOMMENDATIONS
-        ================================================= */}
-
-        <Route
-          path="/recommendations"
-          element={
-            <ProtectedRoute>
-              <Recommendations />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* =================================================
-            SETTINGS
-        ================================================= */}
-
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute>
-              <Settings />
-            </ProtectedRoute>
-          }
+          element={<Navigate to="/recommendations" replace />}
         />
 
         {/* =================================================

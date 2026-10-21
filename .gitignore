@@ -41,3 +41,6 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Playwright MCP browser snapshots/screenshots (local test runs)
+.playwright-mcp/

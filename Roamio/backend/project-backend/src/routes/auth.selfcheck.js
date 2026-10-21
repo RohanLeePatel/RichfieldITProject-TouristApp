@@ -94,6 +94,15 @@ const server = app.listen(0, async () => {
     console.error = realError;
     delete process.env.NODE_ENV;
 
+    // PATCH /users/me only passes the allow-listed fields on (B1)
+    const { profileUpdate } = require('../controllers/authController');
+    assert.deepEqual(
+      profileUpdate({ fullName: ' Ada L ', passwordHash: 'x', isVerified: true, email: 'evil@x.com', preferences: { language: 'fr', userId: 9, pushAlerts: 'no' } }),
+      { fullName: 'Ada L', preferences: { upsert: { create: { language: 'fr' }, update: { language: 'fr' } } } }
+    );
+    assert.equal(profileUpdate({ avatarUrl: 'javascript:alert(1)' }), null);
+    assert.equal(profileUpdate({}), null);
+
     console.log = realLog;
     console.log('auth selfcheck: all assertions passed');
   } finally {

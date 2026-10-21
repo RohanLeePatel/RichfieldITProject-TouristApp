@@ -457,7 +457,7 @@ export default function Landing() {
 
         <div className="landing-container landing-nav-inner">
 
-          <a href="#top" className="landing-logo" onClick={closeMenu}>
+          <a href="#top" className="landing-logo" aria-label="Roamio, back to top" onClick={closeMenu}>
             <span className="landing-logo-icon">
               <Plane size={18} />
             </span>
@@ -877,7 +877,7 @@ export default function Landing() {
         <div className="landing-container landing-footer-inner">
 
           <div>
-            <a href="#top" className="landing-logo">
+            <a href="#top" className="landing-logo" aria-label="Roamio, back to top">
               <span className="landing-logo-icon">
                 <Plane size={18} />
               </span>

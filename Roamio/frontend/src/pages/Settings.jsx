@@ -16,11 +16,14 @@ import {
   X,
 } from "lucide-react";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import { fetchMe, resetPassword, sendPasswordCode, updateMe } from "../api/account.js";
 import useTheme from "../components/recommendations/useTheme.js";
+import { CURRENCIES } from "./recommendations/constants.js";
 import { useAuthStore } from "../store/authStore.js";
+import { LANGUAGES } from "../utils/translatorHelpers";
 import "../styles/Settings.css";
 
 // Photos are shrunk before saving: a full-size photo as a data URL is
@@ -73,8 +76,30 @@ export default function Settings() {
   const [name, setName] = useState(
     storedUser.name || storedUser.fullName || ""
   );
-  const [email, setEmail] = useState(storedUser.email || "");
+  const email = storedUser.email || "";
   const [photo, setPhoto] = useState(storedUser.photo || "");
+
+  // saved on the account (UserPreference), read by the wizard and translator
+  const [currency, setCurrency] = useState("ZAR");
+  const [language, setLanguage] = useState("EN-GB");
+  const [saveError, setSaveError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    // the old page kept a plaintext password here; never used now
+    localStorage.removeItem("user-password");
+    fetchMe()
+      .then((me) => {
+        if (me?.preferences?.currency) setCurrency(me.preferences.currency);
+        // older rows hold "en"; show the closest translator language
+        const pref = String(me?.preferences?.language || "").toUpperCase();
+        const match = LANGUAGES.find((l) => l.code === pref) || LANGUAGES.find((l) => l.code.split("-")[0] === pref);
+        if (match) setLanguage(match.code);
+      })
+      .catch(() => {
+        // keep the defaults; saving still works
+      });
+  }, []);
 
   // app-wide theme - changing it here updates every page
   const { theme, toggle: toggleTheme, setTheme } = useTheme();
@@ -86,7 +111,10 @@ export default function Settings() {
 
   const [showPasswordForm, setShowPasswordForm] = useState(false);
 
-  const [currentPassword, setCurrentPassword] = useState("");
+  // the emailed reset code - the server's way of proving it's you
+  const [resetCode, setResetCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
+  const [passwordBusy, setPasswordBusy] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -140,35 +168,40 @@ export default function Settings() {
 
   /* ---------------- SAVE PROFILE ---------------- */
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
     const trimmedName = name.trim();
-    const trimmedEmail = email.trim();
 
     if (!trimmedName) {
       return;
     }
 
-    if (!trimmedEmail) {
+    setSaveError("");
+    setSaving(true);
+    try {
+      await updateMe({ fullName: trimmedName, preferences: { currency, language } });
+    } catch (requestError) {
+      setSaveError(requestError instanceof Error ? requestError.message : "We couldn't save your profile.");
+      setSaving(false);
       return;
     }
+    setSaving(false);
 
+    // the photo stays on this device; name mirrors the server's
     try {
       updateProfile({
         name: trimmedName,
-        email: trimmedEmail,
+        email,
         photo,
       });
     } catch {
       setPhotoError(
-        "We couldn't save your profile - your browser storage is full."
+        "Your details were saved, but the photo didn't fit in this browser's storage."
       );
-      return;
     }
 
     setName(trimmedName);
-    setEmail(trimmedEmail);
 
     setSaved(true);
 
@@ -179,46 +212,46 @@ export default function Settings() {
 
   /* ---------------- PASSWORD ---------------- */
 
-  const openPasswordForm = () => {
+  const resetPasswordForm = () => {
     setPasswordError("");
     setPasswordSaved(false);
-    setCurrentPassword("");
+    setResetCode("");
+    setCodeSent(false);
     setNewPassword("");
     setConfirmPassword("");
+  };
+
+  const openPasswordForm = () => {
+    resetPasswordForm();
     setShowPasswordForm(true);
   };
 
   const closePasswordForm = () => {
     setShowPasswordForm(false);
-    setPasswordError("");
-    setPasswordSaved(false);
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+    resetPasswordForm();
   };
 
-  const handlePasswordChange = (event) => {
+  const handleSendCode = async () => {
+    setPasswordError("");
+    setPasswordBusy(true);
+    try {
+      await sendPasswordCode(email);
+      setCodeSent(true);
+    } catch (requestError) {
+      setPasswordError(requestError instanceof Error ? requestError.message : "We couldn't send a code.");
+    } finally {
+      setPasswordBusy(false);
+    }
+  };
+
+  const handlePasswordChange = async (event) => {
     event.preventDefault();
 
     setPasswordError("");
     setPasswordSaved(false);
 
-    /*
-     * Your login system should normally store passwords
-     * securely on a backend.
-     *
-     * For this localStorage-based project, we use the
-     * password saved in localStorage.
-     */
-    const storedPassword = localStorage.getItem("user-password");
-
-    /*
-     * If the user has never created a password before,
-     * allow them to create their first password without
-     * requiring an old one.
-     */
-    if (storedPassword && currentPassword !== storedPassword) {
-      setPasswordError("Your current password is incorrect.");
+    if (!/^\d{6}$/.test(resetCode.trim())) {
+      setPasswordError("Enter the 6-digit code from your email.");
       return;
     }
 
@@ -239,24 +272,17 @@ export default function Settings() {
       return;
     }
 
-    if (storedPassword && newPassword === storedPassword) {
-      setPasswordError(
-        "Your new password must be different from your current password."
-      );
+    setPasswordBusy(true);
+    try {
+      await resetPassword({ email, otp: resetCode.trim(), newPassword });
+    } catch (requestError) {
+      setPasswordError(requestError instanceof Error ? requestError.message : "We couldn't change your password.");
       return;
+    } finally {
+      setPasswordBusy(false);
     }
 
-    /*
-     * Save the new password.
-     *
-     * NOTE:
-     * For a real production application, passwords should
-     * NEVER be stored directly in localStorage. They should
-     * be securely hashed and stored on a server.
-     */
-    localStorage.setItem("user-password", newPassword);
-
-    setCurrentPassword("");
+    setResetCode("");
     setNewPassword("");
     setConfirmPassword("");
 
@@ -470,16 +496,37 @@ export default function Settings() {
                     <div className="settings-input">
                       <Mail size={17} />
 
+                      {/* sign-in email; changing it would need re-verification */}
                       <input
                         type="email"
                         value={email}
-                        placeholder="you@example.com"
                         autoComplete="email"
-                        onChange={(event) =>
-                          setEmail(event.target.value)
-                        }
-                        required
+                        readOnly
                       />
+                    </div>
+                  </label>
+
+                  <label className="settings-field">
+                    <span>Home currency</span>
+
+                    <div className="settings-input">
+                      <select value={currency} onChange={(event) => setCurrency(event.target.value)}>
+                        {CURRENCIES.map((code) => (
+                          <option key={code} value={code}>{code}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </label>
+
+                  <label className="settings-field">
+                    <span>Translate into</span>
+
+                    <div className="settings-input">
+                      <select value={language} onChange={(event) => setLanguage(event.target.value)}>
+                        {LANGUAGES.map((l) => (
+                          <option key={l.code} value={l.code}>{l.name}</option>
+                        ))}
+                      </select>
                     </div>
                   </label>
 
@@ -499,13 +546,20 @@ export default function Settings() {
                   <button
                     type="submit"
                     className="recommendations-submit"
+                    disabled={saving}
                   >
                     <Save size={16} />
-                    Save changes
+                    {saving ? "Saving..." : "Save changes"}
                     <ArrowRight size={15} />
                   </button>
                 </div>
               </form>
+
+              {saveError && (
+                <div className="password-error">
+                  <span>{saveError}</span>
+                </div>
+              )}
 
               {saved && (
                 <div className="settings-success">
@@ -558,8 +612,9 @@ export default function Settings() {
                       <h3>Change your password</h3>
 
                       <p>
-                        Choose a strong password that is at
-                        least 8 characters long.
+                        We&apos;ll email a 6-digit code to {email}.
+                        Enter it with a new password of at least
+                        8 characters.
                       </p>
                     </div>
 
@@ -577,28 +632,36 @@ export default function Settings() {
                     onSubmit={handlePasswordChange}
                     className="password-form"
                   >
-                    {localStorage.getItem("user-password") && (
-                      <label className="settings-field">
-                        <span>Current password</span>
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={handleSendCode}
+                      disabled={passwordBusy}
+                    >
+                      <Mail size={16} />
+                      {codeSent ? "Send a new code" : "Email me a code"}
+                    </button>
 
-                        <div className="settings-input">
-                          <LockKeyhole size={17} />
+                    <label className="settings-field">
+                      <span>Code from your email</span>
 
-                          <input
-                            type="password"
-                            value={currentPassword}
-                            placeholder="Enter current password"
-                            autoComplete="current-password"
-                            onChange={(event) =>
-                              setCurrentPassword(
-                                event.target.value
-                              )
-                            }
-                            required
-                          />
-                        </div>
-                      </label>
-                    )}
+                      <div className="settings-input">
+                        <Mail size={17} />
+
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={resetCode}
+                          placeholder="123456"
+                          autoComplete="one-time-code"
+                          maxLength={6}
+                          onChange={(event) =>
+                            setResetCode(event.target.value)
+                          }
+                          required
+                        />
+                      </div>
+                    </label>
 
                     <label className="settings-field">
                       <span>New password</span>
@@ -671,6 +734,7 @@ export default function Settings() {
                       <button
                         type="submit"
                         className="recommendations-submit"
+                        disabled={passwordBusy || !codeSent}
                       >
                         <LockKeyhole size={16} />
                         Update password

@@ -21,7 +21,10 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import ClimateInsights from "../components/insights/ClimateInsights.jsx";
+import { geocodePlace } from "../api/climate.js";
 import { fetchWeather as fetchWeatherFromApi } from "../api/weather";
+import useActiveTrip from "../hooks/useActiveTrip.js";
+import { splitDestination } from "../utils/countries.js";
 import useTheme from "../components/recommendations/useTheme.js";
 import "../styles/Weather.css";
 
@@ -31,19 +34,6 @@ import "../styles/Weather.css";
 
 const GEOCODING_API =
   "https://geocoding-api.open-meteo.com/v1/search";
-
-// =========================================================
-// DEFAULT LOCATION
-// =========================================================
-
-const DEFAULT_LOCATION = {
-  name: "Durban",
-  country: "South Africa",
-  countryCode: "ZA",
-  admin1: "KwaZulu-Natal",
-  latitude: -29.8587,
-  longitude: 31.0218,
-};
 
 // =========================================================
 // WEATHER HELPER
@@ -135,11 +125,14 @@ export default function Weather() {
   // STATE
   // =======================================================
 
+  // opens on the active trip's destination - typed once, in the wizard
+  const { trip, loaded: tripsLoaded } = useActiveTrip();
+
   const [searchCity, setSearchCity] =
-    useState(DEFAULT_LOCATION.name);
+    useState("");
 
   const [location, setLocation] =
-    useState(DEFAULT_LOCATION);
+    useState(null);
 
   const [weather, setWeather] = useState(null);
 
@@ -180,7 +173,8 @@ export default function Weather() {
         location: locationData,
       });
 
-      setLastUpdated(new Date());
+      // the server's time of the reading, not ours - a cached reading is older
+      setLastUpdated(data.fetched_at ? new Date(data.fetched_at) : new Date());
     } catch (err) {
       console.error(
         "Could not load weather:",
@@ -294,7 +288,7 @@ export default function Weather() {
   // =======================================================
 
   const refreshWeather = () => {
-    fetchWeather(location);
+    if (location) fetchWeather(location);
   };
 
   // =======================================================
@@ -302,8 +296,18 @@ export default function Weather() {
   // =======================================================
 
   useEffect(() => {
-    fetchWeather(DEFAULT_LOCATION);
-  }, []);
+    if (!tripsLoaded || !trip?.destination) return;
+    const { city, country } = splitDestination(trip.destination);
+    // pin the trip's country, same reason as fetchWeather's "Paris,FR"
+    geocodePlace(city, country)
+      .catch(() => ({ name: city, country, countryCode: "" }))
+      .then((place) => {
+        setLocation(place);
+        setSearchCity(place.name);
+        fetchWeather(place);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripsLoaded, trip?.id]);
 
   // =======================================================
   // FORMAT LAST UPDATED
@@ -571,6 +575,18 @@ export default function Weather() {
           </div>
         )}
 
+        {/* nothing to show yet: no trip with a destination, no search */}
+        {!weather && !loading && !error && (
+          <div className="weather-error">
+            <CloudSun size={20} />
+            <span>
+              {tripsLoaded && !trip
+                ? "Search for a city above - or plan a trip and its weather will open here."
+                : "Search for a city above."}
+            </span>
+          </div>
+        )}
+
         {/* =================================================
             CURRENT WEATHER
         ================================================= */}
@@ -600,9 +616,9 @@ export default function Weather() {
                     <MapPin size={15} />
 
                     <span>
-                      {location.name}
-                      {location.admin1
-                        ? `, ${location.admin1}`
+                      {weather.location.name}
+                      {weather.location.admin1
+                        ? `, ${weather.location.admin1}`
                         : ""}
                     </span>
 
@@ -681,6 +697,7 @@ export default function Weather() {
                 <span>
                   Updated{" "}
                   {formattedLastUpdated}
+                  {weather.stale && " - weather service unreachable, showing the last reading"}
                 </span>
 
               </div>
@@ -793,7 +810,7 @@ export default function Weather() {
 
                 <MapPin size={14} />
 
-                {location.name}
+                {weather.location.name}
 
               </div>
 
@@ -812,8 +829,10 @@ export default function Weather() {
                   const DayIcon =
                     dayInfo.icon;
 
+                  // the forecast is midday readings only, so after 12:00 UTC
+                  // the first entry is tomorrow - compare dates, not position
                   const isToday =
-                    index === 0;
+                    day.date === new Date().toLocaleDateString("en-CA");
 
                   return (
                     <article
@@ -960,8 +979,8 @@ export default function Weather() {
             <p>
               Weather can change quickly.
               Keep a flexible plan and pack
-              accordingly for your family's
-              adventure.
+              accordingly for
+              your trip.
             </p>
 
           </div>

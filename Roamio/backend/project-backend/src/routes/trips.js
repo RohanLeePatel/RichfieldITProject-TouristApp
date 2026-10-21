@@ -51,19 +51,31 @@ const parseId = (value) => {
 // TRIP ENDPOINTS
 // ==========================================
 
-// POST /api/trips - Create a personal trip (group trips: POST /api/groups/:groupId/trips)
+// The group a new trip goes in: the given shared group if the user can create
+// trips there (any role but VIEWER), else their personal group. null = refused.
+async function tripGroupId(userId, travelGroupId) {
+  if (!travelGroupId) return personalGroupId(userId);
+  const membership = await prisma.travelGroupMember.findFirst({
+    where: { userId, travelGroupId, role: { not: 'VIEWER' }, travelGroup: { deletedAt: null } },
+  });
+  return membership ? travelGroupId : null;
+}
+
+// POST /api/trips - Create a trip: personal, or in a shared group via travelGroupId
 router.post('/', validate(createTripSchema), async (req, res) => {
   try {
-    const { title, destination, startDate, endDate, budget, notes } = req.body;
+    const { title, destination, startDate, endDate, budget, notes, currency, travellers, interests } = req.body;
     const userId = req.user.userId;
+    const groupId = await tripGroupId(userId, req.body.travelGroupId);
+    if (groupId === null) return res.status(404).json({ message: 'Travel group not found.' });
 
     const newTrip = await prisma.trip.create({
       data: {
         title,
-        description: packMeta({ destination, budget, notes }),
+        description: packMeta({ destination, budget, notes, currency, travellers, interests }),
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,
-        travelGroupId: await personalGroupId(userId),
+        travelGroupId: groupId,
         members: { create: { userId, role: 'ORGANIZER' } },
       },
     });

@@ -45,6 +45,10 @@ export const INTEREST_GROUPS = [
   },
 ];
 
+// The same tags as one flat list - the trip hub's place search and the
+// Travel Group's interests use these too, so everyone picks from one vocabulary.
+export const INTEREST_TAGS = INTEREST_GROUPS.flatMap((group) => group.tags);
+
 export const PACE_OPTIONS = [
   { id: "relaxed", label: "Relaxed", helper: "~2 stops a day" },
   { id: "balanced", label: "Balanced", helper: "~3 stops a day" },
@@ -217,6 +221,27 @@ export const emptyTraveler = () => ({
   climate: "",
   pace: "",
 });
+
+// The wizard's group, pre-filled from the Travel Group page's members
+// (localStorage roamio_family_members_v1): you plus each adult, children's
+// ages where the page has them, and each member's interests as a traveller of
+// their own so the engine can merge them. Members store interest labels
+// ("Beaches"); the wizard works in tag ids ("beaches").
+export function groupFromFamily(members) {
+  const list = Array.isArray(members) ? members : [];
+  const idFor = (label) => INTEREST_TAGS.find((tag) => tag.label === label)?.id;
+  const ages = list
+    .filter((member) => member.type === "Child" && member.age !== "" && member.age != null)
+    .map((member) => Number(member.age))
+    .filter((age) => Number.isInteger(age) && age >= 0);
+  return {
+    adults: String(1 + list.filter((member) => member.type !== "Child").length),
+    children: ages.join(", "),
+    travelers: list
+      .map((member) => ({ ...emptyTraveler(), name: member.name || "", interests: (member.interests || []).map(idFor).filter(Boolean) }))
+      .filter((traveler) => traveler.interests.length > 0),
+  };
+}
 
 export const steps = ["Trip basics", "Interests", "Accessibility & climate", "Review"];
 

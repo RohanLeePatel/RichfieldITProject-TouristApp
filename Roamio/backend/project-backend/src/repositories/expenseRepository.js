@@ -50,6 +50,17 @@ const expenseRepository = {
 
   // --- Spend rollups ---
 
+  // What utils/expenseTotals needs: amounts with their rates, in one query
+  findForTotals: async (tripId) => {
+    return await prisma.expense.findMany({
+      where: { tripId },
+      select: {
+        amount: true, exchangeRate: true, category: true, paidById: true,
+        splits: { select: { userId: true, shareAmount: true } }
+      }
+    });
+  },
+
   sumByTrip: async (tripId) => {
     const result = await prisma.expense.aggregate({
       where: { tripId },
@@ -57,39 +68,6 @@ const expenseRepository = {
       _count: { id: true }
     });
     return { total: result._sum.amount, count: result._count.id };
-  },
-
-  sumByCategory: async (tripId, category) => {
-    const result = await prisma.expense.aggregate({
-      where: { tripId, category },
-      _sum: { amount: true }
-    });
-    return result._sum.amount;
-  },
-
-  sumGroupedByCategory: async (tripId) => {
-    return await prisma.expense.groupBy({
-      by: ['category'],
-      where: { tripId },
-      _sum: { amount: true },
-      _count: { id: true }
-    });
-  },
-
-  sumPaidGroupedByMember: async (tripId) => {
-    return await prisma.expense.groupBy({
-      by: ['paidById'],
-      where: { tripId },
-      _sum: { amount: true }
-    });
-  },
-
-  sumOwedGroupedByMember: async (tripId) => {
-    return await prisma.expenseSplit.groupBy({
-      by: ['userId'],
-      where: { expense: { tripId } },
-      _sum: { shareAmount: true }
-    });
   }
 };
 

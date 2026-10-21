@@ -16,7 +16,8 @@ import {
   Heart,
 } from "lucide-react";
 
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { nextPath } from "../utils/nextPath.js";
 
 import { useLogin } from "../hooks/useLogin";
 
@@ -28,6 +29,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   const {
     mutate: loginUser,
@@ -45,7 +47,7 @@ export default function Login() {
       },
       {
         onSuccess: () => {
-          navigate("/dashboard");
+          navigate(nextPath(location.search));
         },
       }
     );
@@ -84,21 +86,21 @@ export default function Login() {
           <div className="mini-badge">
             <Sparkles size={14} />
 
-            SMART FAMILY TRAVEL
+            SMART GROUP TRAVEL
           </div>
 
           <h1>
-            Your family.
+            Your group.
             <br />
 
             Your journey.
             <br />
 
-            <span>Your memories.</span>
+            <span>One plan.</span>
           </h1>
 
           <p>
-            Plan unforgettable family adventures,
+            Plan trips your whole group agrees on,
             organize every detail and enjoy the
             journey together.
           </p>
@@ -236,7 +238,7 @@ export default function Login() {
 
             <p>
               Sign in and continue planning your
-              next family adventure.
+              next group trip.
             </p>
           </div>
 
@@ -371,7 +373,7 @@ export default function Login() {
               Don't have a Roamio account?
             </span>
 
-            <Link to="/register">
+            <Link to={`/register${location.search}`}>
               Create one
 
               <ArrowRight size={14} />

@@ -62,7 +62,7 @@ export default function BasicsStep({ form, updateForm, countries, applyPreset })
             Country
             <select value={form.country} onChange={(event) => updateForm("country", event.target.value)}>
               {countries.map((country) => (
-                <option key={country.id} value={country.name}>{country.name}{country.city_count ? ` (${country.city_count} cities)` : ""}</option>
+                <option key={country.id} value={country.name}>{country.name}{country.city_count ? ` (${country.city_count} ${country.city_count === 1 ? "city" : "cities"})` : ""}</option>
               ))}
             </select>
           </label>

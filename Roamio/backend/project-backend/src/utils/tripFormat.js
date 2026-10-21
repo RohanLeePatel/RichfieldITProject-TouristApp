@@ -6,8 +6,17 @@
 
 const NO_DATE_BASE = Date.UTC(2000, 0, 1); // day 1 when the trip has no start date
 
-function packMeta({ destination, budget, notes }) {
-  return JSON.stringify({ destination: destination ?? null, budget: budget ?? null, notes: notes ?? null });
+// currency / travellers / interests are what the wizard collected; written only
+// when given, so trips saved before they existed read back unchanged.
+function packMeta({ destination, budget, notes, currency, travellers, interests }) {
+  return JSON.stringify({
+    destination: destination ?? null,
+    budget: budget ?? null,
+    notes: notes ?? null,
+    ...(currency ? { currency } : {}),
+    ...(travellers ? { travellers } : {}),
+    ...(interests?.length ? { interests } : {}),
+  });
 }
 
 // ItineraryItem has no lat/lon columns either, so a stop's coordinates ride
@@ -75,7 +84,7 @@ function formatItem(item) {
 }
 
 function formatTrip(trip) {
-  const { destination, budget, notes } = unpackMeta(trip.description);
+  const { destination, budget, notes, currency, travellers, interests } = unpackMeta(trip.description);
   // Prisma names the relation `itineraries`; the frontend reads `itinerary`
   const items = trip.itineraries ?? trip.itinerary;
   const itemCount = trip._count?.itineraries ?? trip._count?.itinerary;
@@ -85,6 +94,9 @@ function formatTrip(trip) {
     destination,
     budget,
     notes,
+    currency: currency ?? null,
+    travellers: travellers ?? null,
+    interests: interests ?? [],
     startDate: trip.startDate,
     endDate: trip.endDate,
     status: trip.status,

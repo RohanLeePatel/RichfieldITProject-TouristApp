@@ -22,7 +22,7 @@ function writeDevTrips(trips) {
   localStorage.setItem(DEV_TRIPS_KEY, JSON.stringify(trips));
 }
 
-export async function createTrip({ title, destination, budget, startDate, endDate }) {
+export async function createTrip({ title, destination, budget, startDate, endDate, currency, travellers, interests, travelGroupId }) {
   if (isDevBypass()) {
     const trips = readDevTrips();
     const trip = { id: Date.now(), title, destination, budget, startDate, endDate, itinerary: [] };
@@ -33,7 +33,7 @@ export async function createTrip({ title, destination, budget, startDate, endDat
 
   const result = await authedFetch("/api/trips", {
     method: "POST",
-    body: JSON.stringify({ title, destination, budget, startDate, endDate }),
+    body: JSON.stringify({ title, destination, budget, startDate, endDate, currency, travellers, interests, travelGroupId }),
   });
   return result.trip;
 }

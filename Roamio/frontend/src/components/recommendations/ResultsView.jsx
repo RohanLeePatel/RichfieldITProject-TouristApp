@@ -11,6 +11,12 @@ export default function ResultsView({
   shortlist, toggleShortlist, notQuiteRight, maxShortlist,
 }) {
   const [comparing, setComparing] = useState(false);
+  // which card was clicked, so only that one says it's loading
+  const [startingId, setStartingId] = useState(null);
+  const startCity = (city) => {
+    setStartingId(city.id);
+    selectCity(city);
+  };
   const isCountry = data.level === "country";
   const isShortlisted = (id) => shortlist.some((item) => item.id === id);
   return (
@@ -62,8 +68,10 @@ export default function ResultsView({
             <DestinationCard
               key={recommendation.id}
               recommendation={recommendation}
-              onSelect={isCountry ? exploreCities : data.level === "city" ? selectCity : undefined}
-              selectLabel={isCountry ? "Explore cities" : loading ? "Starting trip..." : "Start a trip here"}
+              onSelect={isCountry ? exploreCities : data.level === "city" ? startCity : undefined}
+              selectLabel={
+                isCountry ? "Explore cities" : loading && startingId === recommendation.id ? "Finding places..." : "Start a trip here"
+              }
               travelMonth={travelMonth}
               shortlisted={isShortlisted(recommendation.id)}
               shortlistFull={shortlist.length >= maxShortlist}

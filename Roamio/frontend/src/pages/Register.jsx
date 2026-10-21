@@ -14,7 +14,8 @@ import {
   User,
 } from "lucide-react";
 
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { nextPath } from "../utils/nextPath.js";
 
 import {
   useRegister,
@@ -26,6 +27,7 @@ import "../styles/auth.css";
 
 export default function Register() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -68,7 +70,7 @@ export default function Register() {
       { email: pendingEmail, otp: code.trim() },
       {
         onSuccess: () => {
-          navigate("/dashboard");
+          navigate(nextPath(location.search));
         },
       }
     );
@@ -163,11 +165,11 @@ export default function Register() {
           <div className="mini-badge">
             <Sparkles size={14} />
 
-            SMART FAMILY TRAVEL
+            SMART GROUP TRAVEL
           </div>
 
           <h1>
-            Start your family's
+            Start your group&apos;s
             <br />
             next great
             <br />
@@ -175,8 +177,8 @@ export default function Register() {
           </h1>
 
           <p>
-            Create your Roamio account and start organizing unforgettable
-            family adventures.
+            Create your Roamio account and plan a trip your whole
+            group agrees on.
           </p>
 
           <div className="travel-features">
@@ -201,7 +203,7 @@ export default function Register() {
                 <Sparkles size={16} />
               </div>
 
-              <span>Create memories</span>
+              <span>Keep it in one place</span>
             </div>
           </div>
         </div>
@@ -357,7 +359,7 @@ export default function Register() {
 
             <p>
               Create your account and start planning
-              your next family adventure.
+              your next group trip.
             </p>
           </div>
 
@@ -561,7 +563,7 @@ export default function Register() {
               Already have a Roamio account?
             </span>
 
-            <Link to="/login">
+            <Link to={`/login${location.search}`}>
               Sign in
 
               <ArrowRight size={14} />

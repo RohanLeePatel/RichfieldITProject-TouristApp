@@ -1266,6 +1266,18 @@
 }
 
 
+.translator-trip-note {
+  margin: 0 0 12px;
+  color: var(--tr-muted, #5b6b7a);
+  font-size: 13px;
+}
+
+.detected-language {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .detected-language span {
   display: block;
   margin-bottom: 2px;

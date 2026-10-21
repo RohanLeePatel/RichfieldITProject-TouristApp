@@ -1,0 +1,149 @@
+/* =========================================================
+   APP SHELL
+   The Dashboard's sidebar (styles/dashboard.css) on every signed-in page.
+   The sidebar reads these tokens; .dashboard-page defines the same ones,
+   so on the Dashboard nothing here changes.
+========================================================= */
+
+.app-shell {
+  --sidebar-bg: #11273d;
+  --sidebar-ink: rgba(255, 255, 255, 0.72);
+  --sidebar-line: rgba(255, 255, 255, 0.08);
+  --sidebar-width: 248px;
+  --accent: #3ddbc4;
+  --radius-sm: 10px;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
+
+  min-height: 100vh;
+}
+
+.app-shell[data-theme="dark"] {
+  --sidebar-bg: #0a2a33;
+  --sidebar-line: #1f5666;
+}
+
+.app-shell .dashboard-sidebar {
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+.app-shell .dashboard-sidebar *,
+.app-shell .dashboard-sidebar *::before,
+.app-shell .dashboard-sidebar *::after {
+  box-sizing: border-box;
+}
+
+.app-shell .dashboard-sidebar :where(p) {
+  margin: 0;
+}
+
+.app-shell .dashboard-sidebar :where(a) {
+  color: inherit;
+  text-decoration: none;
+}
+
+.app-shell-main {
+  margin-left: var(--sidebar-width);
+  min-width: 0;
+}
+
+.app-shell-menu {
+  display: none;
+}
+
+/* =========================================================
+   ACTIVE TRIP SWITCHER + NOTIFICATIONS (both pages)
+========================================================= */
+
+.sidebar-trip-switcher {
+  display: block;
+  margin: 0 0 22px;
+}
+
+.sidebar-trip-switcher select {
+  width: 100%;
+  margin-top: 6px;
+  padding: 9px 10px;
+
+  border: 1px solid var(--sidebar-line);
+  border-radius: var(--radius-sm);
+
+  background: rgba(255, 255, 255, 0.06);
+  color: white;
+
+  font: inherit;
+}
+
+.sidebar-trip-switcher option {
+  color: #132a40;
+}
+
+.sidebar-bottom {
+  display: grid;
+  gap: 8px;
+}
+
+.sidebar-inbox-button .nav-count {
+  margin-left: auto;
+}
+
+.sidebar-inbox {
+  max-height: 220px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+
+  list-style: none;
+
+  border: 1px solid var(--sidebar-line);
+  border-radius: var(--radius-sm);
+}
+
+.sidebar-inbox li {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+
+  color: var(--sidebar-ink);
+  font-size: 13px;
+}
+
+.sidebar-inbox li + li {
+  border-top: 1px solid var(--sidebar-line);
+}
+
+.sidebar-inbox strong {
+  color: white;
+}
+
+@media (max-width: 900px) {
+  .app-shell-main {
+    margin-left: 0;
+  }
+
+  /* bottom-left so it never sits on a page's own header links */
+  .app-shell-menu {
+    position: fixed;
+    left: 16px;
+    bottom: 16px;
+    z-index: 80;
+
+    width: 46px;
+    height: 46px;
+
+    display: grid;
+    place-items: center;
+
+    border: none;
+    border-radius: 14px;
+
+    background: var(--sidebar-bg);
+    color: white;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+
+    cursor: pointer;
+  }
+}
