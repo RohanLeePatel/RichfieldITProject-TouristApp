@@ -4,10 +4,9 @@ import { formatDimension } from "../../pages/recommendations/constants.js";
 
 export default function LandmarkPicker({
   cityName, landmarksData, selectedLandmarks, toggleLandmark, filter, setFilter,
-  autoPick, onBuild, onBack, loading, error, stopsPerDay, tripDays,
+  autoPick, onBuild, onBack, loading, error, daysNeeded, tripDays,
 }) {
   const count = selectedLandmarks.size;
-  const daysNeeded = Math.max(1, Math.ceil(count / stopsPerDay));
   return (
     <section className="recommendations-results">
       <div className="results-heading">

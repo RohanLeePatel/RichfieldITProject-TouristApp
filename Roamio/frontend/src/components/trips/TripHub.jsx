@@ -9,6 +9,7 @@ import { addItineraryItem } from "../../api/trips.js";
 import { fetchWeather } from "../../api/weather.js";
 import { INTEREST_TAGS } from "../../pages/recommendations/constants.js";
 import { splitDestination } from "../../utils/countries.js";
+import { wholeSentences } from "../../utils/travelAdvice.js";
 import "../../styles/insights.css";
 
 // The trip page's hub sections. Each one loads on its own and says plainly
@@ -87,7 +88,7 @@ export function TripSnapshot({ trip }) {
             <p className={`trip-hub-big trip-risk-${safety.data.riskLevel}`}>
               Level {safety.data.riskLevel}/4 <span>{safety.data.advisoryLevel}</span>
             </p>
-            {safety.data.summary && <p className="wizard-help">{safety.data.summary}</p>}
+            {safety.data.summary && <p className="wizard-help">{wholeSentences(safety.data.summary)}</p>}
             <p className="insights-fine">
               Emergency: police {safety.data.emergencyNumbers?.police || "-"}, medical {safety.data.emergencyNumbers?.medical || "-"}.{" "}
               {safety.data.source === "MOCK"
@@ -104,7 +105,8 @@ export function TripSnapshot({ trip }) {
 // Budget at a glance; the full page is /trips/:id/budget.
 export function TripBudgetCard({ trip }) {
   const budget = useLoad(() => fetchBudgetSummary(trip.id), [trip.id]);
-  const money = (amount, currency) => `${Number(amount).toFixed(2)} ${currency}`;
+  const money = (amount, currency) =>
+    `${Number(amount).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 
   return (
     <section className="insights-card">

@@ -7,6 +7,7 @@ import { fetchNotifications } from "../../api/notifications.js";
 import { fetchCountrySafety } from "../../api/tripHub.js";
 import { fetchTrip } from "../../api/trips.js";
 import { splitDestination } from "../../utils/countries.js";
+import { wholeSentences } from "../../utils/travelAdvice.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const dayStart = (value) => {
@@ -20,7 +21,10 @@ const dayStart = (value) => {
 export default function NeedsAttention({ trips, nextTrip }) {
   const [items, setItems] = useState(null);
 
-  const today = dayStart(Date.now());
+  // trip dates are stored as UTC midnight of the calendar day; "today" is the
+  // user's own calendar day (just after midnight in SA it's still yesterday in UTC)
+  const now = new Date();
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
   const ongoing = trips.find((trip) => trip.startDate && dayStart(trip.startDate) <= today && today <= dayStart(trip.endDate || trip.startDate));
   const watched = ongoing || nextTrip;
 
@@ -53,7 +57,7 @@ export default function NeedsAttention({ trips, nextTrip }) {
               icon: ShieldAlert,
               to: `/trips/${watched.id}`,
               title: `${advisory.advisoryLevel} - ${splitDestination(watched.destination).country}`,
-              detail: advisory.source === "MOCK" ? "Sample advisory (no live feed configured)" : advisory.summary,
+              detail: advisory.source === "MOCK" ? "Sample advisory (no live feed configured)" : wholeSentences(advisory.summary),
             });
           }
         })

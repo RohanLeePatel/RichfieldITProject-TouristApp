@@ -21,6 +21,6 @@ assert.deepEqual(crossedThresholds(8500, 9000, 10000), []);
 assert.deepEqual(crossedThresholds(0, 500, 0), []); // no budget, no warning
 
 assert.equal(warningFor('Trip budget', 7000, 10000, 'ZAR'), null);
-assert.equal(warningFor('Trip budget', 8500, 10000, 'ZAR'), 'Trip budget: 85% used (85.00 ZAR of 100.00 ZAR)');
-assert.equal(warningFor('Trip budget', 12000, 10000, 'ZAR'), 'Trip budget exceeded by 20.00 ZAR');
+assert.equal(warningFor('Trip budget', 8500, 10000, 'ZAR'), 'Trip budget: 85% used (85,00 ZAR of 100,00 ZAR)');
+assert.equal(warningFor('Trip budget', 12000, 10000, 'ZAR'), 'Trip budget exceeded by 20,00 ZAR');
 console.log('expenseTotals selfcheck: all assertions passed');

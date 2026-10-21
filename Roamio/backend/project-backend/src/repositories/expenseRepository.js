@@ -21,7 +21,7 @@ const expenseRepository = {
     return await prisma.expense.findMany({
       where: { tripId, ...(category && { category }) },
       include: expenseInclude,
-      orderBy: { date: 'desc' }
+      orderBy: [{ date: 'desc' }, { createdAt: 'desc' }] // same-day expenses: newest first too
     });
   },
 

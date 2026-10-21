@@ -163,7 +163,7 @@ def get_landmarks(destination: str, interests: list[str], radius_m: int = 5000) 
         groups.append(
             {
                 "interest": tag,
-                "explanation": f"Nearby matches for your interest in {tag}, sorted by distance.",
+                "explanation": f"Nearby matches for your interest in {tag.replace('_', ' ')}, sorted by distance.",
                 "landmarks": landmarks,
             }
         )

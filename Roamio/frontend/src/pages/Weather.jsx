@@ -134,6 +134,10 @@ export default function Weather() {
   const [location, setLocation] =
     useState(null);
 
+  // the place the active trip opened on - while it's still the one shown,
+  // the climate section shows the trip's month rather than this month
+  const [tripPlace, setTripPlace] = useState(null);
+
   const [weather, setWeather] = useState(null);
 
   const [locationResults, setLocationResults] =
@@ -303,6 +307,7 @@ export default function Weather() {
       .catch(() => ({ name: city, country, countryCode: "" }))
       .then((place) => {
         setLocation(place);
+        setTripPlace(place);
         setSearchCity(place.name);
         fetchWeather(place);
       });
@@ -853,11 +858,8 @@ export default function Weather() {
                       <div className="forecast-date">
 
                         <strong>
-                          {isToday
-                            ? "Today"
-                            : getDayName(
-                                day.date
-                              )}
+                          {/* the badge above already says Today */}
+                          {getDayName(day.date)}
                         </strong>
 
                         <span>
@@ -951,6 +953,7 @@ export default function Weather() {
               latitude={weather.location.latitude}
               longitude={weather.location.longitude}
               forecast={weather.forecast}
+              month={location === tripPlace && trip?.startDate ? new Date(trip.startDate).getUTCMonth() + 1 : undefined}
             />
           </section>
         )}

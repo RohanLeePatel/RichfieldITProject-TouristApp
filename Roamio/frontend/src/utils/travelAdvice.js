@@ -122,3 +122,12 @@ export function combineAdvice(forecast, stats) {
   }
   return tips.length ? tips : [{ kind: "mild", text: NOTHING_TO_REPORT }];
 }
+
+// The advisory feed sends an excerpt that can stop mid-word ("Kidnapping is a
+// threat in So"). Keep the complete sentences; if there are none, mark the cut.
+export function wholeSentences(text) {
+  const trimmed = String(text || "").trim();
+  if (!trimmed || /[.!?]["')]?$/.test(trimmed)) return trimmed;
+  const lastEnd = Math.max(trimmed.lastIndexOf(". "), trimmed.lastIndexOf("! "), trimmed.lastIndexOf("? "));
+  return lastEnd > 0 ? trimmed.slice(0, lastEnd + 1) : `${trimmed}…`;
+}

@@ -18,7 +18,7 @@ export default function ReviewStep({ form, goToStep, updateForm }) {
   const rows = [
     { label: "Search", step: 0, value: form.mode === "global" ? "Global countries" : `Cities in ${form.country}` },
     { label: "Budget", step: 0, value: `${form.budget} ${form.currency.toUpperCase()} per day` },
-    { label: "Travellers", step: 0, value: `${form.adults} adults${form.children ? `, children aged ${form.children}` : ""}` },
+    { label: "Travellers", step: 0, value: `${form.adults} adult${Number(form.adults) === 1 ? "" : "s"}${form.children ? `, ${form.children.includes(",") ? "children" : "a child"} aged ${form.children}` : ""}` },
     {
       label: "Dates", step: 0,
       value: form.startDate && form.endDate ? `${formatDay(form.startDate)} → ${formatDay(form.endDate)}` : `Not set (sample ${DEFAULT_TRIP_DAYS}-day plan)`,
@@ -58,7 +58,7 @@ export default function ReviewStep({ form, goToStep, updateForm }) {
             <select value={form.travelGroupId || ""} onChange={(event) => updateForm("travelGroupId", event.target.value ? Number(event.target.value) : null)}>
               <option value="">Just me</option>
               {groups.map((group) => (
-                <option key={group.id} value={group.id}>{group.name} ({group.members.length} people)</option>
+                <option key={group.id} value={group.id}>{group.name} ({group.members.length} {group.members.length === 1 ? "person" : "people"})</option>
               ))}
             </select>
           </label>

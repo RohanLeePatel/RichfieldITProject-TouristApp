@@ -28,7 +28,7 @@ function startingForm() {
   }
   return { ...initialForm, ...groupFromFamily(members) };
 }
-import { buildDayPlan, recomputeDayStopTimes, STOPS_PER_DAY_BY_PACE } from "../utils/itineraryPlanner.js";
+import { buildDayPlan, dayCapacity, daysNeeded, recomputeDayStopTimes, STOPS_PER_DAY_BY_PACE } from "../utils/itineraryPlanner.js";
 import {
   COUNTRIES,
   ITINERARY_HISTORY_LIMIT,
@@ -195,7 +195,7 @@ export default function Recommendations() {
   useEffect(() => {
     const start = searchParams.get("start");
     const end = searchParams.get("end");
-    if (!/^d{4}-d{2}-d{2}$/.test(start || "") || !/^d{4}-d{2}-d{2}$/.test(end || "")) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(start || "") || !/^\d{4}-\d{2}-\d{2}$/.test(end || "")) return;
     setForm((current) => ({ ...current, startDate: start, endDate: end }));
     setSearchParams({}, { replace: true });
   }, [searchParams, setSearchParams]);
@@ -472,14 +472,15 @@ export default function Recommendations() {
   // "Pick for me": pre-checks a reasonable spread of landmarks instead of
   // making the user tick every box by hand on a city with dozens of matches.
   // Each interest group gets a share of the overall stop budget
-  // (stopsPerDay x tripDays), taking its first N landmarks - groups are
+  // (what the trip's days hold at this pace), taking its first N landmarks - groups are
   // already sorted by distance, so this is "the closest matches per interest",
   // not a random sample. Replaces the current selection rather than adding to
   // it, so re-running it after manual tweaks gives a predictable result.
+  const familyFriendly = !form.preciseStops && form.children.trim().length > 0;
+
   const autoPickLandmarks = () => {
     if (!landmarksData?.groups?.length) return;
-    const stopsPerDay = STOPS_PER_DAY_BY_PACE[form.pace] ?? STOPS_PER_DAY_BY_PACE.balanced;
-    const target = stopsPerDay * tripLengthDays(form);
+    const target = dayCapacity(tripLengthDays(form), form.pace, familyFriendly);
     const perGroup = Math.max(1, Math.round(target / landmarksData.groups.length));
     const next = new Set();
     landmarksData.groups.forEach((group) => {
@@ -507,7 +508,7 @@ export default function Recommendations() {
         tripDays: tripLengthDays(form),
         pace: form.pace,
         dayStopCounts: form.preciseStops ? form.dayStopCounts : undefined,
-        familyFriendly: !form.preciseStops && form.children.trim().length > 0,
+        familyFriendly,
       })
     );
     setItineraryHistory([]);
@@ -683,7 +684,6 @@ export default function Recommendations() {
     [requirementExclusions]
   );
 
-  const stopsPerDay = STOPS_PER_DAY_BY_PACE[form.pace] ?? STOPS_PER_DAY_BY_PACE.balanced;
   const hero =
     stage === "wizard" ? (
       <>
@@ -756,7 +756,7 @@ export default function Recommendations() {
           onBack={goBackFromLandmarks}
           loading={loading}
           error={error}
-          stopsPerDay={stopsPerDay}
+          daysNeeded={daysNeeded(selectedLandmarks.size, form.pace, familyFriendly)}
           tripDays={tripLengthDays(form)}
         />
       )}

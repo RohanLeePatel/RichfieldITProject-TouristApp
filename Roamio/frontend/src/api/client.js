@@ -7,7 +7,33 @@ const API_BASE_URL =
 
 export const TOKEN_KEY = "Roamio_token";
 
-async function request(path, { auth = false, headers, ...options } = {}) {
+const apiUrl = (path) => `${API_BASE_URL.replace(/\/$/, "")}${path}`;
+
+// The access token lasts 15 minutes; the httpOnly refresh cookie (set at
+// login, 7 days) trades for a new one. Requests that 401 together share one
+// refresh.
+let refreshing = null;
+function refreshSession() {
+  refreshing ||= fetch(apiUrl("/api/auth/refresh"), { method: "POST", credentials: "include" })
+    .then((response) => (response.ok ? response.json() : null))
+    .then((data) => {
+      if (!data?.accessToken) return false;
+      localStorage.setItem(TOKEN_KEY, data.accessToken);
+      return true;
+    })
+    .catch(() => false)
+    .finally(() => {
+      refreshing = null;
+    });
+  return refreshing;
+}
+
+// Tells the API to drop the refresh cookie on sign-out; best effort.
+export function endSession() {
+  fetch(apiUrl("/api/auth/logout"), { method: "POST", credentials: "include" }).catch(() => {});
+}
+
+async function request(path, { auth = false, retried = false, headers, ...options } = {}) {
   const requestHeaders = { "Content-Type": "application/json", ...headers };
 
   if (auth) {
@@ -17,10 +43,8 @@ async function request(path, { auth = false, headers, ...options } = {}) {
     }
   }
 
-  const response = await fetch(
-    `${API_BASE_URL.replace(/\/$/, "")}${path}`,
-    { ...options, headers: requestHeaders }
-  );
+  // include: the login response sets the refresh cookie on the API's domain
+  const response = await fetch(apiUrl(path), { ...options, headers: requestHeaders, credentials: "include" });
 
   let data = null;
   try {
@@ -29,10 +53,13 @@ async function request(path, { auth = false, headers, ...options } = {}) {
     // No JSON body (e.g. a 204) - leave data as null.
   }
 
-  // The access token lasts 15 minutes and can't be refreshed from this site
-  // (the refresh cookie is SameSite=Strict on another domain), so an expired
-  // session signs out and comes back here after logging in.
+  // Expired access token: refresh once and retry. If the session can't be
+  // refreshed (signed out, cookie blocked by the browser), sign out and come
+  // back here after logging in.
   if (auth && response.status === 401 && localStorage.getItem(TOKEN_KEY)) {
+    if (!retried && (await refreshSession())) {
+      return request(path, { auth, retried: true, headers, ...options });
+    }
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem("user");
     const here = window.location.pathname + window.location.search;

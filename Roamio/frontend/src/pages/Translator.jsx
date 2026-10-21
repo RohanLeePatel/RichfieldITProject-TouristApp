@@ -113,7 +113,7 @@ function Translator() {
   const { theme, toggle: toggleTheme } = useTheme();
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
-  const [targetLanguage, setTargetLanguage] = useState("EN-US");
+  const [targetLanguage, setTargetLanguage] = useState("EN-GB");
   const [cameraOpen, setCameraOpen] = useState(false);
   const [translationResult, setTranslationResult] = useState(null);
   const [history, setHistory] = useState([]);
@@ -131,7 +131,7 @@ function Translator() {
   const [photoSize, setPhotoSize] = useState(null);
   const [showOverlay, setShowOverlay] = useState(true);
 
-  // Start from the trip and the traveller, not a fixed EN-US: from the
+  // Start from the trip and the traveller, not a fixed language: from the
   // destination's language into the language saved in Settings. Only until
   // the user picks something themselves.
   const { trip } = useActiveTrip();
