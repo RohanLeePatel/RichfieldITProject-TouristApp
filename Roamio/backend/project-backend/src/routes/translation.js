@@ -1,7 +1,7 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
+const { verifyAccessToken } = require('../auth/tokenService');
 const authenticateToken = require('../middleware/authMiddleware');
-const rateLimit = require('../middleware/rateLimit');
+const { translateLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
@@ -14,17 +14,21 @@ const MAX_IMAGE_BYTES = 1024 * 1024; // OCR.space's free tier limit; the fronten
 const MAX_TEXT_CHARS = 2000;
 
 // DeepL/OCR quota is shared by everyone on the public site
-router.use(rateLimit({ max: 20, windowMs: 60_000 }));
+router.use(translateLimiter);
 
 // Who is translating, for their history. Read from a verified token only:
 // ai-features trusts x-user-id because this API vouches for it, so it must
 // never come from anything the browser can set. No valid token is not an
 // error - the translation still happens, it just isn't saved anywhere.
+// Looks for the token in the same places as authMiddleware.
 function verifiedUserId(req) {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token || !process.env.JWT_SECRET) return null;
+  const header = req.headers.authorization;
+  const token = header?.startsWith('Bearer ')
+    ? header.split(' ')[1]
+    : req.signedCookies?.accessToken || req.cookies?.accessToken;
+  if (!token) return null;
   try {
-    const { userId } = jwt.verify(token, process.env.JWT_SECRET);
+    const { userId } = verifyAccessToken(token);
     return userId == null ? null : String(userId);
   } catch {
     return null;

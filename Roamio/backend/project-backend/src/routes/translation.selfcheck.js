@@ -1,13 +1,13 @@
 // The proxy is the only thing ai-features trusts to say who a traveller is,
 // so the x-user-id it sends must come from a verified token and never from
 // the browser. Runs against a fake ai-features that echoes what it received.
-// node routes/translation.selfcheck.js
+// node src/routes/translation.selfcheck.js
 const assert = require('node:assert');
 const http = require('node:http');
 const express = require('express');
 const jwt = require('jsonwebtoken');
 
-process.env.JWT_SECRET = 'selfcheck-secret';
+process.env.JWT_ACCESS_SECRET = 'selfcheck-secret';
 process.env.superSecretKey = 'selfcheck-service-key';
 
 const echo = http.createServer((req, res) => {
@@ -18,10 +18,10 @@ const echo = http.createServer((req, res) => {
 echo.listen(0, async () => {
   process.env.AI_FEATURES_URL = `http://127.0.0.1:${echo.address().port}`;
   const router = require('./translation');
-  const app = express().use(express.json()).use('/api/translate', router);
+  const app = express().use(express.json()).use(require('cookie-parser')()).use('/api/translate', router);
   const server = app.listen(0);
   const base = `http://127.0.0.1:${server.address().port}/api/translate`;
-  const token = (userId) => `Bearer ${jwt.sign({ userId }, process.env.JWT_SECRET)}`;
+  const token = (userId) => `Bearer ${jwt.sign({ userId }, process.env.JWT_ACCESS_SECRET)}`;
   const post = (headers) =>
     fetch(`${base}/text`, {
       method: 'POST',
@@ -33,6 +33,10 @@ echo.listen(0, async () => {
     // signed in: the id comes from the token, and the new endpoint is used
     let got = await post({ authorization: token(7) });
     assert.deepStrictEqual(got, { method: 'POST', path: '/api/translate/text', userId: '7' });
+
+    // signed in with the accessToken cookie instead of a header
+    got = await post({ cookie: `accessToken=${token(7).split(' ')[1]}` });
+    assert.strictEqual(got.userId, '7');
 
     // a browser claiming to be someone else is ignored
     got = await post({ authorization: token(7), 'x-user-id': '99' });

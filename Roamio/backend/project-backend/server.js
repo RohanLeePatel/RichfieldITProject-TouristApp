@@ -22,6 +22,7 @@ const safetyRoutes = require('./src/routes/safety');
 const expenseRoutes = require('./src/routes/expense');
 const budgetRoutes = require('./src/routes/budget');
 const notificationRoutes = require('./src/routes/notification');
+const translationRoutes = require('./src/routes/translation');
 
 // 4. App Initialization
 const app = express();
@@ -67,6 +68,7 @@ app.use('/api/trips/:tripId/budget', budgetRoutes);
 app.use('/api', activityRoutes);
 app.use('/api', safetyRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/translate', translationRoutes);
 
 // 7. Global Error Handling Middleware
 // This catches any errors thrown via `next(error)` in your controllers

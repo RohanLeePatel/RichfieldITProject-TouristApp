@@ -18,7 +18,17 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Translation limiter: 20 requests per minute (DeepL/OCR quota is shared by everyone)
+const translateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  message: { message: 'Too many translation requests, please try again after a minute.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 module.exports = {
   generalLimiter,
-  authLimiter
+  authLimiter,
+  translateLimiter
 };
