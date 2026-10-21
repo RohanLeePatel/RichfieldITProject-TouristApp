@@ -1265,17 +1265,6 @@
   animation: tr-rise 0.35s ease both;
 }
 
-.detected-language {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-  padding: 12px 16px;
-  border: 1px solid rgba(61, 219, 196, 0.25);
-  border-radius: 14px;
-  background: var(--tr-teal-tint);
-  color: var(--tr-teal);
-}
 
 .detected-language span {
   display: block;
@@ -1472,6 +1461,90 @@
   background-size: 8px 2px;
 }
 
+/* =========================================================
+   TRANSLATION HISTORY & FAVORITES
+========================================================= */
+
+.translation-history-section {
+  margin-top: 36px;
+  padding: 24px;
+  border: 1px solid var(--tr-line);
+  border-radius: var(--tr-radius);
+  background: var(--tr-surface);
+  box-shadow: var(--tr-shadow-sm);
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.history-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--tr-ink);
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.history-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border: 1px solid var(--tr-line);
+  border-radius: 14px;
+  background: var(--tr-subtle);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.history-card:hover {
+  border-color: rgba(22, 132, 154, 0.25);
+  background: var(--tr-surface);
+}
+
+.history-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.history-meta {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--tr-teal);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.history-text {
+  font-size: 14px;
+  color: var(--tr-ink);
+  font-weight: 600;
+}
+
+.favorite-star-btn {
+  border: none;
+  background: transparent;
+  color: var(--tr-muted);
+  cursor: pointer;
+  font-size: 18px;
+  padding: 6px;
+  border-radius: 50%;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.favorite-star-btn.active,
+.favorite-star-btn:hover {
+  color: #f59e0b;
+  transform: scale(1.15);
+}
 
 /* =========================================================
    FOOTER MESSAGE
@@ -1608,11 +1681,6 @@
   border-color: var(--tr-line);
 }
 
-.translator-page[data-theme="dark"] .detected-language {
-  border-color: rgba(127, 176, 138, 0.35);
-  background: #19483f;
-  color: var(--tr-teal);
-}
 
 .translator-page[data-theme="dark"] .upload-icon {
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
