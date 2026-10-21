@@ -27,8 +27,28 @@ const translateLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Recommendations/landmarks limiter: 30 requests per minute (hits the AI service)
+const recommendationsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  message: { message: 'Too many recommendation requests, please try again after a minute.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Weather limiter: 60 requests per minute (shared OpenWeather quota)
+const weatherLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  message: { message: 'Too many weather requests, please try again after a minute.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 module.exports = {
   generalLimiter,
   authLimiter,
-  translateLimiter
+  translateLimiter,
+  recommendationsLimiter,
+  weatherLimiter
 };
