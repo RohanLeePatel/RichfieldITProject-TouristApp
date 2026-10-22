@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, CloudSun, Languages, LoaderCircle, MapPin, Printer, Sparkles, Trash2, Wallet, X } from "lucide-react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import {
+  CalendarDays, CloudSun, FileText, Languages, ListOrdered, LoaderCircle, MapPin, Printer, ShieldCheck, Sparkles, Trash2, Users, Wallet, X,
+} from "lucide-react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import ClimateInsights from "../components/insights/ClimateInsights.jsx";
 import ItineraryMap from "../components/recommendations/ItineraryMap.jsx";
@@ -14,6 +16,17 @@ import { groupItineraryByDay } from "../utils/itineraryPlanner.js";
 import { useTripStore } from "../store/tripStore.js";
 import "../styles/trips.css";
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// one section of the trip at a time; ?tab= keeps it across refreshes and links
+const TABS = [
+  { id: "plan", label: "Itinerary", icon: ListOrdered },
+  { id: "safety", label: "Safety & weather", icon: ShieldCheck },
+  { id: "money", label: "Budget", icon: Wallet },
+  { id: "people", label: "People", icon: Users },
+  { id: "documents", label: "Documents", icon: FileText },
+];
+
 function formatDate(iso) {
   return new Date(iso).toLocaleDateString("en", { day: "2-digit", month: "long", year: "numeric" });
 }
@@ -26,6 +39,8 @@ export default function TripDetail() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const { setActiveTrip } = useActiveTrip();
+  const [params, setParams] = useSearchParams();
+  const tab = TABS.some((t) => t.id === params.get("tab")) ? params.get("tab") : "plan";
 
   useEffect(() => {
     setActiveTrip(tripId);
@@ -116,6 +131,13 @@ export default function TripDetail() {
     </>
   ) : null;
 
+  // the calendar date of day N, when the trip has dates: "Mon 16 Dec"
+  const dayDate = (dayNumber) =>
+    trip?.startDate && dayNumber
+      ? new Date(new Date(trip.startDate).getTime() + (dayNumber - 1) * DAY_MS)
+          .toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })
+      : null;
+
   return (
     <PageShell backTo="/trips" backLabel="Back to your trips" hero={hero}>
         {loading ? (
@@ -124,6 +146,23 @@ export default function TripDetail() {
           <p className="recommendations-error">{error}</p>
         ) : trip ? (
           <>
+            <nav className="trip-tabs print-hide" role="tablist" aria-label="Trip sections">
+              {TABS.map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === id}
+                  className={tab === id ? "active" : ""}
+                  onClick={() => setParams({ tab: id }, { replace: true })}
+                >
+                  <Icon size={15} /> {label}
+                </button>
+              ))}
+            </nav>
+
+            {tab === "plan" && (
+            <>
             <section className="recommendations-results">
               <div className="results-heading">
                 <div>
@@ -144,9 +183,6 @@ export default function TripDetail() {
                   </button>
                 </div>
               </div>
-              <p className="print-hide wizard-help">
-                Pick &quot;Save as PDF&quot; as the destination in the print dialog that opens.
-              </p>
 
               {error && <p className="recommendations-error">{error}</p>}
 
@@ -156,70 +192,42 @@ export default function TripDetail() {
                   <p>Landmarks you add to this trip&apos;s itinerary will show up here, grouped by day.</p>
                 </div>
               ) : (
-                <div className="itinerary-days itinerary-days-stacked">
-                  {dayGroups.map((group) => (
-                    <div key={group.dayNumber ?? "unscheduled"} className="itinerary-day">
-                      <div className="itinerary-day-header">
-                        <h4>{group.dayNumber ? `Day ${group.dayNumber}` : "Unscheduled"}</h4>
-                      </div>
-                      {group.items.map((item) => (
-                        <div key={item.id} className="itinerary-stop">
-                          {item.startTime && <span className="itinerary-stop-time">{item.startTime}</span>}
-                          <span className="itinerary-stop-name">
-                            {item.title}
-                            {item.location && <small className="itinerary-stop-location">{item.location}</small>}
-                          </span>
-                          <button
-                            type="button"
-                            className="itinerary-stop-remove print-hide"
-                            onClick={() => handleDeleteItem(item.id, item.title)}
-                            disabled={busy}
-                            aria-label={`Remove ${item.title}`}
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
+                <div className="trip-days">
+                  {dayGroups.map((group, index) => (
+                    <section
+                      key={group.dayNumber ?? "unscheduled"}
+                      className="trip-day"
+                      style={{ "--day-color": `var(--day-${(index % 6) + 1})` }}
+                    >
+                      <header>
+                        <h3>{group.dayNumber ? `Day ${group.dayNumber}` : "Unscheduled"}</h3>
+                        {dayDate(group.dayNumber) && <span>{dayDate(group.dayNumber)}</span>}
+                      </header>
+                      <ol className="trip-stops">
+                        {group.items.map((item) => (
+                          <li key={item.id} className="trip-stop">
+                            <time>{item.startTime || ""}</time>
+                            <div>
+                              <strong>{item.title}</strong>
+                              {/* street and district are enough here; the full address is the tooltip */}
+                              {item.location && <small title={item.location}>{item.location.split(",").slice(0, 2).join(",")}</small>}
+                            </div>
+                            <button
+                              type="button"
+                              className="print-hide"
+                              onClick={() => handleDeleteItem(item.id, item.title)}
+                              disabled={busy}
+                              aria-label={`Remove ${item.title}`}
+                            >
+                              <X size={14} />
+                            </button>
+                          </li>
+                        ))}
+                      </ol>
+                    </section>
                   ))}
                 </div>
               )}
-            </section>
-
-            <AddLandmark trip={trip} onAdded={refresh} />
-
-            {trip.destination && (
-              <section className="recommendations-results">
-                <div className="results-heading">
-                  <div>
-                    <h2>Right now</h2>
-                    <p>Live weather and the current travel advisory for {trip.destination}.</p>
-                  </div>
-                </div>
-                <TripSnapshot trip={trip} />
-              </section>
-            )}
-
-            <section className="recommendations-results">
-              <div className="results-heading">
-                <div>
-                  <h2>Money</h2>
-                  <p>What's been spent, in the trip's currency.</p>
-                </div>
-              </div>
-              <div className="insights trip-hub-grid">
-                <TripBudgetCard trip={trip} />
-              </div>
-            </section>
-
-            <section className="recommendations-results">
-              <div className="results-heading">
-                <div>
-                  <h2>Travelling together</h2>
-                  <p>Everyone on this trip, and what's changed lately.</p>
-                </div>
-              </div>
-              <TripPeople trip={trip} />
             </section>
 
             {mapDays.length > 0 && (
@@ -234,9 +242,55 @@ export default function TripDetail() {
               </section>
             )}
 
-            <TripDocuments tripId={tripId} />
+            <AddLandmark trip={trip} onAdded={refresh} />
+            </>
+            )}
 
-            {trip.destination && (
+            {tab === "safety" && !trip.destination && (
+              <p className="wizard-help">This trip has no destination, so there's no weather or advisory to show.</p>
+            )}
+
+            {tab === "safety" && trip.destination && (
+              <section className="recommendations-results">
+                <div className="results-heading">
+                  <div>
+                    <h2>Right now</h2>
+                    <p>Live weather and the current travel advisory for {trip.destination}.</p>
+                  </div>
+                </div>
+                <TripSnapshot trip={trip} />
+              </section>
+            )}
+
+            {tab === "money" && (
+            <section className="recommendations-results">
+              <div className="results-heading">
+                <div>
+                  <h2>Money</h2>
+                  <p>What's been spent, in the trip's currency.</p>
+                </div>
+              </div>
+              <div className="insights trip-hub-grid">
+                <TripBudgetCard trip={trip} />
+              </div>
+            </section>
+            )}
+
+            {tab === "people" && (
+            <section className="recommendations-results">
+              <div className="results-heading">
+                <div>
+                  <h2>Travelling together</h2>
+                  <p>Everyone on this trip, and what's changed lately.</p>
+                </div>
+              </div>
+              <TripPeople trip={trip} />
+            </section>
+            )}
+
+            {tab === "documents" && <TripDocuments tripId={tripId} />}
+
+            {tab === "safety" && trip.destination && (
               <section className="recommendations-results trip-insights">
                 <div className="results-heading">
                   <div>

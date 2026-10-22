@@ -15,6 +15,7 @@ import {
 } from "../api/recommendations.js";
 import { createTrip, addItineraryItem, deleteTrip } from "../api/trips.js";
 import { useTripStore } from "../store/tripStore.js";
+import { familyStorageKey } from "../store/authStore.js";
 import { fetchMe } from "../api/account.js";
 
 // Starting form: the group from the Travel Group page, nothing invented -
@@ -22,7 +23,7 @@ import { fetchMe } from "../api/account.js";
 function startingForm() {
   let members = [];
   try {
-    members = JSON.parse(localStorage.getItem("roamio_family_members_v1")) || [];
+    members = JSON.parse(localStorage.getItem(familyStorageKey())) || [];
   } catch {
     // unreadable storage - start with just you
   }
@@ -445,7 +446,22 @@ export default function Recommendations() {
     }
   };
 
+  const landmarkAt = (key) => {
+    const [interest, index] = key.split("|");
+    return landmarksData?.groups.find((group) => group.interest === interest)?.landmarks[Number(index)];
+  };
+  const sameName = (a, b) => a?.name?.trim().toLowerCase() === b?.name?.trim().toLowerCase();
+
   const toggleLandmark = (key) => {
+    // one place often matches two interests (a park that's also a historic site)
+    const landmark = landmarkAt(key);
+    if (
+      !selectedLandmarks.has(key) &&
+      [...selectedLandmarks].some((other) => sameName(landmarkAt(other), landmark)) &&
+      !window.confirm(`${landmark.name} is already in your plan. Add it again?`)
+    ) {
+      return;
+    }
     setSelectedLandmarks((current) => {
       const next = new Set(current);
       if (next.has(key)) {
@@ -483,8 +499,16 @@ export default function Recommendations() {
     const target = dayCapacity(tripLengthDays(form), form.pace, familyFriendly);
     const perGroup = Math.max(1, Math.round(target / landmarksData.groups.length));
     const next = new Set();
+    const names = new Set(); // never the same place twice
     landmarksData.groups.forEach((group) => {
-      group.landmarks.slice(0, perGroup).forEach((_, index) => next.add(`${group.interest}|${index}`));
+      let taken = 0;
+      group.landmarks.forEach((landmark, index) => {
+        const name = landmark.name?.trim().toLowerCase();
+        if (taken >= perGroup || names.has(name)) return;
+        names.add(name);
+        next.add(`${group.interest}|${index}`);
+        taken += 1;
+      });
     });
     setSelectedLandmarks(next);
     setError("");

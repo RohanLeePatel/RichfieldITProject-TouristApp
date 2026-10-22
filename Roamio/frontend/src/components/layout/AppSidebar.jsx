@@ -66,6 +66,13 @@ export default function AppSidebar({ open, onClose }) {
 
   const switchTrip = (event) => {
     setActiveTrip(event.target.value || null);
+    // a trip's own pages take the trip from the URL, so go to the same
+    // section of the newly picked trip
+    const onTripPage = location.pathname.match(/^\/trips\/\d+(\/.*)?$/);
+    if (onTripPage) {
+      navigate(`/trips/${event.target.value}${onTripPage[1] || ""}${location.search}`);
+      return;
+    }
     // a ?trip= in the address bar would otherwise win straight back
     if (params.has("trip")) {
       const next = new URLSearchParams(params);

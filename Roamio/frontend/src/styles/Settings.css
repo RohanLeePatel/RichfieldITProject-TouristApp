@@ -762,3 +762,27 @@
     animation: none !important;
   }
 }
+/* Selects drawn like the inputs beside them: full width, theme colours, one
+   chevron (the browser's own one was a small grey box on the dark theme) */
+.settings-input select {
+  width: 100%;
+  min-width: 0;
+  padding: 11px 26px 11px 0;
+
+  border: 0;
+  outline: 0;
+  appearance: none;
+  cursor: pointer;
+
+  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237f97a3' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 2px center / 16px;
+  color: var(--ink);
+
+  font:
+    500 14px "DM Sans",
+    sans-serif;
+}
+
+.settings-input option {
+  background: var(--surface);
+  color: var(--ink);
+}

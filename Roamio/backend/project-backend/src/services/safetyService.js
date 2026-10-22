@@ -10,7 +10,8 @@ const serializeAdvisory = (advisory) => advisory && {
   activeAlertsCount: advisory.activeAlertsCount,
   emergencyNumbers: { police: advisory.policeNumber, medical: advisory.medicalNumber },
   source: advisory.source,
-  lastUpdated: advisory.lastUpdated
+  lastUpdated: advisory.lastUpdated,
+  link: advisory.link || null
 };
 
 class SafetyService {
@@ -29,7 +30,16 @@ class SafetyService {
     };
   }
 
-  async getCountrySafety(countryIso) {
+  // A live advisory first (TravelRiskAPI, else the State Department feed):
+  // the stored one is only refreshed by the cron, which doesn't run on
+  // Vercel. `name` matches the few feed entries without a country code.
+  async getCountrySafety(countryIso, name) {
+    const live = await safetySyncService.liveAdvisory(countryIso, name).catch((error) => {
+      console.error('Live safety advisory failed:', error.message);
+      return null;
+    });
+    if (live) return serializeAdvisory(live);
+
     const advisory = await safetyRepository.getByCountryIso(countryIso);
     if (!advisory) throw httpError(404, `No safety data found for country code: ${countryIso}`);
     return serializeAdvisory(advisory);

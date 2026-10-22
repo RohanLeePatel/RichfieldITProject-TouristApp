@@ -50,14 +50,14 @@ export default function NeedsAttention({ trips, nextTrip }) {
 
     const info = watched?.destination ? splitDestination(watched.destination).info : null;
     const safety = info
-      ? fetchCountrySafety(info.iso3).then((advisory) => {
+      ? fetchCountrySafety(info.iso3, splitDestination(watched.destination).country).then((advisory) => {
           if (advisory.riskLevel >= 3) {
             found.push({
               key: "safety",
               icon: ShieldAlert,
               to: `/trips/${watched.id}`,
               title: `${advisory.advisoryLevel} - ${splitDestination(watched.destination).country}`,
-              detail: advisory.source === "MOCK" ? "Sample advisory (no live feed configured)" : wholeSentences(advisory.summary),
+              detail: advisory.source === "MOCK" ? "Sample advisory (no live feed configured)" : wholeSentences(advisory.summary, 2),
             });
           }
         })

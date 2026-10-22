@@ -48,5 +48,6 @@ assert.equal(wholeSentences("Crime is common. Kidnapping is a threat in So"), "C
 assert.equal(wholeSentences("Crime is common."), "Crime is common.");
 assert.equal(wholeSentences("No full stop at all"), "No full stop at all…");
 assert.equal(wholeSentences(null), "");
+assert.equal(wholeSentences("One. Two! Three. Four", 2), "One. Two!");
 
 console.log("travelAdvice selfcheck: all assertions passed");

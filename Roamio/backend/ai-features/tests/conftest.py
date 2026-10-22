@@ -150,3 +150,14 @@ def make_prefs(
 @pytest.fixture
 def prefs_factory():
     return make_prefs
+
+
+@pytest.fixture(autouse=True)
+def _no_live_safety_levels(monkeypatch):
+    """a TRAVEL_RISK_API_KEY_1 in a local .env must never send the suite to the real API"""
+    import engine.safety as safety
+
+    monkeypatch.setattr(safety, "TRAVEL_RISK_API_KEY", None)
+    safety._levels_cache.clear()
+    yield
+    safety._levels_cache.clear()

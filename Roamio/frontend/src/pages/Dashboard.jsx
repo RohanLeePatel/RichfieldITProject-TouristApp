@@ -34,7 +34,7 @@ import {
 
 import { fetchWeather as fetchWeatherFromApi } from "../api/weather";
 import { fetchTrips } from "../api/trips";
-import { useAuthStore } from "../store/authStore.js";
+import { familyStorageKey, useAuthStore } from "../store/authStore.js";
 
 import NeedsAttention from "../components/dashboard/NeedsAttention.jsx";
 import AppSidebar from "../components/layout/AppSidebar.jsx";
@@ -47,9 +47,6 @@ import heroPhoto from "../assets/dashboard/hero-alps.jpg";
 // =========================================================
 // CONSTANTS
 // =========================================================
-
-const GROUP_STORAGE_KEY =
-  "roamio_family_members_v1";
 
 // how many group members the dashboard card lists before "+N more"
 const GROUP_PREVIEW_LIMIT = 4;
@@ -289,9 +286,7 @@ function loadGroupMembers(
   );
 
   try {
-    const saved = localStorage.getItem(
-      GROUP_STORAGE_KEY
-    );
+    const saved = localStorage.getItem(familyStorageKey());
 
     if (!saved) {
       return defaults;
@@ -503,8 +498,7 @@ export default function Dashboard() {
       event
     ) => {
       if (
-        event.key ===
-        GROUP_STORAGE_KEY
+        event.key === familyStorageKey()
       ) {
         syncGroupMembers();
       }

@@ -97,3 +97,9 @@ export const useAuthStore = create((set, get) => ({
     });
   },
 }));
+// Travel-group companions without an account live in localStorage. Keyed per
+// account: one shared key showed the last user's companions to whoever signed
+// in next on the same browser.
+export function familyStorageKey() {
+  return `roamio_family_members_v1:${profileId(useAuthStore.getState().user)}`;
+}

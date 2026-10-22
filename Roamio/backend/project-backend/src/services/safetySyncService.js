@@ -11,6 +11,30 @@ const LEVEL_LABELS = {
   4: 'Do not travel'
 };
 
+// Live advisories: the US State Department's public feed (no key). Every
+// country's entry, refreshed a few times a week.
+const STATE_DEPT_URL = 'https://cadataapi.state.gov/api/TravelAdvisories';
+// ponytail: one cached copy of the whole feed per warm serverless instance;
+// move it into the DB if cold starts make the 1-2 s fetch noticeable
+const FEED_TTL_MS = 6 * 60 * 60 * 1000;
+let feed = { at: 0, list: null };
+const advisoryCache = new Map(); // alpha-3 -> { at, advisory }
+
+// A country's entry: matched on the alpha-3 code in its link
+// (".../destination.zaf.html"), else on the name in its title - a few entries
+// ("namibia-travel-advisory.html") have no code.
+function pickStateDeptEntry(list, iso, name) {
+  const code = String(iso || '').toLowerCase();
+  const byCode = list.find((entry) => String(entry.Link || '').toLowerCase().endsWith(`destination.${code}.html`));
+  if (byCode || !name) return byCode || null;
+  const wanted = name.trim().toLowerCase();
+  return list.find((entry) => String(entry.Title || '').split(/ - | Travel Advisory/)[0].trim().toLowerCase() === wanted) || null;
+}
+
+// TravelRiskAPI sends UTC without a zone ("2026-07-07T00:00:00"), which
+// Date would read as server-local time
+const utcDate = (value) => (value ? new Date(/Z|[+-]\d\d:?\d\d$/.test(value) ? value : `${value}Z`) : new Date());
+
 const clampLevel = (n) => Math.min(4, Math.max(1, Math.round(Number(n) || 1)));
 
 const stripHtml = (html) => String(html || '')
@@ -19,11 +43,12 @@ const stripHtml = (html) => String(html || '')
   .replace(/&quot;/g, '"')
   .replace(/&amp;/g, '&')
   .replace(/\s+/g, ' ')
+  .replace(/ ([,.;:!?])/g, '$1') // "<b>disasters</b>, unrest" left "disasters , unrest"
   .trim();
 
 class SafetySyncService {
   useMock() {
-    return process.env.SAFETY_SYNC_MODE === 'mock' || !process.env.TRAVEL_RISK_API_KEY;
+    return process.env.SAFETY_SYNC_MODE === 'mock' || !process.env.TRAVEL_RISK_API_KEY_1;
   }
 
   // Normalises a provider (or mock) payload into the SafetyAdvisory columns
@@ -48,15 +73,67 @@ class SafetySyncService {
       return this.buildAdvisoryData(iso, mock, 'MOCK');
     }
 
-    const { data } = await axios.get(`${process.env.TRAVEL_RISK_API_URL}/countries/${iso}`, {
-      headers: { 'X-API-Key': process.env.TRAVEL_RISK_API_KEY, 'Content-Type': 'application/json' }
+    const { data } = await axios.get(`${process.env.TRAVEL_RISK_API_URL_1}/countries/${iso}`, {
+      headers: { 'X-API-Key': process.env.TRAVEL_RISK_API_KEY_1, 'Content-Type': 'application/json' }
     });
-    return this.buildAdvisoryData(iso, {
-      level: data.advisory_level,
-      score: data.risk_score,
-      alerts: data.active_alerts,
-      text: data.advisory_description
-    }, 'TRAVEL_RISK_API');
+    return {
+      ...this.buildAdvisoryData(iso, {
+        level: data.advisory_level,
+        score: data.risk_score,
+        alerts: data.active_alerts,
+        text: data.advisory_description
+      }, 'TRAVEL_RISK_API'),
+      lastUpdated: utcDate(data.advisory_date || data.last_updated)
+    };
+  }
+
+  // What the trip page shows, fetched on request (the cron above never runs
+  // on Vercel): TravelRiskAPI when its key is set, else the free State
+  // Department feed. Cached per country - TravelRiskAPI's free plan allows
+  // 100 calls a day. null when neither source knows the country.
+  async liveAdvisory(iso, name) {
+    const code = String(iso).toUpperCase();
+    const hit = advisoryCache.get(code);
+    if (hit && Date.now() - hit.at < FEED_TTL_MS) return hit.advisory;
+
+    let advisory = null;
+    if (!this.useMock()) {
+      advisory = await this.fetchAdvisory(code)
+        .then((data) => {
+          const numbers = EMERGENCY_NUMBERS[code];
+          // known numbers only, not the 112 guess the stored rows fall back to
+          return { ...data, countryIso: code, policeNumber: numbers?.police || null, medicalNumber: numbers?.medical || null };
+        })
+        .catch((error) => {
+          console.error(`TravelRiskAPI failed for ${code}:`, error.message);
+          return null;
+        });
+    }
+    advisory = advisory || await this.fetchStateDeptAdvisory(code, name);
+    if (advisory) advisoryCache.set(code, { at: Date.now(), advisory });
+    return advisory;
+  }
+
+  // null when the feed has no entry for the country. Emergency numbers we
+  // don't know stay empty rather than a guessed default.
+  async fetchStateDeptAdvisory(iso, name) {
+    if (!feed.list || Date.now() - feed.at > FEED_TTL_MS) {
+      const { data } = await axios.get(STATE_DEPT_URL, { timeout: 8000 });
+      feed = { at: Date.now(), list: Array.isArray(data) ? data : [] };
+    }
+    const code = String(iso).toUpperCase();
+    const entry = pickStateDeptEntry(feed.list, code, name);
+    const level = Number(entry?.Title.match(/Level (\d)/)?.[1]);
+    if (!level) return null;
+    const numbers = EMERGENCY_NUMBERS[code];
+    return {
+      countryIso: code,
+      ...this.buildAdvisoryData(code, { level, score: level, alerts: 0, text: entry.Summary }, 'US_STATE_DEPT'),
+      policeNumber: numbers?.police || null,
+      medicalNumber: numbers?.medical || null,
+      lastUpdated: new Date(entry.Updated || entry.Published),
+      link: entry.Link
+    };
   }
 
   async syncCountryAdvisories() {
@@ -134,3 +211,4 @@ class SafetySyncService {
 
 module.exports = new SafetySyncService();
 module.exports.ALERT_MIN_LEVEL = ALERT_MIN_LEVEL;
+module.exports.pickStateDeptEntry = pickStateDeptEntry;

@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from config.auth import verify_secretKey
 from engine.catalog import load_city_candidates, load_country_catalog
 from engine.pipeline import build_response
+from engine.safety import with_safety
 from schemas.recommendations import RecommendationRequest, RecommendationResponse
 
 logger = logging.getLogger(__name__)
@@ -55,7 +56,7 @@ def recommendations(request: RecommendationRequest) -> RecommendationResponse:
 
     # keep at least one candidate so a run of dislikes never yields a 500
     kept = [c for c in candidates if c.id not in request.exclude_ids]
-    candidates = kept or candidates
+    candidates = with_safety(kept or candidates)
 
     try:
         return build_response(request, candidates=candidates)

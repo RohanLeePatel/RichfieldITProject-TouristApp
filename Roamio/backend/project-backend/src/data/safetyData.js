@@ -1,5 +1,5 @@
 // Static fallbacks: emergency numbers by ISO alpha-3 code, and mock advisories used when
-// SAFETY_SYNC_MODE=mock or no TRAVEL_RISK_API_KEY is configured.
+// SAFETY_SYNC_MODE=mock or no TRAVEL_RISK_API_KEY_1 is configured.
 
 const EMERGENCY_NUMBERS = {
   ZAF: { police: '10111', medical: '10177' },

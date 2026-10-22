@@ -50,12 +50,14 @@ function Loading({ label }) {
   );
 }
 
+const SAFETY_SOURCES = { US_STATE_DEPT: "US State Department travel advisory", TRAVEL_RISK_API: "TravelRiskAPI" };
+
 // Live weather now + the country advisory, side by side.
 export function TripSnapshot({ trip }) {
   const { city, country, info } = splitDestination(trip.destination);
   const weather = useLoad(() => fetchWeather(city), [city]);
   const safety = useLoad(
-    () => (info ? fetchCountrySafety(info.iso3) : Promise.reject(new Error("no-country"))),
+    () => (info ? fetchCountrySafety(info.iso3, country) : Promise.reject(new Error("no-country"))),
     [info?.iso3]
   );
 
@@ -88,13 +90,20 @@ export function TripSnapshot({ trip }) {
             <p className={`trip-hub-big trip-risk-${safety.data.riskLevel}`}>
               Level {safety.data.riskLevel}/4 <span>{safety.data.advisoryLevel}</span>
             </p>
-            {safety.data.summary && <p className="wizard-help">{wholeSentences(safety.data.summary)}</p>}
+            {safety.data.summary && <p className="wizard-help">{wholeSentences(safety.data.summary, 2)}</p>}
+            {(safety.data.emergencyNumbers?.police || safety.data.emergencyNumbers?.medical) && (
+              <p className="insights-fine">
+                Emergency: police {safety.data.emergencyNumbers.police || "-"}, medical {safety.data.emergencyNumbers.medical || "-"}.
+              </p>
+            )}
             <p className="insights-fine">
-              Emergency: police {safety.data.emergencyNumbers?.police || "-"}, medical {safety.data.emergencyNumbers?.medical || "-"}.{" "}
               {safety.data.source === "MOCK"
                 ? "Sample advisory - no live advisory feed is configured."
-                : `Source: ${safety.data.source}, updated ${timeAgo(safety.data.lastUpdated)}.`}
+                : `${SAFETY_SOURCES[safety.data.source] || safety.data.source}, last revised ${timeAgo(safety.data.lastUpdated)}.`}
             </p>
+            {safety.data.link && (
+              <a className="trip-hub-link" href={safety.data.link} target="_blank" rel="noreferrer">Full advisory</a>
+            )}
           </>
         )}
       </section>
@@ -200,6 +209,9 @@ export function AddLandmark({ trip, onAdded }) {
   };
 
   const add = async (landmark) => {
+    const name = landmark.name.trim().toLowerCase();
+    const repeat = (trip.itinerary || []).some((item) => item.dayNumber === day && item.title.trim().toLowerCase() === name);
+    if (repeat && !window.confirm(`${landmark.name} is already on day ${day}. Add it again?`)) return;
     setBusy(true);
     setError("");
     try {

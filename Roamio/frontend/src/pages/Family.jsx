@@ -39,7 +39,7 @@ import { fetchTrips } from "../api/trips";
 import { INTEREST_TAGS } from "./recommendations/constants.js";
 import "../styles/Family.css";
 
-const STORAGE_KEY = "roamio_family_members_v1";
+import { familyStorageKey } from "../store/authStore.js";
 
 // The wizard's own interest tags, so a member's picks can pre-fill the
 // wizard's group step as-is (one vocabulary across the app).
@@ -497,7 +497,7 @@ export default function Family() {
   const [members, setMembers] = useState(() => {
     try {
       const saved =
-        localStorage.getItem(STORAGE_KEY);
+        localStorage.getItem(familyStorageKey());
 
       if (!saved) {
         return [];
@@ -595,7 +595,7 @@ export default function Family() {
    */
   useEffect(() => {
     localStorage.setItem(
-      STORAGE_KEY,
+      familyStorageKey(),
       JSON.stringify(members)
     );
 
@@ -612,7 +612,7 @@ export default function Family() {
     const handleGroupUpdate = () => {
       try {
         const saved =
-          localStorage.getItem(STORAGE_KEY);
+          localStorage.getItem(familyStorageKey());
 
         if (!saved) {
           setMembers([]);
