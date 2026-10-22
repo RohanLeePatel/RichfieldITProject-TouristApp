@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Copy, LoaderCircle, Plane, Plus, UserPlus, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import { createGroup, createInvite, fetchMyGroups, joinGroup } from "../../api/groups.js";
+import { createGroup, createInvite, fetchMyGroups, inviteLink, joinGroup } from "../../api/groups.js";
 import { useAuthStore } from "../../store/authStore.js";
 import { useTripStore } from "../../store/tripStore.js";
 
@@ -12,7 +12,9 @@ const MANAGERS = ["OWNER", "ADMIN"];
 // and invites. Trips planned "for" a group in the wizard land here and every
 // member can open them. Companions without an account stay in the local list
 // below this section.
-export default function TravelGroups() {
+// onGroups(list) runs after every load, so the page's companion list follows
+// groups created or joined here
+export default function TravelGroups({ onGroups }) {
   const userId = useAuthStore((state) => state.user?.id);
   const [groups, setGroups] = useState(null);
   const [error, setError] = useState("");
@@ -22,7 +24,10 @@ export default function TravelGroups() {
 
   const load = () =>
     fetchMyGroups()
-      .then(setGroups)
+      .then((list) => {
+        setGroups(list);
+        onGroups?.(list);
+      })
       .catch((requestError) => {
         setGroups([]);
         setError(requestError instanceof Error ? requestError.message : "Could not load your groups.");
@@ -129,6 +134,12 @@ function GroupCard({ group, canManage }) {
     navigator.clipboard?.writeText(link).then(() => setCopied(true)).catch(() => {});
   };
 
+  // anyone with this link can join (no email needed), unlike the invite below
+  const [joinCopied, setJoinCopied] = useState(false);
+  const copyJoinLink = () => {
+    navigator.clipboard?.writeText(inviteLink(group.inviteCode)).then(() => setJoinCopied(true)).catch(() => {});
+  };
+
   return (
     <article className="family-group-card">
       <h3>{group.name}</h3>
@@ -155,7 +166,10 @@ function GroupCard({ group, canManage }) {
       {canManage && (
         <>
           <p className="family-groups-note">
-            Join code: <strong>{group.inviteCode}</strong>
+            Join code: <strong>{group.inviteCode}</strong>{" "}
+            <button type="button" className="family-text-button" onClick={copyJoinLink}>
+              <Copy size={13} /> {joinCopied ? "Link copied" : "Copy invite link"}
+            </button>
           </p>
           <form className="family-group-invite" onSubmit={invite}>
             <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Their email" aria-label="Email to invite" required />

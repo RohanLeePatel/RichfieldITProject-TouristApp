@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { LoaderCircle, Plus, Users } from "lucide-react";
 
 import { createGroup, fetchMyGroups } from "../../../api/groups.js";
+import { groupFromTravelGroup } from "../../../pages/recommendations/constants.js";
 
 const NEW = "new";
 
@@ -23,9 +24,14 @@ export default function TripGroupPanel({ form, updateForm }) {
     fetchMyGroups().then(setGroups).catch(() => setGroups([]));
   }, []);
 
+  // the group's people (members + companions) become the wizard's travellers
   const pick = (group) => {
     updateForm("travelGroupId", group ? group.id : null);
     updateForm("travelGroupName", group ? group.name : "");
+    const { adults, children, travelers } = groupFromTravelGroup(group);
+    updateForm("adults", adults);
+    updateForm("children", children);
+    updateForm("travelers", travelers);
   };
 
   const choose = (value) => {
@@ -94,7 +100,7 @@ export default function TripGroupPanel({ form, updateForm }) {
           ) : (
             <p className="wizard-help">
               {choice && choice !== NEW
-                ? "Everyone in the group can open the trip, its itinerary and its documents."
+                ? "Everyone in the group can open the trip. Its people and their interests are filled in below and on the next steps."
                 : "Planning with friends or family? Make it a group trip so everyone can see the plan."}
             </p>
           )}

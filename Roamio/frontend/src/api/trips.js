@@ -97,3 +97,9 @@ export async function removeItineraryItem(tripId, itemId) {
 
   await authedFetch(`/api/trips/${tripId}/itinerary/${itemId}`, { method: "DELETE" });
 }
+
+// The join code for inviting people to this trip. A solo trip is moved into a
+// group of its own first (organizer only). { inviteCode, travelGroupId, groupName }
+export function shareTrip(tripId) {
+  return authedFetch(`/api/trips/${tripId}/share`, { method: "POST" });
+}

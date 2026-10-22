@@ -618,3 +618,12 @@
 @media (max-width: 640px) {
   .trip-panel > .recommendations-results { padding: 18px 16px; }
 }
+
+/* People tab: the invite link */
+.trip-invite { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin: 14px 0 4px; }
+.trip-invite-link { display: grid; flex: 1; gap: 6px; min-width: 220px; color: var(--ink-soft); font-size: 12.5px; }
+.trip-invite-link input {
+  min-height: 38px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); color: var(--ink); font: 500 13px "DM Sans", sans-serif;
+}
+.trip-invite .recommendations-error { flex-basis: 100%; margin: 0; }

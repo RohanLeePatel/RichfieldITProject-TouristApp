@@ -222,8 +222,8 @@ export const emptyTraveler = () => ({
   pace: "",
 });
 
-// The wizard's group, pre-filled from the Travel Group page's members
-// (localStorage roamio_family_members_v1): you plus each adult, children's
+// The wizard's group from a list of companions (a travel group's people
+// without an account): you plus each adult, children's
 // ages where the page has them, and each member's interests as a traveller of
 // their own so the engine can merge them. Members store interest labels
 // ("Beaches"); the wizard works in tag ids ("beaches").
@@ -241,6 +241,15 @@ export function groupFromFamily(members) {
       .map((member) => ({ ...emptyTraveler(), name: member.name || "", interests: (member.interests || []).map(idFor).filter(Boolean) }))
       .filter((traveler) => traveler.interests.length > 0),
   };
+}
+
+// The wizard's group step for a travel group: you, its other members (adults
+// with an account - their interests aren't stored, so none are assumed) and
+// its companions (people without an account, with their interests).
+export function groupFromTravelGroup(group) {
+  const base = groupFromFamily(group?.companions);
+  const otherMembers = Math.max(0, (group?.members?.length || 1) - 1);
+  return { ...base, adults: String(Number(base.adults) + otherMembers) };
 }
 
 export const steps = ["Trip basics", "Interests", "Accessibility & climate", "Review"];

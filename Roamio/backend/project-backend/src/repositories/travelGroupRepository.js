@@ -54,6 +54,18 @@ const travelGroupRepository = {
     });
   },
 
+  // A group by its join code, with who's in it (for the /join link's preview)
+  findByInviteCode: async (inviteCode) => {
+    return await prisma.travelGroup.findFirst({
+      where: { inviteCode: String(inviteCode).trim().toUpperCase(), deletedAt: null },
+      include: { members: { select: { userId: true } } },
+    });
+  },
+
+  updateDescription: async (groupId, description) => {
+    return await prisma.travelGroup.update({ where: { id: groupId }, data: { description } });
+  },
+
   // Join a group via invite code
   joinGroupByCode: async (userId, inviteCode) => {
     const group = await prisma.travelGroup.findFirst({

@@ -28,13 +28,13 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import {
   Link,
-  useLocation,
   useNavigate,
 } from "react-router-dom";
 
 import { fetchWeather as fetchWeatherFromApi } from "../api/weather";
+import { fetchMyGroups } from "../api/groups.js";
 import { fetchTrips } from "../api/trips";
-import { familyStorageKey, useAuthStore } from "../store/authStore.js";
+import { useAuthStore } from "../store/authStore.js";
 
 import NeedsAttention from "../components/dashboard/NeedsAttention.jsx";
 import AppSidebar from "../components/layout/AppSidebar.jsx";
@@ -287,42 +287,6 @@ function getDefaultGroupMembers(
   ];
 }
 
-function loadGroupMembers(
-  userName,
-  initials
-) {
-  const defaults = getDefaultGroupMembers(
-    userName,
-    initials
-  );
-
-  try {
-    const saved = localStorage.getItem(familyStorageKey());
-
-    if (!saved) {
-      return defaults;
-    }
-
-    const parsed = JSON.parse(saved);
-
-    if (
-      !Array.isArray(parsed) ||
-      parsed.length === 0
-    ) {
-      return defaults;
-    }
-
-    return parsed;
-  } catch (error) {
-    console.error(
-      "Could not load travel group:",
-      error
-    );
-
-    return defaults;
-  }
-}
-
 // =========================================================
 // COUNT-UP
 // =========================================================
@@ -361,7 +325,6 @@ function CountUp({ value, duration = 900 }) {
 export default function Dashboard() {
   const { theme, toggle: toggleTheme } = useTheme(); // app-wide theme, also set in Settings
   const navigate = useNavigate();
-  const location = useLocation();
   const logout = useAuthStore((state) => state.logout);
 
   // =========================================================
@@ -478,62 +441,33 @@ export default function Dashboard() {
   // TRAVEL GROUP
   // =========================================================
 
-  const [groupMembers, setGroupMembers] =
-    useState(() =>
-      loadGroupMembers(
-        userName,
-        initials
-      )
-    );
-
-  const syncGroupMembers =
-    useCallback(() => {
-      const updatedMembers =
-        loadGroupMembers(
-          userName,
-          initials
-        );
-
-      setGroupMembers(
-        updatedMembers
-      );
-    }, [userName, initials]);
-
+  // the active trip's travel group: its members (you marked), then its
+  // companions without an account; just you for a solo trip
+  const [groups, setGroups] = useState([]);
   useEffect(() => {
-    if (
-      location.pathname ===
-      "/dashboard"
-    ) {
-      syncGroupMembers();
-    }
-  }, [
-    location.pathname,
-    syncGroupMembers,
-  ]);
+    fetchMyGroups().then(setGroups).catch(() => setGroups([]));
+  }, []);
 
-  useEffect(() => {
-    const handleStorageChange = (
-      event
-    ) => {
-      if (
-        event.key === familyStorageKey()
-      ) {
-        syncGroupMembers();
-      }
-    };
-
-    window.addEventListener(
-      "storage",
-      handleStorageChange
-    );
-
-    return () => {
-      window.removeEventListener(
-        "storage",
-        handleStorageChange
-      );
-    };
-  }, [syncGroupMembers]);
+  const tripGroup = groups.find((group) => group.id === nextTrip?.travelGroupId) || null;
+  const initialsOf = (name) =>
+    name.trim().split(/s+/).slice(0, 2).map((part) => part.charAt(0)).join("").toUpperCase() || "?";
+  const groupMembers = tripGroup
+    ? [
+        ...tripGroup.members.map((member) => ({
+          id: `u${member.userId}`,
+          name: member.user?.fullName || "Member",
+          initials: initialsOf(member.user?.fullName || "Member"),
+          role: member.role.charAt(0) + member.role.slice(1).toLowerCase(),
+          status: member.userId === savedUser.id ? "Organizer" : "",
+        })),
+        ...(tripGroup.companions || []).map((companion) => ({
+          id: companion.id,
+          name: companion.name,
+          initials: initialsOf(companion.name),
+          role: companion.type === "Child" ? "Child, no account" : "No account",
+        })),
+      ]
+    : getDefaultGroupMembers(userName, initials);
 
   // =========================================================
   // WEATHER
@@ -651,7 +585,7 @@ export default function Dashboard() {
   };
 
   const handleOpenGroup = () => {
-    navigate("/family");
+    navigate(tripGroup ? `/family?group=${tripGroup.id}` : "/family");
   };
 
   // =========================================================
@@ -1291,7 +1225,7 @@ export default function Dashboard() {
                 <div className="card-heading">
 
                   <div>
-                    <h2>Travel group</h2>
+                    <h2>{tripGroup ? tripGroup.name : "Travel group"}</h2>
 
                     <p className="section-sub">
                       {groupMembers.length}{" "}
@@ -1353,7 +1287,7 @@ export default function Dashboard() {
                 )}
 
                 <Link
-                  to="/family"
+                  to={tripGroup ? `/family?group=${tripGroup.id}` : "/family"}
                   className="card-footer-link"
                 >
                   {groupMembers.length > 1

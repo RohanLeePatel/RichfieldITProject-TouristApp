@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Activity, AlertTriangle, CloudSun, LoaderCircle, MapPinPlus, ShieldAlert, Users, Wallet } from "lucide-react";
+import { Activity, AlertTriangle, CloudSun, Copy, LoaderCircle, MapPinPlus, ShieldAlert, UserPlus, Users, Wallet } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { fetchBudgetSummary } from "../../api/budget.js";
 import { fetchLandmarks } from "../../api/recommendations.js";
 import { fetchCountrySafety, fetchTripActivity } from "../../api/tripHub.js";
-import { addItineraryItem } from "../../api/trips.js";
+import { fetchMyGroups, inviteLink } from "../../api/groups.js";
+import { addItineraryItem, shareTrip } from "../../api/trips.js";
 import { fetchWeather } from "../../api/weather.js";
 import { INTEREST_TAGS } from "../../pages/recommendations/constants.js";
 import { splitDestination } from "../../utils/countries.js";
@@ -142,28 +143,87 @@ export function TripBudgetCard({ trip }) {
   );
 }
 
-// Who's on the trip, and what they've changed.
+// Who's on the trip (the group's members and its companions without an
+// account), an invite link for more, and what everyone has changed.
 export function TripPeople({ trip }) {
   const activity = useLoad(() => fetchTripActivity(trip.id), [trip.id]);
-  const members = trip.members || [];
+  // a solo trip moves into a group of its own when first shared
+  const [groupId, setGroupId] = useState(trip.travelGroupId);
+  const groups = useLoad(() => fetchMyGroups(), [groupId]);
+  const group = groups.data?.find((item) => item.id === groupId);
+  const [invite, setInvite] = useState(null);
+  const [inviteState, setInviteState] = useState({ busy: false, error: "", copied: false });
+
+  // in a shared group everyone in it can open the trip; a solo trip is just its own members
+  const people = group
+    ? group.members.map((member) => ({ key: `u${member.userId}`, name: member.user?.fullName || "Traveller", role: member.role }))
+    : (trip.members || []).map((member) => ({ key: `u${member.userId}`, name: member.user?.fullName || "Traveller", role: member.role }));
+  const companions = group?.companions || [];
+
+  const createLink = async () => {
+    setInviteState({ busy: true, error: "", copied: false });
+    try {
+      const shared = await shareTrip(trip.id);
+      setInvite(inviteLink(shared.inviteCode, trip.id));
+      setGroupId(shared.travelGroupId);
+      setInviteState({ busy: false, error: "", copied: false });
+    } catch (requestError) {
+      setInviteState({ busy: false, error: requestError instanceof Error ? requestError.message : "Could not create an invite link.", copied: false });
+    }
+  };
+
+  const copy = () =>
+    navigator.clipboard
+      ?.writeText(invite)
+      .then(() => setInviteState((current) => ({ ...current, copied: true })))
+      .catch(() => {});
 
   return (
     <div className="insights trip-hub-grid">
       <section className="insights-card">
         <h3><Users size={15} /> Who&apos;s going</h3>
-        {members.length === 0 ? (
-          <p className="wizard-help">Only you so far.</p>
+        {groups.status === "loading" ? (
+          <Loading label="Loading who's going..." />
         ) : (
           <ul className="trip-hub-list">
-            {members.map((member) => (
-              <li key={member.userId ?? member.id}>
-                <strong>{member.user?.fullName || "Traveller"}</strong>
-                <span>{String(member.role || "").toLowerCase()}</span>
+            {people.map((person) => (
+              <li key={person.key}>
+                <strong>{person.name}</strong>
+                <span>{String(person.role || "").toLowerCase()}</span>
+              </li>
+            ))}
+            {companions.map((companion) => (
+              <li key={companion.id}>
+                <strong>{companion.name}</strong>
+                <span>{companion.type === "Child" ? `child${companion.age != null ? `, ${companion.age}` : ""}` : "adult"} · no account</span>
               </li>
             ))}
           </ul>
         )}
-        <Link className="trip-hub-link" to="/family">Invite your travel group</Link>
+
+        <div className="trip-invite">
+          {invite ? (
+            <>
+              <label className="trip-invite-link">
+                <span>Send this link - anyone who opens it can join after signing in:</span>
+                <input value={invite} readOnly onFocus={(event) => event.target.select()} />
+              </label>
+              <button type="button" className="secondary-button" onClick={copy}>
+                <Copy size={14} /> {inviteState.copied ? "Copied" : "Copy link"}
+              </button>
+            </>
+          ) : (
+            <button type="button" className="secondary-button" onClick={createLink} disabled={inviteState.busy}>
+              <UserPlus size={14} /> {inviteState.busy ? "Creating link..." : "Invite people"}
+            </button>
+          )}
+          {inviteState.error && <p className="recommendations-error">{inviteState.error}</p>}
+        </div>
+        {group ? (
+          <Link className="trip-hub-link" to={`/family?group=${group.id}`}>Add someone without the app</Link>
+        ) : (
+          <p className="insights-fine">Invite someone first; then you can also add people who don&apos;t have the app.</p>
+        )}
       </section>
 
       <section className="insights-card">

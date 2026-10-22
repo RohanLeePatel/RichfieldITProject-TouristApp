@@ -22,6 +22,7 @@ import TripDetail from "./pages/TripDetail.jsx";
 import TripBudget from "./pages/TripBudget.jsx";
 import Calendar from "./pages/Calendar.jsx";
 import Invite from "./pages/Invite.jsx";
+import Join from "./pages/Join.jsx";
 
 import AppShell from "./components/layout/AppShell.jsx";
 import { useAuthStore } from "./store/authStore.js";
@@ -109,6 +110,8 @@ function App() {
 
         {/* an invite link: public, so an invitee can see it before signing in */}
         <Route path="/invite/:token" element={<Invite />} />
+        {/* a shareable trip/group link (join code) */}
+        <Route path="/join/:code" element={<Join />} />
 
         {/* the wizard used to live at two addresses */}
         <Route

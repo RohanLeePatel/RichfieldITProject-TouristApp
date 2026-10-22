@@ -15,20 +15,8 @@ import {
 } from "../api/recommendations.js";
 import { createTrip, addItineraryItem, deleteTrip } from "../api/trips.js";
 import { useTripStore } from "../store/tripStore.js";
-import { familyStorageKey } from "../store/authStore.js";
 import { fetchMe } from "../api/account.js";
 
-// Starting form: the group from the Travel Group page, nothing invented -
-// an empty group page means just you.
-function startingForm() {
-  let members = [];
-  try {
-    members = JSON.parse(localStorage.getItem(familyStorageKey())) || [];
-  } catch {
-    // unreadable storage - start with just you
-  }
-  return { ...initialForm, ...groupFromFamily(members) };
-}
 import { buildDayPlan, dayCapacity, daysNeeded, recomputeDayStopTimes, STOPS_PER_DAY_BY_PACE } from "../utils/itineraryPlanner.js";
 import {
   COUNTRIES,
@@ -37,7 +25,6 @@ import {
   buildPreferences,
   cycleTagState,
   emptyTraveler,
-  groupFromFamily,
   initialForm,
   resolveInterests,
   slugify,
@@ -56,7 +43,9 @@ export default function Recommendations() {
   // done -> itinerary saved
   const [stage, setStage] = useState("wizard");
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState(startingForm);
+  // just you to start; picking a travel group on the first step brings in its
+  // people (TripGroupPanel)
+  const [form, setForm] = useState(initialForm);
 
   // the home currency saved in Settings
   useEffect(() => {

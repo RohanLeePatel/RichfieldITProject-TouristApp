@@ -27,7 +27,8 @@ const fakePrisma = {
       { id: 2, title: 'Group trip', description: 'plain text from the group API', travelGroupId: 4, _count: { itineraries: 0 } },
     ]),
     findFirst: async (args) => (calls.push(['trip.findFirst', args]), foundTrip),
-    update: async (args) => (calls.push(['trip.update', args]), {}),
+    // a share that makes a new group answers with it, as Prisma's include would
+    update: async (args) => (calls.push(['trip.update', args]), args.include?.travelGroup ? { travelGroup: { id: 50, ...args.data.travelGroup.create } } : {}),
   },
   itineraryItem: {
     create: async (args) => (calls.push(['itineraryItem.create', args]), args.data),
@@ -135,6 +136,23 @@ const server = app.listen(0, async () => {
     r = await call('/5', { method: 'DELETE' });
     assert.equal(r.status, 200);
     assert.ok(last('trip.update').data.deletedAt instanceof Date);
+
+    // sharing a group trip: its existing join code, nothing moved
+    foundTrip = { id: 5, title: 'Lima', travelGroup: { id: 12, name: 'Crew', inviteCode: 'AB12CD34' }, members: [] };
+    r = await call('/5/share', { method: 'POST' });
+    assert.equal(r.status, 200);
+    assert.deepEqual(r.body, { inviteCode: 'AB12CD34', travelGroupId: 12, groupName: 'Crew' });
+    assert.deepEqual(last('trip.findFirst').include.members, { where: { userId: 7, role: 'ORGANIZER' } });
+
+    // a personal trip: only its organizer may share it, and it moves into a new group of its own
+    foundTrip = { id: 5, title: 'Lima', travelGroup: { id: 3, name: 'Ada trips', inviteCode: null }, members: [] };
+    assert.equal((await call('/5/share', { method: 'POST' })).status, 403);
+    foundTrip.members = [{ userId: 7, role: 'ORGANIZER' }];
+    r = await call('/5/share', { method: 'POST' });
+    assert.equal(r.status, 200);
+    assert.equal(r.body.groupName, 'Lima group');
+    assert.match(r.body.inviteCode, /^[0-9A-F]{8}$/);
+    assert.deepEqual(last('trip.update').data.travelGroup.create.members, { create: { userId: 7, role: 'OWNER' } });
 
     // not ours: falls through to the group routes (itinerary list, budget, expenses)
     assert.equal((await call('/5/itinerary')).status, 418);

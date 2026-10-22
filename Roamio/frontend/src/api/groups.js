@@ -34,3 +34,24 @@ export function previewInvite(token) {
 export function acceptInvite(token) {
   return authedFetch("/api/invites/accept", { method: "POST", body: JSON.stringify({ token }) });
 }
+
+// Replaces a group's companions - people on its trips without an account.
+// [{ id, name, type: "Adult" | "Child", age, relationship, interests, color }]
+export async function saveCompanions(groupId, companions) {
+  const data = await authedFetch(`/api/groups/${groupId}/companions`, {
+    method: "PUT",
+    body: JSON.stringify({ companions }),
+  });
+  return data.companions;
+}
+
+// What a join link opens: { id, name, memberCount, alreadyMember }
+export async function previewGroupCode(code) {
+  const data = await authedFetch(`/api/groups/code/${encodeURIComponent(code)}`);
+  return data.group;
+}
+
+// The link to send someone: joins the group, then opens the trip (if given)
+export function inviteLink(inviteCode, tripId) {
+  return `${window.location.origin}/join/${inviteCode}${tripId ? `?trip=${tripId}` : ""}`;
+}

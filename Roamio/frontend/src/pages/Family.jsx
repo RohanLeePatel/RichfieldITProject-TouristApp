@@ -31,15 +31,15 @@ import {
   Mountain,
   Trees,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import TravelGroups from "../components/groups/TravelGroups.jsx";
 import PageShell from "../components/recommendations/PageShell.jsx";
+import { saveCompanions } from "../api/groups.js";
 import { fetchTrips } from "../api/trips";
 import { INTEREST_TAGS } from "./recommendations/constants.js";
 import "../styles/Family.css";
 
-import { familyStorageKey } from "../store/authStore.js";
 
 // The wizard's own interest tags, so a member's picks can pre-fill the
 // wizard's group step as-is (one vocabulary across the app).
@@ -103,6 +103,19 @@ function normalizeMember(member) {
       member.initials || getInitials(member.name || ""),
     color: member.color || "teal",
     status: member.status || "Active",
+  };
+}
+
+// a member of this page as the server stores a group companion
+function toCompanion(member) {
+  return {
+    id: String(member.id),
+    name: member.name,
+    type: member.type === "Child" ? "Child" : "Adult",
+    age: member.type === "Child" && member.age !== "" && member.age != null ? Number(member.age) : null,
+    relationship: member.relationship || "Group member",
+    interests: member.interests || [],
+    color: member.color || "teal",
   };
 }
 
@@ -494,26 +507,40 @@ function MemberModal({
 export default function Family() {
   const navigate = useNavigate();
 
-  const [members, setMembers] = useState(() => {
-    try {
-      const saved =
-        localStorage.getItem(familyStorageKey());
+  // Companions (people without an account) belong to a travel group and are
+  // saved on the server with it, so everyone in the group sees them and the
+  // trip wizard plans around them. ?group= picks the group (from a trip page).
+  const [params] = useSearchParams();
+  const [groups, setGroups] = useState([]);
+  const [groupId, setGroupId] = useState(() => Number(params.get("group")) || null);
+  const [members, setMembers] = useState([]);
+  const group = groups.find((item) => item.id === groupId) || null;
 
-      if (!saved) {
-        return [];
-      }
+  // TravelGroups loads the groups; keep the chosen one if it still exists
+  const handleGroups = (list) => {
+    setGroups(list);
+    setGroupId((current) => (list.some((item) => item.id === current) ? current : list[0]?.id ?? null));
+  };
 
-      const parsed = JSON.parse(saved);
+  useEffect(() => {
+    setMembers((group?.companions || []).map(normalizeMember));
+  }, [group]);
 
-      if (!Array.isArray(parsed)) {
-        return [];
-      }
-
-      return parsed.map(normalizeMember);
-    } catch {
-      return [];
-    }
-  });
+  // every change saves the group's whole list; a failed save puts it back
+  const updateMembers = (change) => {
+    if (!group) return;
+    const previous = members;
+    const next = change(members);
+    setMembers(next);
+    saveCompanions(group.id, next.map(toCompanion))
+      .then((companions) =>
+        setGroups((current) => current.map((item) => (item.id === group.id ? { ...item, companions } : item)))
+      )
+      .catch((error) => {
+        setMembers(previous);
+        setToast(error?.message || "Could not save that change.");
+      });
+  };
 
   const [trips, setTrips] = useState([]);
 
@@ -587,60 +614,6 @@ export default function Family() {
 
     return () => {
       cancelled = true;
-    };
-  }, []);
-
-  /*
-   * Save real Travel Group members.
-   */
-  useEffect(() => {
-    localStorage.setItem(
-      familyStorageKey(),
-      JSON.stringify(members)
-    );
-
-    window.dispatchEvent(
-      new Event("roamio-group-updated")
-    );
-  }, [members]);
-
-  /*
-   * Keep this page synchronized with the Dashboard
-   * and other Roamio pages using the same storage key.
-   */
-  useEffect(() => {
-    const handleGroupUpdate = () => {
-      try {
-        const saved =
-          localStorage.getItem(familyStorageKey());
-
-        if (!saved) {
-          setMembers([]);
-          return;
-        }
-
-        const parsed = JSON.parse(saved);
-
-        if (Array.isArray(parsed)) {
-          setMembers(
-            parsed.map(normalizeMember)
-          );
-        }
-      } catch {
-        setMembers([]);
-      }
-    };
-
-    window.addEventListener(
-      "roamio-group-updated",
-      handleGroupUpdate
-    );
-
-    return () => {
-      window.removeEventListener(
-        "roamio-group-updated",
-        handleGroupUpdate
-      );
     };
   }, []);
 
@@ -769,6 +742,10 @@ export default function Family() {
   }, [members, search, filter]);
 
   const openAddModal = () => {
+    if (!group) {
+      setToast("Create or join a travel group first - companions are saved with it.");
+      return;
+    }
     setModalMode("add");
     setSelectedMember(null);
 
@@ -828,7 +805,7 @@ export default function Family() {
       modalMode === "edit" &&
       selectedMember
     ) {
-      setMembers((current) =>
+      updateMembers((current) =>
         current.map((member) =>
           member.id ===
           selectedMember.id
@@ -885,7 +862,7 @@ export default function Family() {
         status: "Active",
       };
 
-      setMembers((current) => [
+      updateMembers((current) => [
         ...current,
         newMember,
       ]);
@@ -919,7 +896,7 @@ export default function Family() {
 
     if (!confirmed) return;
 
-    setMembers((current) =>
+    updateMembers((current) =>
       current.filter(
         (item) =>
           item.id !== member.id
@@ -1080,9 +1057,9 @@ export default function Family() {
         </section>
 
         {/* REAL GROUPS - accounts on the server, shared trips, invites */}
-        <TravelGroups />
+        <TravelGroups onGroups={handleGroups} />
 
-        {/* MAIN TRAVEL GROUP GRID - companions kept on this device */}
+        {/* MAIN TRAVEL GROUP GRID - the chosen group's companions */}
 
         <div className="family-main-grid">
 
@@ -1102,10 +1079,21 @@ export default function Family() {
                 </h2>
 
                 <p>
-                  People you plan for who don&apos;t need an
-                  account, kept on this device. The trip
-                  wizard starts with them.
+                  {group
+                    ? `People in ${group.name} who don't have a Roamio account. Everyone in the group sees them, and the trip wizard plans around their interests.`
+                    : "People who don't have a Roamio account. Create or join a travel group above first - companions are saved with it."}
                 </p>
+
+                {groups.length > 1 && (
+                  <label className="family-group-picker">
+                    Group
+                    <select value={groupId ?? ""} onChange={(event) => setGroupId(Number(event.target.value))}>
+                      {groups.map((item) => (
+                        <option key={item.id} value={item.id}>{item.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
               </div>
 
               <button
