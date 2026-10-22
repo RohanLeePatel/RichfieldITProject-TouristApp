@@ -492,7 +492,7 @@
   margin-bottom: 10px;
 }
 
-.trip-day h3 { margin: 0; color: var(--day-color); font-size: 17px; }
+.trip-day h3 { margin: 0; color: var(--ink); font-size: 17px; }
 .trip-day header span { color: var(--ink-soft); font-size: 13px; font-weight: 600; }
 
 .trip-stops { margin: 0; padding: 0; list-style: none; }
@@ -569,4 +569,52 @@
 @media print {
   .trip-days { display: block; }
   .trip-day { break-inside: avoid; margin-bottom: 14px; }
+}
+
+/* ---- Trip page sections: one card each (heading + content together),
+   with room between them. The wizard keeps its separate heading cards. ---- */
+
+.trip-panel {
+  display: grid;
+  gap: 24px;
+}
+
+.trip-panel > .recommendations-results {
+  gap: 0;
+  padding: 22px 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.trip-panel .results-heading {
+  margin-bottom: 18px;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+/* cards inside a section card sit one step back from it */
+.trip-panel .trip-day,
+.trip-panel .insights-card {
+  background: var(--bg);
+  box-shadow: none;
+}
+
+.trip-panel .itinerary-map {
+  margin: 0;
+  box-shadow: none;
+}
+
+.trip-panel .trip-days {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  margin-top: 0;
+}
+
+.trip-panel .trip-hub-search { margin-bottom: 14px; }
+
+@media (max-width: 640px) {
+  .trip-panel > .recommendations-results { padding: 18px 16px; }
 }

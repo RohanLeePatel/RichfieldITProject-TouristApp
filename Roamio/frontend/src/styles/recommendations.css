@@ -1150,3 +1150,12 @@ path.map-route.day-6 { stroke: var(--day-6); }
   z-index: 5;
   box-shadow: var(--shadow-lift);
 }
+
+/* Wizard step 1: naming a new travel group (TripGroupPanel) */
+.trip-group-new { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.trip-group-new input {
+  flex: 1; min-width: 200px; min-height: 42px; padding: 0 14px;
+  border: 1px solid var(--line); border-radius: 12px;
+  background: var(--bg); color: var(--ink); font: 500 14px "DM Sans", sans-serif;
+}
+.trip-group-new input:focus { outline: 2px solid var(--primary); outline-offset: 1px; }

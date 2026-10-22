@@ -16,7 +16,7 @@ const dayStart = (value) => {
 };
 
 // Dashboard card: only things to act on - today's stops on a trip that's
-// under way, a serious advisory or a budget at 80%+ for the next trip, and
+// under way, a serious advisory or a budget at 80%+ for the active trip, and
 // unread notifications. Each line links to where it's dealt with.
 export default function NeedsAttention({ trips, nextTrip }) {
   const [items, setItems] = useState(null);
@@ -26,7 +26,9 @@ export default function NeedsAttention({ trips, nextTrip }) {
   const now = new Date();
   const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
   const ongoing = trips.find((trip) => trip.startDate && dayStart(trip.startDate) <= today && today <= dayStart(trip.endDate || trip.startDate));
-  const watched = ongoing || nextTrip;
+  // safety and budget follow the trip picked in the sidebar; today's stops
+  // still come from whichever trip is under way
+  const watched = nextTrip || ongoing;
 
   useEffect(() => {
     let active = true;

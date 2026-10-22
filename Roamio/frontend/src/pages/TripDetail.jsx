@@ -161,6 +161,8 @@ export default function TripDetail() {
               ))}
             </nav>
 
+            <div className="trip-panel" role="tabpanel">
+
             {tab === "plan" && (
             <>
             <section className="recommendations-results">
@@ -305,6 +307,7 @@ export default function TripDetail() {
                 />
               </section>
             )}
+            </div>
           </>
         ) : null}
     </PageShell>

@@ -1,21 +1,14 @@
-import { useEffect, useState } from "react";
-import { ClipboardCheck, Users } from "lucide-react";
-
-import { fetchMyGroups } from "../../../api/groups.js";
+import { ClipboardCheck } from "lucide-react";
 
 import { ACCESSIBILITY_LABELS, allDealbreakers, DEFAULT_TRIP_DAYS, formatDimension, paceLabel } from "../../../pages/recommendations/constants.js";
 
 // "2026-12-14" -> "14 Dec 2026"; noon so no timezone shifts it a day
 const formatDay = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
-export default function ReviewStep({ form, goToStep, updateForm }) {
-  // a shared travel group to plan this for - its members then see the trip
-  const [groups, setGroups] = useState([]);
-  useEffect(() => {
-    fetchMyGroups().then(setGroups).catch(() => setGroups([]));
-  }, []);
-
+export default function ReviewStep({ form, goToStep }) {
   const rows = [
+    // chosen on the first step (TripGroupPanel)
+    { label: "Trip for", step: 0, value: form.travelGroupId ? form.travelGroupName || "Your travel group" : "Just me" },
     { label: "Search", step: 0, value: form.mode === "global" ? "Global countries" : `Cities in ${form.country}` },
     { label: "Budget", step: 0, value: `${form.budget} ${form.currency.toUpperCase()} per day` },
     { label: "Travellers", step: 0, value: `${form.adults} adult${Number(form.adults) === 1 ? "" : "s"}${form.children ? `, ${form.children.includes(",") ? "children" : "a child"} aged ${form.children}` : ""}` },
@@ -50,21 +43,6 @@ export default function ReviewStep({ form, goToStep, updateForm }) {
           ))}
         </div>
       </section>
-      {groups.length > 0 && updateForm && (
-        <section className="panel">
-          <h3 className="panel-title"><Users size={15} /> Who&apos;s this trip for?</h3>
-          <label className="wizard-field">
-            Plan it for
-            <select value={form.travelGroupId || ""} onChange={(event) => updateForm("travelGroupId", event.target.value ? Number(event.target.value) : null)}>
-              <option value="">Just me</option>
-              {groups.map((group) => (
-                <option key={group.id} value={group.id}>{group.name} ({group.members.length} {group.members.length === 1 ? "person" : "people"})</option>
-              ))}
-            </select>
-          </label>
-          <p className="wizard-help">Everyone in the group can open the trip, its itinerary and its documents.</p>
-        </section>
-      )}
     </>
   );
 }

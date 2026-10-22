@@ -38,6 +38,7 @@ import { familyStorageKey, useAuthStore } from "../store/authStore.js";
 
 import NeedsAttention from "../components/dashboard/NeedsAttention.jsx";
 import AppSidebar from "../components/layout/AppSidebar.jsx";
+import useActiveTrip from "../hooks/useActiveTrip.js";
 import useTheme from "../components/recommendations/useTheme.js";
 import "../styles/dashboard.css";
 
@@ -106,6 +107,16 @@ function daysUntil(trip) {
   today.setHours(0, 0, 0, 0);
 
   return Math.round((start - today) / DAY_MS);
+}
+
+function hasEnded(trip) {
+  const end = new Date(trip.endDate || trip.startDate);
+  const today = new Date();
+
+  end.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+
+  return end < today;
 }
 
 function countdownLabel(trip) {
@@ -414,6 +425,13 @@ export default function Dashboard() {
   const [trips, setTrips] =
     useState([]);
 
+  // the dashboard is about the trip picked in the sidebar (taken from this
+  // page's own fresh list); the next upcoming one until a trip is picked
+  const { trip: activeTrip } = useActiveTrip();
+  const nextTrip =
+    trips.find((trip) => String(trip.id) === String(activeTrip?.id)) ||
+    getNextTrip(trips);
+
   const [tripsLoading, setTripsLoading] =
     useState(true);
 
@@ -527,9 +545,6 @@ export default function Dashboard() {
         setWeatherLoading(true);
         setWeatherError("");
 
-        const nextTrip =
-          getNextTrip(trips);
-
         if (
           !nextTrip?.destination
         ) {
@@ -556,7 +571,7 @@ export default function Dashboard() {
       } finally {
         setWeatherLoading(false);
       }
-    }, [trips]);
+    }, [nextTrip?.id, nextTrip?.destination]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchDashboardWeather();
@@ -568,9 +583,6 @@ export default function Dashboard() {
 
   const relevantTrips =
     getRelevantTrips(trips);
-
-  const nextTrip =
-    getNextTrip(trips);
 
   const nextTripDays =
     daysUntil(nextTrip);
@@ -933,7 +945,7 @@ export default function Dashboard() {
 
                 <span className="spotlight-label">
                   <Luggage size={14} />
-                  Next trip
+                  Active trip
                 </span>
 
                 <div className="spotlight-countdown">
@@ -943,7 +955,7 @@ export default function Dashboard() {
                     </strong>
                   ) : nextTripDays <= 0 ? (
                     <strong className="spotlight-word">
-                      {nextTripDays === 0 ? "Today" : "Underway"}
+                      {nextTripDays === 0 ? "Today" : hasEnded(nextTrip) ? "Finished" : "Underway"}
                     </strong>
                   ) : (
                     <>
