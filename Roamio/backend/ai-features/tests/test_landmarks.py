@@ -316,3 +316,27 @@ def test_repeat_lookups_are_served_from_cache(monkeypatch):
 
     assert len(calls) == 2  # one geocode + one places lookup, not four
     assert second == first
+
+
+def test_unnamed_and_duplicate_places_are_dropped(monkeypatch):
+    """An unnamed park used to be titled with its address ("Greyville, Durban, ...")
+    and two of them in one suburb became the same stop twice."""
+    import landmarks.landmarks as landmarks_module
+
+    landmarks_module._geocode_cache.clear()
+    landmarks_module._places_cache.clear()
+    monkeypatch.setattr(landmarks_module, "GEOAPIFY_API_KEY", "test-key")
+
+    def fake_get(url, params=None, timeout=None):
+        if url == landmarks_module.GEOCODE_URL:
+            return _FakeResponse({"features": [{"geometry": {"coordinates": [31.02, -29.85]}}]})
+        park = {"name": "Albert Park", "lat": -29.861, "lon": 31.026,
+                "formatted": "Albert Park, Congella, Durban", "address_line2": "Congella, Durban"}
+        unnamed = {"lat": -29.84, "lon": 31.01, "formatted": "Greyville, Durban"}
+        return _FakeResponse({"features": [{"properties": p} for p in (park, dict(park), unnamed, dict(unnamed))]})
+
+    monkeypatch.setattr(landmarks_module.requests, "get", fake_get)
+
+    stops = landmarks_module.get_landmarks("Durban", ["parks"], 5000)["groups"][0]["landmarks"]
+    assert [s["name"] for s in stops] == ["Albert Park"]
+    assert stops[0]["address"] == "Congella, Durban"

@@ -1,6 +1,6 @@
 // node src/utils/travelAdvice.selfcheck.mjs
 import assert from "node:assert/strict";
-import { summarizeClimate, comfortScore, bestMonths, monthAdvice, forecastAdvice, combineAdvice, NOTHING_TO_REPORT } from "./travelAdvice.js";
+import { summarizeClimate, comfortScore, bestMonths, monthAdvice, forecastAdvice, combineAdvice, NOTHING_TO_REPORT, wholeSentences } from "./travelAdvice.js";
 
 // two years of synthetic data: January hot + wet, July mild + dry
 const time = [], hi = [], lo = [], rain = [], wind = [];
@@ -42,5 +42,12 @@ assert.equal(wetAhead.filter((t) => t.kind === "rain").length, 1);
 assert.ok(wetAhead.find((t) => t.kind === "rain").text.includes("Monday"));
 // nothing from either source still leaves the panel something to say
 assert.deepEqual(combineAdvice([], null), [{ kind: "mild", text: NOTHING_TO_REPORT }]);
+
+// advisory excerpts: drop the cut-off sentence, leave whole text alone
+assert.equal(wholeSentences("Crime is common. Kidnapping is a threat in So"), "Crime is common.");
+assert.equal(wholeSentences("Crime is common."), "Crime is common.");
+assert.equal(wholeSentences("No full stop at all"), "No full stop at all…");
+assert.equal(wholeSentences(null), "");
+assert.equal(wholeSentences("One. Two! Three. Four", 2), "One. Two!");
 
 console.log("travelAdvice selfcheck: all assertions passed");

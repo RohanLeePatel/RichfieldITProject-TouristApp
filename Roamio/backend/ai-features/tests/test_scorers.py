@@ -38,7 +38,7 @@ def test_budget_converts_non_zar_currency(destinations, prefs_factory, monkeypat
         currency.requests,
         "get",
         lambda url, timeout: type(
-            "R", (), {"raise_for_status": lambda self: None, "json": lambda self: {"result": "success", "conversion_rate": 0.055}}
+            "R", (), {"raise_for_status": lambda self: None, "json": lambda self: {"base": "ZAR", "result": {"USD": 0.055}}}
         )(),
     )
 

@@ -4,6 +4,7 @@ const tripRepository = require('../repositories/tripRepository');
 const { httpError, assertTripAccess } = require('./tripAccessService');
 const { CATEGORIES, parseCategory, parseCurrency } = require('./expenseService');
 const { toCents, decimalToCents, centsToDecimalInput, centsToAmount } = require('../utils/money');
+const { expenseTotals, warningFor } = require('../utils/expenseTotals');
 
 const parseLimitCents = (value, label) => {
   const cents = toCents(value);
@@ -26,16 +27,12 @@ const findBudgetOrThrow = async (tripId) => {
   return budget;
 };
 
-// Per-member paid vs owed; positive net = the group owes this member
-const computeBalances = async (tripId) => {
-  const [memberIds, paidRows, owedRows] = await Promise.all([
+// Per-member paid vs owed, in the budget currency; positive net = the group owes this member
+const computeBalances = async (tripId, totals) => {
+  const [memberIds, { paid, owed }] = await Promise.all([
     tripRepository.findMemberUserIds(tripId),
-    expenseRepository.sumPaidGroupedByMember(tripId),
-    expenseRepository.sumOwedGroupedByMember(tripId)
+    totals || expenseRepository.findForTotals(tripId).then(expenseTotals)
   ]);
-
-  const paid = new Map(paidRows.map((r) => [r.paidById, decimalToCents(r._sum.amount)]));
-  const owed = new Map(owedRows.map((r) => [r.userId, decimalToCents(r._sum.shareAmount)]));
   // Include former members who still appear on expenses
   const userIds = [...new Set([...memberIds, ...paid.keys(), ...owed.keys()])];
 
@@ -62,7 +59,14 @@ class BudgetService {
     await assertTripAccess(tripId, userId, { write: true });
 
     const totalCents = parseLimitCents(body.totalAmount, 'totalAmount');
-    const currency = body.currency !== undefined ? parseCurrency(body.currency) : undefined;
+    // expenses store a rate into the current reference currency, so it can't
+    // change under them; a first budget defaults to the trip's own currency
+    const existing = await budgetRepository.findByTripId(tripId);
+    const reference = existing?.currency || (await tripRepository.findTripMeta(tripId)).currency;
+    const currency = body.currency !== undefined ? parseCurrency(body.currency) : reference || undefined;
+    if (currency && reference && currency !== reference && (await expenseRepository.sumByTrip(tripId)).count > 0) {
+      throw httpError(400, `Expenses are already recorded against ${reference}, so the budget currency can't change.`);
+    }
 
     if (body.categoryLimits !== undefined && !Array.isArray(body.categoryLimits)) {
       throw httpError(400, 'categoryLimits must be an array');
@@ -104,19 +108,15 @@ class BudgetService {
   async getSummary(tripId, userId) {
     await assertTripAccess(tripId, userId);
 
-    const [budget, totals, categoryRows, balances] = await Promise.all([
+    const [budget, totals] = await Promise.all([
       budgetRepository.findByTripId(tripId),
-      expenseRepository.sumByTrip(tripId),
-      expenseRepository.sumGroupedByCategory(tripId),
-      computeBalances(tripId)
+      expenseRepository.findForTotals(tripId).then(expenseTotals)
     ]);
+    const balances = await computeBalances(tripId, totals);
 
-    const spentCents = decimalToCents(totals.total);
+    const spentCents = totals.totalCents;
     const budgetCents = budget ? decimalToCents(budget.totalAmount) : null;
-    const spentByCategory = new Map(categoryRows.map((r) => [r.category, {
-      cents: decimalToCents(r._sum.amount),
-      count: r._count.id
-    }]));
+    const spentByCategory = totals.byCategory;
     const limitByCategory = new Map((budget?.categoryLimits || []).map((l) => [l.category, decimalToCents(l.limitAmount)]));
 
     const categories = CATEGORIES
@@ -140,6 +140,14 @@ class BudgetService {
       totalSpent: centsToAmount(spentCents),
       remaining: budgetCents === null ? null : centsToAmount(budgetCents - spentCents),
       overBudget: budgetCents !== null && spentCents > budgetCents,
+      // the 80% / over-budget lines the trip hub and dashboard show
+      warnings: budget
+        ? [
+            warningFor('Trip budget', spentCents, budgetCents, budget.currency),
+            ...categories.filter((c) => c.limit !== null).map((c) =>
+              warningFor(`${c.category} limit`, Math.round(c.spent * 100), Math.round(c.limit * 100), budget.currency))
+          ].filter(Boolean)
+        : [],
       expenseCount: totals.count,
       categories,
       balances

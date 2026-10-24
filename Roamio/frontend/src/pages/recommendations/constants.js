@@ -45,6 +45,10 @@ export const INTEREST_GROUPS = [
   },
 ];
 
+// The same tags as one flat list - the trip hub's place search and the
+// Travel Group's interests use these too, so everyone picks from one vocabulary.
+export const INTEREST_TAGS = INTEREST_GROUPS.flatMap((group) => group.tags);
+
 export const PACE_OPTIONS = [
   { id: "relaxed", label: "Relaxed", helper: "~2 stops a day" },
   { id: "balanced", label: "Balanced", helper: "~3 stops a day" },
@@ -169,7 +173,7 @@ export const COUNTRIES = [
 ];
 
 // Offered in the wizard's currency picker. The engine converts any ISO 4217
-// code through ExchangeRate-API, so this list is about keeping travellers out
+// code through fastFOREX, so this list is about keeping travellers out
 // of a late 422 rather than a limit on what is supported.
 export const CURRENCIES = ["ZAR", "USD", "EUR", "GBP", "AUD", "CAD", "AED", "INR", "JPY", "KES"];
 
@@ -217,6 +221,36 @@ export const emptyTraveler = () => ({
   climate: "",
   pace: "",
 });
+
+// The wizard's group from a list of companions (a travel group's people
+// without an account): you plus each adult, children's
+// ages where the page has them, and each member's interests as a traveller of
+// their own so the engine can merge them. Members store interest labels
+// ("Beaches"); the wizard works in tag ids ("beaches").
+export function groupFromFamily(members) {
+  const list = Array.isArray(members) ? members : [];
+  const idFor = (label) => INTEREST_TAGS.find((tag) => tag.label === label)?.id;
+  const ages = list
+    .filter((member) => member.type === "Child" && member.age !== "" && member.age != null)
+    .map((member) => Number(member.age))
+    .filter((age) => Number.isInteger(age) && age >= 0);
+  return {
+    adults: String(1 + list.filter((member) => member.type !== "Child").length),
+    children: ages.join(", "),
+    travelers: list
+      .map((member) => ({ ...emptyTraveler(), name: member.name || "", interests: (member.interests || []).map(idFor).filter(Boolean) }))
+      .filter((traveler) => traveler.interests.length > 0),
+  };
+}
+
+// The wizard's group step for a travel group: you, its other members (adults
+// with an account - their interests aren't stored, so none are assumed) and
+// its companions (people without an account, with their interests).
+export function groupFromTravelGroup(group) {
+  const base = groupFromFamily(group?.companions);
+  const otherMembers = Math.max(0, (group?.members?.length || 1) - 1);
+  return { ...base, adults: String(Number(base.adults) + otherMembers) };
+}
 
 export const steps = ["Trip basics", "Interests", "Accessibility & climate", "Review"];
 

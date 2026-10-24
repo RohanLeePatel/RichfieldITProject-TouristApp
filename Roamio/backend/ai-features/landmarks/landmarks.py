@@ -134,23 +134,36 @@ def get_landmarks(destination: str, interests: list[str], radius_m: int = 5000) 
     groups = []
     for tag in interests:
         places = _fetch_places(tag, lat, lon, radius_m)
-        landmarks = [
-            {
-                "name": _fix_mojibake(p.get("name") or p.get("formatted") or "Unnamed place"),
-                "category": (p.get("categories") or [tag])[0],
-                "lat": p["lat"],
-                "lon": p["lon"],
-                "address": _fix_mojibake(p.get("formatted")),
-                "distance_m": round(_haversine_m(lat, lon, p["lat"], p["lon"])),
-                "opening_hours": p.get("opening_hours") or p.get("datasource", {}).get("raw", {}).get("opening_hours"),
-            }
-            for p in places
-        ]
+        landmarks = []
+        seen = set()
+        for p in places:
+            # an unnamed OSM park would otherwise be titled with its address
+            # ("Greyville, Durban, ...") - it reads as a suburb, and two unnamed
+            # patches in one suburb become identical stops. Skip them.
+            if not p.get("name"):
+                continue
+            name = _fix_mojibake(p["name"])
+            key = (name.lower(), round(p["lat"], 3), round(p["lon"], 3))
+            if key in seen:
+                continue
+            seen.add(key)
+            landmarks.append(
+                {
+                    "name": name,
+                    "category": (p.get("categories") or [tag])[0],
+                    "lat": p["lat"],
+                    "lon": p["lon"],
+                    # address_line2 is the address without the name in front of it
+                    "address": _fix_mojibake(p.get("address_line2") or p.get("formatted")),
+                    "distance_m": round(_haversine_m(lat, lon, p["lat"], p["lon"])),
+                    "opening_hours": p.get("opening_hours") or p.get("datasource", {}).get("raw", {}).get("opening_hours"),
+                }
+            )
         landmarks.sort(key=lambda place: place["distance_m"])
         groups.append(
             {
                 "interest": tag,
-                "explanation": f"Nearby matches for your interest in {tag}, sorted by distance.",
+                "explanation": f"Nearby matches for your interest in {tag.replace('_', ' ')}, sorted by distance.",
                 "landmarks": landmarks,
             }
         )

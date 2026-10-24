@@ -31,7 +31,11 @@ import {
   compressImage,
   speechLang,
   targetForBase,
+  tripLanguages,
 } from "../utils/translatorHelpers";
+import { fetchMe } from "../api/account.js";
+import useActiveTrip from "../hooks/useActiveTrip.js";
+import { splitDestination } from "../utils/countries.js";
 import { TOKEN_KEY } from "../api/client";
 import "../styles/Translator.css";
 
@@ -109,7 +113,7 @@ function Translator() {
   const { theme, toggle: toggleTheme } = useTheme();
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
-  const [targetLanguage, setTargetLanguage] = useState("EN-US");
+  const [targetLanguage, setTargetLanguage] = useState("EN-GB");
   const [cameraOpen, setCameraOpen] = useState(false);
   const [translationResult, setTranslationResult] = useState(null);
   const [history, setHistory] = useState([]);
@@ -126,6 +130,27 @@ function Translator() {
   const [listening, setListening] = useState(false);
   const [photoSize, setPhotoSize] = useState(null);
   const [showOverlay, setShowOverlay] = useState(true);
+
+  // Start from the trip and the traveller, not a fixed language: from the
+  // destination's language into the language saved in Settings. Only until
+  // the user picks something themselves.
+  const { trip } = useActiveTrip();
+  const [preferredLanguage, setPreferredLanguage] = useState(null);
+  const languagesTouched = useRef(false);
+  const tripPlace = trip?.destination ? splitDestination(trip.destination) : null;
+
+  useEffect(() => {
+    fetchMe()
+      .then((me) => setPreferredLanguage(me?.preferences?.language || ""))
+      .catch(() => setPreferredLanguage(""));
+  }, []);
+
+  useEffect(() => {
+    if (languagesTouched.current || preferredLanguage === null) return;
+    const { source, target } = tripLanguages(tripPlace?.info?.language, preferredLanguage);
+    setSourceLanguage(source);
+    setTargetLanguage(target);
+  }, [tripPlace?.country, preferredLanguage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const recognitionRef = useRef(null);
   const videoRef = useRef(null);
@@ -503,6 +528,7 @@ function Translator() {
   );
 
   const swapLanguages = () => {
+    languagesTouched.current = true;
     if (!canSwap) return;
 
     const newTarget = targetForBase(swapFrom);
@@ -849,6 +875,15 @@ function Translator() {
 
             </div>
 
+            {tripPlace && (
+              <p className="translator-trip-note">
+                Set for your trip to {trip.destination}
+                {tripPlace.info && !tripPlace.info.language
+                  ? " - its local languages aren't supported for translation, so the language is detected from your text."
+                  : "."}
+              </p>
+            )}
+
             <div className="language-row">
 
               <div className="language-select-wrapper">
@@ -864,9 +899,10 @@ function Translator() {
                   <select
                     id="source-language"
                     value={sourceLanguage}
-                    onChange={(event) =>
-                      setSourceLanguage(event.target.value)
-                    }
+                    onChange={(event) => {
+                      languagesTouched.current = true;
+                      setSourceLanguage(event.target.value);
+                    }}
                   >
                     <option value="auto">Auto-detect</option>
 
@@ -909,9 +945,10 @@ function Translator() {
                   <select
                     id="target-language"
                     value={targetLanguage}
-                    onChange={(event) =>
-                      setTargetLanguage(event.target.value)
-                    }
+                    onChange={(event) => {
+                      languagesTouched.current = true;
+                      setTargetLanguage(event.target.value);
+                    }}
                   >
                     {LANGUAGES.map((language) => (
                       <option key={language.code} value={language.code}>
@@ -1010,7 +1047,10 @@ function Translator() {
                     </span>
 
                     <strong>
-                      {translationResult.detected_lang ||
+                      {SOURCE_LANGUAGES.find(
+                        (l) => l.code === baseCode(translationResult.detected_lang)
+                      )?.name ||
+                        translationResult.detected_lang ||
                         "Unknown"}
                     </strong>
 
@@ -1218,7 +1258,7 @@ function Translator() {
           <MapPin size={17} />
 
           <span>
-            Wherever your family travels, understand
+            Wherever your group travels, understand
             the world around you.
           </span>
 

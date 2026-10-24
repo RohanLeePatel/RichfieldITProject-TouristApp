@@ -71,7 +71,7 @@ export default function ClimateInsights({ name, country, latitude, longitude, mo
           <div className="insights-stats">
             <div><span>Daytime high</span><strong>{fmt(stats.highC, "°C")}</strong></div>
             <div><span>Night low</span><strong>{fmt(stats.lowC, "°C")}</strong></div>
-            <div><span>Rainy days</span><strong>{stats.rainyDayPct == null ? "-" : `${Math.round(stats.rainyDayPct * 100)}%`}</strong></div>
+            <div><span>Days with rain</span><strong>{stats.rainyDayPct == null ? "-" : `${Math.round(stats.rainyDayPct * 100)}%`}</strong></div>
             <div><span>Monthly rain</span><strong>{fmt(stats.rainMm, " mm")}</strong></div>
           </div>
           <p className="insights-fine">Average of {climate.fromYear}–{climate.toYear} daily records.</p>
@@ -91,7 +91,7 @@ export default function ClimateInsights({ name, country, latitude, longitude, mo
       <section className="insights-card">
         <h3><CalendarCheck size={15} /> Best time to visit</h3>
         <p className="insights-fine">
-          Taller bar = milder, drier weather. Best months: <b>{best.map((m) => MONTH_NAMES[m - 1]).join(", ")}</b>. Click a month to see its details.
+          Taller bar = milder, drier weather. Best months: <b>{[...best].sort((a, b) => a - b).map((m) => MONTH_NAMES[m - 1]).join(", ")}</b>. Click a month to see its details.
         </p>
         <div className="insights-months" role="list">
           {climate.months.map((m) => {

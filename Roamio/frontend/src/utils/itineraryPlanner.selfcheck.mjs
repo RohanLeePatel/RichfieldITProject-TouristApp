@@ -6,6 +6,8 @@ import {
   isLikelyClosed,
   groupItineraryByDay,
   isDayOverloaded,
+  dayCapacity,
+  daysNeeded,
 } from "./itineraryPlanner.js";
 
 // A loose ring of 7 fake landmarks around a city centroid, spread across
@@ -141,3 +143,15 @@ assert.equal(isDayOverloaded([]), false);
 assert.equal(isDayOverloaded(undefined), false);
 
 console.log("itineraryPlanner selfcheck: all assertions passed");
+
+// the picker's estimate and "pick for me" use the same split as buildDayPlan:
+// with a child along, balanced is 2 a day and the arrival day 1, so 7 stops
+// take 4 days and a 3-day trip holds 5
+const kids = buildDayPlan({ landmarks, tripDays: 3, pace: "balanced", familyFriendly: true });
+assert.equal(daysNeeded(7, "balanced", true), kids.length);
+assert.equal(kids.length, 4);
+assert.equal(dayCapacity(3, "balanced", true), 5);
+assert.equal(daysNeeded(7, "balanced", false), plan.length);
+assert.equal(dayCapacity(3, "balanced", false), 8);
+assert.equal(daysNeeded(1, "relaxed", false), 1);
+console.log("day capacity checks passed");

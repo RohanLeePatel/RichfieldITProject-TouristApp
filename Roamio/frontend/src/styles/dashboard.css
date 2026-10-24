@@ -1791,3 +1791,50 @@ a.hero-spotlight:hover {
 .dashboard-page[data-theme="dark"] .weather-icon-rain { color: #6cc6e2; }
 .dashboard-page[data-theme="dark"] .weather-icon-storm { color: #b9a2fb; }
 .dashboard-page[data-theme="dark"] .weather-icon-snow { color: #bfe6f5; }
+
+/* =========================================================
+   NEEDS YOUR ATTENTION (components/dashboard/NeedsAttention.jsx)
+========================================================= */
+
+.attention-empty {
+  color: var(--muted);
+}
+
+.attention-list {
+  display: grid;
+  gap: 8px;
+}
+
+.attention-list a,
+.attention-list li > div {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+
+  padding: 12px;
+
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+}
+
+.attention-list a:hover {
+  background: var(--surface-hover);
+}
+
+.attention-list svg:first-child {
+  color: var(--brand);
+}
+
+.attention-list span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.attention-list small {
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

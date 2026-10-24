@@ -30,6 +30,7 @@ const personalTripRoutes = require('./src/routes/trips');
 const { router: tripDocumentRoutes } = require('./src/routes/tripDocuments');
 const recommendationRoutes = require('./src/routes/recommendations');
 const weatherRoutes = require('./src/routes/weather');
+const ratesRoutes = require('./src/routes/rates');
 
 // 4. App Initialization
 const app = express();
@@ -94,8 +95,12 @@ app.use('/api', generalLimiter);
 
 // 6. Mount API Routes
 
-// Apply the stricter auth limiter specifically to authentication routes
-app.use('/api/auth', authLimiter);
+// Apply the stricter auth limiter to the credential endpoints (login, register,
+// codes). Not to the profile read/write or the token refresh: pages load the
+// profile on open, so 10 a minute turned ordinary browsing into 429s. Those two
+// stay under the general limiter.
+const UNLIMITED_AUTH_PATHS = new Set(['/users/me', '/refresh']);
+app.use('/api/auth', (req, res, next) => (UNLIMITED_AUTH_PATHS.has(req.path) ? next() : authLimiter(req, res, next)));
 app.use('/api/auth', authRoutes); // e.g., /api/auth/login, /api/auth/register
 
 // AI-feature proxies. Public (signing in is optional for translation), so they
@@ -104,6 +109,7 @@ app.use('/api/auth', authRoutes); // e.g., /api/auth/login, /api/auth/register
 app.use('/api/translate', translationRoutes);
 app.use('/api/recommendations', recommendationsLimiter, recommendationRoutes);
 app.use('/api/weather', weatherLimiter, weatherRoutes);
+app.use('/api/rates', weatherLimiter, ratesRoutes); // same shared-quota limit
 
 app.use(attachActivityLogger);
 
@@ -123,6 +129,11 @@ app.use('/api/trips/:tripId/budget', budgetRoutes);
 app.use('/api', activityRoutes);
 app.use('/api', safetyRoutes);
 app.use('/api/notifications', notificationRoutes);
+
+// An /api path nothing answered: JSON, not Express's HTML page
+app.use('/api', (req, res) => {
+  res.status(404).json({ message: 'Not found.' });
+});
 
 // 7. Global Error Handling Middleware
 // This catches any errors thrown via `next(error)` in your controllers

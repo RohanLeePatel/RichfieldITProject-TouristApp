@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import useTheme from "../components/recommendations/useTheme.js";
-import { fetchTrips } from "../api/trips";
+import { fetchTrip, fetchTrips } from "../api/trips";
 import "../styles/Calendar.css";
 
 
@@ -147,6 +147,13 @@ function isLongWeekend(key) {
   return day === 1 || day === 5;
 }
 
+// Fri holiday -> Fri-Sun, Mon holiday -> Sat-Mon: the dates the wizard opens with.
+function longWeekendRange(key) {
+  const day = parseKey(key);
+  const start = day.getDay() === 5 ? day : addDays(day, -2);
+  return { start: toKey(start), end: toKey(addDays(start, 2)) };
+}
+
 function plural(count, word) {
   return `${count} ${word}${count === 1 ? "" : "s"}`;
 }
@@ -239,6 +246,11 @@ export default function Calendar() {
   const [formLocation, setFormLocation] = useState("");
   const [formCategory, setFormCategory] = useState("Travel");
   const [formReminder, setFormReminder] = useState("30 mins before");
+  // optional: which trip a personal event belongs to
+  const [formTripId, setFormTripId] = useState("");
+
+  // full trips (with itinerary) for the selected day's stops, fetched on demand
+  const [tripDetails, setTripDetails] = useState({});
 
 
   // ---------- effects ----------
@@ -328,6 +340,26 @@ export default function Calendar() {
   const selectedTrips = tripsOn(selectedKey);
   const selectedHoliday = holidayOn(selectedKey);
   const selectedEvents = eventsOn(selectedKey);
+  // the selected day's stops for each trip on it, once that trip's itinerary is loaded
+  const selectedTripIds = selectedTrips.map((trip) => trip.id).join(",");
+  useEffect(() => {
+    selectedTrips
+      .filter((trip) => !tripDetails[trip.id])
+      .forEach((trip) => {
+        fetchTrip(trip.id)
+          .then((full) => setTripDetails((current) => ({ ...current, [trip.id]: full })))
+          .catch(() => setTripDetails((current) => ({ ...current, [trip.id]: { itinerary: [] } })));
+      });
+  }, [selectedTripIds]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const stopsOn = (trip, key) =>
+    (tripDetails[trip.id]?.itinerary || []).filter((item) => item.dayNumber === diffDays(trip.startKey, key) + 1);
+
+  const nextLongWeekend = PUBLIC_HOLIDAYS_SA.find((h) => h.date >= todayKey && isLongWeekend(h.date));
+  const getawayLink = nextLongWeekend
+    ? `/recommendations?start=${longWeekendRange(nextLongWeekend.date).start}&end=${longWeekendRange(nextLongWeekend.date).end}`
+    : "/recommendations";
+
   const selectedIsEmpty =
     selectedTrips.length === 0 && !selectedHoliday && selectedEvents.length === 0;
 
@@ -360,6 +392,7 @@ export default function Calendar() {
     setFormLocation("");
     setFormCategory("Travel");
     setFormReminder("30 mins before");
+    setFormTripId(selectedTrips[0] ? String(selectedTrips[0].id) : "");
     setIsModalOpen(true);
   };
 
@@ -371,6 +404,7 @@ export default function Calendar() {
     setFormLocation(event.location || "");
     setFormCategory(CATEGORIES[event.category] ? event.category : "Personal");
     setFormReminder(event.reminder || "30 mins before");
+    setFormTripId(event.tripId ? String(event.tripId) : "");
     setIsModalOpen(true);
   };
 
@@ -384,6 +418,7 @@ export default function Calendar() {
       location: formLocation.trim(),
       category: formCategory,
       reminder: formReminder,
+      tripId: formTripId || null,
     };
 
     if (editingEvent) {
@@ -810,6 +845,18 @@ export default function Calendar() {
                   </Link>
                 ))}
 
+                {selectedTrips.map((trip) =>
+                  stopsOn(trip, selectedKey).length > 0 ? (
+                    <ul key={`stops-${trip.id}`} className="cal-day-stops" aria-label={`${trip.title} stops`}>
+                      {stopsOn(trip, selectedKey).map((item) => (
+                        <li key={item.id}>
+                          <span>{item.startTime}</span> {item.title}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null
+                )}
+
                 {selectedHoliday && (
                   <div className="cal-agenda-holiday">
                     <span className="cal-stamp">
@@ -839,6 +886,9 @@ export default function Calendar() {
                         <div className="cal-event-meta">
                           {ev.time && <span><Clock size={12} /> {ev.time}</span>}
                           {ev.location && <span><MapPin size={12} /> {ev.location}</span>}
+                          {ev.tripId && trips.find((t) => String(t.id) === String(ev.tripId)) && (
+                            <span><Plane size={12} /> {trips.find((t) => String(t.id) === String(ev.tripId)).title}</span>
+                          )}
                         </div>
                         {ev.reminder && <small>Reminder: {ev.reminder}</small>}
                       </div>
@@ -909,7 +959,7 @@ export default function Calendar() {
                 </ul>
               )}
 
-              <Link to="/recommendations" className="cal-getaway-cta">
+              <Link to={getawayLink} className="cal-getaway-cta">
                 <span>
                   <Sun size={15} /> Find a getaway for the next long weekend
                 </span>
@@ -983,6 +1033,16 @@ export default function Calendar() {
                 <label>
                   Time
                   <input type="time" value={formTime} onChange={(e) => setFormTime(e.target.value)} />
+                </label>
+
+                <label>
+                  Trip
+                  <select value={formTripId} onChange={(e) => setFormTripId(e.target.value)}>
+                    <option value="">Not part of a trip</option>
+                    {trips.map((trip) => (
+                      <option key={trip.id} value={String(trip.id)}>{trip.title}</option>
+                    ))}
+                  </select>
                 </label>
 
                 <label>

@@ -25,7 +25,7 @@ class _Response:
 
 
 def _ok(rate=0.055):
-    return lambda url, timeout: _Response({"result": "success", "conversion_rate": rate})
+    return lambda url, timeout: _Response({"base": "ZAR", "result": {"USD": rate}})
 
 
 def test_zar_short_circuits_without_a_network_call(monkeypatch):
@@ -51,7 +51,7 @@ def test_successful_lookup_converts_and_caches(monkeypatch):
 
     def _get(url, timeout):
         calls.append(url)
-        return _Response({"result": "success", "conversion_rate": 0.055})
+        return _Response({"base": "ZAR", "result": {"USD": 0.055}})
 
     monkeypatch.setattr(currency.requests, "get", _get)
 
@@ -69,7 +69,7 @@ def test_api_error_result_returns_none(monkeypatch):
     monkeypatch.setattr(
         currency.requests,
         "get",
-        lambda url, timeout: _Response({"result": "error", "error-type": "unsupported-code"}),
+        lambda url, timeout: _Response({"error": "Invalid currency code"}),
     )
     assert currency.get_zar_conversion_rate("XXX") is None
 
@@ -103,13 +103,13 @@ def test_any_pair_is_requested_and_cached_separately(monkeypatch):
 
     def _get(url, timeout):
         urls.append(url)
-        return _Response({"result": "success", "conversion_rate": 1.2})
+        return _Response({"base": "EUR", "result": {"GBP": 1.2}})
 
     monkeypatch.setattr(currency.requests, "get", _get)
 
     assert currency.get_rate("eur", "gbp") == 1.2
     assert ("EUR", "GBP") in currency._rate_cache
-    assert "/pair/EUR/GBP" in urls[0]
+    assert "from=EUR&to=GBP" in urls[0]
 
 
 def test_same_currency_needs_no_rate():

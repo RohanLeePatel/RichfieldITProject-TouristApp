@@ -7,17 +7,12 @@ import {
   CalendarDays,
   Plus,
   ArrowRight,
-  Settings,
-  LogOut,
-  Home,
   Compass,
   ChevronRight,
   Clock3,
   CheckCircle2,
   Menu,
   Moon,
-  X,
-  Languages,
   CloudSun,
   Cloud,
   CloudRain,
@@ -33,14 +28,17 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import {
   Link,
-  useLocation,
   useNavigate,
 } from "react-router-dom";
 
 import { fetchWeather as fetchWeatherFromApi } from "../api/weather";
+import { fetchMyGroups } from "../api/groups.js";
 import { fetchTrips } from "../api/trips";
 import { useAuthStore } from "../store/authStore.js";
 
+import NeedsAttention from "../components/dashboard/NeedsAttention.jsx";
+import AppSidebar from "../components/layout/AppSidebar.jsx";
+import useActiveTrip from "../hooks/useActiveTrip.js";
 import useTheme from "../components/recommendations/useTheme.js";
 import "../styles/dashboard.css";
 
@@ -50,9 +48,6 @@ import heroPhoto from "../assets/dashboard/hero-alps.jpg";
 // =========================================================
 // CONSTANTS
 // =========================================================
-
-const GROUP_STORAGE_KEY =
-  "roamio_family_members_v1";
 
 // how many group members the dashboard card lists before "+N more"
 const GROUP_PREVIEW_LIMIT = 4;
@@ -112,6 +107,16 @@ function daysUntil(trip) {
   today.setHours(0, 0, 0, 0);
 
   return Math.round((start - today) / DAY_MS);
+}
+
+function hasEnded(trip) {
+  const end = new Date(trip.endDate || trip.startDate);
+  const today = new Date();
+
+  end.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+
+  return end < today;
 }
 
 function countdownLabel(trip) {
@@ -282,69 +287,6 @@ function getDefaultGroupMembers(
   ];
 }
 
-function loadGroupMembers(
-  userName,
-  initials
-) {
-  const defaults = getDefaultGroupMembers(
-    userName,
-    initials
-  );
-
-  try {
-    const saved = localStorage.getItem(
-      GROUP_STORAGE_KEY
-    );
-
-    if (!saved) {
-      return defaults;
-    }
-
-    const parsed = JSON.parse(saved);
-
-    if (
-      !Array.isArray(parsed) ||
-      parsed.length === 0
-    ) {
-      return defaults;
-    }
-
-    return parsed;
-  } catch (error) {
-    console.error(
-      "Could not load travel group:",
-      error
-    );
-
-    return defaults;
-  }
-}
-
-// =========================================================
-// NAVIGATION
-// =========================================================
-
-const NAV_SECTIONS = [
-  {
-    label: "Your space",
-    links: [
-      { to: "/dashboard", label: "Dashboard", icon: Home },
-      { to: "/trips", label: "My Trips", icon: Map, showTripCount: true },
-      { to: "/explore", label: "Explore destinations", icon: Compass },
-      { to: "/family", label: "Travel Group", icon: Users },
-    ],
-  },
-  {
-    label: "Planning",
-    links: [
-      { to: "/calendar", label: "Calendar", icon: CalendarDays },
-      { to: "/weather", label: "Weather", icon: CloudSun },
-      { to: "/translator", label: "Travel Translator", icon: Languages },
-      { to: "/settings", label: "Settings", icon: Settings },
-    ],
-  },
-];
-
 // =========================================================
 // COUNT-UP
 // =========================================================
@@ -383,7 +325,6 @@ function CountUp({ value, duration = 900 }) {
 export default function Dashboard() {
   const { theme, toggle: toggleTheme } = useTheme(); // app-wide theme, also set in Settings
   const navigate = useNavigate();
-  const location = useLocation();
   const logout = useAuthStore((state) => state.logout);
 
   // =========================================================
@@ -447,6 +388,13 @@ export default function Dashboard() {
   const [trips, setTrips] =
     useState([]);
 
+  // the dashboard is about the trip picked in the sidebar (taken from this
+  // page's own fresh list); the next upcoming one until a trip is picked
+  const { trip: activeTrip } = useActiveTrip();
+  const nextTrip =
+    trips.find((trip) => String(trip.id) === String(activeTrip?.id)) ||
+    getNextTrip(trips);
+
   const [tripsLoading, setTripsLoading] =
     useState(true);
 
@@ -493,63 +441,33 @@ export default function Dashboard() {
   // TRAVEL GROUP
   // =========================================================
 
-  const [groupMembers, setGroupMembers] =
-    useState(() =>
-      loadGroupMembers(
-        userName,
-        initials
-      )
-    );
-
-  const syncGroupMembers =
-    useCallback(() => {
-      const updatedMembers =
-        loadGroupMembers(
-          userName,
-          initials
-        );
-
-      setGroupMembers(
-        updatedMembers
-      );
-    }, [userName, initials]);
-
+  // the active trip's travel group: its members (you marked), then its
+  // companions without an account; just you for a solo trip
+  const [groups, setGroups] = useState([]);
   useEffect(() => {
-    if (
-      location.pathname ===
-      "/dashboard"
-    ) {
-      syncGroupMembers();
-    }
-  }, [
-    location.pathname,
-    syncGroupMembers,
-  ]);
+    fetchMyGroups().then(setGroups).catch(() => setGroups([]));
+  }, []);
 
-  useEffect(() => {
-    const handleStorageChange = (
-      event
-    ) => {
-      if (
-        event.key ===
-        GROUP_STORAGE_KEY
-      ) {
-        syncGroupMembers();
-      }
-    };
-
-    window.addEventListener(
-      "storage",
-      handleStorageChange
-    );
-
-    return () => {
-      window.removeEventListener(
-        "storage",
-        handleStorageChange
-      );
-    };
-  }, [syncGroupMembers]);
+  const tripGroup = groups.find((group) => group.id === nextTrip?.travelGroupId) || null;
+  const initialsOf = (name) =>
+    name.trim().split(/s+/).slice(0, 2).map((part) => part.charAt(0)).join("").toUpperCase() || "?";
+  const groupMembers = tripGroup
+    ? [
+        ...tripGroup.members.map((member) => ({
+          id: `u${member.userId}`,
+          name: member.user?.fullName || "Member",
+          initials: initialsOf(member.user?.fullName || "Member"),
+          role: member.role.charAt(0) + member.role.slice(1).toLowerCase(),
+          status: member.userId === savedUser.id ? "Organizer" : "",
+        })),
+        ...(tripGroup.companions || []).map((companion) => ({
+          id: companion.id,
+          name: companion.name,
+          initials: initialsOf(companion.name),
+          role: companion.type === "Child" ? "Child, no account" : "No account",
+        })),
+      ]
+    : getDefaultGroupMembers(userName, initials);
 
   // =========================================================
   // WEATHER
@@ -560,9 +478,6 @@ export default function Dashboard() {
       try {
         setWeatherLoading(true);
         setWeatherError("");
-
-        const nextTrip =
-          getNextTrip(trips);
 
         if (
           !nextTrip?.destination
@@ -590,7 +505,7 @@ export default function Dashboard() {
       } finally {
         setWeatherLoading(false);
       }
-    }, [trips]);
+    }, [nextTrip?.id, nextTrip?.destination]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchDashboardWeather();
@@ -602,9 +517,6 @@ export default function Dashboard() {
 
   const relevantTrips =
     getRelevantTrips(trips);
-
-  const nextTrip =
-    getNextTrip(trips);
 
   const nextTripDays =
     daysUntil(nextTrip);
@@ -664,41 +576,16 @@ export default function Dashboard() {
     setMobileMenu(false);
   };
 
-  const isActive = (path) => {
-    if (path === "/dashboard") {
-      return (
-        location.pathname ===
-        "/dashboard"
-      );
-    }
-
-    return location.pathname.startsWith(
-      path
-    );
-  };
-
   // =========================================================
   // ACTIONS
   // =========================================================
-
-  // Goes through the auth store: clearing localStorage alone left the store
-  // still "signed in", so "/" kept bouncing back to the dashboard.
-  const handleLogout = () => {
-    logout();
-
-    setMobileMenu(false);
-
-    navigate("/login", {
-      replace: true,
-    });
-  };
 
   const handleCreateTrip = () => {
     navigate("/recommendations");
   };
 
   const handleOpenGroup = () => {
-    navigate("/family");
+    navigate(tripGroup ? `/family?group=${tripGroup.id}` : "/family");
   };
 
   // =========================================================
@@ -836,7 +723,7 @@ export default function Dashboard() {
         </dl>
 
         <Link
-          to="/weather"
+          to={nextTrip ? `/weather?trip=${nextTrip.id}` : "/weather"}
           className="card-footer-link"
         >
           Full forecast
@@ -857,112 +744,7 @@ export default function Dashboard() {
           SIDEBAR
       ===================================================== */}
 
-      <aside
-        className={`dashboard-sidebar ${
-          mobileMenu
-            ? "sidebar-open"
-            : ""
-        }`}
-      >
-
-        <div className="sidebar-top">
-
-          <Link
-            to="/dashboard"
-            className="dashboard-logo"
-            onClick={closeMobileMenu}
-          >
-            <div className="dashboard-logo-icon">
-              <Plane size={19} />
-            </div>
-
-            <span>Roamio</span>
-          </Link>
-
-          <button
-            type="button"
-            className="mobile-close"
-            onClick={closeMobileMenu}
-            aria-label="Close menu"
-          >
-            <X size={20} />
-          </button>
-
-        </div>
-
-        {NAV_SECTIONS.map((section) => (
-          <div
-            className="sidebar-section"
-            key={section.label}
-          >
-
-            <p className="sidebar-label">
-              {section.label}
-            </p>
-
-            <nav className="sidebar-nav">
-
-              {section.links.map(
-                ({ to, label, icon: Icon, showTripCount }) => (
-                  <Link
-                    key={to}
-                    to={to}
-                    className={`sidebar-link ${
-                      isActive(to)
-                        ? "active"
-                        : ""
-                    }`}
-                    aria-current={
-                      isActive(to)
-                        ? "page"
-                        : undefined
-                    }
-                    onClick={closeMobileMenu}
-                  >
-                    <Icon size={18} />
-
-                    <span>{label}</span>
-
-                    {showTripCount && trips.length > 0 && (
-                      <span className="nav-count">
-                        {trips.length}
-                      </span>
-                    )}
-                  </Link>
-                )
-              )}
-
-            </nav>
-
-          </div>
-        ))}
-
-        <div className="sidebar-bottom">
-
-          <button
-            type="button"
-            className="sidebar-logout"
-            onClick={handleLogout}
-          >
-            <LogOut size={17} />
-
-            Sign out
-          </button>
-
-        </div>
-
-      </aside>
-
-      {/* =====================================================
-          MOBILE OVERLAY
-      ===================================================== */}
-
-      {mobileMenu && (
-        <div
-          className="mobile-overlay"
-          onClick={closeMobileMenu}
-        />
-      )}
+      <AppSidebar open={mobileMenu} onClose={closeMobileMenu} />
 
       {/* =====================================================
           MAIN
@@ -1097,7 +879,7 @@ export default function Dashboard() {
 
                 <span className="spotlight-label">
                   <Luggage size={14} />
-                  Next trip
+                  Active trip
                 </span>
 
                 <div className="spotlight-countdown">
@@ -1107,7 +889,7 @@ export default function Dashboard() {
                     </strong>
                   ) : nextTripDays <= 0 ? (
                     <strong className="spotlight-word">
-                      {nextTripDays === 0 ? "Today" : "Underway"}
+                      {nextTripDays === 0 ? "Today" : hasEnded(nextTrip) ? "Finished" : "Underway"}
                     </strong>
                   ) : (
                     <>
@@ -1390,6 +1172,8 @@ export default function Dashboard() {
 
             <aside className="dashboard-right-column">
 
+              <NeedsAttention trips={trips} nextTrip={nextTrip} />
+
               {/* WEATHER */}
 
               <section className="dashboard-card weather-card">
@@ -1441,7 +1225,7 @@ export default function Dashboard() {
                 <div className="card-heading">
 
                   <div>
-                    <h2>Travel group</h2>
+                    <h2>{tripGroup ? tripGroup.name : "Travel group"}</h2>
 
                     <p className="section-sub">
                       {groupMembers.length}{" "}
@@ -1503,7 +1287,7 @@ export default function Dashboard() {
                 )}
 
                 <Link
-                  to="/family"
+                  to={tripGroup ? `/family?group=${tripGroup.id}` : "/family"}
                   className="card-footer-link"
                 >
                   {groupMembers.length > 1

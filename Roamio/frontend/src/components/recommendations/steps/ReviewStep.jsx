@@ -2,14 +2,19 @@ import { ClipboardCheck } from "lucide-react";
 
 import { ACCESSIBILITY_LABELS, allDealbreakers, DEFAULT_TRIP_DAYS, formatDimension, paceLabel } from "../../../pages/recommendations/constants.js";
 
+// "2026-12-14" -> "14 Dec 2026"; noon so no timezone shifts it a day
+const formatDay = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+
 export default function ReviewStep({ form, goToStep }) {
   const rows = [
+    // chosen on the first step (TripGroupPanel)
+    { label: "Trip for", step: 0, value: form.travelGroupId ? form.travelGroupName || "Your travel group" : "Just me" },
     { label: "Search", step: 0, value: form.mode === "global" ? "Global countries" : `Cities in ${form.country}` },
     { label: "Budget", step: 0, value: `${form.budget} ${form.currency.toUpperCase()} per day` },
-    { label: "Travellers", step: 0, value: `${form.adults} adults${form.children ? `, children aged ${form.children}` : ""}` },
+    { label: "Travellers", step: 0, value: `${form.adults} adult${Number(form.adults) === 1 ? "" : "s"}${form.children ? `, ${form.children.includes(",") ? "children" : "a child"} aged ${form.children}` : ""}` },
     {
       label: "Dates", step: 0,
-      value: form.startDate && form.endDate ? `${form.startDate} → ${form.endDate}` : `Not set (sample ${DEFAULT_TRIP_DAYS}-day plan)`,
+      value: form.startDate && form.endDate ? `${formatDay(form.startDate)} → ${formatDay(form.endDate)}` : `Not set (sample ${DEFAULT_TRIP_DAYS}-day plan)`,
     },
     {
       label: "Interests", step: 1,

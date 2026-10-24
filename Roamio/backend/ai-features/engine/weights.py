@@ -45,7 +45,7 @@ BASE_RELEVANCE_FLOOR = 0.40
 # budget gate and score_budget. Went with ZAR here since that's what the sample
 # request and Node's Trip.budget model both use - not based on any real currency
 # spec, just what was already in use. If prefs.currency isn't ZAR, engine/currency.py
-# converts these bounds through ExchangeRate-API before comparing to budget_per_day.
+# converts these bounds through the exchange-rate provider before comparing to budget_per_day.
 #
 # gate checks against the floor of the band, not the ceiling - band 5 has no
 # ceiling (2500+) so gating on that would exclude everyone in band 5 no matter

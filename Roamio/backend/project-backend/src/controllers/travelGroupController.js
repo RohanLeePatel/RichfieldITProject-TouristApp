@@ -1,4 +1,5 @@
 const travelGroupRepository = require('../repositories/travelGroupRepository');
+const { formatGroup } = require('../utils/groupMeta');
 
 exports.createGroup = async (req, res, next) => {
   try {
@@ -20,7 +21,7 @@ exports.getMyGroups = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const groups = await travelGroupRepository.getUserGroups(userId);
-    return res.status(200).json({ groups });
+    return res.status(200).json({ groups: groups.map(formatGroup) });
   } catch (error) {
     next(error);
   }
@@ -82,6 +83,25 @@ exports.removeMember = async (req, res, next) => {
     const memberId = parseId(req.params.memberId, 'memberId');
     const { left } = await travelGroupService.removeMember(groupId, req.user.id, memberId);
     return res.status(200).json({ message: left ? 'You have left the group.' : 'Member removed from the group.' });
+  } catch (error) {
+    return sendError(res, next, error);
+  }
+};
+
+exports.saveCompanions = async (req, res, next) => {
+  try {
+    const groupId = parseId(req.params.groupId, 'groupId');
+    const companions = await travelGroupService.saveCompanions(groupId, req.user.id, req.body || {});
+    return res.status(200).json({ companions });
+  } catch (error) {
+    return sendError(res, next, error);
+  }
+};
+
+exports.previewByCode = async (req, res, next) => {
+  try {
+    const group = await travelGroupService.previewByCode(req.params.code, req.user.id);
+    return res.status(200).json({ group });
   } catch (error) {
     return sendError(res, next, error);
   }

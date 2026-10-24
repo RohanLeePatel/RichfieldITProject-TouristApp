@@ -21,7 +21,7 @@ export default function TripTemplates() {
 
       <div className="trips-grid">
         {TRIP_TEMPLATES.map((template) => (
-          <Link key={template.id} to={`/explore?template=${template.id}`} className="trips-grid-card">
+          <Link key={template.id} to={`/recommendations?template=${template.id}`} className="trips-grid-card">
             <h3>{template.label}</h3>
             <p className="trips-grid-destination">
               <MapPin size={14} /> {template.country}

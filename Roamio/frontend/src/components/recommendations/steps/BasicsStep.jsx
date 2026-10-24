@@ -1,6 +1,7 @@
 import { CalendarDays, Check, Globe, MapPin, Wallet, Wand2 } from "lucide-react";
 
 import { CURRENCIES, DEFAULT_TRIP_DAYS, TRIP_PRESETS, PACE_OPTIONS, formatDimension } from "../../../pages/recommendations/constants.js";
+import TripGroupPanel from "./TripGroupPanel.jsx";
 
 const sameSet = (a, b) => a.length === b.length && a.every((tag) => b.includes(tag));
 
@@ -25,6 +26,8 @@ export default function BasicsStep({ form, updateForm, countries, applyPreset })
         <h2>Where should we look?</h2>
         <p className="wizard-help">Start globally, or tell us which country you already have in mind.</p>
       </div>
+
+      <TripGroupPanel form={form} updateForm={updateForm} />
 
       <section className="panel">
         <h3 className="panel-title"><Wand2 size={15} /> Quick start</h3>
@@ -62,7 +65,7 @@ export default function BasicsStep({ form, updateForm, countries, applyPreset })
             Country
             <select value={form.country} onChange={(event) => updateForm("country", event.target.value)}>
               {countries.map((country) => (
-                <option key={country.id} value={country.name}>{country.name}{country.city_count ? ` (${country.city_count} cities)` : ""}</option>
+                <option key={country.id} value={country.name}>{country.name}{country.city_count ? ` (${country.city_count} ${country.city_count === 1 ? "city" : "cities"})` : ""}</option>
               ))}
             </select>
           </label>

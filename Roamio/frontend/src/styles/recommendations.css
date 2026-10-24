@@ -737,6 +737,10 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
 .trip-done h2 { margin: 0; font-size: clamp(28px, 4vw, 40px); letter-spacing: -1px; }
 .trip-done-badge { display: grid; width: 72px; height: 72px; place-items: center; margin-bottom: 8px; border-radius: 999px; background: var(--primary); color: var(--primary-ink); box-shadow: var(--shadow-lift); }
 .trip-done .wizard-actions { justify-content: center; }
+.trip-done-next { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: min(520px, 100%); margin: 18px 0 6px; padding: 0; list-style: none; }
+.trip-done-next a { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-tile); background: var(--surface); color: var(--ink); font-weight: 600; }
+.trip-done-next a:hover { border-color: var(--primary); }
+@media (max-width: 520px) { .trip-done-next { grid-template-columns: 1fr; } }
 
 /* ---------- Responsive ---------- */
 
@@ -1146,3 +1150,12 @@ path.map-route.day-6 { stroke: var(--day-6); }
   z-index: 5;
   box-shadow: var(--shadow-lift);
 }
+
+/* Wizard step 1: naming a new travel group (TripGroupPanel) */
+.trip-group-new { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.trip-group-new input {
+  flex: 1; min-width: 200px; min-height: 42px; padding: 0 14px;
+  border: 1px solid var(--line); border-radius: 12px;
+  background: var(--bg); color: var(--ink); font: 500 14px "DM Sans", sans-serif;
+}
+.trip-group-new input:focus { outline: 2px solid var(--primary); outline-offset: 1px; }

@@ -1,5 +1,5 @@
 const express = require('express');
-const { randomUUID } = require('node:crypto');
+const { randomBytes, randomUUID } = require('node:crypto');
 const router = express.Router();
 const requireAuth = require('../middleware/authMiddleware');
 
@@ -51,19 +51,31 @@ const parseId = (value) => {
 // TRIP ENDPOINTS
 // ==========================================
 
-// POST /api/trips - Create a personal trip (group trips: POST /api/groups/:groupId/trips)
+// The group a new trip goes in: the given shared group if the user can create
+// trips there (any role but VIEWER), else their personal group. null = refused.
+async function tripGroupId(userId, travelGroupId) {
+  if (!travelGroupId) return personalGroupId(userId);
+  const membership = await prisma.travelGroupMember.findFirst({
+    where: { userId, travelGroupId, role: { not: 'VIEWER' }, travelGroup: { deletedAt: null } },
+  });
+  return membership ? travelGroupId : null;
+}
+
+// POST /api/trips - Create a trip: personal, or in a shared group via travelGroupId
 router.post('/', validate(createTripSchema), async (req, res) => {
   try {
-    const { title, destination, startDate, endDate, budget, notes } = req.body;
+    const { title, destination, startDate, endDate, budget, notes, currency, travellers, interests } = req.body;
     const userId = req.user.userId;
+    const groupId = await tripGroupId(userId, req.body.travelGroupId);
+    if (groupId === null) return res.status(404).json({ message: 'Travel group not found.' });
 
     const newTrip = await prisma.trip.create({
       data: {
         title,
-        description: packMeta({ destination, budget, notes }),
+        description: packMeta({ destination, budget, notes, currency, travellers, interests }),
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,
-        travelGroupId: await personalGroupId(userId),
+        travelGroupId: groupId,
         members: { create: { userId, role: 'ORGANIZER' } },
       },
     });
@@ -116,6 +128,50 @@ router.get('/:id', async (req, res) => {
     res.json({ trip: formatTrip(trip) });
   } catch (error) {
     console.error('Error fetching single trip:', error);
+    res.status(500).json({ message: 'Internal server error.' });
+  }
+});
+
+// POST /api/trips/:id/share - the join code for the trip's group, for an
+// invite link. A personal trip first moves into a new group of its own:
+// sharing the personal group would show the guest every solo trip. Only the
+// organizer can do that move; anyone on a group trip can share its code.
+router.post('/:id/share', async (req, res) => {
+  try {
+    const tripId = parseId(req.params.id);
+    if (tripId === null) return res.status(400).json({ message: 'Invalid trip ID.' });
+    const userId = req.user.userId;
+
+    const trip = await prisma.trip.findFirst({
+      where: accessibleTrips(userId, { id: tripId }),
+      include: { travelGroup: true, members: { where: { userId, role: 'ORGANIZER' } } },
+    });
+    if (!trip) return res.status(404).json({ message: 'Trip not found.' });
+
+    let group = trip.travelGroup;
+    if (!group.inviteCode) {
+      if (trip.members.length === 0) {
+        return res.status(403).json({ message: 'Only the trip organizer can invite people to this trip.' });
+      }
+      // one statement: the trip never ends up pointing at a half-made group
+      ({ travelGroup: group } = await prisma.trip.update({
+        where: { id: tripId },
+        data: {
+          travelGroup: {
+            create: {
+              name: `${trip.title} group`.slice(0, 100),
+              inviteCode: randomBytes(4).toString('hex').toUpperCase(),
+              members: { create: { userId, role: 'OWNER' } },
+            },
+          },
+        },
+        include: { travelGroup: true },
+      }));
+    }
+
+    res.json({ inviteCode: group.inviteCode, travelGroupId: group.id, groupName: group.name });
+  } catch (error) {
+    console.error('Error sharing trip:', error);
     res.status(500).json({ message: 'Internal server error.' });
   }
 });

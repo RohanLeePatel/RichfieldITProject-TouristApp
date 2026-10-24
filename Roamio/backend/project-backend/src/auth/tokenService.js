@@ -36,21 +36,24 @@ const verifyRefreshToken = (token) => {
   return jwt.verify(token, REFRESH_SECRET);
 };
 
+// The site (roamiio.live) and this API are different sites, so a Strict
+// cookie never came back to /refresh and every session died with its 15-minute
+// access token. None (which requires Secure) lets it; CORS still limits who can
+// read the new token, and /refresh does nothing else.
+const refreshCookieOptions = () => {
+  const production = process.env.NODE_ENV === 'production';
+  return { httpOnly: true, secure: production, sameSite: production ? 'None' : 'Lax' };
+};
+
 const setRefreshTokenCookie = (res, token) => {
   res.cookie('refreshToken', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'Strict',
+    ...refreshCookieOptions(),
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 };
 
 const clearRefreshTokenCookie = (res) => {
-  res.clearCookie('refreshToken', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'Strict',
-  });
+  res.clearCookie('refreshToken', refreshCookieOptions());
 };
 
 module.exports = {

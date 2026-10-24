@@ -166,8 +166,31 @@ function biasTowardMealTimes(orderedLandmarks) {
 // The last day isn't specially thinned too - guessing which day is a
 // "departure day" without real flight/checkout info isn't worth the extra
 // complexity; drag-and-drop already lets the user lighten it by hand.
+const arrivalCapFor = (stopsPerDay) => Math.max(1, Math.round(stopsPerDay / 2));
+
+// Kids need more slack than the pace label alone accounts for - every day
+// gets the same lighter treatment the sweep already gives the arrival day,
+// not just the first one.
+function stopsPerDayFor(pace, familyFriendly) {
+  const base = STOPS_PER_DAY_BY_PACE[pace] ?? DEFAULT_STOPS_PER_DAY;
+  return familyFriendly ? Math.max(2, base - 1) : base;
+}
+
+// The same split chunkIntoDays makes, so "pick for me" and the picker's
+// "about N days" agree with the plan that gets built.
+export function dayCapacity(days, pace, familyFriendly) {
+  const perDay = stopsPerDayFor(pace, familyFriendly);
+  return arrivalCapFor(perDay) + Math.max(0, days - 1) * perDay;
+}
+
+export function daysNeeded(count, pace, familyFriendly) {
+  const perDay = stopsPerDayFor(pace, familyFriendly);
+  const first = arrivalCapFor(perDay);
+  return count <= first ? 1 : 1 + Math.ceil((count - first) / perDay);
+}
+
 function chunkIntoDays(list, stopsPerDay) {
-  const arrivalCap = Math.max(1, Math.round(stopsPerDay / 2));
+  const arrivalCap = arrivalCapFor(stopsPerDay);
   const groups = [];
   let index = 0;
   let isFirstDay = true;
@@ -204,12 +227,9 @@ function chunkByCounts(list, counts) {
 export function buildDayPlan({ landmarks, tripDays, pace, dayStopCounts, familyFriendly }) {
   if (!landmarks || landmarks.length === 0) return [];
 
-  // Kids need more slack than the pace label alone accounts for - every day
-  // gets the same lighter treatment the sweep already gives the arrival day,
-  // not just the first one. Ignored once the user takes precise per-day
-  // control (dayStopCounts) - that's already an explicit override.
-  const baseStopsPerDay = STOPS_PER_DAY_BY_PACE[pace] ?? DEFAULT_STOPS_PER_DAY;
-  const stopsPerDay = familyFriendly ? Math.max(2, baseStopsPerDay - 1) : baseStopsPerDay;
+  // familyFriendly is ignored once the user takes precise per-day control
+  // (dayStopCounts) - that's already an explicit override.
+  const stopsPerDay = stopsPerDayFor(pace, familyFriendly);
   const centroid = centroidOf(landmarks);
 
   const sortedByAngle = [...landmarks].sort((a, b) => {

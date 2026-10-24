@@ -50,11 +50,21 @@ export const SOURCE_LANGUAGES = LANGUAGES.filter(
 ).map((l) => ({ code: baseCode(l.code), name: l.name.replace(/ \(.*\)/, "") }));
 
 // Which target variant to use when a source language becomes the target (swap).
-const PREFERRED_TARGET = { EN: "EN-US", PT: "PT-BR" };
+const PREFERRED_TARGET = { EN: "EN-GB", PT: "PT-BR" }; // EN-GB: what Settings shows for an unset or "en" preference
 export function targetForBase(base) {
   const code = baseCode(base);
   if (PREFERRED_TARGET[code]) return PREFERRED_TARGET[code];
   return LANGUAGES.find((l) => baseCode(l.code) === code)?.code || null;
+}
+
+// Languages for a trip: translate from the destination's language (null =
+// DeepL doesn't have it, so auto-detect) into the traveller's saved preference
+// ("FR", "EN-GB", or an old "en"). Same language both ways -> auto-detect.
+export function tripLanguages(countryLanguage, preference) {
+  const pref = String(preference || "").toUpperCase();
+  const target = LANGUAGES.find((l) => l.code === pref)?.code || targetForBase(pref) || "EN-GB";
+  const source = countryLanguage && baseCode(countryLanguage) !== baseCode(target) ? baseCode(countryLanguage) : "auto";
+  return { source, target };
 }
 
 // BCP-47 tag for the browser's speech APIs.

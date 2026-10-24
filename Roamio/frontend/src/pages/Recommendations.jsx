@@ -14,7 +14,10 @@ import {
   fetchLandmarks,
 } from "../api/recommendations.js";
 import { createTrip, addItineraryItem, deleteTrip } from "../api/trips.js";
-import { buildDayPlan, recomputeDayStopTimes, STOPS_PER_DAY_BY_PACE } from "../utils/itineraryPlanner.js";
+import { useTripStore } from "../store/tripStore.js";
+import { fetchMe } from "../api/account.js";
+
+import { buildDayPlan, dayCapacity, daysNeeded, recomputeDayStopTimes, STOPS_PER_DAY_BY_PACE } from "../utils/itineraryPlanner.js";
 import {
   COUNTRIES,
   ITINERARY_HISTORY_LIMIT,
@@ -35,12 +38,24 @@ const MAX_SHORTLIST = 3;
 export default function Recommendations() {
   // wizard -> collecting preferences
   // results -> ranked countries or cities
-  // landmarks -> a trip was created for the chosen city, pick stops for it
+  // landmarks -> a city was chosen, pick stops for it
   // itinerary -> stops auto-sequenced into a day-by-day agenda, editable
   // done -> itinerary saved
   const [stage, setStage] = useState("wizard");
   const [step, setStep] = useState(0);
+  // just you to start; picking a travel group on the first step brings in its
+  // people (TripGroupPanel)
   const [form, setForm] = useState(initialForm);
+
+  // the home currency saved in Settings
+  useEffect(() => {
+    fetchMe()
+      .then((me) => {
+        const currency = me?.preferences?.currency;
+        if (currency) setForm((current) => ({ ...current, currency }));
+      })
+      .catch(() => {});
+  }, []);
   const [countries, setCountries] = useState(
     COUNTRIES.map((name) => ({ id: slugify(name), name }))
   );
@@ -167,6 +182,14 @@ export default function Recommendations() {
   // review step, so they land on something they can check and change rather
   // than straight into results they didn't ask for.
   const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const start = searchParams.get("start");
+    const end = searchParams.get("end");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(start || "") || !/^\d{4}-\d{2}-\d{2}$/.test(end || "")) return;
+    setForm((current) => ({ ...current, startDate: start, endDate: end }));
+    setSearchParams({}, { replace: true });
+  }, [searchParams, setSearchParams]);
+
   useEffect(() => {
     const templateId = searchParams.get("template");
     if (!templateId) return;
@@ -328,9 +351,15 @@ export default function Recommendations() {
     return submitRecommendations("city", country.id, country);
   };
 
-  // Picking a city ends the exploratory part of the flow: start a real trip
-  // for it, then load landmarks matching the user's specific interest tags
-  // so they can build the first itinerary stops right here.
+  // Bare city names are ambiguous ("Lima" alone geocodes to Lima, Ohio as
+  // easily as Lima, Peru) - include the country we already know from the
+  // recommendation so /landmarks searches the right place.
+  const destinationLabelFor = (city) => (city.country ? `${city.name}, ${city.country}` : city.name);
+
+  // Picking a city ends the exploratory part of the flow: load landmarks
+  // matching the user's specific interest tags so they can build the first
+  // itinerary stops right here. The trip itself is only created on save, so
+  // backing out (or closing the tab) never leaves an empty trip behind.
   //
   // TODO(db): this whole flow assumes one city per trip - createTrip() below
   // takes a single `destination` string, and the Trip model backing it has no
@@ -346,24 +375,13 @@ export default function Recommendations() {
     setLoading(true);
     setError("");
     try {
-      // Bare city names are ambiguous ("Lima" alone geocodes to Lima, Ohio
-      // as easily as Lima, Peru) - include the country we already know from
-      // the recommendation so /landmarks searches the right place.
-      const destinationLabel = city.country ? `${city.name}, ${city.country}` : city.name;
-      const createdTrip = await createTrip({
-        title: `${city.name} Trip`,
-        destination: destinationLabel,
-        budget: Number(form.budget) * tripLengthDays(form),
-        startDate: form.startDate || undefined,
-        endDate: form.endDate || undefined,
-      });
-      const landmarks = await fetchLandmarks(destinationLabel, resolveInterests(form).interests);
+      const landmarks = await fetchLandmarks(destinationLabelFor(city), resolveInterests(form).interests);
       if (requestId !== requestIdRef.current) return;
       setResultsHistory((current) => [
         ...current,
         { data: recommendationData, selectedCountry },
       ]);
-      setTrip(createdTrip);
+      setTrip(null);
       setSelectedCity(city);
       setLandmarksData(landmarks);
       setSelectedLandmarks(new Set());
@@ -373,7 +391,7 @@ export default function Recommendations() {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Could not start this trip. Please try again."
+          : "Could not load places for this city. Please try again."
       );
     } finally {
       if (requestId === requestIdRef.current) setLoading(false);
@@ -396,8 +414,9 @@ export default function Recommendations() {
     setStage("results");
   };
 
-  // Leaving the landmarks step abandons the trip that was created for that
-  // city, so a changed mind doesn't leave a half-built draft trip behind.
+  // Leaving the landmarks step abandons this city. If a save already created
+  // the trip (a partial save, then "Back"), delete it so no half-built draft
+  // trip is left behind.
   const goBackFromLandmarks = async () => {
     requestIdRef.current++;
     const abandonedTripId = trip?.id;
@@ -416,7 +435,22 @@ export default function Recommendations() {
     }
   };
 
+  const landmarkAt = (key) => {
+    const [interest, index] = key.split("|");
+    return landmarksData?.groups.find((group) => group.interest === interest)?.landmarks[Number(index)];
+  };
+  const sameName = (a, b) => a?.name?.trim().toLowerCase() === b?.name?.trim().toLowerCase();
+
   const toggleLandmark = (key) => {
+    // one place often matches two interests (a park that's also a historic site)
+    const landmark = landmarkAt(key);
+    if (
+      !selectedLandmarks.has(key) &&
+      [...selectedLandmarks].some((other) => sameName(landmarkAt(other), landmark)) &&
+      !window.confirm(`${landmark.name} is already in your plan. Add it again?`)
+    ) {
+      return;
+    }
     setSelectedLandmarks((current) => {
       const next = new Set(current);
       if (next.has(key)) {
@@ -443,18 +477,27 @@ export default function Recommendations() {
   // "Pick for me": pre-checks a reasonable spread of landmarks instead of
   // making the user tick every box by hand on a city with dozens of matches.
   // Each interest group gets a share of the overall stop budget
-  // (stopsPerDay x tripDays), taking its first N landmarks - groups are
+  // (what the trip's days hold at this pace), taking its first N landmarks - groups are
   // already sorted by distance, so this is "the closest matches per interest",
   // not a random sample. Replaces the current selection rather than adding to
   // it, so re-running it after manual tweaks gives a predictable result.
+  const familyFriendly = !form.preciseStops && form.children.trim().length > 0;
+
   const autoPickLandmarks = () => {
     if (!landmarksData?.groups?.length) return;
-    const stopsPerDay = STOPS_PER_DAY_BY_PACE[form.pace] ?? STOPS_PER_DAY_BY_PACE.balanced;
-    const target = stopsPerDay * tripLengthDays(form);
+    const target = dayCapacity(tripLengthDays(form), form.pace, familyFriendly);
     const perGroup = Math.max(1, Math.round(target / landmarksData.groups.length));
     const next = new Set();
+    const names = new Set(); // never the same place twice
     landmarksData.groups.forEach((group) => {
-      group.landmarks.slice(0, perGroup).forEach((_, index) => next.add(`${group.interest}|${index}`));
+      let taken = 0;
+      group.landmarks.forEach((landmark, index) => {
+        const name = landmark.name?.trim().toLowerCase();
+        if (taken >= perGroup || names.has(name)) return;
+        names.add(name);
+        next.add(`${group.interest}|${index}`);
+        taken += 1;
+      });
     });
     setSelectedLandmarks(next);
     setError("");
@@ -478,7 +521,7 @@ export default function Recommendations() {
         tripDays: tripLengthDays(form),
         pace: form.pace,
         dayStopCounts: form.preciseStops ? form.dayStopCounts : undefined,
-        familyFriendly: !form.preciseStops && form.children.trim().length > 0,
+        familyFriendly,
       })
     );
     setItineraryHistory([]);
@@ -584,8 +627,34 @@ export default function Recommendations() {
     // landed instead of an all-or-nothing error with no way to tell.
     const keyOf = (job) => `${job.dayNumber}|${job.startTime}|${job.title}`;
     const pending = jobs.filter((job) => !savedStopsRef.current.has(keyOf(job)));
+    // created on the first save; a retry after a partial failure reuses it
+    let savedTrip = trip;
+    if (!savedTrip) {
+      try {
+        savedTrip = await createTrip({
+          title: `${selectedCity.name} Trip`,
+          destination: destinationLabelFor(selectedCity),
+          budget: Number(form.budget) * tripLengthDays(form),
+          startDate: form.startDate || undefined,
+          endDate: form.endDate || undefined,
+          // kept on the trip so the hub, budget and translator don't ask again
+          currency: form.currency.toUpperCase(),
+          travellers: { adults: Number(form.adults), childAges: buildPreferences(form).travellers.children.filter((age) => age <= 17) },
+          interests: resolveInterests(form).interests,
+          travelGroupId: form.travelGroupId || undefined,
+        });
+        setTrip(savedTrip);
+        // the new trip becomes the one the rest of the app is about
+        useTripStore.getState().setActiveTrip(savedTrip.id);
+        useTripStore.getState().load(true);
+      } catch (requestError) {
+        setLoading(false);
+        setError(requestError instanceof Error ? requestError.message : "Could not create this trip. Please try again.");
+        return;
+      }
+    }
     const outcomes = await Promise.allSettled(
-      pending.map((job) => addItineraryItem(trip.id, job).then(() => savedStopsRef.current.add(keyOf(job))))
+      pending.map((job) => addItineraryItem(savedTrip.id, job).then(() => savedStopsRef.current.add(keyOf(job))))
     );
     const failedCount = outcomes.filter((outcome) => outcome.status === "rejected").length;
     setLoading(false);
@@ -628,7 +697,6 @@ export default function Recommendations() {
     [requirementExclusions]
   );
 
-  const stopsPerDay = STOPS_PER_DAY_BY_PACE[form.pace] ?? STOPS_PER_DAY_BY_PACE.balanced;
   const hero =
     stage === "wizard" ? (
       <>
@@ -701,7 +769,7 @@ export default function Recommendations() {
           onBack={goBackFromLandmarks}
           loading={loading}
           error={error}
-          stopsPerDay={stopsPerDay}
+          daysNeeded={daysNeeded(selectedLandmarks.size, form.pace, familyFriendly)}
           tripDays={tripLengthDays(form)}
         />
       )}

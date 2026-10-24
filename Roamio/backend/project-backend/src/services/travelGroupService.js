@@ -1,5 +1,6 @@
 const travelGroupRepository = require('../repositories/travelGroupRepository');
 const { httpError } = require('./tripAccessService');
+const { companionsSchema, unpackGroupMeta, packGroupMeta } = require('../utils/groupMeta');
 
 const ASSIGNABLE_ROLES = ['ADMIN', 'MEMBER', 'VIEWER'];
 const MANAGER_ROLES = ['OWNER', 'ADMIN'];
@@ -25,7 +26,7 @@ class TravelGroupService {
     return {
       id: group.id,
       name: group.name,
-      description: group.description,
+      ...unpackGroupMeta(group.description),
       createdAt: group.createdAt,
       yourRole: membership.role,
       // The join code is a credential, so only managers see it
@@ -79,6 +80,32 @@ class TravelGroupService {
 
     await travelGroupRepository.removeMember(target);
     return { left: isSelf };
+  }
+
+  // Replaces the group's companion list (people without an account). Any
+  // member but a VIEWER may edit it; the whole list is sent each time.
+  async saveCompanions(groupId, userId, body) {
+    const { membership, group } = await requireMembership(groupId, userId);
+    if (membership.role === 'VIEWER') throw httpError(403, "Viewers can't change the group's companions.");
+
+    const parsed = companionsSchema.safeParse(body);
+    if (!parsed.success) throw httpError(400, parsed.error.issues[0].message);
+
+    const { description } = unpackGroupMeta(group.description);
+    await travelGroupRepository.updateDescription(groupId, packGroupMeta(description, parsed.data.companions));
+    return parsed.data.companions;
+  }
+
+  // What a /join/:code link shows before joining
+  async previewByCode(code, userId) {
+    const group = await travelGroupRepository.findByInviteCode(code);
+    if (!group) throw httpError(404, 'This invite link is no longer valid.');
+    return {
+      id: group.id,
+      name: group.name,
+      memberCount: group.members.length,
+      alreadyMember: group.members.some((member) => member.userId === userId),
+    };
   }
 }
 

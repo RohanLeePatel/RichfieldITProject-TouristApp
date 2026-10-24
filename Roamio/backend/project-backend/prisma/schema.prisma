@@ -362,6 +362,9 @@ model Expense {
   title     String
   amount    Decimal         @db.Decimal(12, 2)
   currency  String          @default("ZAR")
+  // 1 unit of `currency` in the budget currency when recorded; null = same
+  // currency. Added by hand: prisma/live-sql/003_expense_exchange_rate.sql
+  exchangeRate Decimal?     @db.Decimal(18, 8)
   category  ExpenseCategory
   splitType SplitType       @default(EQUAL)
   paidById  Int

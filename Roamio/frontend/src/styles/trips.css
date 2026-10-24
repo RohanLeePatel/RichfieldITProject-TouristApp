@@ -230,3 +230,400 @@
     break-inside: avoid;
   }
 }
+
+/* "Plan a new trip" under the My Trips headline */
+.trips-plan-button {
+  width: fit-content;
+  margin-top: 18px;
+}
+
+/* =========================================================
+   TRIP HUB (components/trips/TripHub.jsx)
+========================================================= */
+
+.trip-hub-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+.trip-hub-big {
+  margin: 0 0 6px;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.trip-hub-big span {
+  margin-left: 6px;
+  color: var(--ink-soft);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* advisory levels 3-4 ("reconsider", "do not travel") in the danger colour */
+.trip-risk-3,
+.trip-risk-4 {
+  color: var(--danger);
+}
+
+.trip-hub-link {
+  display: inline-block;
+  margin-top: 10px;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.trip-hub-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trip-hub-list li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  align-items: center;
+}
+
+.trip-hub-list li span {
+  grid-column: 1;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.trip-hub-list li button {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.trip-hub-search {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.trip-hub-search select {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.trip-hub-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.trip-hub-tools a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: inherit;
+  font-weight: 600;
+}
+
+@media (max-width: 760px) {
+  .trip-hub-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   BUDGET (pages/TripBudget.jsx, trip hub budget card)
+========================================================= */
+
+.budget-bar {
+  height: 10px;
+  margin-top: 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+
+.budget-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+}
+
+.budget-bar.near i {
+  background: var(--accent);
+}
+
+.budget-bar.over i {
+  background: var(--danger);
+}
+
+.budget-warnings {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+}
+
+.budget-warnings li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.budget-categories {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.budget-categories li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.budget-categories li.over span:nth-child(2) {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.budget-categories form {
+  display: flex;
+  gap: 6px;
+}
+
+.budget-categories input,
+.trip-hub-search input {
+  width: 120px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.trip-hub-search .wizard-field input {
+  width: 100%;
+}
+
+.budget-expenses li span {
+  grid-column: 1;
+}
+
+@media (max-width: 640px) {
+  .budget-categories li {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* no dark --danger-bg in the theme: a tint of the dark danger colour instead */
+.recommendations-page[data-theme="dark"] .budget-warnings li {
+  background: rgba(242, 145, 123, 0.14);
+}
+
+/* ---- Trip page tabs ---- */
+
+.trip-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 18px;
+  padding: 4px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  scrollbar-width: none;
+}
+
+.trip-tabs button {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font: 700 13.5px "DM Sans", sans-serif;
+  cursor: pointer;
+}
+
+.trip-tabs button:hover { color: var(--ink); }
+.trip-tabs button.active { background: var(--primary); color: var(--primary-ink); }
+.trip-tabs button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* ---- Day-by-day plan: one column per day, stops on a timeline ---- */
+
+.trip-days {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.trip-day {
+  padding: 18px 18px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.trip-day header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.trip-day h3 { margin: 0; color: var(--ink); font-size: 17px; }
+.trip-day header span { color: var(--ink-soft); font-size: 13px; font-weight: 600; }
+
+.trip-stops { margin: 0; padding: 0; list-style: none; }
+
+.trip-stop {
+  position: relative;
+  display: grid;
+  grid-template-columns: 46px 1fr 28px;
+  align-items: start;
+  gap: 4px 14px;
+  padding: 9px 0 9px;
+}
+
+/* the line through the day, and a dot on it per stop */
+.trip-stop::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 53px;
+  width: 2px;
+  background: var(--line);
+}
+.trip-stop:first-child::before { top: 16px; }
+.trip-stop:last-child::before { bottom: calc(100% - 16px); }
+.trip-stop::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  left: 49px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--day-color);
+  box-shadow: 0 0 0 3px var(--surface);
+}
+
+.trip-stop time {
+  padding-top: 1px;
+  color: var(--ink-soft);
+  font: 700 13px "Plus Jakarta Sans", sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.trip-stop div { min-width: 0; padding-left: 8px; }
+.trip-stop strong { display: block; font-size: 14.5px; line-height: 1.3; }
+.trip-stop small {
+  display: block;
+  overflow: hidden;
+  margin-top: 2px;
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trip-stop button {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  opacity: 0;
+}
+.trip-stop:hover button,
+.trip-stop button:focus-visible { opacity: 1; }
+.trip-stop button:hover { background: var(--danger-bg); color: var(--danger); }
+@media (hover: none) { .trip-stop button { opacity: 1; } }
+
+@media print {
+  .trip-days { display: block; }
+  .trip-day { break-inside: avoid; margin-bottom: 14px; }
+}
+
+/* ---- Trip page sections: one card each (heading + content together),
+   with room between them. The wizard keeps its separate heading cards. ---- */
+
+.trip-panel {
+  display: grid;
+  gap: 24px;
+}
+
+.trip-panel > .recommendations-results {
+  gap: 0;
+  padding: 22px 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.trip-panel .results-heading {
+  margin-bottom: 18px;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+/* cards inside a section card sit one step back from it */
+.trip-panel .trip-day,
+.trip-panel .insights-card {
+  background: var(--bg);
+  box-shadow: none;
+}
+
+.trip-panel .itinerary-map {
+  margin: 0;
+  box-shadow: none;
+}
+
+.trip-panel .trip-days {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  margin-top: 0;
+}
+
+.trip-panel .trip-hub-search { margin-bottom: 14px; }
+
+@media (max-width: 640px) {
+  .trip-panel > .recommendations-results { padding: 18px 16px; }
+}
+
+/* People tab: the invite link */
+.trip-invite { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin: 14px 0 4px; }
+.trip-invite-link { display: grid; flex: 1; gap: 6px; min-width: 220px; color: var(--ink-soft); font-size: 12.5px; }
+.trip-invite-link input {
+  min-height: 38px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); color: var(--ink); font: 500 13px "DM Sans", sans-serif;
+}
+.trip-invite .recommendations-error { flex-basis: 100%; margin: 0; }

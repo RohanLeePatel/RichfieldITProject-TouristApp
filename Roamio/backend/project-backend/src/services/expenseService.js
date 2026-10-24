@@ -2,7 +2,10 @@ const expenseRepository = require('../repositories/expenseRepository');
 const budgetRepository = require('../repositories/budgetRepository');
 const tripRepository = require('../repositories/tripRepository');
 const { httpError, assertTripAccess } = require('./tripAccessService');
+const notificationRepository = require('../repositories/notificationRepository');
+const { fetchRate } = require('./ratesService');
 const { toCents, decimalToCents, centsToDecimalInput, centsToAmount } = require('../utils/money');
+const { expenseTotals, crossedThresholds, warningFor } = require('../utils/expenseTotals');
 
 const CATEGORIES = ['TRANSPORT', 'FOOD', 'ACCOMMODATION', 'ACTIVITY', 'MISC'];
 const SPLIT_TYPES = ['EQUAL', 'EXACT', 'PERCENT'];
@@ -10,6 +13,7 @@ const SPLIT_TYPES = ['EQUAL', 'EXACT', 'PERCENT'];
 const serializeExpense = (expense) => ({
   ...expense,
   amount: centsToAmount(decimalToCents(expense.amount)),
+  exchangeRate: expense.exchangeRate == null ? null : Number(expense.exchangeRate.toString()),
   splits: expense.splits.map((split) => ({
     ...split,
     shareAmount: centsToAmount(decimalToCents(split.shareAmount))
@@ -116,26 +120,46 @@ const computeSplits = (totalCents, splitType, rawSplits, memberIds) => {
   return shares.map((s) => ({ userId: s.userId, shareAmount: centsToDecimalInput(s.cents) }));
 };
 
-// Non-blocking warnings when spend crosses the trip budget or a category limit
-const buildBudgetWarnings = async (tripId, category) => {
+// --- Currency + budget checks ---
+
+// The currency totals are kept in: the budget's, else the one the wizard saved
+// on the trip. null = neither set yet, so nothing is converted.
+const referenceCurrency = async (tripId) =>
+  (await budgetRepository.findByTripId(tripId))?.currency || (await tripRepository.findTripMeta(tripId)).currency;
+
+// Rate into the reference currency, stored with the expense (null = same currency).
+const rateInto = async (currency, reference) =>
+  !reference || currency === reference ? null : String((await fetchRate(currency, reference)).rate);
+
+// Warnings for where spend now stands (80% and over), and a notification to
+// every trip member the moment it crosses 80% or 100% of the budget or a
+// category limit - once per crossing, not on every later expense.
+const checkBudget = async (tripId, before, category) => {
   const budget = await budgetRepository.findByTripId(tripId);
   if (!budget) return [];
+  const after = expenseTotals(await expenseRepository.findForTotals(tripId));
 
-  const warnings = [];
-  const { total } = await expenseRepository.sumByTrip(tripId);
-  const totalCents = decimalToCents(total);
-  const budgetCents = decimalToCents(budget.totalAmount);
-  if (totalCents > budgetCents) {
-    warnings.push(`Trip budget exceeded by ${centsToAmount(totalCents - budgetCents)} ${budget.currency}`);
-  }
-
+  const checks = [{ label: 'Trip budget', before: before.totalCents, after: after.totalCents, limit: decimalToCents(budget.totalAmount) }];
   const limit = budget.categoryLimits.find((l) => l.category === category);
   if (limit) {
-    const categoryCents = decimalToCents(await expenseRepository.sumByCategory(tripId, category));
-    const limitCents = decimalToCents(limit.limitAmount);
-    if (categoryCents > limitCents) {
-      warnings.push(`${category} limit exceeded by ${centsToAmount(categoryCents - limitCents)} ${budget.currency}`);
-    }
+    checks.push({
+      label: `${category} limit`,
+      before: before.byCategory.get(category)?.cents || 0,
+      after: after.byCategory.get(category)?.cents || 0,
+      limit: decimalToCents(limit.limitAmount)
+    });
+  }
+
+  const warnings = checks.map((c) => warningFor(c.label, c.after, c.limit, budget.currency)).filter(Boolean);
+  const crossed = checks.filter((c) => crossedThresholds(c.before, c.after, c.limit).length > 0);
+  if (crossed.length) {
+    const [memberIds, trip] = await Promise.all([tripRepository.findMemberUserIds(tripId), tripRepository.findTripMeta(tripId)]);
+    const title = trip.title ? `Budget alert for "${trip.title}"` : 'Budget alert';
+    // a failed notification must not fail the expense that was just saved
+    await Promise.all(crossed.flatMap((c) => memberIds.map((userId) =>
+      notificationRepository.createNotification({ userId, title, message: warningFor(c.label, c.after, c.limit, budget.currency), type: 'ALERT' })
+        .catch(() => null)
+    )));
   }
   return warnings;
 };
@@ -157,20 +181,24 @@ class ExpenseService {
     const paidById = body.paidById === undefined ? userId : Number(body.paidById);
     assertMember(memberIds, paidById, 'paidById');
 
+    const reference = await referenceCurrency(tripId);
+    const currency = body.currency !== undefined ? parseCurrency(body.currency) : reference || 'ZAR';
     const data = {
       tripId,
       title: parseTitle(body.title),
       amount: centsToDecimalInput(amountCents),
+      currency,
+      exchangeRate: await rateInto(currency, reference),
       category,
       splitType,
       paidById,
-      ...(body.currency !== undefined && { currency: parseCurrency(body.currency) }),
       ...(body.date !== undefined && { date: parseDate(body.date) })
     };
     const splits = computeSplits(amountCents, splitType, body.splits, memberIds);
 
+    const before = expenseTotals(await expenseRepository.findForTotals(tripId));
     const expense = await expenseRepository.createWithSplits(data, splits);
-    const warnings = await buildBudgetWarnings(tripId, category);
+    const warnings = await checkBudget(tripId, before, category);
     return { expense: serializeExpense(expense), warnings };
   }
 
@@ -194,7 +222,10 @@ class ExpenseService {
     const data = {};
     if (body.title !== undefined) data.title = parseTitle(body.title);
     if (body.category !== undefined) data.category = parseCategory(body.category);
-    if (body.currency !== undefined) data.currency = parseCurrency(body.currency);
+    if (body.currency !== undefined) {
+      data.currency = parseCurrency(body.currency);
+      data.exchangeRate = await rateInto(data.currency, await referenceCurrency(tripId));
+    }
     if (body.date !== undefined) data.date = parseDate(body.date);
     if (body.paidById !== undefined) {
       data.paidById = Number(body.paidById);
@@ -218,8 +249,9 @@ class ExpenseService {
 
     if (!Object.keys(data).length) throw httpError(400, 'No updatable fields provided');
 
+    const before = expenseTotals(await expenseRepository.findForTotals(tripId));
     const expense = await expenseRepository.updateWithSplits(expenseId, data, splits);
-    const warnings = await buildBudgetWarnings(tripId, expense.category);
+    const warnings = await checkBudget(tripId, before, expense.category);
     return { expense: serializeExpense(expense), warnings };
   }
 

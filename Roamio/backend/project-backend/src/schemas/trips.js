@@ -8,6 +8,18 @@ const createTripSchema = z.object({
   endDate: z.string().datetime({ offset: true }).optional().nullable().or(z.string().optional()),
   budget: z.number().nonnegative('Budget must be a positive number').optional().nullable(),
   notes: z.string().optional().nullable(),
+  // what the wizard collected, kept on the trip (Trip.description JSON)
+  currency: z.string().regex(/^[A-Z]{3}$/, 'Currency must be a 3-letter code').optional().nullable(),
+  travellers: z
+    .object({
+      adults: z.number().int().min(1).max(50),
+      childAges: z.array(z.number().int().min(0).max(17)).max(20).default([]),
+    })
+    .optional()
+    .nullable(),
+  interests: z.array(z.string().min(1).max(40)).max(30).optional().nullable(),
+  // plan it in a shared travel group instead of the personal one
+  travelGroupId: z.number().int().positive().optional().nullable(),
 });
 
 // Itinerary Item Schema

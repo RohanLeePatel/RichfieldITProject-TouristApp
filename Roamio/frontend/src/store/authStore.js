@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import { TOKEN_KEY } from "../api/client";
+import { endSession, TOKEN_KEY } from "../api/client";
 
 const USER_KEY = "user";
 
@@ -87,6 +87,7 @@ export const useAuthStore = create((set, get) => ({
   },
 
   logout: () => {
+    endSession(); // drop the 7-day refresh cookie too: a signed-out browser keeps no session
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(TOKEN_KEY);
 

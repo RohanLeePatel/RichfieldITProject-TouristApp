@@ -13,7 +13,7 @@ class SafetyController {
 
   async getCountrySafety(req, res, next) {
     try {
-      res.status(200).json({ safety: await safetyService.getCountrySafety(req.params.countryIso) });
+      res.status(200).json({ safety: await safetyService.getCountrySafety(req.params.countryIso, req.query.name) });
     } catch (error) {
       next(error);
     }
