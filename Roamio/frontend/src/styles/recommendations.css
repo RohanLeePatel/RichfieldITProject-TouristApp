@@ -41,7 +41,7 @@
   min-height: calc(100vh / 0.8);
   color: var(--ink);
   background: var(--bg);
-  font: 14px/1.5 "DM Sans", sans-serif;
+  font: 0.875rem/1.5 "DM Sans", sans-serif;
 }
 
 .recommendations-page[data-theme="dark"] {
@@ -106,7 +106,7 @@
 
 .recommendations-back-link {
   color: rgba(255, 251, 244, .85);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 700;
   text-decoration: none;
 }
@@ -114,7 +114,7 @@
 .recommendations-back-link:hover { color: #fff; }
 
 .recommendations-brand {
-  font: 800 19px "Plus Jakarta Sans", sans-serif;
+  font: 800 1.1875rem "Plus Jakarta Sans", sans-serif;
 }
 
 .recommendations-brand span {
@@ -155,7 +155,7 @@
   max-width: 720px;
   margin: 0 0 8px;
   color: #FFFBF4;
-  font: 800 clamp(24px, 3.4vw, 34px)/1.15 "Plus Jakarta Sans", sans-serif;
+  font: 800 clamp(1.5rem, 3.4vw, 2.125rem)/1.15 "Plus Jakarta Sans", sans-serif;
   letter-spacing: -.8px;
 }
 
@@ -163,7 +163,7 @@
   max-width: 560px;
   margin: 0;
   color: rgba(255, 251, 244, .88);
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 
 .rx-hero-body .recommendations-eyebrow { color: #E1F0D0; }
@@ -185,7 +185,7 @@
   gap: 7px;
   margin: 0 0 10px;
   color: var(--primary);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: .01em;
 }
@@ -193,7 +193,7 @@
 .wizard-help {
   margin: 0 0 16px;
   color: var(--ink-soft);
-  font-size: 13.5px;
+  font-size: 0.8438rem;
 }
 
 .recommendations-error {
@@ -202,7 +202,7 @@
   border-radius: 12px;
   background: var(--danger-bg);
   color: var(--danger);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 700;
 }
 
@@ -215,7 +215,7 @@
   min-height: 38px;
   padding: 0 18px;
   border-radius: 999px;
-  font: 800 13.5px "Plus Jakarta Sans", sans-serif;
+  font: 800 0.8438rem "Plus Jakarta Sans", sans-serif;
   text-decoration: none;
   cursor: pointer;
   transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
@@ -261,7 +261,7 @@
   border-radius: 999px;
   background: var(--sage-bg);
   color: var(--ink);
-  font: 700 13px "DM Sans", sans-serif;
+  font: 700 0.8125rem "DM Sans", sans-serif;
 }
 
 .chip.priority { background: var(--accent-bg); border-color: var(--accent); }
@@ -290,14 +290,14 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
   list-style: none;
 }
 
-.wizard-step { display: grid; gap: 8px; color: var(--ink-soft); font-size: 13px; font-weight: 700; }
+.wizard-step { display: grid; gap: 8px; color: var(--ink-soft); font-size: 0.8125rem; font-weight: 700; }
 .wizard-step i { display: block; height: 6px; border-radius: 999px; background: var(--surface-2); transition: background .3s ease; }
 .wizard-step.done i, .wizard-step.current i { background: var(--primary); }
 .wizard-step.current { color: var(--ink); }
 .wizard-step.done span::before { content: "✓ "; color: var(--primary); }
 
 .wizard-content { padding: 18px 24px 22px; }
-.wizard-content h2 { margin: 0 0 4px; font-size: 22px; letter-spacing: -.6px; }
+.wizard-content h2 { margin: 0 0 4px; font-size: 1.375rem; letter-spacing: -.6px; }
 
 .preset-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
 
@@ -310,7 +310,7 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
   border-radius: 999px;
   background: transparent;
   color: var(--ink);
-  font: 700 13px "DM Sans", sans-serif;
+  font: 700 0.8125rem "DM Sans", sans-serif;
   cursor: pointer;
 }
 
@@ -335,8 +335,8 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
 }
 
 .mode-option svg { color: var(--primary); }
-.mode-option strong { font: 800 15px "Plus Jakarta Sans", sans-serif; }
-.mode-option span { color: var(--ink-soft); font-size: 14px; }
+.mode-option strong { font: 800 0.9375rem "Plus Jakarta Sans", sans-serif; }
+.mode-option span { color: var(--ink-soft); font-size: 0.875rem; }
 .mode-option:hover { transform: translateY(-2px); }
 .mode-option.selected { border-color: var(--primary); background: var(--sage-bg); }
 
@@ -347,7 +347,7 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
   gap: 7px;
   margin-bottom: 4px;
   color: var(--ink-soft);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: .01em;
 }
@@ -362,7 +362,7 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
   border-radius: 14px;
   background: var(--bg);
   color: var(--ink);
-  font: 500 14px "DM Sans", sans-serif;
+  font: 500 0.875rem "DM Sans", sans-serif;
   text-transform: none;
   letter-spacing: 0;
 }
@@ -388,7 +388,7 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
 .interest-group-label {
   margin: 0 0 12px;
   color: var(--ink-soft);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: .01em;
 }
@@ -405,7 +405,7 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
   border-radius: var(--radius-tile);
   background: var(--surface);
   color: var(--ink);
-  font: 700 13.5px "DM Sans", sans-serif;
+  font: 700 0.8438rem "DM Sans", sans-serif;
   text-align: left;
   cursor: pointer;
   transition: border-color .18s ease, transform .18s ease, background .18s ease;
@@ -443,14 +443,14 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
   border: 0; border-radius: 14px; background: transparent; color: var(--ink); cursor: pointer;
   transition: background .18s ease;
 }
-.segmented button strong { font: 800 15px "Plus Jakarta Sans", sans-serif; }
-.segmented button span { color: var(--ink-soft); font-size: 12px; }
+.segmented button strong { font: 800 0.9375rem "Plus Jakarta Sans", sans-serif; }
+.segmented button span { color: var(--ink-soft); font-size: 0.75rem; }
 .segmented button.selected { background: var(--primary); color: var(--primary-ink); box-shadow: var(--shadow); }
 .segmented button.selected span { color: var(--primary-ink); opacity: .85; }
 
 .stepper-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
 .stepper { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px 10px 16px; border: 1.5px solid var(--line); border-radius: 999px; }
-.stepper > span { font-size: 13px; font-weight: 800; white-space: nowrap; }
+.stepper > span { font-size: 0.8125rem; font-weight: 800; white-space: nowrap; }
 .stepper > div { display: flex; align-items: center; gap: 8px; }
 .stepper button { display: grid; width: 30px; height: 30px; place-items: center; border: 0; border-radius: 999px; background: var(--primary); color: var(--primary-ink); cursor: pointer; }
 .stepper button:disabled { opacity: .35; cursor: not-allowed; }
@@ -458,9 +458,9 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
 
 .review-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 8px; }
 .review-grid > div { position: relative; display: grid; gap: 4px; padding: 16px 18px; border-radius: var(--radius-tile); background: var(--surface-2); }
-.review-grid span { color: var(--ink-soft); font-size: 12px; font-weight: 800; letter-spacing: .01em; }
-.review-grid strong { padding-right: 44px; font-size: 16px; }
-.review-grid button { position: absolute; top: 14px; right: 14px; border: 0; background: none; color: var(--primary); font: 800 13px "DM Sans", sans-serif; text-decoration: underline; cursor: pointer; }
+.review-grid span { color: var(--ink-soft); font-size: 0.75rem; font-weight: 800; letter-spacing: .01em; }
+.review-grid strong { padding-right: 44px; font-size: 1rem; }
+.review-grid button { position: absolute; top: 14px; right: 14px; border: 0; background: none; color: var(--primary); font: 800 0.8125rem "DM Sans", sans-serif; text-decoration: underline; cursor: pointer; }
 
 /* ---------- Results ---------- */
 
@@ -475,7 +475,7 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
   margin-bottom: 16px;
 }
 
-.results-heading h2 { margin: 0 0 6px; font-size: clamp(22px, 2.6vw, 28px); letter-spacing: -1px; }
+.results-heading h2 { margin: 0 0 6px; font-size: clamp(1.375rem, 2.6vw, 1.75rem); letter-spacing: -1px; }
 .results-heading p { margin: 0; color: var(--ink-soft); }
 .results-heading .recommendations-eyebrow { margin-bottom: 8px; }
 .results-heading-actions { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -513,7 +513,7 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
   border-radius: 999px;
   background: rgba(15, 26, 20, .55);
   color: #FFFBF4;
-  font: 800 13px "Plus Jakarta Sans", sans-serif;
+  font: 800 0.8125rem "Plus Jakarta Sans", sans-serif;
 }
 
 .score-ring {
@@ -536,13 +536,13 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
    text colour for the watermark icon. Without an explicit colour here the
    percentage inherited it and rendered white-on-white: the ring looked like a
    loading spinner that never resolved. */
-.score-ring b { color: var(--ink); font: 800 15px "Plus Jakarta Sans", sans-serif; }
-.score-ring small { color: var(--ink-soft); font-size: 9px; }
+.score-ring b { color: var(--ink); font: 800 0.9375rem "Plus Jakarta Sans", sans-serif; }
+.score-ring small { color: var(--ink-soft); font-size: 0.5625rem; }
 
 .recommendation-card-body { display: flex; flex: 1; flex-direction: column; gap: 10px; padding: 22px 16px 16px; }
-.recommendation-card-body h3 { margin: 0; padding-right: 56px; font-size: 18px; letter-spacing: -.5px; }
-.recommendation-location { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--ink-soft); font-size: 14px; }
-.recommendation-explanation { margin: 0; color: var(--ink-soft); font-size: 14px; }
+.recommendation-card-body h3 { margin: 0; padding-right: 56px; font-size: 1.125rem; letter-spacing: -.5px; }
+.recommendation-location { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--ink-soft); font-size: 0.875rem; }
+.recommendation-explanation { margin: 0; color: var(--ink-soft); font-size: 0.875rem; }
 .recommendation-evidence { margin-top: auto; }
 
 /* wrap between controls, never inside a label - "View map" was breaking into
@@ -550,11 +550,11 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
 .recommendation-card-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px; }
 .recommendation-card-actions a,
 .recommendation-card-actions button { white-space: nowrap; }
-.recommendation-card-actions a { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-soft); font-size: 13px; font-weight: 700; }
+.recommendation-card-actions a { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-soft); font-size: 0.8125rem; font-weight: 700; }
 .recommendation-card-actions button {
   display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 18px;
   border: 0; border-radius: 999px; background: var(--primary); color: var(--primary-ink);
-  font: 800 14px "Plus Jakarta Sans", sans-serif; cursor: pointer;
+  font: 800 0.875rem "Plus Jakarta Sans", sans-serif; cursor: pointer;
 }
 .recommendation-card-actions button:hover { background: var(--primary-hover); }
 
@@ -568,8 +568,8 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
 .excluded-list { display: grid; gap: 10px; margin: 16px 0 0; padding: 0; list-style: none; }
 .excluded-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 12px; background: var(--surface-2); }
 .excluded-list li div { display: grid; }
-.excluded-list li span { color: var(--ink-soft); font-size: 13px; }
-.excluded-list button { min-height: 36px; padding: 0 16px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font: 700 13px "DM Sans", sans-serif; cursor: pointer; }
+.excluded-list li span { color: var(--ink-soft); font-size: 0.8125rem; }
+.excluded-list button { min-height: 36px; padding: 0 16px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font: 700 0.8125rem "DM Sans", sans-serif; cursor: pointer; }
 
 /* ---------- Landmark picker ---------- */
 
@@ -589,7 +589,7 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
 
 .picker-summary h3 { margin: 0; }
 .picker-count { margin: 0; color: var(--ink-soft); }
-.picker-count b { color: var(--primary); font: 800 32px "Plus Jakarta Sans", sans-serif; }
+.picker-count b { color: var(--primary); font: 800 2rem "Plus Jakarta Sans", sans-serif; }
 
 .landmark-toolbar { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 8px; }
 .landmark-search { position: relative; display: flex; flex: 1; align-items: center; min-width: 220px; }
@@ -625,8 +625,8 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
 .landmark-item.selected .landmark-check { border-color: var(--primary); background: var(--primary); color: var(--primary-ink); }
 
 .landmark-text { display: grid; flex: 1; gap: 2px; min-width: 0; }
-.landmark-text strong { font-size: 13.5px; }
-.landmark-text small { color: var(--ink-soft); font-size: 12.5px; overflow-wrap: anywhere; }
+.landmark-text strong { font-size: 0.8438rem; }
+.landmark-text small { color: var(--ink-soft); font-size: 0.7812rem; overflow-wrap: anywhere; }
 
 .landmark-item-map {
   display: grid; flex-shrink: 0; width: 32px; height: 32px; place-items: center;
@@ -650,7 +650,7 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
 
 .itinerary-map .interest-group-label { margin-bottom: 6px; }
 .itinerary-map-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; }
-.itinerary-map-legend span { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; }
+.itinerary-map-legend span { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8125rem; font-weight: 700; }
 .itinerary-map-legend i { width: 12px; height: 12px; border-radius: 999px; }
 
 .itinerary-days {
@@ -678,13 +678,13 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
 }
 
 .itinerary-day-header { display: flex; align-items: center; justify-content: space-between; }
-.itinerary-day-header h4 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; font-size: 16px; }
+.itinerary-day-header h4 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; font-size: 1rem; }
 
 .itinerary-day-warning,
 .itinerary-stop-warning {
   display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px;
   border-radius: 999px; background: var(--danger-bg); color: var(--danger);
-  font: 700 11px "DM Sans", sans-serif; letter-spacing: 0; text-transform: none;
+  font: 700 0.6875rem "DM Sans", sans-serif; letter-spacing: 0; text-transform: none;
 }
 
 .itinerary-day-remove {
@@ -692,7 +692,7 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
   border: 0; border-radius: 999px; background: var(--surface-2); color: var(--ink-soft); cursor: pointer;
 }
 .itinerary-day-remove:disabled { opacity: .35; cursor: not-allowed; }
-.itinerary-day-empty { margin: 8px 0; padding: 22px 10px; border: 1.5px dashed var(--line); border-radius: 14px; color: var(--ink-soft); font-size: 14px; text-align: center; }
+.itinerary-day-empty { margin: 8px 0; padding: 22px 10px; border: 1.5px dashed var(--line); border-radius: 14px; color: var(--ink-soft); font-size: 0.875rem; text-align: center; }
 
 .itinerary-stop {
   display: flex;
@@ -710,9 +710,9 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
 .itinerary-stop:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
 .itinerary-stop:active { cursor: grabbing; }
 .itinerary-stop-grip { flex-shrink: 0; color: var(--ink-soft); }
-.itinerary-stop-time { flex-shrink: 0; min-width: 48px; color: var(--primary); font: 800 14px "Plus Jakarta Sans", sans-serif; font-variant-numeric: tabular-nums; }
-.itinerary-stop-name { display: flex; flex: 1; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; font-weight: 700; font-size: 13.5px; }
-.itinerary-stop-location { display: block; width: 100%; color: var(--ink-soft); font-size: 12.5px; font-weight: 500; }
+.itinerary-stop-time { flex-shrink: 0; min-width: 48px; color: var(--primary); font: 800 0.875rem "Plus Jakarta Sans", sans-serif; font-variant-numeric: tabular-nums; }
+.itinerary-stop-name { display: flex; flex: 1; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; font-weight: 700; font-size: 0.8438rem; }
+.itinerary-stop-location { display: block; width: 100%; color: var(--ink-soft); font-size: 0.7812rem; font-weight: 500; }
 .itinerary-stop-remove { display: grid; flex-shrink: 0; width: 28px; height: 28px; place-items: center; border: 0; border-radius: 999px; background: transparent; color: var(--ink-soft); cursor: pointer; }
 .itinerary-stop-remove:hover { background: var(--danger-bg); color: var(--danger); }
 
@@ -734,7 +734,7 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
 }
 
 .trip-done { justify-items: center; padding: 56px 20px; text-align: center; }
-.trip-done h2 { margin: 0; font-size: clamp(28px, 4vw, 40px); letter-spacing: -1px; }
+.trip-done h2 { margin: 0; font-size: clamp(1.75rem, 4vw, 2.5rem); letter-spacing: -1px; }
 .trip-done-badge { display: grid; width: 72px; height: 72px; place-items: center; margin-bottom: 8px; border-radius: 999px; background: var(--primary); color: var(--primary-ink); box-shadow: var(--shadow-lift); }
 .trip-done .wizard-actions { justify-content: center; }
 .trip-done-next { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: min(520px, 100%); margin: 18px 0 6px; padding: 0; list-style: none; }
@@ -757,7 +757,7 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
   .wizard-content { padding: 22px 18px 26px; }
   .mode-options { grid-template-columns: 1fr; }
   .rx-hero:has(+ .recommendations-content .wizard-card) .rx-hero-body { padding-bottom: 80px; }
-  .rx-hero-body p:not(.recommendations-eyebrow) { font-size: 16px; }
+  .rx-hero-body p:not(.recommendations-eyebrow) { font-size: 1rem; }
   .recommendation-list { grid-template-columns: 1fr; }
   .itinerary-days { grid-auto-columns: 86%; }
   .action-bar { border-radius: 24px; }
@@ -810,7 +810,7 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
   gap: 8px;
   margin: 0 0 12px;
   color: var(--primary);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: .01em;
 }
@@ -836,7 +836,7 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
 .wizard-main { min-width: 0; }
 .wizard-progress.panel { padding: 14px 20px 12px; }
 .wizard-intro { margin: 4px 4px 14px; }
-.wizard-intro h2 { margin: 0 0 4px; font-size: 22px; letter-spacing: -.5px; }
+.wizard-intro h2 { margin: 0 0 4px; font-size: 1.375rem; letter-spacing: -.5px; }
 .wizard-intro .wizard-help { margin: 0; }
 .panel-row { display: grid; grid-template-columns: 1.15fr 1fr; gap: 14px; }
 .panel-row .panel { margin-bottom: 14px; }
@@ -845,8 +845,8 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
 .trip-summary { margin-bottom: 0; }
 .trip-summary dl { display: grid; gap: 8px; margin: 0 0 14px; }
 .trip-summary dl div { display: flex; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px dashed var(--line); }
-.trip-summary dt { color: var(--ink-soft); font-size: 12px; font-weight: 700; }
-.trip-summary dd { margin: 0; font-size: 13px; font-weight: 700; text-align: right; }
+.trip-summary dt { color: var(--ink-soft); font-size: 0.75rem; font-weight: 700; }
+.trip-summary dd { margin: 0; font-size: 0.8125rem; font-weight: 700; text-align: right; }
 
 /* result/landmark/itinerary headers become cards too */
 .results-heading {
@@ -895,13 +895,13 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
 .traveler-block .interest-option { background: var(--surface); }
 .traveler-block .interest-group { margin-bottom: 10px; }
 .traveler-block-header { margin-bottom: 8px; }
-.traveler-block-header h4 { font-size: 14px; }
+.traveler-block-header h4 { font-size: 0.875rem; }
 
 /* ---------- Itinerary screen: tighter, roomier day cards, map-style sketch ---------- */
 
 .itinerary-map { display: block; padding: 10px; }
 .itinerary-map-legend { margin-top: 10px; padding: 0 6px 4px; align-items: center; }
-.itinerary-map-legend small { margin-left: auto; color: var(--ink-soft); font-size: 12px; }
+.itinerary-map-legend small { margin-left: auto; color: var(--ink-soft); font-size: 0.75rem; }
 
 .itinerary-days {
   grid-auto-flow: row;
@@ -913,8 +913,8 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
 
 .itinerary-day { padding: 14px 16px; }
 .itinerary-stop { padding: 9px 12px; gap: 10px; }
-.itinerary-stop-name { font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
-.itinerary-stop-time { min-width: 44px; font-size: 13px; }
+.itinerary-stop-name { font-size: 0.8125rem; line-height: 1.35; overflow-wrap: anywhere; }
+.itinerary-stop-time { min-width: 44px; font-size: 0.8125rem; }
 
 .itinerary-add-day {
   display: grid;
@@ -931,11 +931,11 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
   transition: background .18s ease;
 }
 .itinerary-add-day:hover { background: var(--sage-bg); }
-.itinerary-add-day strong { font: 800 15px "Plus Jakarta Sans", sans-serif; }
-.itinerary-add-day span { color: var(--ink-soft); font-size: 12px; }
+.itinerary-add-day strong { font: 800 0.9375rem "Plus Jakarta Sans", sans-serif; }
+.itinerary-add-day span { color: var(--ink-soft); font-size: 0.75rem; }
 
-.recommendations-results .results-heading h2 { font-size: 22px; }
-.recommendations-results .results-heading p { font-size: 13px; }
+.recommendations-results .results-heading h2 { font-size: 1.375rem; }
+.recommendations-results .results-heading p { font-size: 0.8125rem; }
 
 /* ---------- Real map (Leaflet) ---------- */
 
@@ -944,7 +944,7 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
 .map-pin-dot {
   display: grid; width: 26px; height: 26px; place-items: center;
   border: 2.5px solid #fff; border-radius: 999px;
-  color: #fff; font: 800 12px "Plus Jakarta Sans", sans-serif;
+  color: #fff; font: 800 0.75rem "Plus Jakarta Sans", sans-serif;
   box-shadow: 0 2px 6px rgba(0, 0, 0, .35);
 }
 path.map-route { stroke: var(--primary); }
@@ -962,7 +962,7 @@ path.map-route.day-6 { stroke: var(--day-6); }
 .map-pin-dot {
   display: grid; width: 26px; height: 26px; place-items: center;
   border: 2.5px solid #fff; border-radius: 999px;
-  color: #fff; font: 800 12px "Plus Jakarta Sans", sans-serif;
+  color: #fff; font: 800 0.75rem "Plus Jakarta Sans", sans-serif;
   box-shadow: 0 2px 6px rgba(0, 0, 0, .35);
 }
 path.map-route.day-1 { stroke: var(--day-1); }
@@ -979,7 +979,7 @@ path.map-route.day-6 { stroke: var(--day-6); }
   min-height: 32px; padding: 0 12px;
   border: 1.5px solid var(--line); border-radius: 999px;
   background: var(--surface); color: var(--ink);
-  font: 700 12.5px "DM Sans", sans-serif; cursor: pointer;
+  font: 700 0.7812rem "DM Sans", sans-serif; cursor: pointer;
 }
 .card-link-button:hover { background: var(--surface-2); }
 .recommendation-card-actions .card-link-button { background: var(--surface); color: var(--ink); }
@@ -989,7 +989,7 @@ path.map-route.day-6 { stroke: var(--day-6); }
 .recommendation-list:has(.card-insights) { align-items: start; }
 
 /* why-matched label, per-card feedback buttons, shortlist bar, compare table */
-.recommendation-why { margin: 4px 0 -2px; font-size: 12px; font-weight: 700; letter-spacing: .01em; color: var(--ink-soft); }
+.recommendation-why { margin: 4px 0 -2px; font-size: 0.75rem; font-weight: 700; letter-spacing: .01em; color: var(--ink-soft); }
 .recommendation-feedback { display: flex; flex-wrap: wrap; gap: 8px; }
 .recommendation-feedback .card-link-button.active { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); }
 .recommendation-feedback .card-link-button:disabled { opacity: .5; cursor: not-allowed; }
@@ -1050,14 +1050,14 @@ path.map-route.day-6 { stroke: var(--day-6); }
 
   .rx-hero-body h1 {
     margin: 0 0 6px;
-    font-size: 24px;
+    font-size: 1.5rem;
     letter-spacing: -.6px;
   }
 
   .rx-hero-body .recommendations-eyebrow { display: none; }
 
   .rx-hero-body p:not(.recommendations-eyebrow) {
-    font-size: 13.5px;
+    font-size: 0.8438rem;
     line-height: 1.5;
   }
 
@@ -1084,7 +1084,7 @@ path.map-route.day-6 { stroke: var(--day-6); }
   gap: 8px;
   margin: 0 0 10px;
   color: var(--ink);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 800;
 }
 
@@ -1101,7 +1101,7 @@ path.map-route.day-6 { stroke: var(--day-6); }
   grid-template-columns: auto 1fr;
   gap: 10px;
   color: var(--ink-soft);
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.5;
 }
 
@@ -1112,7 +1112,7 @@ path.map-route.day-6 { stroke: var(--day-6); }
   margin: 0 0 14px;
   padding: 0 0 0 18px;
   color: var(--ink-soft);
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.55;
 }
 
@@ -1124,7 +1124,7 @@ path.map-route.day-6 { stroke: var(--day-6); }
   list-style: none;
   display: grid;
   gap: 4px;
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .member-fit li {
@@ -1136,7 +1136,7 @@ path.map-route.day-6 { stroke: var(--day-6); }
 
 .member-fit b { color: var(--ink); font-weight: 600; }
 .member-fit-score { font-variant-numeric: tabular-nums; }
-.member-fit-weak { font-size: 12px; }
+.member-fit-weak { font-size: 0.75rem; }
 
 .traveler-name-field {
   margin-bottom: 12px;
@@ -1156,6 +1156,70 @@ path.map-route.day-6 { stroke: var(--day-6); }
 .trip-group-new input {
   flex: 1; min-width: 200px; min-height: 42px; padding: 0 14px;
   border: 1px solid var(--line); border-radius: 12px;
-  background: var(--bg); color: var(--ink); font: 500 14px "DM Sans", sans-serif;
+  background: var(--bg); color: var(--ink); font: 500 0.875rem "DM Sans", sans-serif;
 }
 .trip-group-new input:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+/* ---- Readability ---------------------------------------------------------
+   Testers found the planner text too small to read: labels and help text
+   sat at 12-13.5px, and inputs inherited the 12px label size. Nothing here
+   goes below 14px, and form controls and body copy are 15-16px. Placed last
+   so it wins over the sizes set above. */
+
+.wizard-reset { margin-right: auto; }
+
+.recommendations-page { font-size: 1rem; }
+
+.recommendations-eyebrow,
+.panel-title,
+.interest-group-label,
+.review-grid span,
+.trip-summary dt,
+.recommendation-why,
+.member-fit-weak,
+.itinerary-map-legend small,
+.itinerary-add-day span,
+.segmented button span { font-size: 0.875rem; }
+
+.wizard-field { font-size: 0.875rem; }
+
+.wizard-field input,
+.wizard-field select,
+.landmark-search input { min-height: 44px; font-size: 1rem; font-weight: 500; }
+
+.wizard-help,
+.mode-option span,
+.recommendation-location,
+.recommendation-explanation,
+.recommendations-error,
+.results-advice-title,
+.results-advice li,
+.group-conflicts,
+.itinerary-day-empty,
+.recommendations-results .results-heading p { font-size: 0.9375rem; line-height: 1.5; }
+
+.wizard-step,
+.stepper > span,
+.trip-summary dd,
+.member-fit,
+.excluded-list li span,
+.recommendation-card-actions a,
+.itinerary-map-legend span,
+.itinerary-stop-time,
+.landmark-text small,
+.itinerary-stop-location { font-size: 0.875rem; }
+
+.landmark-text strong,
+.itinerary-stop-name { font-size: 0.9375rem; }
+
+.traveler-block-header h4 { font-size: 1rem; }
+
+.score-ring small { font-size: 0.6875rem; }
+
+.review-grid button { font-size: 0.875rem; }
+
+.recommendations-back-link { font-size: 0.9375rem; }
+
+@media (max-width: 768px) {
+  .rx-hero-body p:not(.recommendations-eyebrow) { font-size: 0.9375rem; }
+}

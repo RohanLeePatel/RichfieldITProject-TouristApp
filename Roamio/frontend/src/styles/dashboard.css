@@ -74,7 +74,7 @@
   color: var(--ink);
 
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.5;
 
   /* nothing on the dashboard should ever push the page sideways */
@@ -138,7 +138,7 @@
   color: white;
 
   font-family: var(--font-display);
-  font-size: 19px;
+  font-size: 1.1875rem;
   font-weight: 800;
   letter-spacing: -0.4px;
 }
@@ -164,7 +164,7 @@
 
   color: rgba(255, 255, 255, 0.45);
 
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -189,7 +189,7 @@
 
   color: var(--sidebar-ink);
 
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
 
   transition: color 0.15s ease, background 0.15s ease;
@@ -230,7 +230,7 @@
   background: rgba(255, 255, 255, 0.12);
   color: white;
 
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
 }
 
@@ -255,7 +255,7 @@
   background: transparent;
   color: var(--sidebar-ink);
 
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
 
   cursor: pointer;
@@ -305,7 +305,7 @@
 
   color: var(--muted);
 
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
 }
 
@@ -391,7 +391,7 @@
   color: white;
 
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 800;
 
   overflow: hidden;
@@ -417,13 +417,13 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
 }
 
 .profile-details span {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 .header-profile > svg {
@@ -519,7 +519,7 @@
 
   background: rgba(255, 255, 255, 0.08);
 
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
@@ -529,7 +529,7 @@
 
 .hero-content h1 {
   font-family: var(--font-display);
-  font-size: clamp(28px, 3.2vw, 40px);
+  font-size: clamp(1.75rem, 3.2vw, 2.5rem);
   font-weight: 800;
   line-height: 1.12;
   letter-spacing: -0.03em;
@@ -548,7 +548,7 @@
 
   color: rgba(255, 255, 255, 0.78);
 
-  font-size: 15px;
+  font-size: 0.9375rem;
   line-height: 1.6;
 }
 
@@ -576,7 +576,7 @@
   background: white;
   color: #12304a;
 
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 700;
 
   cursor: pointer;
@@ -639,7 +639,7 @@ a.hero-spotlight:hover {
 
   color: rgba(255, 255, 255, 0.75);
 
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -653,19 +653,19 @@ a.hero-spotlight:hover {
 
 .spotlight-countdown strong {
   font-family: var(--font-display);
-  font-size: 48px;
+  font-size: 3rem;
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.03em;
 }
 
 .spotlight-countdown .spotlight-word {
-  font-size: 30px;
+  font-size: 1.875rem;
 }
 
 .spotlight-countdown span {
   color: rgba(255, 255, 255, 0.8);
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 500;
 }
 
@@ -678,7 +678,7 @@ a.hero-spotlight:hover {
 }
 
 .spotlight-trip strong {
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 700;
 }
 
@@ -689,7 +689,7 @@ a.hero-spotlight:hover {
 
   color: rgba(255, 255, 255, 0.78);
 
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .spotlight-trip svg {
@@ -707,7 +707,7 @@ a.hero-spotlight:hover {
 
   color: var(--accent);
 
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 
@@ -772,7 +772,7 @@ a.hero-spotlight:hover {
 
 .stat-info strong {
   font-family: var(--font-display);
-  font-size: 24px;
+  font-size: 1.5rem;
   font-weight: 800;
   line-height: 1.15;
   font-variant-numeric: tabular-nums;
@@ -781,7 +781,7 @@ a.hero-spotlight:hover {
 .stat-info span {
   color: var(--muted);
 
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 500;
 }
 
@@ -827,7 +827,7 @@ a.hero-spotlight:hover {
 
 .card-heading h2 {
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 800;
   letter-spacing: -0.02em;
 }
@@ -841,7 +841,7 @@ a.hero-spotlight:hover {
 
   color: var(--muted);
 
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .view-all {
@@ -853,7 +853,7 @@ a.hero-spotlight:hover {
 
   color: var(--brand);
 
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
 }
 
@@ -873,7 +873,7 @@ a.hero-spotlight:hover {
 
   color: var(--brand);
 
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
 }
 
@@ -941,7 +941,7 @@ a.hero-spotlight:hover {
 }
 
 .trip-date-tile span {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -949,7 +949,7 @@ a.hero-spotlight:hover {
 
 .trip-date-tile strong {
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 1.375rem;
   font-weight: 800;
 }
 
@@ -967,7 +967,7 @@ a.hero-spotlight:hover {
   white-space: nowrap;
   text-overflow: ellipsis;
 
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 700;
 }
 
@@ -980,7 +980,7 @@ a.hero-spotlight:hover {
 
   color: var(--muted);
 
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .trip-meta span {
@@ -1012,7 +1012,7 @@ a.hero-spotlight:hover {
 
   border-radius: 999px;
 
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -1024,7 +1024,7 @@ a.hero-spotlight:hover {
 .trip-countdown {
   color: var(--muted);
 
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -1083,7 +1083,7 @@ a.hero-spotlight:hover {
 }
 
 .empty-state strong {
-  font-size: 16px;
+  font-size: 1rem;
 }
 
 .empty-state p {
@@ -1093,7 +1093,7 @@ a.hero-spotlight:hover {
 
   color: var(--muted);
 
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .primary-button {
@@ -1111,7 +1111,7 @@ a.hero-spotlight:hover {
   background: var(--brand);
   color: white;
 
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 700;
 
   cursor: pointer;
@@ -1135,7 +1135,7 @@ a.hero-spotlight:hover {
   background: none;
   color: var(--brand);
 
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
 
   cursor: pointer;
@@ -1178,7 +1178,7 @@ a.hero-spotlight:hover {
 
 .weather-temp {
   font-family: var(--font-display);
-  font-size: 44px;
+  font-size: 2.75rem;
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.03em;
@@ -1189,7 +1189,7 @@ a.hero-spotlight:hover {
 
   color: var(--ink-soft);
 
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
 }
 
@@ -1216,14 +1216,14 @@ a.hero-spotlight:hover {
 
   color: var(--muted);
 
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
 }
 
 .weather-metrics dd {
   margin: 2px 0 0;
 
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 700;
 }
 
@@ -1247,7 +1247,7 @@ a.hero-spotlight:hover {
 
 .weather-state strong {
   display: block;
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .weather-state span {
@@ -1257,7 +1257,7 @@ a.hero-spotlight:hover {
 
   color: var(--muted);
 
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .weather-refresh-spin {
@@ -1301,7 +1301,7 @@ a.hero-spotlight:hover {
 
   color: white;
 
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 
@@ -1325,13 +1325,13 @@ a.hero-spotlight:hover {
   white-space: nowrap;
   text-overflow: ellipsis;
 
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
 }
 
 .group-member-info span {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .organizer-badge {
@@ -1342,7 +1342,7 @@ a.hero-spotlight:hover {
   background: var(--brand-soft);
   color: var(--brand-strong);
 
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
@@ -1351,7 +1351,7 @@ a.hero-spotlight:hover {
 
   color: var(--muted);
 
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 /* =========================================================
@@ -1666,7 +1666,7 @@ a.hero-spotlight:hover {
   }
 
   .spotlight-countdown strong {
-    font-size: 40px;
+    font-size: 2.5rem;
   }
 
   .stats-grid {
@@ -1703,7 +1703,7 @@ a.hero-spotlight:hover {
   }
 
   .trip-date-tile strong {
-    font-size: 19px;
+    font-size: 1.1875rem;
   }
 
   .trip-side {

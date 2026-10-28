@@ -337,7 +337,7 @@ export default function Login() {
               <p
                 style={{
                   color: "#e05252",
-                  fontSize: "12px",
+                  fontSize: "0.75rem",
                   lineHeight: "1.5",
                   margin: "0 0 10px",
                 }}

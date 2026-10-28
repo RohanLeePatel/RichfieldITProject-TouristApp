@@ -48,7 +48,7 @@
   color: var(--ink);
 
   font-family: var(--font-body);
-  font-size: 16px;
+  font-size: 1rem;
   line-height: 1.6;
 
   overflow-x: clip;
@@ -111,7 +111,7 @@ html:has(.landing-page) {
   border: 1px solid transparent;
   border-radius: 12px;
 
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 700;
   white-space: nowrap;
 
@@ -128,7 +128,7 @@ html:has(.landing-page) {
   height: 52px;
   padding: 0 26px;
 
-  font-size: 16px;
+  font-size: 1rem;
 }
 
 .landing-btn-primary {
@@ -204,7 +204,7 @@ html:has(.landing-page) {
   gap: 10px;
 
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 1.25rem;
   font-weight: 800;
   letter-spacing: -0.02em;
 }
@@ -227,7 +227,7 @@ html:has(.landing-page) {
   align-items: center;
   gap: 28px;
 
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 500;
 }
 
@@ -357,7 +357,7 @@ html:has(.landing-page) {
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(8px);
 
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 
@@ -367,7 +367,7 @@ html:has(.landing-page) {
 
 .landing-hero h1 {
   font-family: var(--font-display);
-  font-size: clamp(38px, 5.4vw, 68px);
+  font-size: clamp(2.375rem, 5.4vw, 4.25rem);
   font-weight: 800;
   line-height: 1.06;
   letter-spacing: -0.035em;
@@ -384,7 +384,7 @@ html:has(.landing-page) {
 
   color: rgba(255, 255, 255, 0.82);
 
-  font-size: 18px;
+  font-size: 1.125rem;
   line-height: 1.65;
 }
 
@@ -405,7 +405,7 @@ html:has(.landing-page) {
 
   color: rgba(255, 255, 255, 0.78);
 
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
 }
 
@@ -482,7 +482,7 @@ html:has(.landing-page) {
   display: block;
 
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: 1.125rem;
 }
 
 .landing-match-top span:not(.landing-match-score) {
@@ -492,7 +492,7 @@ html:has(.landing-page) {
 
   color: var(--muted);
 
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .landing-match-score {
@@ -503,7 +503,7 @@ html:has(.landing-page) {
   background: #dcf7ef;
   color: #0b6b55;
 
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -515,7 +515,7 @@ html:has(.landing-page) {
 
   margin-top: 14px;
 
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 500;
 }
 
@@ -551,13 +551,13 @@ html:has(.landing-page) {
 .landing-date-card strong {
   display: block;
 
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 
 .landing-group-card div:not(.landing-avatars) > span,
 .landing-date-card div > span {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .landing-avatars {
@@ -578,7 +578,7 @@ html:has(.landing-page) {
 
   color: white;
 
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
@@ -785,7 +785,7 @@ html:has(.landing-page) {
 .landing-destination-caption span {
   color: var(--accent);
 
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -793,7 +793,7 @@ html:has(.landing-page) {
 
 .landing-destination-caption strong {
   font-family: var(--font-display);
-  font-size: 24px;
+  font-size: 1.5rem;
   font-weight: 800;
   letter-spacing: -0.02em;
 }
@@ -805,7 +805,7 @@ html:has(.landing-page) {
 
   color: rgba(255, 255, 255, 0.85);
 
-  font-size: 14px;
+  font-size: 0.875rem;
   font-style: normal;
 }
 
@@ -856,7 +856,7 @@ html:has(.landing-page) {
 
   color: var(--brand);
 
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -864,7 +864,7 @@ html:has(.landing-page) {
 
 .landing-page h2 {
   font-family: var(--font-display);
-  font-size: clamp(30px, 3.6vw, 44px);
+  font-size: clamp(1.875rem, 3.6vw, 2.75rem);
   font-weight: 800;
   line-height: 1.15;
   letter-spacing: -0.03em;
@@ -875,7 +875,7 @@ html:has(.landing-page) {
 
   color: var(--muted);
 
-  font-size: 18px;
+  font-size: 1.125rem;
 }
 
 /* =========================================================
@@ -933,7 +933,7 @@ html:has(.landing-page) {
   color: var(--line);
 
   font-family: var(--font-display);
-  font-size: 40px;
+  font-size: 2.5rem;
   font-weight: 800;
   line-height: 1;
 }
@@ -975,7 +975,7 @@ html:has(.landing-page) {
 .landing-feature h3 {
   margin-bottom: 8px;
 
-  font-size: 19px;
+  font-size: 1.1875rem;
   font-weight: 700;
 }
 
@@ -983,7 +983,7 @@ html:has(.landing-page) {
 .landing-feature p {
   color: var(--muted);
 
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 
 /* =========================================================
@@ -1002,7 +1002,7 @@ html:has(.landing-page) {
 
   color: var(--muted);
 
-  font-size: 17px;
+  font-size: 1.0625rem;
 }
 
 .landing-checklist {
@@ -1081,7 +1081,7 @@ html:has(.landing-page) {
   backdrop-filter: blur(6px);
   color: white;
 
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 
@@ -1100,7 +1100,7 @@ html:has(.landing-page) {
 
 .landing-preview-title h3 {
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 1.375rem;
 }
 
 .landing-preview-title span:not(.landing-match-score) {
@@ -1110,7 +1110,7 @@ html:has(.landing-page) {
 
   color: var(--muted);
 
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .landing-bars {
@@ -1125,7 +1125,7 @@ html:has(.landing-page) {
 
   margin-bottom: 6px;
 
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .landing-bars li > div span {
@@ -1377,7 +1377,7 @@ html:has(.landing-page) {
   background: none;
   color: var(--ink);
 
-  font-size: 17px;
+  font-size: 1.0625rem;
   font-weight: 600;
   text-align: left;
 
@@ -1466,7 +1466,7 @@ html:has(.landing-page) {
 
   color: rgba(255, 255, 255, 0.82);
 
-  font-size: 18px;
+  font-size: 1.125rem;
 }
 
 .landing-cta .landing-hero-actions {
@@ -1503,7 +1503,7 @@ html:has(.landing-page) {
 .landing-footer-inner p {
   margin-top: 12px;
 
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 
 .landing-footer-links {
@@ -1511,7 +1511,7 @@ html:has(.landing-page) {
   flex-wrap: wrap;
   gap: 12px 28px;
 
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 
 .landing-footer-links a:hover {
@@ -1526,7 +1526,7 @@ html:has(.landing-page) {
 
   padding-top: 24px;
 
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 /* =========================================================
@@ -1721,7 +1721,7 @@ html:has(.landing-page) {
   }
 
   .landing-hero-sub {
-    font-size: 16px;
+    font-size: 1rem;
   }
 
   .landing-hero-actions .landing-btn {
@@ -1778,7 +1778,7 @@ html:has(.landing-page) {
 
   .landing-faq-item button {
     padding: 18px;
-    font-size: 16px;
+    font-size: 1rem;
   }
 
   .landing-faq-answer p {

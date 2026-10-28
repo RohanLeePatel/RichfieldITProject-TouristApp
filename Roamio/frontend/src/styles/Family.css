@@ -45,7 +45,7 @@
   align-items: center;
   gap: 6px;
   color: var(--primary);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: .01em;
   line-height: 1;
@@ -59,7 +59,7 @@
   min-height: 40px;
   padding: 0 17px;
   border-radius: 999px;
-  font: 800 13px "Plus Jakarta Sans", sans-serif;
+  font: 800 0.8125rem "Plus Jakarta Sans", sans-serif;
   text-decoration: none;
   cursor: pointer;
   transition:
@@ -150,7 +150,7 @@
 .family-together-content h2,
 .family-invite-card h2 {
   margin: 7px 0 5px;
-  font-size: clamp(22px, 2.4vw, 27px);
+  font-size: clamp(1.375rem, 2.4vw, 1.6875rem);
   letter-spacing: -.7px;
 }
 
@@ -162,7 +162,7 @@
 .family-invite-card p {
   margin: 0;
   color: var(--ink-soft);
-  font-size: 13.5px;
+  font-size: 0.8438rem;
 }
 
 .family-stat-grid {
@@ -202,18 +202,18 @@
 
 .family-stat-card > div > span {
   color: var(--ink-soft);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
 }
 
 .family-stat-card strong {
   color: var(--ink);
-  font: 800 27px/1 "Plus Jakarta Sans", sans-serif;
+  font: 800 1.6875rem/1 "Plus Jakarta Sans", sans-serif;
 }
 
 .family-stat-card small {
   color: var(--ink-soft);
-  font-size: 10px;
+  font-size: 0.625rem;
 }
 
 .family-stat-icon {
@@ -342,7 +342,7 @@
   outline: 0;
   background: transparent;
   color: var(--ink);
-  font-size: 12.5px;
+  font-size: 0.7812rem;
 }
 
 .family-search input::placeholder {
@@ -383,7 +383,7 @@
   border-radius: 9px;
   background: transparent;
   color: var(--ink-soft);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   cursor: pointer;
 }
@@ -440,7 +440,7 @@
   flex-shrink: 0;
   place-items: center;
   border-radius: 14px;
-  font: 800 12px "Plus Jakarta Sans", sans-serif;
+  font: 800 0.75rem "Plus Jakarta Sans", sans-serif;
 }
 
 .family-avatar-large {
@@ -493,7 +493,7 @@
 
 .family-member-name-row h3 {
   margin: 0;
-  font-size: 15px;
+  font-size: 0.9375rem;
   letter-spacing: -.2px;
 }
 
@@ -504,7 +504,7 @@
   gap: 4px;
   border-radius: 999px;
   padding: 4px 8px;
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 800;
   letter-spacing: .02em;
 }
@@ -531,7 +531,7 @@
   gap: 7px;
   margin: 3px 0 7px;
   color: var(--ink-soft);
-  font-size: 11.5px;
+  font-size: 0.7188rem;
 }
 
 .family-member-meta {
@@ -547,7 +547,7 @@
   gap: 5px;
   min-width: 0;
   color: var(--ink-soft);
-  font-size: 10.5px;
+  font-size: 0.6562rem;
 }
 
 .family-member-interests {
@@ -565,7 +565,7 @@
   border-radius: 999px;
   background: var(--surface-2);
   color: var(--ink-soft);
-  font-size: 9.5px;
+  font-size: 0.5938rem;
   font-weight: 700;
 }
 
@@ -635,7 +635,7 @@
   border-radius: 8px;
   background: transparent;
   color: var(--ink);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   text-align: left;
   cursor: pointer;
@@ -658,7 +658,7 @@
   padding-top: 13px;
   border-top: 1px solid var(--line);
   color: var(--ink-soft);
-  font-size: 10.5px;
+  font-size: 0.6562rem;
 }
 
 .family-list-footer button {
@@ -668,7 +668,7 @@
   border: 0;
   background: transparent;
   color: var(--primary);
-  font-size: 10.5px;
+  font-size: 0.6562rem;
   font-weight: 800;
   cursor: pointer;
 }
@@ -701,13 +701,13 @@
 
 .family-empty-state h3 {
   margin: 0 0 5px;
-  font-size: 16px;
+  font-size: 1rem;
 }
 
 .family-empty-state p {
   margin: 0 0 16px;
   color: var(--ink-soft);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 /* =========================================================
@@ -736,7 +736,7 @@
 }
 
 .family-card-heading h2 {
-  font-size: 19px;
+  font-size: 1.1875rem;
 }
 
 .family-card-description {
@@ -767,7 +767,7 @@
   align-items: center;
   gap: 6px;
   color: var(--ink);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
 }
 
@@ -777,7 +777,7 @@
 
 .family-interest-bar-top strong {
   color: var(--ink-soft);
-  font-size: 10px;
+  font-size: 0.625rem;
 }
 
 .family-interest-track {
@@ -805,7 +805,7 @@
   gap: 5px;
   margin-top: 20px;
   color: var(--primary);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   text-decoration: none;
 }
@@ -925,7 +925,7 @@
   max-width: 270px;
   margin-top: 9px;
   color: #fff;
-  font-size: 22px;
+  font-size: 1.375rem;
   letter-spacing: -.6px;
 }
 
@@ -961,7 +961,7 @@
 }
 
 .family-section-heading-row h2 {
-  font-size: 24px;
+  font-size: 1.5rem;
 }
 
 .family-outline-link {
@@ -969,7 +969,7 @@
   align-items: center;
   gap: 5px;
   color: var(--primary);
-  font-size: 11.5px;
+  font-size: 0.7188rem;
   font-weight: 800;
   text-decoration: none;
   white-space: nowrap;
@@ -1096,7 +1096,7 @@
   padding: 5px 9px;
   border-radius: 999px;
   background: rgba(0, 0, 0, .2);
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 800;
 }
 
@@ -1108,7 +1108,7 @@
 
 .family-trip-body h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: 1rem;
   letter-spacing: -.3px;
 }
 
@@ -1118,7 +1118,7 @@
   gap: 5px;
   margin: 0;
   color: var(--ink-soft);
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 
 .family-trip-body > p svg {
@@ -1138,7 +1138,7 @@
   align-items: center;
   gap: 5px;
   color: var(--ink-soft);
-  font-size: 10px;
+  font-size: 0.625rem;
 }
 
 .family-trip-details svg {
@@ -1151,7 +1151,7 @@
   gap: 4px;
   margin-top: 5px;
   color: var(--primary);
-  font-size: 10.5px;
+  font-size: 0.6562rem;
   font-weight: 800;
 }
 
@@ -1206,12 +1206,12 @@
 
 .family-activity-item strong {
   color: var(--ink);
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 
 .family-activity-item span {
   color: var(--ink-soft);
-  font-size: 9.5px;
+  font-size: 0.5938rem;
 }
 
 .family-invite-card {
@@ -1273,7 +1273,7 @@
 
 .family-invite-card h2 {
   max-width: 330px;
-  font-size: 20px;
+  font-size: 1.25rem;
 }
 
 .family-invite-card p {
@@ -1323,21 +1323,21 @@
   align-items: center;
   gap: 6px;
   color: var(--primary);
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: .09em;
 }
 
 .family-modal-header h2 {
   margin: 7px 0 5px;
-  font-size: 23px;
+  font-size: 1.4375rem;
   letter-spacing: -.6px;
 }
 
 .family-modal-header p {
   margin: 0;
   color: var(--ink-soft);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 .family-modal-close {
@@ -1378,7 +1378,7 @@
 
 .family-form-field > span {
   color: var(--ink);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
 }
 
@@ -1415,7 +1415,7 @@
   outline: 0;
   background: transparent;
   color: var(--ink);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 .family-form-field select,
@@ -1427,7 +1427,7 @@
   outline: 0;
   background: var(--surface-2);
   color: var(--ink);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 .family-form-field select:focus,
@@ -1448,14 +1448,14 @@
 .family-form-section-heading strong {
   display: block;
   color: var(--ink);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 .family-form-section-heading span {
   display: block;
   margin-top: 2px;
   color: var(--ink-soft);
-  font-size: 10.5px;
+  font-size: 0.6562rem;
 }
 
 .family-interest-picker {
@@ -1474,7 +1474,7 @@
   border-radius: 10px;
   background: var(--surface);
   color: var(--ink-soft);
-  font-size: 10.5px;
+  font-size: 0.6562rem;
   font-weight: 700;
   text-align: left;
   cursor: pointer;
@@ -1567,7 +1567,7 @@
   background: var(--surface);
   color: var(--ink);
   box-shadow: var(--shadow-lift);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   animation: family-toast-in .22s ease;
 }
@@ -1685,7 +1685,7 @@
   }
 
   .family-stat-card strong {
-    font-size: 23px;
+    font-size: 1.4375rem;
   }
 
   .family-member-toolbar {
@@ -1832,7 +1832,7 @@
 
 .family-group-card h3 {
   margin: 0;
-  font-size: 17px;
+  font-size: 1.0625rem;
 }
 
 .family-group-members,
@@ -1842,7 +1842,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .family-group-members li {
@@ -1891,14 +1891,14 @@
 .family-groups-note {
   margin: 0;
   color: var(--ink-soft);
-  font-size: 13px;
+  font-size: 0.8125rem;
   overflow-wrap: anywhere;
 }
 
 .family-groups-error {
   margin: 0;
   color: var(--danger, #b4432b);
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .family-text-button {
@@ -1914,10 +1914,10 @@
 }
 
 /* Companions panel: which travel group's companions are shown */
-.family-group-picker { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--ink-soft); font-size: 13px; font-weight: 700; }
+.family-group-picker { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; color: var(--ink-soft); font-size: 0.8125rem; font-weight: 700; }
 .family-group-picker select {
   min-height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px;
-  background: var(--surface); color: var(--ink); font: 600 13px "DM Sans", sans-serif;
+  background: var(--surface); color: var(--ink); font: 600 0.8125rem "DM Sans", sans-serif;
 }
 
 .family-form-error {
@@ -1926,7 +1926,7 @@
   border-radius: 10px;
   background: rgba(220, 38, 38, 0.1);
   color: #b91c1c;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 

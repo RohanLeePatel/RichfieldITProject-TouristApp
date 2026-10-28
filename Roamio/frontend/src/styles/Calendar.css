@@ -1059,7 +1059,7 @@
   border: 1px dashed var(--cal-line);
   border-radius: 12px;
   color: var(--cal-ink);
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .cal-day-stops span {
@@ -1901,7 +1901,7 @@
   border-radius: 10px;
   background: rgba(220, 38, 38, 0.1);
   color: #b91c1c;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 

@@ -48,6 +48,9 @@ export default function Recommendations() {
   // done -> itinerary saved
   const [stage, setStage] = useState("wizard");
   const [step, setStep] = useState(0);
+  // set by an "Edit" link on the review step: Continue then goes straight
+  // back to the review instead of through every step in between
+  const [returnToReview, setReturnToReview] = useState(false);
   // just you to start; picking a travel group on the first step brings in its
   // people (TripGroupPanel)
   const [form, setForm] = useState(initialForm);
@@ -344,6 +347,11 @@ export default function Recommendations() {
       return;
     }
     setError("");
+    if (returnToReview && step < steps.length - 1) {
+      setReturnToReview(false);
+      setStep(steps.length - 1);
+      return;
+    }
     if (step < steps.length - 1) {
       setStep((current) => current + 1);
       return;
@@ -708,6 +716,16 @@ export default function Recommendations() {
     );
   };
 
+  // Clears every answer and goes back to the first step. The home currency
+  // from Settings and the catalog's country stay - they're defaults, not choices.
+  const resetWizard = () => {
+    if (!window.confirm("Start over? This clears all your answers.")) return;
+    setForm((current) => ({ ...initialForm, currency: current.currency, country: countries.some((c) => c.name === initialForm.country) ? initialForm.country : countries[0]?.name || initialForm.country }));
+    setReturnToReview(false);
+    setError("");
+    setStep(0);
+  };
+
   const editPreferences = () => {
     setRecommendationData(null);
     setResultsHistory([]);
@@ -752,6 +770,9 @@ export default function Recommendations() {
         <WizardView
           step={step}
           setStep={setStep}
+          returnToReview={returnToReview}
+          setReturnToReview={setReturnToReview}
+          onReset={resetWizard}
           error={error}
           setError={setError}
           loading={loading}

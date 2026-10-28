@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronLeft, LoaderCircle } from "lucide-react";
+import { ArrowRight, ChevronLeft, LoaderCircle, RotateCcw } from "lucide-react";
 
 import { steps } from "../../pages/recommendations/constants.js";
 import TripSummary from "./TripSummary.jsx";
@@ -9,11 +9,17 @@ import ReviewStep from "./steps/ReviewStep.jsx";
 
 // Layout: a column of separate cards (progress, then each step's panels,
 // then the actions bar) beside a live "trip so far" summary card.
-export default function WizardView({ step, setStep, error, setError, loading, onNext, ...stepProps }) {
+export default function WizardView({ step, setStep, returnToReview, setReturnToReview, onReset, error, setError, loading, onNext, ...stepProps }) {
   const goToStep = (target) => {
     setError("");
     setStep(target);
   };
+  // "Edit" on the review step: change one thing, then come straight back
+  const editFromReview = (target) => {
+    setReturnToReview(true);
+    goToStep(target);
+  };
+  const isLast = step === steps.length - 1;
   return (
     <section className="wizard-card">
       <div className="wizard-main">
@@ -33,11 +39,14 @@ export default function WizardView({ step, setStep, error, setError, loading, on
         {step === 0 && <BasicsStep {...stepProps} />}
         {step === 1 && <InterestsStep {...stepProps} />}
         {step === 2 && <GroupStep {...stepProps} />}
-        {step === 3 && <ReviewStep form={stepProps.form} goToStep={goToStep} />}
+        {step === 3 && <ReviewStep form={stepProps.form} goToStep={editFromReview} />}
 
         {error && <p className="recommendations-error" role="alert">{error}</p>}
         <div className="panel wizard-actions">
-          {step > 0 && (
+          <button type="button" className="secondary-button wizard-reset" onClick={onReset} disabled={loading}>
+            <RotateCcw size={16} /> Start over
+          </button>
+          {step > 0 && !returnToReview && (
             <button type="button" className="secondary-button" onClick={() => goToStep(step - 1)}>
               <ChevronLeft size={17} /> Back
             </button>
@@ -46,7 +55,7 @@ export default function WizardView({ step, setStep, error, setError, loading, on
             {loading ? (
               <><LoaderCircle className="recommendations-spinner" size={18} /> Finding matches...</>
             ) : (
-              <>{step === steps.length - 1 ? "Find my matches" : "Continue"} <ArrowRight size={17} /></>
+              <>{isLast ? "Find my matches" : returnToReview ? "Save and review" : "Continue"} <ArrowRight size={17} /></>
             )}
           </button>
         </div>

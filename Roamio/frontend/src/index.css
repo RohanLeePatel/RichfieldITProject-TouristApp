@@ -30,6 +30,9 @@ body,
 
 html {
   min-height: 100%;
+  /* every stylesheet sizes text in rem, so this one value scales all text
+     in the app - 112.5% makes 16px read as 18px */
+  font-size: 112.5%;
 }
 
 body {

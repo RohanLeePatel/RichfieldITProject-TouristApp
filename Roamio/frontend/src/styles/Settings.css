@@ -72,14 +72,14 @@
 
 .settings-section-intro h2 {
   margin: 0 0 5px;
-  font-size: 22px;
+  font-size: 1.375rem;
   letter-spacing: -0.6px;
 }
 
 .settings-section-intro p {
   margin: 0;
   color: var(--ink-soft);
-  font-size: 13.5px;
+  font-size: 0.8438rem;
 }
 
 .profile-status {
@@ -91,7 +91,7 @@
   border-radius: 999px;
   background: var(--sage-bg);
   color: var(--ink);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 800;
 }
 
@@ -152,7 +152,7 @@
   color: #fff;
 
   font:
-    800 32px "Plus Jakarta Sans",
+    800 2rem "Plus Jakarta Sans",
     sans-serif;
 }
 
@@ -192,14 +192,14 @@
 
 .profile-photo-copy h3 {
   margin: 0 0 5px;
-  font-size: 16px;
+  font-size: 1rem;
 }
 
 .profile-photo-copy p {
   max-width: 520px;
   margin: 0 0 12px;
   color: var(--ink-soft);
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .profile-photo-actions {
@@ -224,7 +224,7 @@
   color: var(--danger);
 
   font:
-    700 12.5px "DM Sans",
+    700 0.7812rem "DM Sans",
     sans-serif;
 
   cursor: pointer;
@@ -255,7 +255,7 @@
 
   color: var(--ink-soft);
 
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 800;
   letter-spacing: .01em;
 }
@@ -298,7 +298,7 @@
   color: var(--ink);
 
   font:
-    500 14px "DM Sans",
+    500 0.875rem "DM Sans",
     sans-serif;
 }
 
@@ -336,7 +336,7 @@
   background: var(--sage-bg);
   color: var(--primary);
 
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 
@@ -385,13 +385,13 @@
 
 .settings-row-copy h3 {
   margin: 0 0 3px;
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 
 .settings-row-copy p {
   margin: 0;
   color: var(--ink-soft);
-  font-size: 12.5px;
+  font-size: 0.7812rem;
 }
 
 /* ---------- Password form ---------- */
@@ -416,13 +416,13 @@
 
 .password-change-header h3 {
   margin: 0 0 4px;
-  font-size: 16px;
+  font-size: 1rem;
 }
 
 .password-change-header p {
   margin: 0;
   color: var(--ink-soft);
-  font-size: 12.5px;
+  font-size: 0.7812rem;
 }
 
 .password-close-button {
@@ -469,7 +469,7 @@
   background: var(--danger-bg);
   color: var(--danger);
 
-  font-size: 12.5px;
+  font-size: 0.7812rem;
   font-weight: 700;
 }
 
@@ -519,7 +519,7 @@
   color: #fff;
 
   font:
-    800 27px "Plus Jakarta Sans",
+    800 1.6875rem "Plus Jakarta Sans",
     sans-serif;
 
   box-shadow:
@@ -536,7 +536,7 @@
 
 .settings-preview-card h3 {
   margin: 0 0 3px;
-  font-size: 17px;
+  font-size: 1.0625rem;
 }
 
 .settings-preview-card > p {
@@ -544,7 +544,7 @@
 
   color: var(--ink-soft);
 
-  font-size: 12.5px;
+  font-size: 0.7812rem;
 
   overflow-wrap: anywhere;
 }
@@ -573,11 +573,11 @@
 
 .preview-detail span {
   color: var(--ink-soft);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 .preview-detail strong {
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 /* ---------- Tip ---------- */
@@ -609,7 +609,7 @@
 
 .settings-tip-card h3 {
   margin: 0 0 6px;
-  font-size: 16px;
+  font-size: 1rem;
 }
 
 .settings-tip-card p {
@@ -617,7 +617,7 @@
 
   color: var(--ink-soft);
 
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.55;
 }
 
@@ -628,7 +628,7 @@
 
   color: var(--ink-soft);
 
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.55;
 }
 
@@ -778,7 +778,7 @@
   color: var(--ink);
 
   font:
-    500 14px "DM Sans",
+    500 0.875rem "DM Sans",
     sans-serif;
 }
 

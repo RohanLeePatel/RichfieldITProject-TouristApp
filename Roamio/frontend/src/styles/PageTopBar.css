@@ -27,7 +27,7 @@
 
 .page-topbar-back {
   color: rgba(255, 251, 244, .85);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 700;
   text-decoration: none;
 }
@@ -35,7 +35,7 @@
 .page-topbar-back:hover { color: #fff; }
 
 .page-topbar-brand {
-  font: 800 19px "Plus Jakarta Sans", sans-serif;
+  font: 800 1.1875rem "Plus Jakarta Sans", sans-serif;
 }
 
 .page-topbar-brand span {
@@ -84,7 +84,7 @@
   gap: 7px;
   margin: 0 0 10px;
   color: #E1F0D0;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: .01em;
 }
@@ -93,7 +93,7 @@
   max-width: 720px;
   margin: 0 0 8px;
   color: #FFFBF4;
-  font: 800 clamp(24px, 3.4vw, 34px)/1.15 "Plus Jakarta Sans", sans-serif;
+  font: 800 clamp(1.5rem, 3.4vw, 2.125rem)/1.15 "Plus Jakarta Sans", sans-serif;
   letter-spacing: -.8px;
 }
 
@@ -105,13 +105,13 @@
   max-width: 620px;
   margin: 0;
   color: rgba(255, 251, 244, .88);
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 
 @media (max-width: 768px) {
   .page-topbar-hero { padding: 4px 0 18px; }
-  .page-topbar-hero h1 { margin: 0 0 6px; font-size: 24px; letter-spacing: -.6px; }
+  .page-topbar-hero h1 { margin: 0 0 6px; font-size: 1.5rem; letter-spacing: -.6px; }
   .page-topbar-eyebrow { display: none; }
   .page-topbar-hero > p:not(.page-topbar-eyebrow),
-  .page-topbar-lede { font-size: 13.5px; line-height: 1.5; }
+  .page-topbar-lede { font-size: 0.8438rem; line-height: 1.5; }
 }
