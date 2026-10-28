@@ -22,6 +22,25 @@ const money = (amount, currency) =>
   `${Number(amount).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency || ""}`.trim();
 const today = () => new Date().toLocaleDateString("en-CA");
 
+// generous ceiling - anything above is almost certainly a typo
+const MAX_AMOUNT = 10_000_000;
+
+// "" when ok, otherwise the message to show; `allowZero` is for limits/budgets
+const amountError = (value, label, { allowZero = false } = {}) => {
+  const n = Number(value);
+  if (value === "" || !Number.isFinite(n)) return `Enter ${label} as a number.`;
+  if (allowZero ? n < 0 : n <= 0) return `${label[0].toUpperCase()}${label.slice(1)} must be ${allowZero ? "zero or more" : "more than zero"}.`;
+  if (n > MAX_AMOUNT) return `${label[0].toUpperCase()}${label.slice(1)} can't be more than ${MAX_AMOUNT.toLocaleString("en-ZA")}.`;
+  if (!/^\d+(\.\d{1,2})?$/.test(String(value).trim())) return `Use at most two decimal places for ${label}.`;
+  return "";
+};
+
+const shiftDays = (iso, days) => {
+  const d = new Date(`${iso.slice(0, 10)}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  return d.toLocaleDateString("en-CA");
+};
+
 // Durban tasks 7 and 8: record a purchase in whatever currency it was paid in,
 // and see what's left of the budget in the trip's currency.
 export default function TripBudget() {
@@ -105,6 +124,7 @@ export default function TripBudget() {
           )}
 
           <ExpenseForm
+            trip={trip}
             budgetCurrency={budgetCurrency}
             busy={busy}
             onAdd={(expense) =>
@@ -132,6 +152,7 @@ export default function TripBudget() {
                       label={category.label}
                       row={row}
                       currency={budgetCurrency}
+                      totalBudget={summary.totalBudget}
                       busy={busy}
                       onLimit={(limit) => run(() => saveCategoryLimit(tripId, category.id, limit))}
                     />
@@ -205,6 +226,7 @@ function BudgetOverview({ summary, defaultCurrency, busy, onSave }) {
   const [amount, setAmount] = useState(summary.totalBudget ?? "");
   const [currency, setCurrency] = useState(defaultCurrency);
   const [editing, setEditing] = useState(summary.totalBudget === null);
+  const [formError, setFormError] = useState("");
   const percent = summary.totalBudget ? Math.min(100, Math.round((summary.totalSpent / summary.totalBudget) * 100)) : 0;
 
   return (
@@ -227,13 +249,16 @@ function BudgetOverview({ summary, defaultCurrency, busy, onSave }) {
           className="trip-hub-search"
           onSubmit={(event) => {
             event.preventDefault();
-            onSave(amount, currency);
+            const problem = amountError(amount, "the trip budget");
+            setFormError(problem);
+            if (problem) return;
+            onSave(Number(amount).toFixed(2), currency);
             setEditing(false);
           }}
         >
           <label className="wizard-field">
             Trip budget
-            <input type="number" min="0" step="0.01" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} required />
+            <input type="number" min="0.01" max={MAX_AMOUNT} step="0.01" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} required />
           </label>
           <label className="wizard-field">
             Currency
@@ -244,17 +269,23 @@ function BudgetOverview({ summary, defaultCurrency, busy, onSave }) {
           <button type="submit" className="recommendations-submit" disabled={busy}>Save budget</button>
         </form>
       )}
+      {formError && editing && <p className="recommendations-error" role="alert">{formError}</p>}
     </section>
   );
 }
 
-function ExpenseForm({ budgetCurrency, busy, onAdd }) {
+function ExpenseForm({ trip, budgetCurrency, busy, onAdd }) {
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState(budgetCurrency);
   const [category, setCategory] = useState("FOOD");
   const [date, setDate] = useState(today);
   const [preview, setPreview] = useState("");
+  const [formError, setFormError] = useState("");
+
+  // allow bookings made up to a year ahead of the trip, nothing after it ends
+  const minDate = trip?.startDate ? shiftDays(trip.startDate, -365) : undefined;
+  const maxDate = trip?.endDate ? shiftDays(trip.endDate, 0) : undefined;
 
   useEffect(() => setCurrency(budgetCurrency), [budgetCurrency]);
 
@@ -286,6 +317,14 @@ function ExpenseForm({ budgetCurrency, busy, onAdd }) {
         className="trip-hub-search"
         onSubmit={(event) => {
           event.preventDefault();
+          let problem = "";
+          if (!title.trim()) problem = "Say what the purchase was.";
+          else problem = amountError(amount, "the amount");
+          if (!problem && !/^\d{4}-\d{2}-\d{2}$/.test(date)) problem = "Pick the date of the purchase.";
+          else if (!problem && minDate && date < minDate) problem = "That date is more than a year before the trip.";
+          else if (!problem && maxDate && date > maxDate) problem = "That date is after the trip ends.";
+          setFormError(problem);
+          if (problem) return;
           onAdd({ title: title.trim(), amount: Number(amount).toFixed(2), currency, category, date });
           setTitle("");
           setAmount("");
@@ -297,7 +336,7 @@ function ExpenseForm({ budgetCurrency, busy, onAdd }) {
         </label>
         <label className="wizard-field">
           Amount
-          <input type="number" min="0.01" step="0.01" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} required />
+          <input type="number" min="0.01" max={MAX_AMOUNT} step="0.01" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} required />
         </label>
         <label className="wizard-field">
           Paid in
@@ -313,17 +352,19 @@ function ExpenseForm({ budgetCurrency, busy, onAdd }) {
         </label>
         <label className="wizard-field">
           Date
-          <input type="date" value={date} onChange={(event) => setDate(event.target.value)} required />
+          <input type="date" min={minDate} max={maxDate} value={date} onChange={(event) => setDate(event.target.value)} required />
         </label>
         <button type="submit" className="recommendations-submit" disabled={busy}>Add</button>
       </form>
+      {formError && <p className="recommendations-error" role="alert">{formError}</p>}
       {preview && <p className="wizard-help">{preview}</p>}
     </section>
   );
 }
 
-function CategoryRow({ label, row, currency, busy, onLimit }) {
+function CategoryRow({ label, row, currency, totalBudget, busy, onLimit }) {
   const [limit, setLimit] = useState(row?.limit ?? "");
+  const [formError, setFormError] = useState("");
   const spent = row?.spent || 0;
   return (
     <li className={row?.overLimit ? "over" : ""}>
@@ -332,12 +373,19 @@ function CategoryRow({ label, row, currency, busy, onLimit }) {
       <form
         onSubmit={(event) => {
           event.preventDefault();
-          onLimit(limit);
+          let problem = amountError(limit, `the ${label} limit`, { allowZero: true });
+          if (!problem && totalBudget != null && Number(limit) > Number(totalBudget)) {
+            problem = `The ${label} limit can't be more than the whole trip budget (${money(totalBudget, currency)}).`;
+          }
+          setFormError(problem);
+          if (problem) return;
+          onLimit(Number(limit).toFixed(2));
         }}
       >
-        <input type="number" min="0" step="0.01" value={limit} onChange={(event) => setLimit(event.target.value)} placeholder="No limit" aria-label={`${label} limit`} />
+        <input type="number" min="0" max={totalBudget ?? MAX_AMOUNT} step="0.01" value={limit} onChange={(event) => setLimit(event.target.value)} placeholder="No limit" aria-label={`${label} limit`} />
         <button type="submit" className="secondary-button" disabled={busy || limit === ""}>Set</button>
       </form>
+      {formError && <p className="recommendations-error" role="alert">{formError}</p>}
     </li>
   );
 }

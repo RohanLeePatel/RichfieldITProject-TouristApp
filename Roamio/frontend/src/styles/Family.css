@@ -1919,3 +1919,18 @@
   min-height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px;
   background: var(--surface); color: var(--ink); font: 600 13px "DM Sans", sans-serif;
 }
+
+.family-form-error {
+  margin: 4px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(220, 38, 38, 0.1);
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.recommendations-page[data-theme="dark"] .family-form-error {
+  background: rgba(248, 113, 113, 0.14);
+  color: #fca5a5;
+}

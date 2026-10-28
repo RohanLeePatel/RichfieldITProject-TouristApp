@@ -36,6 +36,7 @@ function TravelerConstraints({ traveler, index, currency, onChange }) {
         <input
           type="number"
           min="1"
+          max="1000000"
           inputMode="numeric"
           placeholder="Same as group"
           value={traveler.budget}

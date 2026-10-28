@@ -76,7 +76,7 @@ export default function BasicsStep({ form, updateForm, countries, applyPreset })
         <section className="panel">
           <h3 className="panel-title"><Wallet size={15} /> Budget &amp; group</h3>
           <div className="field-grid wizard-fields">
-            <label className="wizard-field">Daily budget<input type="number" min="1" value={form.budget} onChange={(event) => updateForm("budget", event.target.value)} /></label>
+            <label className="wizard-field">Daily budget<input type="number" min="1" max="1000000" value={form.budget} onChange={(event) => updateForm("budget", event.target.value)} /></label>
             {/* A free-text code could only fail late, as a 422 from the
                 engine that the traveller had no way to diagnose. */}
             <label className="wizard-field">Currency
@@ -86,7 +86,7 @@ export default function BasicsStep({ form, updateForm, countries, applyPreset })
                 ))}
               </select>
             </label>
-            <label className="wizard-field">Adults<input type="number" min="1" value={form.adults} onChange={(event) => updateForm("adults", event.target.value)} /></label>
+            <label className="wizard-field">Adults<input type="number" min="1" max="50" step="1" value={form.adults} onChange={(event) => updateForm("adults", event.target.value)} /></label>
             <label className="wizard-field">Children&apos;s ages
               <input
                 inputMode="numeric"
@@ -109,7 +109,7 @@ export default function BasicsStep({ form, updateForm, countries, applyPreset })
         <section className="panel">
           <h3 className="panel-title"><CalendarDays size={15} /> Dates</h3>
           <div className="field-grid wizard-fields">
-            <label className="wizard-field">Start date<input type="date" value={form.startDate} onChange={(event) => updateForm("startDate", event.target.value)} /></label>
+            <label className="wizard-field">Start date<input type="date" min={new Date().toLocaleDateString("en-CA")} value={form.startDate} onChange={(event) => updateForm("startDate", event.target.value)} /></label>
             <label className="wizard-field">End date<input type="date" value={form.endDate} min={form.startDate || undefined} onChange={(event) => updateForm("endDate", event.target.value)} /></label>
           </div>
           <p className="wizard-help">Dates sharpen climate matching and let us lay out your itinerary by day - skip them and we&apos;ll use a sample {DEFAULT_TRIP_DAYS}-day plan later.</p>

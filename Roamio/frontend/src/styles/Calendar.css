@@ -1894,3 +1894,50 @@
 .calendar-page[data-theme="dark"] .cal-modal-overlay {
   background: rgba(0, 0, 0, 0.6);
 }
+
+.cal-form-error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(220, 38, 38, 0.1);
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.calendar-page[data-theme="dark"] .cal-form-error {
+  background: rgba(248, 113, 113, 0.14);
+  color: #fca5a5;
+}
+
+/* Heading + next boarding pass, inside the shared PageTopBar band */
+.cal-band-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.cal-band-copy .page-topbar-lede {
+  margin-bottom: 16px;
+}
+
+.cal-band-hero .cal-hero-stats span {
+  color: #fff;
+}
+
+@media (max-width: 880px) {
+  .cal-band-hero {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* Same column as the PageTopBar band (and Travel Groups), so the heading
+   and the content below it line up. */
+.cal-layout {
+  width: min(1180px, calc(100% - 32px));
+  max-width: none;
+  padding-left: 0;
+  padding-right: 0;
+}

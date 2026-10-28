@@ -1327,3 +1327,11 @@
     flex: 1;
   }
 }
+/* Same column as the PageTopBar band, so the heading and the workspace
+   below it line up (matches Weather, Calendar and Travel Groups). */
+.translator-content {
+  width: min(1180px, calc(100% - 32px));
+  padding-top: 24px;
+  padding-left: 0;
+  padding-right: 0;
+}

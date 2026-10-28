@@ -38,6 +38,24 @@ import PageShell from "../components/recommendations/PageShell.jsx";
 import { saveCompanions } from "../api/groups.js";
 import { fetchTrips } from "../api/trips";
 import { INTEREST_TAGS } from "./recommendations/constants.js";
+
+const MAX_NAME_CHARS = 60; // matches the companion schema in groupMeta.js
+// stricter than type="email", which lets "a@b" through
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+// "" when the member form is ok, otherwise the message to show
+function memberFormError(form) {
+  const name = form.name.trim();
+  if (!name) return "Enter the member's name.";
+  if (name.length > MAX_NAME_CHARS) return `Keep the name under ${MAX_NAME_CHARS} characters.`;
+  if (form.type === "Child") {
+    const age = String(form.age ?? "").trim();
+    if (!/^\d{1,2}$/.test(age) || Number(age) > 17) return "Enter the child's age as a whole number from 0 to 17.";
+  }
+  const email = form.email.trim();
+  if (email && !EMAIL_PATTERN.test(email)) return "Enter a valid email address, like member@example.com, or leave it blank.";
+  return "";
+}
 import "../styles/Family.css";
 
 
@@ -231,6 +249,7 @@ function MemberModal({
   mode,
   form,
   setForm,
+  error,
   onClose,
   onSave,
 }) {
@@ -309,6 +328,7 @@ function MemberModal({
                     })
                   }
                   placeholder="e.g. Sarah Smith"
+                  maxLength={MAX_NAME_CHARS}
                   required
                   autoFocus
                 />
@@ -364,6 +384,7 @@ function MemberModal({
                   type="number"
                   min="0"
                   max="17"
+                  step="1"
                   inputMode="numeric"
                   value={form.age}
                   onChange={(event) =>
@@ -373,6 +394,7 @@ function MemberModal({
                     })
                   }
                   placeholder="e.g. 8"
+                  required
                 />
               </label>
             )}
@@ -477,6 +499,8 @@ function MemberModal({
             </div>
           </div>
 
+          {error && <p className="family-form-error" role="alert">{error}</p>}
+
           <div className="family-modal-actions">
             <button
               type="button"
@@ -567,6 +591,9 @@ export default function Family() {
 
   const [form, setForm] =
     useState(EMPTY_FORM);
+
+  const [formError, setFormError] =
+    useState("");
 
   const [menuOpen, setMenuOpen] =
     useState(null);
@@ -754,6 +781,7 @@ export default function Family() {
       interests: [],
     });
 
+    setFormError("");
     setModalOpen(true);
     setMenuOpen(null);
   };
@@ -779,6 +807,7 @@ export default function Family() {
         member.color || "teal",
     });
 
+    setFormError("");
     setModalOpen(true);
     setMenuOpen(null);
   };
@@ -799,7 +828,9 @@ export default function Family() {
     const cleanName =
       form.name.trim();
 
-    if (!cleanName) return;
+    const problem = memberFormError(form);
+    setFormError(problem);
+    if (problem) return;
 
     if (
       modalMode === "edit" &&
@@ -1793,6 +1824,7 @@ export default function Family() {
         mode={modalMode}
         form={form}
         setForm={setForm}
+        error={formError}
         onClose={closeModal}
         onSave={handleSaveMember}
       />

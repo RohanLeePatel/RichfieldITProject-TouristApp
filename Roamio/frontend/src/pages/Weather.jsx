@@ -1,12 +1,10 @@
 import {
-  ArrowLeft,
   ArrowRight,
   Cloud,
   CloudRain,
   CloudSun,
   Droplets,
   Loader2,
-  Moon,
   MapPin,
   Plane,
   RefreshCw,
@@ -18,7 +16,6 @@ import {
 } from "lucide-react";
 
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 
 import ClimateInsights from "../components/insights/ClimateInsights.jsx";
 import { geocodePlace } from "../api/climate.js";
@@ -26,6 +23,7 @@ import { fetchWeather as fetchWeatherFromApi } from "../api/weather";
 import useActiveTrip from "../hooks/useActiveTrip.js";
 import { splitDestination } from "../utils/countries.js";
 import useTheme from "../components/recommendations/useTheme.js";
+import PageTopBar from "../components/PageTopBar.jsx";
 import "../styles/Weather.css";
 
 // =========================================================
@@ -357,84 +355,33 @@ export default function Weather() {
           HEADER
       ================================================= */}
 
-      <header className="weather-header">
-
-        <div className="weather-brand">
-
-          <div className="weather-logo">
-            <Plane
-              size={19}
-              strokeWidth={2.2}
-            />
-          </div>
-
-          <div className="weather-brand-text">
-
-            <h2>
-              Roamio
-            </h2>
-
-            <span>
-              Adventures together
-            </span>
-
-          </div>
-
-        </div>
-
-        <div className="weather-header-actions">
-
-          <button
-            type="button"
-            className="weather-back-button weather-theme-button"
-            onClick={toggleTheme}
-            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            title={theme === "dark" ? "Light mode" : "Dark mode"}
-          >
-            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-
-          <Link
-            to="/dashboard"
-            className="weather-back-button"
-          >
-            <ArrowLeft size={16} />
-            Back to Dashboard
-          </Link>
-
-        </div>
-
-      </header>
+      <PageTopBar
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        hero={
+          <>
+            <p className="page-topbar-eyebrow">
+              <CloudSun size={15} />
+              Weather &amp; climate
+            </p>
+            <h1>
+              Plan your trip around
+              <span> the weather.</span>
+            </h1>
+            <p>
+              Check current conditions and the
+              days ahead for cities and towns
+              around the world.
+            </p>
+          </>
+        }
+      />
 
       {/* =================================================
           CONTENT
       ================================================= */}
 
       <main className="weather-content">
-
-        {/* =================================================
-            INTRO
-        ================================================= */}
-
-        <section className="weather-intro">
-
-          <div className="weather-page-badge">
-            <CloudSun size={14} />
-            Weather &amp; climate
-          </div>
-
-          <h1>
-            Plan your trip around
-            <span> the weather.</span>
-          </h1>
-
-          <p>
-            Check current conditions and the
-            days ahead for cities and towns
-            around the world.
-          </p>
-
-        </section>
 
         {/* =================================================
             SEARCH

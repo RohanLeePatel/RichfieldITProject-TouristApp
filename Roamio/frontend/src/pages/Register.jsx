@@ -101,6 +101,11 @@ export default function Register() {
       return;
     }
 
+    if (trimmedName.length > 80) {
+      setPasswordError("Keep your name under 80 characters.");
+      return;
+    }
+
     if (!trimmedEmail) {
       setPasswordError("Please enter your email address.");
       return;
@@ -382,6 +387,7 @@ export default function Register() {
                   name="fullName"
                   placeholder="Your full name"
                   autoComplete="name"
+                  maxLength={80}
                   value={name}
                   onChange={(e) =>
                     setName(e.target.value)

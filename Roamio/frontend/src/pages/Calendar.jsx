@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft,
   ArrowRight,
   Bell,
   Briefcase,
@@ -11,10 +10,8 @@ import {
   Edit2,
   Filter,
   Flag,
-  Globe2,
   Luggage,
   MapPin,
-  Moon,
   Plane,
   PlaneLanding,
   PlaneTakeoff,
@@ -28,6 +25,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import useTheme from "../components/recommendations/useTheme.js";
+import PageTopBar from "../components/PageTopBar.jsx";
 import { fetchTrip, fetchTrips } from "../api/trips";
 import "../styles/Calendar.css";
 
@@ -38,6 +36,9 @@ import "../styles/Calendar.css";
 
 // Same key as before, so existing saved events carry over.
 const EVENTS_STORAGE_KEY = "roamio_standalone_calendar_events";
+// events live in localStorage, so keep each field short
+const MAX_TITLE_CHARS = 100;
+const MAX_LOCATION_CHARS = 150;
 
 // South African public holidays (Sunday holidays observed on the Monday)
 const PUBLIC_HOLIDAYS_SA = [
@@ -242,6 +243,7 @@ export default function Calendar() {
   const [editingEvent, setEditingEvent] = useState(null);
   const [modalDateKey, setModalDateKey] = useState(todayKey);
   const [formTitle, setFormTitle] = useState("");
+  const [formError, setFormError] = useState("");
   const [formTime, setFormTime] = useState("09:00");
   const [formLocation, setFormLocation] = useState("");
   const [formCategory, setFormCategory] = useState("Travel");
@@ -393,6 +395,7 @@ export default function Calendar() {
     setFormCategory("Travel");
     setFormReminder("30 mins before");
     setFormTripId(selectedTrips[0] ? String(selectedTrips[0].id) : "");
+    setFormError("");
     setIsModalOpen(true);
   };
 
@@ -405,17 +408,26 @@ export default function Calendar() {
     setFormCategory(CATEGORIES[event.category] ? event.category : "Personal");
     setFormReminder(event.reminder || "30 mins before");
     setFormTripId(event.tripId ? String(event.tripId) : "");
+    setFormError("");
     setIsModalOpen(true);
   };
 
   const handleSaveEvent = (e) => {
     e.preventDefault();
-    if (!formTitle.trim()) return;
+    const title = formTitle.trim();
+    const location = formLocation.trim();
+    let problem = "";
+    if (!title) problem = "Give the event a title.";
+    else if (title.length > MAX_TITLE_CHARS) problem = `Keep the title under ${MAX_TITLE_CHARS} characters.`;
+    else if (location.length > MAX_LOCATION_CHARS) problem = `Keep the location under ${MAX_LOCATION_CHARS} characters.`;
+    else if (formTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(formTime)) problem = "Enter a valid time, like 14:30.";
+    setFormError(problem);
+    if (problem) return;
 
     const fields = {
-      title: formTitle.trim(),
+      title,
       time: formTime,
-      location: formLocation.trim(),
+      location,
       category: formCategory,
       reminder: formReminder,
       tripId: formTripId || null,
@@ -656,69 +668,36 @@ export default function Calendar() {
     <div className="calendar-page" data-theme={theme}>
 
       {/* HEADER */}
-      <header className="cal-header">
-        <Link to="/dashboard" className="cal-brand">
-          <span className="cal-logo">
-            <Plane size={19} strokeWidth={2.2} />
-          </span>
-          <span className="cal-brand-text">
-            <strong>Roamio</strong>
-            <span>Travel Calendar</span>
-          </span>
-        </Link>
+      <PageTopBar
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        hero={
+          <div className="cal-band-hero">
+            <div className="cal-band-copy">
+              <p className="page-topbar-eyebrow">
+                <Compass size={15} /> Travel calendar
+              </p>
+              <h1>
+                {MONTH_NAMES[month]} <span>{year}</span>
+              </h1>
+              <p className="page-topbar-lede">Trips, long weekends and reminders, mapped across your month.</p>
 
-        <div className="cal-header-actions">
-          <button
-            type="button"
-            className="cal-icon-btn"
-            onClick={toggleTheme}
-            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            title={theme === "dark" ? "Light mode" : "Dark mode"}
-          >
-            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
+              <div className="cal-hero-stats">
+                <span><Plane size={14} /> {plural(monthTrips.length, "trip")}</span>
+                <span><Flag size={14} /> {plural(monthHolidays.length, "holiday")}</span>
+                <span><Luggage size={14} /> {plural(monthLongWeekends.length, "long weekend")}</span>
+              </div>
+            </div>
 
-          <Link to="/dashboard" className="cal-back-btn">
-            <ArrowLeft size={16} />
-            <span>Back to Dashboard</span>
-          </Link>
-        </div>
-      </header>
+            {renderBoardingPass()}
+          </div>
+        }
+      />
 
 
       <main className="cal-layout">
 
-        {/* HERO */}
-        <section className="cal-hero">
-          <svg className="cal-hero-route" viewBox="0 0 1000 300" preserveAspectRatio="none" aria-hidden="true">
-            <path d="M-20 260 C 220 60, 520 40, 1020 150" />
-            <path d="M-20 300 C 300 170, 640 210, 1020 40" className="faint" />
-          </svg>
-          <span className="cal-hero-plane" aria-hidden="true">
-            <Plane size={18} />
-          </span>
-          <span className="cal-hero-pin pin-a" aria-hidden="true"><MapPin size={15} /></span>
-          <span className="cal-hero-pin pin-b" aria-hidden="true"><MapPin size={15} /></span>
-          <Globe2 className="cal-hero-globe" size={240} aria-hidden="true" />
 
-          <div className="cal-hero-copy">
-            <span className="cal-hero-badge">
-              <Compass size={13} /> TRAVEL CALENDAR
-            </span>
-            <h1>
-              {MONTH_NAMES[month]} <span>{year}</span>
-            </h1>
-            <p>Trips, long weekends and reminders, mapped across your month.</p>
-
-            <div className="cal-hero-stats">
-              <span><Plane size={14} /> {plural(monthTrips.length, "trip")}</span>
-              <span><Flag size={14} /> {plural(monthHolidays.length, "holiday")}</span>
-              <span><Luggage size={14} /> {plural(monthLongWeekends.length, "long weekend")}</span>
-            </div>
-          </div>
-
-          {renderBoardingPass()}
-        </section>
 
 
         <div className="cal-body">
@@ -1006,6 +985,7 @@ export default function Calendar() {
                   placeholder="e.g. Flight to Cape Town, Hotel check-in"
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
+                  maxLength={MAX_TITLE_CHARS}
                   required
                   autoFocus
                 />
@@ -1064,8 +1044,11 @@ export default function Calendar() {
                   placeholder="Optional — airport, hotel, address"
                   value={formLocation}
                   onChange={(e) => setFormLocation(e.target.value)}
+                  maxLength={MAX_LOCATION_CHARS}
                 />
               </label>
+
+              {formError && <p className="cal-form-error" role="alert">{formError}</p>}
 
               <div className="cal-modal-actions">
                 <button type="button" className="cal-btn-ghost" onClick={() => setIsModalOpen(false)}>

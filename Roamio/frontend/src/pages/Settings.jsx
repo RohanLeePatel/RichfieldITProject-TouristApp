@@ -174,6 +174,12 @@ export default function Settings() {
     const trimmedName = name.trim();
 
     if (!trimmedName) {
+      setSaveError("Please enter your full name.");
+      return;
+    }
+
+    if (trimmedName.length > 80) {
+      setSaveError("Keep your name under 80 characters.");
       return;
     }
 
@@ -319,14 +325,14 @@ export default function Settings() {
             Back to dashboard
           </Link>
 
-          <div className="recommendations-brand">
-            <span>
-              <Plane size={18} />
-            </span>
-            Roamio
-          </div>
-
           <div className="rx-header-right">
+            <div className="recommendations-brand">
+              <span>
+                <Plane size={17} />
+              </span>
+              Roamio
+            </div>
+
             <button
               type="button"
               className="theme-toggle"
@@ -482,6 +488,7 @@ export default function Settings() {
                         value={name}
                         placeholder="Your full name"
                         autoComplete="name"
+                        maxLength={80}
                         onChange={(event) =>
                           setName(event.target.value)
                         }

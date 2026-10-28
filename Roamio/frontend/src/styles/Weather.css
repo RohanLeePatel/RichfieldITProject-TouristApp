@@ -2015,3 +2015,13 @@
   font-size: 11px;
   font-weight: 600;
 }
+
+/* Same column as the PageTopBar band (and Travel Groups), so the heading
+   and the content below it line up. Last in the file so it wins over the
+   breakpoint paddings above. */
+.weather-content {
+  width: min(1180px, calc(100% - 32px));
+  max-width: none;
+  padding-left: 0;
+  padding-right: 0;
+}

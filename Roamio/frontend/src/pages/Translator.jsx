@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
-  ArrowLeft,
   ArrowLeftRight,
   ArrowRight,
   Camera,
@@ -21,9 +20,8 @@ import {
   Volume2,
   X,
 } from "lucide-react";
-import { Link } from "react-router-dom";
-import ThemeToggle from "../components/recommendations/ThemeToggle.jsx";
 import useTheme from "../components/recommendations/useTheme.js";
+import PageTopBar from "../components/PageTopBar.jsx";
 import {
   LANGUAGES,
   SOURCE_LANGUAGES,
@@ -35,6 +33,9 @@ import {
 import "../styles/Translator.css";
 
 const MAX_TEXT_CHARS = 2000;
+// photos are shrunk to 1 MB before upload, but decoding anything bigger than
+// this in the browser is slow enough to freeze older phones
+const MAX_PHOTO_BYTES = 20 * 1024 * 1024;
 const SpeechRecognition =
   typeof window !== "undefined" &&
   (window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -136,6 +137,11 @@ function Translator() {
 
     if (!file.type || !file.type.startsWith("image/")) {
       setError("Please select a valid image file.");
+      return;
+    }
+
+    if (file.size > MAX_PHOTO_BYTES) {
+      setError("That photo is too large - please choose one under 20 MB.");
       return;
     }
 
@@ -417,40 +423,27 @@ function Translator() {
 
   return (
     <div className="translator-page" data-theme={theme}>
-      <header className="translator-header">
-        <div className="translator-brand">
-          <div className="translator-logo">
-            <Plane size={19} />
-          </div>
-          <span>
-            Roam<span>io</span>
-          </span>
-        </div>
-
-        <div className="translator-header-actions">
-          <ThemeToggle theme={theme} onToggle={toggleTheme} />
-          <Link to="/dashboard" className="back-dashboard">
-            <ArrowLeft size={17} />
-            Back to Dashboard
-          </Link>
-        </div>
-      </header>
+      <PageTopBar
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        hero={
+          <>
+            <p className="page-topbar-eyebrow">
+              <Sparkles size={15} />
+              Smart travel tool
+            </p>
+            <h1>
+              Travel without
+              <span> language barriers.</span>
+            </h1>
+            <p>
+              Take a photo of a sign, menu or document, or type and speak phrases to translate instantly.
+            </p>
+          </>
+        }
+      />
 
       <main className="translator-content">
-        <section className="translator-intro">
-          <div className="translator-badge">
-            <Sparkles size={14} />
-            SMART TRAVEL TOOL
-          </div>
-          <h1>
-            Travel without
-            <span>language barriers.</span>
-          </h1>
-          <p>
-            Take a photo of a sign, menu or document, or type and speak phrases to translate instantly.
-          </p>
-        </section>
-
         {/* UNIFIED SINGLE WORKSPACE CARD */}
         <section className="translator-card-unified">
           {/* TOP INTEGRATED TOOLBAR */}

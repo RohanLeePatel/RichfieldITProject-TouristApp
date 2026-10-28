@@ -34,6 +34,11 @@ import {
 } from "./recommendations/constants.js";
 
 const MAX_SHORTLIST = 3;
+// sanity ceilings for the basics step - well past any real trip
+const MAX_DAILY_BUDGET = 1_000_000;
+const MAX_ADULTS = 50;
+const MAX_CHILDREN = 20;
+const MAX_TRIP_DAYS = 365;
 
 export default function Recommendations() {
   // wizard -> collecting preferences
@@ -252,18 +257,53 @@ export default function Recommendations() {
       if (!Number.isFinite(Number(form.budget)) || Number(form.budget) <= 0) {
         return "Enter a daily budget greater than zero.";
       }
+      if (Number(form.budget) > MAX_DAILY_BUDGET) {
+        return `Daily budget can't be more than ${MAX_DAILY_BUDGET.toLocaleString("en-ZA")}.`;
+      }
       if (!/^[a-z]{3}$/i.test(form.currency)) {
         return "Currency must be a 3-letter ISO code, such as ZAR.";
       }
       if (!Number.isInteger(Number(form.adults)) || Number(form.adults) < 1) {
         return "Add at least one adult traveller.";
       }
+      if (Number(form.adults) > MAX_ADULTS) {
+        return `A trip can have at most ${MAX_ADULTS} adults.`;
+      }
+      // same split as buildPreferences(), but anything unreadable is an error
+      // here instead of being silently dropped
+      const ages = form.children.trim() ? form.children.split(",").map((age) => age.trim()) : [];
+      if (ages.some((age) => !/^\d{1,2}$/.test(age) || Number(age) > 17)) {
+        return "Children's ages must be whole numbers from 0 to 17, separated by commas - like 8, 12.";
+      }
+      if (ages.length > MAX_CHILDREN) {
+        return `A trip can have at most ${MAX_CHILDREN} children.`;
+      }
+      if (form.startDate && form.startDate < new Date().toLocaleDateString("en-CA")) {
+        return "Trip start date can't be in the past.";
+      }
+      if (form.endDate && !form.startDate) {
+        return "Add a start date as well as an end date.";
+      }
       if (form.startDate && form.endDate && form.endDate < form.startDate) {
         return "Trip end date can't be before the start date.";
       }
+      if (form.startDate && form.endDate && tripLengthDays(form) > MAX_TRIP_DAYS) {
+        return `A trip can be at most ${MAX_TRIP_DAYS} days long.`;
+      }
     }
-    if (step === 1 && form.interests.length === 0) {
-      return "Choose at least one interest.";
+    if (step === 1) {
+      if (form.interests.length === 0) {
+        return "Choose at least one interest.";
+      }
+      // a blank budget means that traveller uses the group's
+      const badBudget = form.travelers.find((traveler) => {
+        if (traveler.budget === "" || traveler.budget == null) return false;
+        const amount = Number(traveler.budget);
+        return !Number.isFinite(amount) || amount <= 0 || amount > MAX_DAILY_BUDGET;
+      });
+      if (badBudget) {
+        return `Each traveller's own daily budget must be between 1 and ${MAX_DAILY_BUDGET.toLocaleString("en-ZA")}, or left blank.`;
+      }
     }
     return "";
   };
