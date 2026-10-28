@@ -2020,7 +2020,8 @@
    and the content below it line up. Last in the file so it wins over the
    breakpoint paddings above. */
 .weather-content {
-  width: min(1180px, calc(100% - 32px));
+  /* the band's 1180px column, shown at its 0.8 zoom */
+  width: min(944px, calc(100% - 26px));
   max-width: none;
   padding-left: 0;
   padding-right: 0;

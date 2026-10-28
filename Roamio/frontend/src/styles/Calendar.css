@@ -1936,7 +1936,8 @@
 /* Same column as the PageTopBar band (and Travel Groups), so the heading
    and the content below it line up. */
 .cal-layout {
-  width: min(1180px, calc(100% - 32px));
+  /* the band's 1180px column, shown at its 0.8 zoom */
+  width: min(944px, calc(100% - 26px));
   max-width: none;
   padding-left: 0;
   padding-right: 0;
