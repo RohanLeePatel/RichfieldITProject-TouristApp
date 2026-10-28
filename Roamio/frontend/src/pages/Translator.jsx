@@ -10,6 +10,7 @@ import {
   History,
   ImagePlus,
   Loader2,
+  MapPin,
   Mic,
   Plane,
   RefreshCw,
