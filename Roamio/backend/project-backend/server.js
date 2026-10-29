@@ -31,6 +31,7 @@ const { router: tripDocumentRoutes } = require('./src/routes/tripDocuments');
 const recommendationRoutes = require('./src/routes/recommendations');
 const weatherRoutes = require('./src/routes/weather');
 const ratesRoutes = require('./src/routes/rates');
+const adminRoutes = require('./src/routes/admin');
 
 // 4. App Initialization
 const app = express();
@@ -110,6 +111,10 @@ app.use('/api/translate', translationRoutes);
 app.use('/api/recommendations', recommendationsLimiter, recommendationRoutes);
 app.use('/api/weather', weatherLimiter, weatherRoutes);
 app.use('/api/rates', weatherLimiter, ratesRoutes); // same shared-quota limit
+
+// Admin dashboard API. Before the /api routers below, which would 401 it;
+// the router guards itself with isAdmin and has its own error handler.
+app.use('/api/admin', adminRoutes);
 
 app.use(attachActivityLogger);
 
