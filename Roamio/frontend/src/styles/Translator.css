@@ -141,9 +141,9 @@
 
 .translator-content {
   position: relative;
-  width: min(1200px, 92%);
+  width: min(944px, calc(100% - 26px));
   margin: 0 auto;
-  padding: 44px 0 72px;
+  padding: 24px 0 72px;
 }
 
 .translator-intro {
@@ -814,29 +814,6 @@
   animation: tr-rise 0.35s ease both;
 }
 
-.detected-language {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: var(--tr-teal-tint);
-  border: 1px solid rgba(22, 132, 154, 0.2);
-  color: var(--tr-teal);
-}
-
-.detected-language span {
-  display: block;
-  font-size: 0.625rem;
-  font-weight: 800;
-  letter-spacing: 1px;
-}
-
-.detected-language strong {
-  color: var(--tr-ink);
-  font-size: 0.875rem;
-}
-
 .result-box {
   padding: 16px;
   border: 1px solid var(--tr-line);
@@ -1265,6 +1242,17 @@
     var(--tr-surface);
 }
 
+/* Fix native HTML select dropdown options in dark and light modes */
+.translator-page select option {
+  background-color: #0d3440 !important;
+  color: #e8f2f5 !important;
+}
+
+.translator-page[data-theme="light"] select option {
+  background-color: #ffffff !important;
+  color: #142a42 !important;
+}
+
 
 /* =========================================================
    ANIMATIONS & RESPONSIVE
@@ -1326,13 +1314,4 @@
   .language-select-compact {
     flex: 1;
   }
-}
-/* Same column as the PageTopBar band, so the heading and the workspace
-   below it line up (matches Weather, Calendar and Travel Groups). */
-.translator-content {
-  /* the band's 1180px column, shown at its 0.8 zoom */
-  width: min(944px, calc(100% - 26px));
-  padding-top: 24px;
-  padding-left: 0;
-  padding-right: 0;
 }
