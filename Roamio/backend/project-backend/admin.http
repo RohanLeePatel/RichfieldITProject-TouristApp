@@ -1,0 +1,30 @@
+# Admin API requests (VS Code REST Client / JetBrains HTTP client).
+# Needs ADMIN_USER_IDS to include your user id, or ADMIN_MOCK_ALLOW_ALL=true in development.
+
+@base = http://localhost:3000
+@email = you@example.com
+@password = your-password
+
+### Log in, then copy accessToken from the response into @token below
+POST {{base}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "{{email}}", "password": "{{password}}" }
+
+###
+@token = PASTE_ACCESS_TOKEN_HERE
+
+### Analytics overview (DAU, page views, session duration: 7 and 30 days)
+GET {{base}}/api/admin/analytics/overview
+Authorization: Bearer {{token}}
+
+### Tracking config (Clarity + GA measurement ids)
+GET {{base}}/api/admin/config/tracking
+Authorization: Bearer {{token}}
+
+### Service health (database, storage, DeepL)
+GET {{base}}/api/admin/health/services
+Authorization: Bearer {{token}}
+
+### No token: expect 401
+GET {{base}}/api/admin/health/services

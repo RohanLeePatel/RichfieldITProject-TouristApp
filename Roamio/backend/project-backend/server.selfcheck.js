@@ -41,6 +41,9 @@ express.application.listen = function (port, cb) {
       assert.equal(r.headers.get('access-control-allow-origin'), 'http://localhost:5173');
       r = await req('/api/trips', { headers: { origin: 'https://evil.example' } });
       assert.equal(r.headers.get('access-control-allow-origin'), null);
+      // admin routes are mounted and guarded: no token = 401, never an HTML 404
+      for (const p of ['analytics/overview', 'config/tracking', 'health/services'])
+        assert.equal((await req('/api/admin/' + p)).status, 401);
       // the group routes are still reachable behind the trip router
       assert.equal((await req('/api/groups')).status, 401);
       // health check and API docs (main's, kept)

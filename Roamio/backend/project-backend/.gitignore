@@ -1,11 +1,17 @@
-<<<<<<< HEAD
+# Dependencies and build output
 node_modules/
+dist
+dist-ssr
+
+# Secrets and local files
 .env
+*.local
 cookies.txt
+google-credentials.json
 
 # Prisma generated client
 /src/generated/prisma
-=======
+
 # Logs
 logs
 *.log
@@ -15,14 +21,9 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
 # Editor directories and files
-.vscode/*
-!.vscode/extensions.json
+.vscode/
+.postman/
 .idea
 .DS_Store
 *.suo
@@ -30,9 +31,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-.env
->>>>>>> 0266a0d62866dd7a5c3eaad06c2422d77dca211c
-
-.vscode/
-.postman/
