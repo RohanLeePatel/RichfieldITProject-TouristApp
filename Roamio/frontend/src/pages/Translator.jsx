@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
+  ArrowLeft,
   ArrowLeftRight,
   ArrowRight,
   Camera,
@@ -21,8 +22,9 @@ import {
   Volume2,
   X,
 } from "lucide-react";
+import { Link } from "react-router-dom";
+import ThemeToggle from "../components/recommendations/ThemeToggle.jsx";
 import useTheme from "../components/recommendations/useTheme.js";
-import PageTopBar from "../components/PageTopBar.jsx";
 import {
   LANGUAGES,
   SOURCE_LANGUAGES,
@@ -34,9 +36,6 @@ import {
 import "../styles/Translator.css";
 
 const MAX_TEXT_CHARS = 2000;
-// photos are shrunk to 1 MB before upload, but decoding anything bigger than
-// this in the browser is slow enough to freeze older phones
-const MAX_PHOTO_BYTES = 20 * 1024 * 1024;
 const SpeechRecognition =
   typeof window !== "undefined" &&
   (window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -124,7 +123,7 @@ function Translator() {
 
   const getLanguageName = (code) => {
     if (!code) return "Unknown";
-    const found = SOURCE_LANGUAGES.find(
+    const found = [...SOURCE_LANGUAGES, ...LANGUAGES].find(
       (lang) => lang.code.toLowerCase() === code.toLowerCase()
     );
     return found ? found.name : code.toUpperCase();
@@ -138,11 +137,6 @@ function Translator() {
 
     if (!file.type || !file.type.startsWith("image/")) {
       setError("Please select a valid image file.");
-      return;
-    }
-
-    if (file.size > MAX_PHOTO_BYTES) {
-      setError("That photo is too large - please choose one under 20 MB.");
       return;
     }
 
@@ -323,8 +317,8 @@ function Translator() {
           id: Date.now(),
           original: isPhoto ? data.text || "Photo translation" : inputText,
           translation: data.translation,
-          from: data.detected_lang || sourceLanguage,
-          to: targetLanguage,
+          from: getLanguageName(data.detected_lang || sourceLanguage),
+          to: getLanguageName(targetLanguage),
           isFavorite: false,
         };
         setHistory((prev) => [newEntry, ...prev.slice(0, 19)]);
@@ -355,12 +349,10 @@ function Translator() {
     }
   };
 
-  const speakTranslation = () => {
-    const text = translationResult?.translation;
-    if (!text || !canSpeak) return;
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = speechLang(targetLanguage);
+  const speakText = (textToSpeak, langCode) => {
+    if (!textToSpeak || !canSpeak) return;
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.lang = speechLang(langCode);
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
   };
@@ -424,27 +416,40 @@ function Translator() {
 
   return (
     <div className="translator-page" data-theme={theme}>
-      <PageTopBar
-        theme={theme}
-        onToggleTheme={toggleTheme}
-        hero={
-          <>
-            <p className="page-topbar-eyebrow">
-              <Sparkles size={15} />
-              Smart travel tool
-            </p>
-            <h1>
-              Travel without
-              <span> language barriers.</span>
-            </h1>
-            <p>
-              Take a photo of a sign, menu or document, or type and speak phrases to translate instantly.
-            </p>
-          </>
-        }
-      />
+      <header className="translator-header">
+        <div className="translator-brand">
+          <div className="translator-logo">
+            <Plane size={19} />
+          </div>
+          <span>
+            Roam<span>io</span>
+          </span>
+        </div>
+
+        <div className="translator-header-actions">
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
+          <Link to="/dashboard" className="back-dashboard">
+            <ArrowLeft size={17} />
+            Back to Dashboard
+          </Link>
+        </div>
+      </header>
 
       <main className="translator-content">
+        <section className="translator-intro">
+          <div className="translator-badge">
+            <Sparkles size={14} />
+            SMART TRAVEL TOOL
+          </div>
+          <h1>
+            Travel without
+            <span>language barriers.</span>
+          </h1>
+          <p>
+            Take a photo of a sign, menu or document, or type and speak phrases to translate instantly.
+          </p>
+        </section>
+
         {/* UNIFIED SINGLE WORKSPACE CARD */}
         <section className="translator-card-unified">
           {/* TOP INTEGRATED TOOLBAR */}
@@ -480,7 +485,11 @@ function Translator() {
                   value={sourceLanguage}
                   onChange={(e) => setSourceLanguage(e.target.value)}
                 >
-                  <option value="auto">Auto-detect</option>
+                  <option value="auto">
+                    {translationResult?.detected_lang && sourceLanguage === "auto"
+                      ? `Auto-detect (${getLanguageName(translationResult.detected_lang)})`
+                      : "Auto-detect"}
+                  </option>
                   {SOURCE_LANGUAGES.map((lang) => (
                     <option key={lang.code} value={lang.code}>
                       {lang.name}
@@ -743,18 +752,6 @@ function Translator() {
 
               {translationResult && (
                 <div className="translation-result">
-                  {sourceLanguage === "auto" && translationResult.detected_lang && (
-                    <div className="detected-language">
-                      <div>
-                        <span>DETECTED LANGUAGE</span>
-                        <strong>
-                          {getLanguageName(translationResult.detected_lang)}
-                        </strong>
-                      </div>
-                      <CheckCircle2 size={19} />
-                    </div>
-                  )}
-
                   {mode === "photo" &&
                     photoSize &&
                     previewUrl &&
@@ -786,22 +783,43 @@ function Translator() {
                       </div>
                     )}
 
+                  {/* ORIGINAL TEXT BOX WITH TTS LISTEN */}
                   <div className="result-box">
                     <div className="result-header">
                       <span>Original text</span>
+                      {canSpeak && translationResult.text && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            speakText(
+                              translationResult.text,
+                              translationResult.detected_lang || sourceLanguage
+                            )
+                          }
+                        >
+                          <Volume2 size={15} />
+                          Listen
+                        </button>
+                      )}
                     </div>
                     <p>
                       {translationResult.text || "No readable text found."}
                     </p>
                   </div>
 
+                  {/* TRANSLATED RESULT BOX */}
                   <div className="result-box translated">
                     <div className="result-header">
                       <span>Translation</span>
                       {canSpeak && (
                         <button
                           type="button"
-                          onClick={speakTranslation}
+                          onClick={() =>
+                            speakText(
+                              translationResult.translation,
+                              targetLanguage
+                            )
+                          }
                           disabled={!translationResult.translation}
                         >
                           <Volume2 size={15} />
@@ -867,38 +885,46 @@ function Translator() {
           )}
         </section>
 
-        {/* STATIC STEPS (ONLY VISIBLE IN PHOTO MODE) */}
-        {mode === "photo" && (
-          <section className="translator-info">
-            <div className="info-item">
-              <div className="info-number">01</div>
-              <div>
-                <strong>Take a photo</strong>
-                <p>Photograph signs, menus or documents while travelling.</p>
-              </div>
+        {/* ONBOARDING STEPS */}
+        <section className="translator-info">
+          <div className="info-item">
+            <div className="info-number">01</div>
+            <div>
+              <strong>
+                {mode === "photo" ? "Take a photo" : "Type or speak"}
+              </strong>
+              <p>
+                {mode === "photo"
+                  ? "Photograph signs, menus or documents while travelling."
+                  : "Type a phrase or tap the microphone to dictate hands-free."}
+              </p>
             </div>
+          </div>
 
-            <div className="info-line" />
+          <div className="info-line" />
 
-            <div className="info-item">
-              <div className="info-number">02</div>
-              <div>
-                <strong>Choose a language</strong>
-                <p>Select the language you want the text translated into.</p>
-              </div>
+          <div className="info-item">
+            <div className="info-number">02</div>
+            <div>
+              <strong>Choose a language</strong>
+              <p>Select the language you want the text translated into.</p>
             </div>
+          </div>
 
-            <div className="info-line" />
+          <div className="info-line" />
 
-            <div className="info-item">
-              <div className="info-number">03</div>
-              <div>
-                <strong>Get your translation</strong>
-                <p>Our OCR and translation service reads and translates text.</p>
-              </div>
+          <div className="info-item">
+            <div className="info-number">03</div>
+            <div>
+              <strong>Get your translation</strong>
+              <p>
+                {mode === "photo"
+                  ? "Our OCR service reads and translates text from your photo."
+                  : "Instant translation rendered side-by-side with text-to-speech."}
+              </p>
             </div>
-          </section>
-        )}
+          </div>
+        </section>
 
         <div className="translator-footer-message">
           <MapPin size={17} />
