@@ -39,6 +39,7 @@ def test_every_feature_route_is_mounted(client):
         "/health",
         "/chat",
         "/landmarks",
+        "/places/search",
         "/ocr",
         "/rates/{base}/{target}",
         "/recommendations",

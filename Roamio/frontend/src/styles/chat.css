@@ -96,6 +96,8 @@
 .chat-bubble { margin: 0; max-width: 86%; padding: 10px 14px; border-radius: 16px; font-size: 0.9375rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .chat-bubble.user { align-self: flex-end; background: var(--primary); color: var(--primary-ink); border-bottom-right-radius: 6px; }
 .chat-bubble.assistant { align-self: flex-start; background: var(--surface-2); color: var(--ink); border-bottom-left-radius: 6px; }
+.chat-bubble-link { display: block; margin-top: 6px; color: var(--primary); font-weight: 700; text-decoration: none; }
+.chat-bubble-link:hover { text-decoration: underline; }
 .chat-bubble.pending { color: var(--ink-soft); font-style: italic; }
 .chat-error { margin: 6px 0 0; padding: 8px 12px; border-radius: 10px; background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); font-size: 0.875rem; font-weight: 600; }
 

@@ -4,6 +4,7 @@ const requireAuth = require('../middleware/authMiddleware');
 const safetyService = require('../services/safetyService');
 const { accessibleTrips } = require('../utils/tripFormat');
 const { buildContext } = require('../services/chatContext');
+const { addItineraryItem } = require('../services/chatActions');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -50,9 +51,29 @@ async function tripWeather(city) {
   }
 }
 
+// Is this named place within reach of the trip? ai-features answers { found, ... };
+// null when it could not be asked (the stop is then added without a location).
+async function searchPlace({ text, near, lat, lon }) {
+  if (!process.env.superSecretKey) return null;
+  const params = new URLSearchParams({ text, near });
+  if (lat != null && lon != null) {
+    params.set('lat', lat);
+    params.set('lon', lon);
+  }
+  try {
+    const response = await fetch(`${aiFeaturesUrl}/places/search?${params}`, {
+      headers: { 'node-secretkey': process.env.superSecretKey },
+      signal: AbortSignal.timeout(WEATHER_TIMEOUT_MS),
+    });
+    return response.ok ? await response.json() : null;
+  } catch {
+    return null;
+  }
+}
+
 // The trip's facts for this traveller; undefined when they cannot see the trip
 // (a 404, same as everywhere else). Only these relations are loaded, and
-// documents are loaded without their bytes.
+// documents are loaded without their bytes. -> { context, trip, canEdit, near }
 async function tripContext(userId, tripId) {
   const trip = await prisma.trip.findFirst({
     where: accessibleTrips(userId, { id: tripId }),
@@ -83,7 +104,15 @@ async function tripContext(userId, tripId) {
     ),
     tripWeather(trip.destinations[0]?.destination.city.name),
   ]);
-  return buildContext(trip, { advisories, weather, userId });
+  const first = trip.destinations[0]?.destination.city;
+  const mine = trip.members.find((m) => m.userId === userId);
+  return {
+    context: buildContext(trip, { advisories, weather, userId }),
+    trip,
+    // a group member with no TripMember row is checked again by the action itself
+    canEdit: mine?.role !== 'VIEWER',
+    near: first ? `${first.name}, ${first.country.name}` : null,
+  };
 }
 
 // POST /api/chat { message, conversationId?, tripId? } -> { conversationId, reply }
@@ -124,10 +153,10 @@ router.post('/', async (req, res) => {
 
     // a continuing chat keeps the trip it started with
     const tripId = conversation ? conversation.tripId : parseId(req.body.tripId);
-    let context = '';
+    let facts = null;
     if (tripId) {
-      context = await tripContext(userId, tripId);
-      if (context === undefined) return res.status(404).json({ message: 'Trip not found.' });
+      facts = await tripContext(userId, tripId);
+      if (facts === undefined) return res.status(404).json({ message: 'Trip not found.' });
     }
 
     const history = conversation
@@ -141,13 +170,31 @@ router.post('/', async (req, res) => {
     const response = await fetch(`${aiFeaturesUrl}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'node-secretkey': nodeSecretKey },
-      body: JSON.stringify({ messages: [...history, { role: 'user', content: message }], context }),
+      body: JSON.stringify({
+        messages: [...history, { role: 'user', content: message }],
+        context: facts?.context || '',
+        can_edit: Boolean(facts?.canEdit && facts.near),
+      }),
     });
     const data = await response.json().catch(() => null);
-    if (!response.ok || !data?.reply) {
+    if (!response.ok || !data || (!data.reply && !data.action)) {
       return res.status(response.status === 429 ? 429 : 502).json({
         message: (typeof data?.detail === 'string' && data.detail) || 'The assistant is unavailable right now.',
       });
+    }
+
+    // The assistant asked to change the trip: carry it out here, and answer with what
+    // actually happened rather than with the model's own words.
+    let reply = data.reply;
+    let added = null;
+    if (data.action) {
+      if (data.action.name === 'add_itinerary_item' && facts) {
+        ({ reply, item: added } = await addItineraryItem({
+          userId, trip: facts.trip, near: facts.near, args: data.action.args || {}, searchPlace,
+        }));
+      } else {
+        reply = 'Choose a trip first (the Active trip in the sidebar), then ask again.';
+      }
     }
 
     // saved only once there is an answer, so a failed ask leaves no half chat
@@ -159,12 +206,12 @@ router.post('/', async (req, res) => {
     await prisma.chatMessage.createMany({
       data: [
         { conversationId: conversation.id, role: 'user', content: message },
-        { conversationId: conversation.id, role: 'assistant', content: data.reply },
+        { conversationId: conversation.id, role: 'assistant', content: reply },
       ],
     });
     await prisma.chatConversation.update({ where: { id: conversation.id }, data: { updatedAt: new Date() } });
 
-    return res.json({ conversationId: conversation.id, reply: data.reply });
+    return res.json({ conversationId: conversation.id, reply, added, tripId: facts ? facts.trip.id : null });
   } catch (error) {
     console.error('Chat error:', error);
     return res.status(502).json({ message: 'The assistant is unavailable right now.' });

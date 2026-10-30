@@ -169,3 +169,60 @@ def get_landmarks(destination: str, interests: list[str], radius_m: int = 5000) 
         )
 
     return {"destination": destination, "groups": groups, "error": None}
+
+
+# results too coarse to be a stop, and fuzzy matches (Geoapify scores them 0)
+_COARSE_RESULT_TYPES = {"country", "state", "county", "postcode"}
+MIN_MATCH_CONFIDENCE = 0.5
+PLACE_SEARCH_RADIUS_M = 30000
+
+
+def search_place(text: str, near: str, radius_m: int = PLACE_SEARCH_RADIUS_M, lat: float | None = None, lon: float | None = None) -> dict:
+    """Finds the named place within `radius_m` of `near` (a city, or lat/lon when
+    the caller has a closer anchor, such as an existing stop). `found` is False
+    when nothing credible is that close - never a guess from further away."""
+    if not GEOAPIFY_API_KEY:
+        return {"found": False, "error": "Place search error: geoapifyAPIKey is not configured."}
+
+    if lat is None or lon is None:
+        center = geocode_destination(near, radius_m)
+        if center is None:
+            return {"found": False, "error": f'Could not locate "{near}".'}
+        lat, lon = center
+
+    try:
+        response = requests.get(
+            GEOCODE_URL,
+            params={
+                "text": text,
+                "filter": f"circle:{lon},{lat},{radius_m}",
+                "bias": f"proximity:{lon},{lat}",
+                "limit": 1,
+                "apiKey": GEOAPIFY_API_KEY,
+            },
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        features = response.json().get("features", [])
+    except Exception as e:
+        # the URL carries the API key, so log the exception type only
+        logger.warning("Geoapify place search failed: %s", type(e).__name__)
+        return {"found": False, "error": "Place search is unavailable right now."}
+
+    if not features:
+        return {"found": False, "error": None}
+    props = features[0]["properties"]
+    confidence = (props.get("rank") or {}).get("confidence")
+    if (confidence is not None and confidence < MIN_MATCH_CONFIDENCE) or props.get("result_type") in _COARSE_RESULT_TYPES:
+        return {"found": False, "error": None}
+
+    place_lat, place_lon = props["lat"], props["lon"]
+    return {
+        "found": True,
+        "name": _fix_mojibake(props.get("name") or props.get("address_line1") or text),
+        "address": _fix_mojibake(props.get("formatted")),
+        "lat": place_lat,
+        "lon": place_lon,
+        "distance_m": round(_haversine_m(lat, lon, place_lat, place_lon)),
+        "error": None,
+    }

@@ -32,6 +32,7 @@ DEFAULT_LIMIT = 600
 ROUTE_LIMITS: dict[str, int] = {
     "/ocr": 120,            # OCR.space free tier: 25 000 requests a month
     "/text": 120,           # DeepL free tier: 500 000 characters a month
+    "/places": 120,         # same Geoapify quota as /landmarks
     "/landmarks": 120,      # Geoapify free tier: 3 000 requests a day
     "/weather": 300,        # OpenWeather free tier: 60 calls a minute
     "/recommendations": 300,

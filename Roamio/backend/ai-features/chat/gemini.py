@@ -54,6 +54,31 @@ SAFETY_SETTINGS = [
 ]
 
 
+ADD_ITEM_TOOL = {
+    "functionDeclarations": [
+        {
+            "name": "add_itinerary_item",
+            "description": (
+                "Add one stop to the traveller's itinerary. Call it only when the traveller clearly asks to add "
+                "a place or activity, never for questions. Call it once per message."
+            ),
+            "parameters": {
+                "type": "OBJECT",
+                "properties": {
+                    "title": {"type": "STRING", "description": "The place or activity name, as the traveller said it."},
+                    "day": {"type": "INTEGER", "description": "Trip day number, 1 is the first day."},
+                    "date": {"type": "STRING", "description": "Calendar date YYYY-MM-DD, if the traveller gave a date instead of a day."},
+                    "time": {"type": "STRING", "description": "Start time as 24-hour HH:MM, if given."},
+                    "notes": {"type": "STRING", "description": "Extra detail the traveller gave, if any."},
+                },
+                "required": ["title"],
+            },
+        }
+    ]
+}
+ACTION_NAMES = {"add_itinerary_item"}
+
+
 class ChatUnavailable(Exception):
     """The assistant cannot answer right now; the message is safe to show."""
 
@@ -66,9 +91,22 @@ def _facts_block(context: str) -> str:
     return f"<trip_facts>\n{inner}\n</trip_facts>"
 
 
-def reply(messages: list[dict], context: str) -> str:
+def _first_action(parts: list[dict]) -> dict | None:
+    """The first allowed tool call; its text arguments get the same scrub as everything else."""
+    for part in parts:
+        call = part.get("functionCall")
+        if call and call.get("name") in ACTION_NAMES:
+            args = {k: scrub(v) if isinstance(v, str) else v for k, v in (call.get("args") or {}).items()}
+            return {"name": call["name"], "args": args}
+    return None
+
+
+def reply(messages: list[dict], context: str, can_edit: bool = False) -> tuple[str, dict | None]:
+    """(text, action). An action is a tool call the Core API carries out; the text is
+    then replaced by its own confirmation, so the assistant never claims a change it
+    did not make."""
     if is_probe(messages[-1]["content"]):
-        return REFUSAL
+        return REFUSAL, None
     if not GEMINI_API_KEY:
         raise ChatUnavailable("The assistant is not configured.")
 
@@ -80,6 +118,7 @@ def reply(messages: list[dict], context: str) -> str:
         ],
         "generationConfig": {"maxOutputTokens": MAX_OUTPUT_TOKENS},
         "safetySettings": SAFETY_SETTINGS,
+        **({"tools": [ADD_ITEM_TOOL]} if can_edit else {}),
     }
     try:
         response = requests.post(
@@ -91,17 +130,20 @@ def reply(messages: list[dict], context: str) -> str:
         response.raise_for_status()
         data = response.json()
         if (data.get("promptFeedback") or {}).get("blockReason"):
-            return REFUSAL
+            return REFUSAL, None
         candidate = data["candidates"][0]
         if candidate.get("finishReason") in ("SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST", "SPII"):
-            return REFUSAL
+            return REFUSAL, None
         parts = candidate["content"]["parts"]
         text = "".join(p.get("text", "") for p in parts if not p.get("thought")).strip()
+        action = _first_action(parts) if can_edit else None
     except (requests.RequestException, ValueError, KeyError, IndexError, TypeError) as exc:
         logger.warning("Gemini request failed: %s", type(exc).__name__)
         raise ChatUnavailable("The assistant is unavailable right now. Try again in a moment.") from exc
+    if action:
+        return "", action
     if not text:
         raise ChatUnavailable("The assistant had no answer. Try rephrasing.")
     if leaks_instructions(text):
-        return WITHHELD
-    return scrub(text)
+        return WITHHELD, None
+    return scrub(text), None

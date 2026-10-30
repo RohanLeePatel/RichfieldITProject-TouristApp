@@ -27,3 +27,13 @@ class LandmarksResponse(BaseModel):
     destination: Optional[str] = None
     groups: list[LandmarkGroup] = []
     error: Optional[str] = None
+
+
+class PlaceSearchResponse(BaseModel):
+    found: bool
+    name: Optional[str] = None
+    address: Optional[str] = None
+    lat: Optional[float] = None
+    lon: Optional[float] = None
+    distance_m: Optional[float] = None
+    error: Optional[str] = None

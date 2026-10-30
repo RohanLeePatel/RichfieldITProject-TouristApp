@@ -25,6 +25,9 @@ const fakePrisma = {
     deleteMany: async (args) => (calls.push(['chatConversation.deleteMany', args]), { count: args.where.id === 40 ? 1 : 0 }),
     findMany: async (args) => (calls.push(['chatConversation.findMany', args]), []),
   },
+  itineraryItem: {
+    create: async (args) => (calls.push(['itineraryItem.create', args]), { ...args.data }),
+  },
   chatMessage: {
     findMany: async () => stored,
     createMany: async (args) => (calls.push(['chatMessage.createMany', args]), {}),
@@ -41,6 +44,14 @@ require.cache[path.join(__dirname, '../services/safetyService.js')] = {
   exports: { getCountrySafety: async () => ({ source: 'TRAVEL_RISK_API', lastUpdated: '2026-10-01', advisoryLevel: 2, summary: 'Exercise caution.' }) },
 };
 
+// the write-permission check is its own tested service; here it answers as set
+let accessError = null;
+require.cache[path.join(__dirname, '../services/tripAccessService.js')] = {
+  exports: { assertTripAccess: async () => { if (accessError) throw accessError; } },
+};
+
+let placeAnswer = { ok: true, body: { found: true, name: 'Moses Mabhida Stadium', address: 'Moses Mabhida Stadium, Masabalala Yengwa Avenue, Durban', lat: -29.829, lon: 31.03 } };
+let placeRequest = null;
 let aiAnswer = { ok: true, status: 200, body: { reply: 'Beach on day 2.' } };
 let aiRequest = null;
 let weatherRequest = null;
@@ -53,6 +64,11 @@ let weatherAnswer = {
   },
 };
 global.fetch = ((realFetch) => async (url, init) => {
+  if (String(url).startsWith('https://richfield-it-project-tourist-app.vercel.app/places/search')) {
+    placeRequest = { url: new URL(String(url)), init };
+    if (!placeAnswer) throw new Error('down');
+    return { ok: placeAnswer.ok, status: 200, json: async () => placeAnswer.body };
+  }
   if (String(url).startsWith('https://richfield-it-project-tourist-app.vercel.app/weather/')) {
     weatherRequest = { url: String(url), init };
     return { ok: weatherAnswer.ok, status: weatherAnswer.ok ? 200 : 503, json: async () => weatherAnswer.body };
@@ -142,7 +158,8 @@ const server = app.listen(0, async () => {
     let r = await ask({ message: 'What is on day 2?', tripId: 5 });
     assert.equal(r.status, 200);
     assert.equal(r.headers.get('cache-control'), 'no-store');
-    assert.deepEqual(r.body, { conversationId: 40, reply: 'Beach on day 2.' });
+    assert.deepEqual(r.body, { conversationId: 40, reply: 'Beach on day 2.', added: null, tripId: 5 });
+    assert.equal(aiRequest.body.can_edit, true);
     assert.equal(aiRequest.init.headers['node-secretkey'], 'service-key');
     assert.match(aiRequest.body.context, /uShaka Marine World/);
     // the weather came from the trip's first city, with the service key
@@ -165,6 +182,97 @@ const server = app.listen(0, async () => {
     r = await ask({ message: 'weather?', tripId: 5 });
     assert.equal(r.status, 200);
     assert.match(aiRequest.body.context, /Weather: not available right now/);
+
+    // ---- adding a stop ----
+    const addStop = (args, extra = {}) => {
+      aiAnswer = { ok: true, status: 200, body: { reply: 'I added it for you!', action: { name: 'add_itinerary_item', args }, ...extra } };
+      return ask({ message: 'add it', tripId: 5 });
+    };
+    const created = () => calls.filter(([n]) => n === 'itineraryItem.create');
+    let before = created().length;
+
+    // found nearby: added with its location and map pin, in the app's words, not the model's
+    r = await addStop({ title: 'Moses Mabhida Stadium', day: 3, time: '14:00', notes: 'ask about the sky car' });
+    assert.equal(r.status, 200);
+    assert.equal(r.body.reply, 'Added "Moses Mabhida Stadium" to Day 3 at 14:00. Location: Moses Mabhida Stadium, Masabalala Yengwa Avenue, Durban.');
+    assert.equal(r.body.added.title, 'Moses Mabhida Stadium');
+    assert.equal(r.body.added.dayNumber, 3);
+    assert.equal(r.body.added.startTime, '14:00');
+    assert.equal(r.body.added.lat, -29.829);
+    assert.equal(created().length, before + 1);
+    assert.equal(last('itineraryItem.create').data.tripId, 5);
+    assert.equal(last('itineraryItem.create').data.startTime.toISOString(), '2026-12-03T14:00:00.000Z');
+    assert.equal(last('chatMessage.createMany').data[1].content, r.body.reply); // the saved answer is the true one
+    // it searched around the trip's city (this trip has no stop with coordinates yet)
+    assert.equal(placeRequest.url.searchParams.get('near'), 'Durban, South Africa');
+    assert.equal(placeRequest.url.searchParams.get('text'), 'Moses Mabhida Stadium');
+    assert.equal(placeRequest.init.headers['node-secretkey'], 'service-key');
+
+    // not found nearby: still added, saying so, with no invented location
+    before = created().length;
+    placeAnswer = { ok: true, body: { found: false } };
+    r = await addStop({ title: 'Eiffel Tower', day: 1 });
+    assert.equal(r.body.reply, 'Added "Eiffel Tower" to Day 1, but I couldn\'t find that place near Durban, South Africa, so it has no location or map pin.');
+    assert.equal(created().length, before + 1);
+    assert.equal(last('itineraryItem.create').data.location, null);
+    assert.ok(!last('itineraryItem.create').data.description?.includes('lat'));
+
+    // the place search being down is said too, and does not block the add
+    placeAnswer = null;
+    r = await addStop({ title: 'Beachfront walk', day: 4 });
+    assert.match(r.body.reply, /^Added "Beachfront walk" to Day 4, but I couldn't check its location right now/);
+    placeAnswer = { ok: true, body: { found: true, name: 'Moses Mabhida Stadium', address: 'Durban', lat: -29.829, lon: 31.03 } };
+
+    // things that must not be added, each with a reason and no write
+    before = created().length;
+    const refused = [
+      [{ title: 'Zoo', day: 9 }, /7 days long, so there is no Day 9/],
+      [{ title: 'Zoo', date: '2027-01-05' }, /outside your trip \(2026-12-01 to 2026-12-07\)/],
+      [{ title: 'Zoo' }, /Which day/],
+      [{ title: 'Zoo', day: 2, time: '25:99' }, /couldn't read the time/],
+      [{ title: 'uShaka marine world', day: 2 }, /already on Day 2/],
+      [{ day: 2 }, /What should I add/],
+      [{ title: 'Zoo', day: 'abc' }, /isn't a day number/],
+    ];
+    for (const [args, pattern] of refused) {
+      r = await addStop(args);
+      assert.equal(r.status, 200);
+      assert.match(r.body.reply, pattern);
+      assert.equal(r.body.added, null);
+    }
+    assert.equal(created().length, before);
+    // a date resolves to its day
+    r = await addStop({ title: 'Sunset walk', date: '2026-12-05' });
+    assert.match(r.body.reply, /to Day 5\./);
+    // free text is flattened before it is stored
+    await addStop({ title: '  <b>Aquarium</b>\n visit ', day: 1 });
+    assert.equal(last('itineraryItem.create').data.title, 'bAquarium/b visit');
+
+    // a viewer cannot add, however it is asked
+    accessError = Object.assign(new Error('Viewers cannot modify trip expenses or budget'), { statusCode: 403 });
+    before = created().length;
+    r = await addStop({ title: 'Zoo', day: 1 });
+    assert.match(r.body.reply, /view-only access/);
+    assert.equal(created().length, before);
+    accessError = null;
+
+    // the tool is not even offered to a viewer, or when the trip has no city to search around
+    aiAnswer = { ok: true, status: 200, body: { reply: 'ok' } };
+    foundTrip = { ...trip, members: [{ userId: 7, role: 'VIEWER' }] };
+    await ask({ message: 'add zoo', tripId: 5 });
+    assert.equal(aiRequest.body.can_edit, false);
+    foundTrip = { ...trip, destinations: [] };
+    await ask({ message: 'add zoo', tripId: 5 });
+    assert.equal(aiRequest.body.can_edit, false);
+    foundTrip = trip;
+
+    // an action it does not know changes nothing
+    aiAnswer = { ok: true, status: 200, body: { reply: '', action: { name: 'delete_everything', args: {} } } };
+    before = created().length;
+    r = await ask({ message: 'delete all', tripId: 5 });
+    assert.match(r.body.reply, /Choose a trip first/);
+    assert.equal(created().length, before);
+    aiAnswer = { ok: true, status: 200, body: { reply: 'Beach on day 2.' } };
 
     // a trip the traveller cannot see
     foundTrip = null;

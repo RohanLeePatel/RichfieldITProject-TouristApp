@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Plus, Send, Trash2 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import { deleteConversation, getConversation, listConversations, sendChatMessage } from "../../api/chat.js";
 import useActiveTrip from "../../hooks/useActiveTrip.js";
@@ -69,7 +70,10 @@ export default function ChatPanel({ showHistory = false }) {
     try {
       const data = await sendChatMessage({ message, conversationId, tripId: trip?.id });
       setConversationId(data.conversationId);
-      setMessages((current) => [...current, { id: `reply-${Date.now()}`, role: "assistant", content: data.reply }]);
+      setMessages((current) => [
+        ...current,
+        { id: `reply-${Date.now()}`, role: "assistant", content: data.reply, itineraryTripId: data.added ? data.tripId : null },
+      ]);
       refreshHistory();
     } catch (err) {
       setError(err.message);
@@ -115,7 +119,12 @@ export default function ChatPanel({ showHistory = false }) {
             </p>
           )}
           {messages.map((m) => (
-            <p key={m.id} className={`chat-bubble ${m.role}`}>{m.content}</p>
+            <p key={m.id} className={`chat-bubble ${m.role}`}>
+              {m.content}
+              {m.itineraryTripId && (
+                <Link className="chat-bubble-link" to={`/trips/${m.itineraryTripId}`}>View itinerary</Link>
+              )}
+            </p>
           ))}
           {sending && <p className="chat-bubble assistant pending">Thinking...</p>}
           <div ref={endRef} />

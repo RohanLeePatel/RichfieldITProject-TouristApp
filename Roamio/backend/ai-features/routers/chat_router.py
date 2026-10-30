@@ -13,6 +13,7 @@ def chat(body: ChatRequest):
     if body.messages[-1].role != "user":
         raise HTTPException(status_code=422, detail="The last message must be from the user.")
     try:
-        return {"reply": reply([m.model_dump() for m in body.messages], body.context)}
+        text, action = reply([m.model_dump() for m in body.messages], body.context, body.can_edit)
+        return {"reply": text, "action": action}
     except ChatUnavailable as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc

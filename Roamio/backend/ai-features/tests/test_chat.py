@@ -56,7 +56,7 @@ def test_returns_reply_and_sends_context_and_key_in_header(client, monkeypatch):
     monkeypatch.setattr(gemini.requests, "post", fake_post)
     response = client.post("/chat", json=BODY, headers=SECRET)
     assert response.status_code == 200
-    assert response.json() == {"reply": "Beach day."}
+    assert response.json() == {"reply": "Beach day.", "action": None}
     assert "test-key" not in seen["url"]
     assert seen["headers"]["x-goog-api-key"] == "test-key"
     assert "Trip: Durban" in seen["json"]["systemInstruction"]["parts"][0]["text"]
