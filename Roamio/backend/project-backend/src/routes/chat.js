@@ -15,25 +15,75 @@ const aiFeaturesUrl = (
 
 const HISTORY_MESSAGES = 10; // sent to the model with each question
 const MAX_MESSAGE = 2000;
+const MAX_CONVERSATION_QUESTIONS = 100; // a chat this long should start over
+const MAX_ADVISORY_COUNTRIES = 3;
+const WEATHER_TIMEOUT_MS = 8000;
+// Per traveller, counted in the database so it holds across serverless
+// instances (the per-IP chatLimiter in server.js cannot see the traveller).
+// The daily cap protects the free Gemini quota shared by every traveller.
+const PER_MINUTE = 8;
+const PER_DAY = Number(process.env.CHAT_DAILY_LIMIT) || 60;
 
 const parseId = (value) => (/^\d+$/.test(String(value)) ? Number(value) : null);
 
+// Chat answers hold a traveller's trip details: never cache them anywhere.
+router.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
+
+const questionsSince = (userId, since) =>
+  prisma.chatMessage.count({ where: { role: 'user', createdAt: { gte: since }, conversation: { userId } } });
+
+// Current weather and the short forecast for the trip's first city, through the
+// same ai-features route as the Weather page; null when it cannot be had.
+async function tripWeather(city) {
+  if (!city || !process.env.superSecretKey) return null;
+  try {
+    const response = await fetch(`${aiFeaturesUrl}/weather/${encodeURIComponent(city)}`, {
+      headers: { 'node-secretkey': process.env.superSecretKey },
+      signal: AbortSignal.timeout(WEATHER_TIMEOUT_MS),
+    });
+    return response.ok ? await response.json() : null;
+  } catch {
+    return null;
+  }
+}
+
 // The trip's facts for this traveller; undefined when they cannot see the trip
-// (a 404, same as everywhere else).
+// (a 404, same as everywhere else). Only these relations are loaded, and
+// documents are loaded without their bytes.
 async function tripContext(userId, tripId) {
   const trip = await prisma.trip.findFirst({
     where: accessibleTrips(userId, { id: tripId }),
     include: {
       itineraries: { orderBy: [{ dayNumber: 'asc' }, { startTime: 'asc' }] },
-      destinations: { include: { destination: { include: { city: { include: { country: true } } } } } },
+      destinations: { orderBy: { orderIndex: 'asc' }, include: { destination: { include: { city: { include: { country: true } } } } } },
+      members: { select: { userId: true, role: true } },
+      travelGroup: { select: { description: true } },
+      budget: { include: { categoryLimits: true } },
+      expenses: { select: { title: true, amount: true, currency: true, exchangeRate: true, category: true, paidById: true, date: true } },
+      safetyAlerts: { where: { resolvedAt: null }, select: { riskLevel: true, message: true } },
+      documents: { select: { kind: true } },
     },
   });
   if (!trip) return undefined;
-  const country = trip.destinations[0]?.destination.city.country;
-  const safety = country
-    ? await safetyService.getCountrySafety(country.code, country.name).catch(() => null)
-    : null;
-  return buildContext(trip, safety);
+
+  const countries = new Map();
+  for (const { destination } of trip.destinations) {
+    const { code, name } = destination.city.country;
+    countries.set(code, name);
+  }
+  const [advisories, weather] = await Promise.all([
+    Promise.all(
+      [...countries].slice(0, MAX_ADVISORY_COUNTRIES).map(async ([code, country]) => ({
+        country,
+        safety: await safetyService.getCountrySafety(code, country).catch(() => null),
+      })),
+    ),
+    tripWeather(trip.destinations[0]?.destination.city.name),
+  ]);
+  return buildContext(trip, { advisories, weather, userId });
 }
 
 // POST /api/chat { message, conversationId?, tripId? } -> { conversationId, reply }
@@ -48,11 +98,28 @@ router.post('/', async (req, res) => {
   }
 
   try {
+    const now = Date.now();
+    const [lastMinute, today] = await Promise.all([
+      questionsSince(userId, new Date(now - 60 * 1000)),
+      questionsSince(userId, new Date(new Date(now).setUTCHours(0, 0, 0, 0))),
+    ]);
+    if (lastMinute >= PER_MINUTE) {
+      res.set('Retry-After', '60');
+      return res.status(429).json({ message: 'You are sending messages too quickly. Wait a minute and try again.' });
+    }
+    if (today >= PER_DAY) {
+      return res.status(429).json({ message: `You have reached today's limit of ${PER_DAY} questions. It resets at midnight UTC.` });
+    }
+
     let conversation = null;
     if (req.body.conversationId != null) {
       const id = parseId(req.body.conversationId);
       conversation = id && await prisma.chatConversation.findFirst({ where: { id, userId } });
       if (!conversation) return res.status(404).json({ message: 'Conversation not found.' });
+      const asked = await prisma.chatMessage.count({ where: { conversationId: conversation.id, role: 'user' } });
+      if (asked >= MAX_CONVERSATION_QUESTIONS) {
+        return res.status(400).json({ message: 'This chat is full. Start a new chat.' });
+      }
     }
 
     // a continuing chat keeps the trip it started with
