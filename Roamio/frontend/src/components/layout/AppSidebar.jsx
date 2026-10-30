@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Bell, CalendarDays, CloudSun, Compass, Home, Languages, LogOut, Map, Plane, Settings, ShieldCheck, Users, X,
+  Bell, CalendarDays, CloudSun, Compass, Home, Languages, LogOut, Map, MessageCircle, Plane, Settings, ShieldCheck, Users, X,
 } from "lucide-react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
@@ -33,6 +33,7 @@ const NAV_SECTIONS = [
       { to: "/calendar", label: "Calendar", icon: CalendarDays },
       { to: "/weather", label: "Weather", icon: CloudSun, tripAware: true },
       { to: "/translator", label: "Travel Translator", icon: Languages, tripAware: true },
+      { to: "/chat", label: "Trip assistant", icon: MessageCircle },
       { to: "/settings", label: "Settings", icon: Settings },
     ],
   },

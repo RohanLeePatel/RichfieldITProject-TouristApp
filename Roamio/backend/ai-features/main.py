@@ -10,6 +10,7 @@ load_dotenv()
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 
+import chat.gemini
 import engine.currency
 import landmarks.landmarks
 import ocr.ocr
@@ -17,6 +18,7 @@ import translation.live_translation
 import weather.weather
 from config.auth import verify_secretKey
 from rate_limit import check_rate_limit
+from routers.chat_router import router as chat_router
 from routers.landmarks_router import router as landmarks_router
 from routers.rates_router import router as rates_router
 from routers.recommendations_router import router as recommendations_router
@@ -88,6 +90,7 @@ app.include_router(recommendations_router)
 app.include_router(weather_router)
 app.include_router(landmarks_router)
 app.include_router(rates_router)
+app.include_router(chat_router)
 
 # which module holds each provider's key, so /health reports the values the
 # service is actually running with rather than re-reading the environment
@@ -97,6 +100,7 @@ PROVIDER_KEYS = {
     "translation": (translation.live_translation, "DEEPL_API_KEY"),
     "landmarks": (landmarks.landmarks, "GEOAPIFY_API_KEY"),
     "exchange_rates": (engine.currency, "EXCHANGE_RATE_API_KEY"),
+    "chat": (chat.gemini, "GEMINI_API_KEY"),
 }
 
 

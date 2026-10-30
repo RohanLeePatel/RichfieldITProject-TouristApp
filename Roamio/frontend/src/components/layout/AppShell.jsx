@@ -3,6 +3,7 @@ import { Menu } from "lucide-react";
 import { Outlet } from "react-router-dom";
 
 import useTheme from "../recommendations/useTheme.js";
+import ChatWidget from "../chat/ChatWidget.jsx";
 import AppSidebar from "./AppSidebar.jsx";
 import "../../styles/dashboard.css";
 import "../../styles/appShell.css";
@@ -25,6 +26,8 @@ export default function AppShell() {
       <div className="app-shell-main">
         <Outlet />
       </div>
+
+      <ChatWidget />
     </div>
   );
 }

@@ -21,6 +21,7 @@ import TripsList from "./pages/TripsList.jsx";
 import TripDetail from "./pages/TripDetail.jsx";
 import TripBudget from "./pages/TripBudget.jsx";
 import Calendar from "./pages/Calendar.jsx";
+import Chat from "./pages/Chat.jsx";
 import Invite from "./pages/Invite.jsx";
 import Join from "./pages/Join.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
@@ -104,6 +105,7 @@ function App() {
           <Route path="/trips/:tripId" element={<TripDetail />} />
           <Route path="/trips/:tripId/budget" element={<TripBudget />} />
           <Route path="/calendar" element={<Calendar />} />
+          <Route path="/chat" element={<Chat />} />
           <Route path="/weather" element={<Weather />} />
           <Route path="/translator" element={<Translator />} />
           <Route path="/recommendations" element={<Recommendations />} />

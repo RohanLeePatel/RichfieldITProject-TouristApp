@@ -36,5 +36,5 @@ jobs:
 
       - name: Test with coverage
         run: |
-          coverage run --source=cache_utils,config,engine,landmarks,main,ocr,rate_limit,routers,schemas,translation,weather -m pytest -q
+          coverage run --source=cache_utils,chat,config,engine,landmarks,main,ocr,rate_limit,routers,schemas,translation,weather -m pytest -q
           coverage report -m --fail-under=90

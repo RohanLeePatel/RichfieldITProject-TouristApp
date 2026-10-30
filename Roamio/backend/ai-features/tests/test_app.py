@@ -37,6 +37,7 @@ def test_every_feature_route_is_mounted(client):
     assert set(main.app.openapi()["paths"]) == {
         "/",
         "/health",
+        "/chat",
         "/landmarks",
         "/ocr",
         "/rates/{base}/{target}",
@@ -89,7 +90,7 @@ def test_health_detail_reports_which_providers_are_configured(authed_client, mon
     assert body["status"] == "ok"
     assert body["providers"]["weather"] is True
     assert set(body["providers"]) == {
-        "weather", "ocr", "translation", "landmarks", "exchange_rates"
+        "weather", "ocr", "translation", "landmarks", "exchange_rates", "chat"
     }
     # the key itself must never appear
     assert "a-key" not in authed_client.get("/health", headers=SECRET).text

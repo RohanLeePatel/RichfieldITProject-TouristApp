@@ -10,7 +10,7 @@ const swaggerJsdoc = require('swagger-jsdoc');
 const safetySyncService = require('./src/services/safetySyncService');
 
 // 2. Custom Middleware Imports
-const { generalLimiter, authLimiter, recommendationsLimiter, weatherLimiter } = require('./src/middleware/rateLimiter');
+const { generalLimiter, authLimiter, recommendationsLimiter, weatherLimiter, chatLimiter } = require('./src/middleware/rateLimiter');
 const attachActivityLogger = require('./src/middleware/activityLoggerMiddleware');
 
 // 3. Route Imports
@@ -32,6 +32,7 @@ const recommendationRoutes = require('./src/routes/recommendations');
 const weatherRoutes = require('./src/routes/weather');
 const ratesRoutes = require('./src/routes/rates');
 const adminRoutes = require('./src/routes/admin');
+const chatRoutes = require('./src/routes/chat');
 
 // 4. App Initialization
 const app = express();
@@ -111,6 +112,7 @@ app.use('/api/translate', translationRoutes);
 app.use('/api/recommendations', recommendationsLimiter, recommendationRoutes);
 app.use('/api/weather', weatherLimiter, weatherRoutes);
 app.use('/api/rates', weatherLimiter, ratesRoutes); // same shared-quota limit
+app.use('/api/chat', chatLimiter, chatRoutes);
 
 // Admin dashboard API. Before the /api routers below, which would 401 it;
 // the router guards itself with isAdmin and has its own error handler.

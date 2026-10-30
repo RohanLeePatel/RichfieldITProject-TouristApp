@@ -45,10 +45,20 @@ const weatherLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Chat limiter: 20 messages per minute (each one spends the free Gemini quota)
+const chatLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  message: { message: 'Too many chat messages, please try again after a minute.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 module.exports = {
   generalLimiter,
   authLimiter,
   translateLimiter,
   recommendationsLimiter,
-  weatherLimiter
+  weatherLimiter,
+  chatLimiter
 };

@@ -35,6 +35,7 @@ ROUTE_LIMITS: dict[str, int] = {
     "/landmarks": 120,      # Geoapify free tier: 3 000 requests a day
     "/weather": 300,        # OpenWeather free tier: 60 calls a minute
     "/recommendations": 300,
+    "/chat": 60,            # Gemini free tier: low per-minute and daily request quota
 }
 
 # the public uptime check must answer even while a caller is being throttled
