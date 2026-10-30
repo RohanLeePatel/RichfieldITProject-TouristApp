@@ -69,11 +69,15 @@ async function request(path, { auth = false, retried = false, headers, ...option
   if (!response.ok) {
     // routes send { message } or { error: "..." }; the global error handler
     // sends { error: { message } }
-    throw new Error(
-      data?.message ||
-        data?.error?.message ||
-        (typeof data?.error === "string" ? data.error : null) ||
-        "Request failed. Please try again."
+    // status lets callers tell a 403 (e.g. not an admin) from other failures
+    throw Object.assign(
+      new Error(
+        data?.message ||
+          data?.error?.message ||
+          (typeof data?.error === "string" ? data.error : null) ||
+          "Request failed. Please try again."
+      ),
+      { status: response.status }
     );
   }
 

@@ -24,3 +24,5 @@ const checkAdmin = (req, res, next) => {
 };
 
 module.exports = [requireAuth, checkAdmin];
+// Also used to tell the frontend whether to show the Admin link (GET /users/me)
+module.exports.isAdminUser = isAllowed;

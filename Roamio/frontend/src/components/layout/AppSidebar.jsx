@@ -1,13 +1,21 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
-  Bell, CalendarDays, CloudSun, Compass, Home, Languages, LogOut, Map, Plane, Settings, Users, X,
+  Bell, CalendarDays, CloudSun, Compass, Home, Languages, LogOut, Map, Plane, Settings, ShieldCheck, Users, X,
 } from "lucide-react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
+import { fetchMe } from "../../api/account.js";
 import { fetchNotifications, markAllNotificationsRead } from "../../api/notifications.js";
 import useActiveTrip from "../../hooks/useActiveTrip.js";
 import { useAuthStore } from "../../store/authStore.js";
 import "../../styles/appShell.css";
+
+// Only shown when the API says the signed-in user is an admin
+const ADMIN_SECTION = {
+  label: "Admin",
+  links: [{ to: "/admin", label: "Admin dashboard", icon: ShieldCheck }],
+};
 
 const NAV_SECTIONS = [
   {
@@ -38,7 +46,12 @@ export default function AppSidebar({ open, onClose }) {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const logout = useAuthStore((state) => state.logout);
+  const userId = useAuthStore((state) => state.user?.id);
   const { trip, trips, setActiveTrip } = useActiveTrip();
+
+  // GET /users/me carries isAdmin (decided server-side from ADMIN_USER_IDS)
+  const { data: me } = useQuery({ queryKey: ["me", userId], queryFn: fetchMe, enabled: userId != null, staleTime: 5 * 60_000 });
+  const sections = me?.isAdmin ? [...NAV_SECTIONS, ADMIN_SECTION] : NAV_SECTIONS;
 
   const [inbox, setInbox] = useState({ notifications: [], unreadCount: 0 });
   const [inboxOpen, setInboxOpen] = useState(false);
@@ -117,7 +130,7 @@ export default function AppSidebar({ open, onClose }) {
           </label>
         )}
 
-        {NAV_SECTIONS.map((section) => (
+        {sections.map((section) => (
           <div className="sidebar-section" key={section.label}>
             <p className="sidebar-label">{section.label}</p>
             <nav className="sidebar-nav">

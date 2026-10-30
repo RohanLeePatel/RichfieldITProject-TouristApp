@@ -23,8 +23,10 @@ import TripBudget from "./pages/TripBudget.jsx";
 import Calendar from "./pages/Calendar.jsx";
 import Invite from "./pages/Invite.jsx";
 import Join from "./pages/Join.jsx";
+import AdminDashboard from "./pages/AdminDashboard.jsx";
 
 import AppShell from "./components/layout/AppShell.jsx";
+import AdminRoute from "./components/admin/AdminRoute.jsx";
 import { useAuthStore } from "./store/authStore.js";
 
 // =========================================================
@@ -106,6 +108,8 @@ function App() {
           <Route path="/translator" element={<Translator />} />
           <Route path="/recommendations" element={<Recommendations />} />
           <Route path="/settings" element={<Settings />} />
+          {/* admins only: AdminRoute asks the API, which decides who is one */}
+          <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         </Route>
 
         {/* an invite link: public, so an invitee can see it before signing in */}

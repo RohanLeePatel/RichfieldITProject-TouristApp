@@ -1,6 +1,7 @@
 const authService = require('../services/authService');
 const tokenService = require('../auth/tokenService');
 const userRepository = require('../repositories/userRepository');
+const { isAdminUser } = require('../middleware/isAdmin');
 
 // Expected errors (validation/auth) use the { error } shape; anything else goes to the global handler
 const fail = (res, next, err) => {
@@ -123,7 +124,7 @@ class AuthController {
     try {
       const user = await userRepository.findById(req.user.userId);
       if (!user) return res.status(404).json({ message: 'User not found' });
-      res.json(user);
+      res.json({ ...user, isAdmin: isAdminUser({ id: req.user.userId, role: req.user.role }) });
     } catch (err) {
       next(err);
     }
