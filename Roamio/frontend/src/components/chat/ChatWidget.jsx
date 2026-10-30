@@ -1,16 +1,19 @@
 import { useState } from "react";
 import { MessageCircle, X } from "lucide-react";
 
+import useTheme from "../recommendations/useTheme.js";
 import ChatPanel from "./ChatPanel.jsx";
 import "../../styles/chat.css";
 
 // Floating assistant button on every signed-in page. The full page (/chat)
-// adds the conversation list.
+// adds the conversation list. It carries its own theme tokens (chat.css) so
+// it looks the same on the Dashboard and on the trip-planning pages.
 export default function ChatWidget() {
+  const { theme } = useTheme();
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="chat-widget">
+    <div className="chat-widget" data-theme={theme}>
       {open && (
         <div className="chat-widget-window" role="dialog" aria-label="Trip assistant">
           <header>
