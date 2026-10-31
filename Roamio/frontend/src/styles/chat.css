@@ -120,3 +120,12 @@
   .chat-page .chat-panel { flex-direction: column; height: 75vh; }
   .chat-history { width: auto; max-height: 130px; border-right: 0; border-bottom: 1px solid var(--line); }
 }
+
+/* assistant replies are drawn as paragraphs and lists (see ChatText) */
+.chat-bubble.assistant { white-space: normal; }
+.chat-bubble.assistant > :first-child { margin-top: 0; }
+.chat-bubble.assistant p { margin: 0 0 8px; }
+.chat-bubble.assistant ul, .chat-bubble.assistant ol { margin: 0 0 8px; padding-left: 20px; }
+.chat-bubble.assistant li { margin: 0 0 4px; }
+.chat-bubble.assistant > :last-child { margin-bottom: 0; }
+.chat-bubble.assistant .chat-bubble-link { margin-top: 8px; }

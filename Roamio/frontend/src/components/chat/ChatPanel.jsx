@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { deleteConversation, getConversation, listConversations, sendChatMessage } from "../../api/chat.js";
 import useActiveTrip from "../../hooks/useActiveTrip.js";
 import useTips from "../../store/tipsStore.js";
+import ChatText from "./ChatText.jsx";
 import "../../styles/chat.css";
 
 const SUGGESTIONS = ["What is planned for day 2?", "Is it safe where I'm going?", "What should I pack?"];
@@ -129,14 +130,14 @@ export default function ChatPanel({ showHistory = false }) {
             </div>
           )}
           {messages.map((m) => (
-            <p key={m.id} className={`chat-bubble ${m.role}`}>
-              {m.content}
+            <div key={m.id} className={`chat-bubble ${m.role}`}>
+              {m.role === "assistant" ? <ChatText text={m.content} /> : m.content}
               {m.itineraryTripId && (
                 <Link className="chat-bubble-link" to={`/trips/${m.itineraryTripId}`}>View itinerary</Link>
               )}
-            </p>
+            </div>
           ))}
-          {sending && <p className="chat-bubble assistant pending">Thinking...</p>}
+          {sending && <div className="chat-bubble assistant pending">Thinking...</div>}
           <div ref={endRef} />
         </div>
 

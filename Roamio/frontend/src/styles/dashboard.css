@@ -272,11 +272,15 @@
    MAIN + HEADER
 ========================================================= */
 
+/* Same 0.8 zoom the PageShell pages and Settings use (see .recommendations-page),
+   so text and spacing match across the app. */
 .dashboard-main {
   flex: 1;
   min-width: 0;
 
-  margin-left: var(--sidebar-width);
+  zoom: 0.8;
+  /* the sidebar is outside the zoom, so its width is divided by it here */
+  margin-left: calc(var(--sidebar-width) / 0.8);
 }
 
 .dashboard-header {
