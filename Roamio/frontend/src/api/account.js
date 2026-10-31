@@ -5,6 +5,11 @@ export function fetchMe() {
   return authedFetch("/api/auth/users/me");
 }
 
+// Records that the signed-in user agreed to the Terms and Privacy Policy now in force.
+export function acceptTerms() {
+  return authedFetch("/api/auth/users/me/terms", { method: "POST" });
+}
+
 // Only fullName, avatarUrl and preferences are accepted by the server.
 export function updateMe({ fullName, preferences }) {
   return authedFetch("/api/auth/users/me", {

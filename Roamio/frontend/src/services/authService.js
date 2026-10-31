@@ -6,10 +6,10 @@ import { apiFetch } from "../api/client";
 
 // Creates the account and emails a 6-digit code; no session until it's verified.
 // devOtp is only present when the backend runs with ENABLE_DEV_OTP=true.
-export async function registerUser({ fullName, email, password }) {
+export async function registerUser({ fullName, email, password, acceptedTerms }) {
   const result = await apiFetch("/api/auth/register", {
     method: "POST",
-    body: JSON.stringify({ email, password, fullName }),
+    body: JSON.stringify({ email, password, fullName, acceptedTerms }),
   });
 
   return { email: result.email, devOtp: result.devOtp };

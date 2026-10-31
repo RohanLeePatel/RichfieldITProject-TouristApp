@@ -101,7 +101,7 @@ app.use('/api', generalLimiter);
 // codes). Not to the profile read/write or the token refresh: pages load the
 // profile on open, so 10 a minute turned ordinary browsing into 429s. Those two
 // stay under the general limiter.
-const UNLIMITED_AUTH_PATHS = new Set(['/users/me', '/refresh']);
+const UNLIMITED_AUTH_PATHS = new Set(['/users/me', '/users/me/terms', '/refresh']);
 app.use('/api/auth', (req, res, next) => (UNLIMITED_AUTH_PATHS.has(req.path) ? next() : authLimiter(req, res, next)));
 app.use('/api/auth', authRoutes); // e.g., /api/auth/login, /api/auth/register
 

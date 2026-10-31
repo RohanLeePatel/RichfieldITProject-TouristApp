@@ -2,11 +2,12 @@
 //
 // The privacy policy and terms below are a starting template written for a
 // South African travel app (POPIA). Have them reviewed before launch and
-// update LEGAL_LAST_UPDATED whenever the wording changes.
+// update LEGAL_LAST_UPDATED whenever the wording changes, and TERMS_VERSION in
+// backend/project-backend/src/services/authService.js to the same date.
 
 import { SUPPORT_EMAIL } from "../../api/settings.js";
 
-export const LEGAL_LAST_UPDATED = "2026-10-28";
+export const LEGAL_LAST_UPDATED = "2026-10-31";
 
 export const FAQS = [
   {
@@ -39,7 +40,7 @@ export const FAQS = [
   },
   {
     q: "What happens when I delete my account?",
-    a: "Your profile, saved travellers, preferences and trips you own are permanently deleted. Records we must keep by law, such as payment records, are kept only for as long as required. This can't be undone.",
+    a: "Email us from your account address and we will delete your profile, preferences, the trips you own, your documents and your chat history within 30 days. Records we must keep by law are kept only for as long as required. This can't be undone.",
   },
   {
     q: "How do I change my home currency or translation language?",
@@ -61,52 +62,75 @@ export const PRIVACY_POLICY = [
   {
     heading: "Who we are",
     body: [
-      "Roamio is a travel planning app that helps you plan trips, manage bookings and travel with others. This policy explains what personal information we collect, why we collect it and the choices you have. We process personal information in line with the Protection of Personal Information Act, 2013 (POPIA).",
+      "Roamio is a travel planning app that helps you plan trips, keep your itinerary, budget and documents together, and travel with others. This policy explains what personal information we collect, why, who we share it with and the choices you have. We process personal information in line with the Protection of Personal Information Act, 2013 (POPIA).",
+      `Our Information Officer can be reached at ${SUPPORT_EMAIL}.`,
     ],
   },
   {
     heading: "Information we collect",
     body: [
-      "Account details: your name, email address, password (stored only as a secure hash) and profile photo.",
-      "Preferences: your home currency, translation language, theme and notification choices.",
-      "Travel information: trips, itineraries, bookings and expenses you add or that are shared with you.",
-      "Saved travellers: details you add about people you travel with, such as names, dates of birth and passport details.",
-      "Security information: devices, approximate location and IP addresses used to sign in, so we can protect your account.",
+      "Account details: your name, email address and password. Your password is stored only as a secure hash, never as readable text.",
+      "Trip information: the trips, itineraries, budgets, expenses, travel groups and invitations you create or that are shared with you, and the booking documents (PDFs and images) you attach to a trip.",
+      "Assistant and translator content: the questions you ask the trip assistant and its replies, and the text and photos you translate, with your translation history.",
+      "Preferences: your currency, language, theme and notification choices. Some of these, and your saved travellers and profile photo, are kept in your own browser rather than on our servers.",
+      "Technical information: like most websites, our hosting records your IP address and the pages requested in server logs, which we use to keep Roamio running and secure.",
+      "We do not currently store passport or ID numbers.",
     ],
   },
   {
     heading: "How we use it",
     body: [
-      "To provide and improve Roamio, send booking confirmations and travel updates you've chosen to receive, keep your account secure and respond when you contact us. We don't sell your personal information.",
+      "To run Roamio: sign you in, send the verification and password-reset codes you ask for, show your trips to the people you share them with, give you recommendations, weather, safety advice and translations, and answer your questions in the assistant. We also use it to keep the service secure and to respond when you contact us. We don't sell your personal information and we don't use it for advertising.",
     ],
   },
   {
-    heading: "Saved travellers",
+    heading: "Who else handles your information",
     body: [
-      "You may only save another person's details with their permission, or as their parent or legal guardian if they are under 18. We use these details only to complete bookings you make, and passport and ID numbers are stored encrypted and shown masked.",
+      "We use these service providers to run Roamio. Each receives only what it needs to do its job:",
+      "Supabase and Vercel host our database, file storage and servers. Your account, trips, documents, chat history and translation history are stored there.",
+      "Google (Gemini) powers the trip assistant. When you chat, your messages and basic facts about the trip you're asking about (destination, dates, itinerary, safety advisory and weather) are sent to Google. On the free service we use, Google may use these prompts to improve its products, so please don't put sensitive personal details in the chat.",
+      "DeepL translates the text you ask to translate. OCR.space reads the text in photos you scan. Geoapify finds places and landmarks from the destinations you search. OpenWeather provides weather for your destination. Map images are loaded from OpenStreetMap, which sees your IP address when a map is shown.",
+      "Our email provider delivers the codes and notices we send you.",
+      "Several of these providers run servers outside South Africa. We choose providers that protect personal information, and we share it with authorities only when the law requires it.",
     ],
   },
   {
-    heading: "Sharing",
+    heading: "Cookies and similar storage",
     body: [
-      "We share information with airlines, accommodation providers and other travel partners only when it's needed for a booking you make, and with service providers who help us run Roamio under contracts that require them to protect it. We disclose information to authorities only when the law requires it.",
+      "We use cookies only to keep you signed in. They are strictly necessary: a short-lived access cookie and a longer refresh cookie, both hidden from page scripts. We also use your browser's storage to remember choices such as your theme, active trip and dismissed tips.",
+      "We do not use advertising or tracking cookies. If that changes, we will update this policy and ask for your consent first.",
+    ],
+  },
+  {
+    heading: "Saved travellers and other people's details",
+    body: [
+      "You may only add another person's details with their permission, or as their parent or legal guardian if they are under 18. Saved travellers are kept in your browser on your device, not on our servers.",
     ],
   },
   {
     heading: "How long we keep it",
     body: [
-      "We keep your information while your account is open. When you delete your account, we delete your personal information, except records we must keep by law, which we keep only for as long as required.",
+      "We keep your information while your account is open. To delete your account, email us from the address on your account and we will delete your personal information, including the trips you own, your documents and your chat history, within 30 days. We keep only records the law requires us to keep, and only for as long as required. Trips shared with other people may remain for those people.",
     ],
   },
   {
     heading: "Your rights",
     body: [
-      "You can access, correct and download your information, object to certain processing, and delete your account from Settings at any time. If you're unhappy with how we handle your information, you may complain to the Information Regulator of South Africa.",
+      "You can ask to see, correct, download or delete your information, and object to certain processing, by emailing us. You can change your name and preferences in Settings, and the Download my data option there gives you a copy of what is held on your device. If you are unhappy with how we handle your information, you may complain to the Information Regulator of South Africa.",
     ],
   },
   {
-    heading: "Contact us",
-    body: [`Questions about privacy? Email ${SUPPORT_EMAIL}.`],
+    heading: "Keeping your information safe",
+    body: [
+      "Connections to Roamio are encrypted, passwords and verification codes are stored as hashes, and a trip's documents and details are only available to the people on that trip. No system is perfectly secure. If a breach affects your information, we will tell you and the Information Regulator as the law requires.",
+    ],
+  },
+  {
+    heading: "Changes and contact",
+    body: [
+      "We'll tell you about important changes before they take effect, and the date at the top shows when this policy was last updated.",
+      `Questions about privacy? Email ${SUPPORT_EMAIL}.`,
+    ],
   },
 ];
 
@@ -114,7 +138,7 @@ export const TERMS = [
   {
     heading: "Using Roamio",
     body: [
-      "By creating an account or using Roamio you agree to these terms. You must be at least 18 years old to hold an account. Children may travel as saved travellers on a parent's or guardian's account.",
+      "By creating an account or using Roamio you agree to these terms and to our Privacy Policy. You must be at least 18 years old to hold an account.",
     ],
   },
   {
@@ -124,33 +148,49 @@ export const TERMS = [
     ],
   },
   {
-    heading: "Bookings and travel partners",
+    heading: "What Roamio is",
     body: [
-      "Flights, stays and other services are provided by third-party travel partners under their own terms, including their change and cancellation rules. Roamio isn't responsible for a partner's service, but we'll help where we can if something goes wrong.",
+      "Roamio is a planning tool. It helps you choose destinations, build an itinerary, track a budget and keep your documents together. We don't sell flights, accommodation or other travel services, and we're not a party to any booking you make with a third party. Their terms, including change and cancellation rules, apply to those bookings.",
+    ],
+  },
+  {
+    heading: "Recommendations, translations and the assistant",
+    body: [
+      "Recommendations, translations, weather, safety information and the trip assistant's answers are produced with the help of automated systems and third-party data. They are provided to help you and can be wrong or out of date. Check anything important, such as safety notices, health and medical advice, visa and entry rules and legal requirements, with an official source before you rely on it.",
+    ],
+  },
+  {
+    heading: "Your content and shared trips",
+    body: [
+      "You keep ownership of what you add, such as trips, notes and documents. You allow us to store, display and process it as needed to run Roamio and to show it to the people you share it with. Anything you put in a shared trip or travel group can be seen by its members, so share only what you're happy for them to see.",
     ],
   },
   {
     heading: "Acceptable use",
     body: [
-      "Don't misuse Roamio, interfere with its security, upload unlawful content or add another person's details without their permission.",
+      "Don't misuse Roamio. In particular, don't:",
+      "interfere with its security or try to reach other people's accounts or data;",
+      "upload unlawful content, or files that contain malware or that you have no right to share;",
+      "add another person's details without their permission;",
+      "use automated tools to scrape the service or put an unreasonable load on it, or use the assistant to produce harmful or unlawful content.",
     ],
   },
   {
-    heading: "Translations and recommendations",
+    heading: "Availability",
     body: [
-      "Translations and travel recommendations are provided to help you and may not always be accurate. Check important information, such as safety notices, medical details and legal requirements, with an official source.",
+      "We work to keep Roamio running, but we can't promise it will always be available or error-free. We may change or remove features, and we rely on third-party services that can fail. Keep a copy of anything you can't afford to lose, such as booking confirmations.",
     ],
   },
   {
     heading: "Liability",
     body: [
-      "To the extent the law allows, Roamio isn't liable for indirect losses or for losses caused by travel partners, travel disruptions or events outside our control. Nothing in these terms limits rights you have under the Consumer Protection Act.",
+      "To the extent the law allows, Roamio isn't liable for indirect losses, or for losses caused by travel partners, travel disruptions, inaccurate third-party information or events outside our control. Nothing in these terms limits rights you have under the Consumer Protection Act.",
     ],
   },
   {
     heading: "Ending your account",
     body: [
-      "You can delete your account at any time in Settings. We may suspend accounts that break these terms, and will tell you why unless the law prevents us.",
+      "You can stop using Roamio at any time, and ask us to delete your account by email, as described in the Privacy Policy. We may suspend accounts that break these terms, and will tell you why unless the law prevents us.",
     ],
   },
   {

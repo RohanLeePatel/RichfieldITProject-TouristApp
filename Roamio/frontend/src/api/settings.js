@@ -14,8 +14,7 @@ import { useAuthStore } from "../store/authStore.js";
 
 const API_BASE = String(import.meta.env?.VITE_BACKEND_API_URL || "http://127.0.0.1:3000").replace(/\/+$/, ""); // the Core API, same as api/client.js
 
-// Change this to your real support inbox
-export const SUPPORT_EMAIL = "support@roamio.app";
+export const SUPPORT_EMAIL = "support.roamiio.live@gmail.com";
 
 export class EndpointMissingError extends Error {
   constructor(path) {

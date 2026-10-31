@@ -11,6 +11,9 @@ const MIN_PASSWORD_LENGTH = 8;
 const MAX_PASSWORD_LENGTH = 72; // bcrypt ignores everything after 72 bytes
 const MAX_EMAIL_LENGTH = 254;
 const MAX_NAME_LENGTH = 80;
+// the wording of the Terms and Privacy Policy users agree to when they sign up;
+// keep equal to LEGAL_LAST_UPDATED in frontend/src/components/settings/settingsContent.js
+const TERMS_VERSION = '2026-10-31';
 // letters from any language, then spaces . ' - between them
 const NAME_PATTERN = /^[\p{L}\p{M}][\p{L}\p{M} .'’-]*$/u;
 
@@ -35,7 +38,13 @@ class AuthService {
     return '';
   }
 
-  async register({ email, password, fullName } = {}) {
+  termsVersion = TERMS_VERSION;
+
+  async acceptTerms(userId) {
+    return await userRepository.acceptTerms(userId, TERMS_VERSION);
+  }
+
+  async register({ email, password, fullName, acceptedTerms } = {}) {
     const normalizedEmail = normalizeEmail(email);
     if (!EMAIL_PATTERN.test(normalizedEmail) || normalizedEmail.length > MAX_EMAIL_LENGTH) {
       throw httpError(400, 'A valid email is required.');
@@ -50,14 +59,17 @@ class AuthService {
     const nameProblem = this.fullNameProblem(fullName);
     if (nameProblem) throw httpError(400, nameProblem);
 
+    if (acceptedTerms !== true) throw httpError(400, 'Please agree to the Terms and Privacy Policy to create an account.');
+
     const passwordHash = await tokenService.hashPassword(password);
+    const consent = { termsAcceptedAt: new Date(), termsVersion: TERMS_VERSION };
     const existing = await userRepository.findByEmail(normalizedEmail);
 
     let otp;
     if (existing) {
       if (existing.isVerified) throw httpError(409, 'Email already registered');
       // An unverified registration can be retried (e.g. lost code); only the inbox owner can finish it
-      otp = await issueOtp(existing.id, { passwordHash, fullName: fullName.trim() });
+      otp = await issueOtp(existing.id, { passwordHash, fullName: fullName.trim(), ...consent });
     } else {
       otp = generateOtp();
       await userRepository.create({
@@ -66,6 +78,7 @@ class AuthService {
         fullName: fullName.trim(),
         otpHash: hashOtp(otp),
         otpExpiresAt: otpExpiry(),
+        ...consent,
       });
     }
 

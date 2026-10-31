@@ -27,6 +27,10 @@ model User {
   otpExpiresAt DateTime?
   otpAttempts  Int       @default(0)
 
+  // Agreement to the Terms and Privacy Policy (version = the wording agreed to)
+  termsAcceptedAt DateTime?
+  termsVersion    String?
+
   // Forgot-password OTP (hash only)
   resetPasswordOtpHash   String?
   resetPasswordExpiresAt DateTime?

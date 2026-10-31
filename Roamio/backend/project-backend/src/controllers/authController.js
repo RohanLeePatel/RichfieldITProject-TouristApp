@@ -124,7 +124,20 @@ class AuthController {
     try {
       const user = await userRepository.findById(req.user.userId);
       if (!user) return res.status(404).json({ message: 'User not found' });
-      res.json({ ...user, isAdmin: isAdminUser({ id: req.user.userId, role: req.user.role }) });
+      res.json({
+        ...user,
+        isAdmin: isAdminUser({ id: req.user.userId, role: req.user.role }),
+        // the wording in force; the app asks anyone on an older version to agree again
+        currentTermsVersion: authService.termsVersion
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async acceptTerms(req, res, next) {
+    try {
+      res.json(await authService.acceptTerms(req.user.userId));
     } catch (err) {
       next(err);
     }

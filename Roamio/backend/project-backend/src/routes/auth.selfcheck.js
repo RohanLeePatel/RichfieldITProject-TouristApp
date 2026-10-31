@@ -24,6 +24,12 @@ const fakeUsers = {
     const row = [...users.values()].find((u) => u.id === id);
     Object.assign(row, Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined)));
   },
+  findById: async (id) => [...users.values()].find((u) => u.id === id) || null,
+  acceptTerms: async (id, termsVersion) => {
+    const row = [...users.values()].find((u) => u.id === id);
+    Object.assign(row, { termsAcceptedAt: new Date(), termsVersion });
+    return { termsVersion };
+  },
   recordFailedOtp: async (id) => {
     [...users.values()].find((u) => u.id === id).otpAttempts += 1;
   },
@@ -53,7 +59,7 @@ const server = app.listen(0, async () => {
   const post = (p, body) =>
     fetch(base + p, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
       .then(async (r) => ({ status: r.status, body: await r.json() }));
-  const account = { email: 'ada@example.com', password: 'longenough', fullName: "Zoë O'Brien-Smith Jr." }; // accents, apostrophe, hyphen, full stop are all fine
+  const account = { email: 'ada@example.com', password: 'longenough', fullName: "Zoë O'Brien-Smith Jr.", acceptedTerms: true }; // accents, apostrophe, hyphen, full stop are all fine
 
   try {
     // register refuses input that doesn't fit the fields, with the reason
@@ -64,6 +70,9 @@ const server = app.listen(0, async () => {
       [{ fullName: 'x'.repeat(81) }, /2-80 characters/],
       [{ password: 'a'.repeat(73) }, /longer than 72/],
       [{ email: `${'a'.repeat(250)}@example.com` }, /valid email/],
+      [{ acceptedTerms: false }, /Terms and Privacy Policy/],
+      [{ acceptedTerms: 'true' }, /Terms and Privacy Policy/],
+      [{ acceptedTerms: undefined }, /Terms and Privacy Policy/],
     ]) {
       r = await post('/register', { ...account, ...change });
       assert.equal(r.status, 400);
@@ -76,6 +85,9 @@ const server = app.listen(0, async () => {
     assert.equal(r.body.email, 'ada@example.com');
     assert.equal(r.body.token, undefined);
     assert.equal(sent.length, 1);
+    // the agreement is recorded with the wording version it was given for
+    assert.ok(users.get('ada@example.com').termsAcceptedAt instanceof Date);
+    assert.equal(users.get('ada@example.com').termsVersion, '2026-10-31');
 
     // can't log in before verifying
     r = await post('/login', account);
@@ -95,6 +107,19 @@ const server = app.listen(0, async () => {
     assert.equal(r.status, 200);
     assert.equal(typeof r.body.token, 'string');
     assert.equal(r.body.user.email, 'ada@example.com');
+
+    // an account on an older (or no) version of the terms is asked again, and agreeing records the current one
+    const authed = (p, method = 'GET') =>
+      fetch(base + p, { method, headers: { authorization: `Bearer ${r.body.token}` } }).then(async (res) => ({ status: res.status, body: await res.json() }));
+    r = await post('/login', account);
+    users.get('ada@example.com').termsVersion = null;
+    let me = await authed('/users/me');
+    assert.equal(me.body.currentTermsVersion, '2026-10-31');
+    assert.notEqual(me.body.termsVersion, me.body.currentTermsVersion);
+    assert.equal((await authed('/users/me/terms', 'POST')).body.termsVersion, '2026-10-31');
+    me = await authed('/users/me');
+    assert.equal(me.body.termsVersion, me.body.currentTermsVersion);
+    assert.equal((await fetch(base + '/users/me/terms', { method: 'POST' })).status, 401);
 
     // production without SMTP: sign-up says so instead of sending nothing
     process.env.NODE_ENV = 'production';

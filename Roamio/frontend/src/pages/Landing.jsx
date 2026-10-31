@@ -893,6 +893,8 @@ export default function Landing() {
             ))}
             <Link to="/login">Log in</Link>
             <Link to="/register">Sign up</Link>
+            <Link to="/terms">Terms</Link>
+            <Link to="/privacy">Privacy</Link>
           </nav>
 
         </div>

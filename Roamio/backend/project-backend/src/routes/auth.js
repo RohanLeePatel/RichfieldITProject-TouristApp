@@ -16,5 +16,6 @@ router.post('/logout', authController.logout);
 // Profile endpoints (FR-005 - FR-006)
 router.get('/users/me', requireAuth, authController.getMe);
 router.patch('/users/me', requireAuth, authController.updateMe);
+router.post('/users/me/terms', requireAuth, authController.acceptTerms);
 
 module.exports = router;

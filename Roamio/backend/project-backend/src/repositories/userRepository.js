@@ -20,7 +20,17 @@ class UserRepository {
         isVerified: true,
         preferences: true,
         createdAt: true,
+        termsAcceptedAt: true,
+        termsVersion: true,
       },
+    });
+  }
+
+  async acceptTerms(id, termsVersion) {
+    return await prisma.user.update({
+      where: { id },
+      data: { termsAcceptedAt: new Date(), termsVersion },
+      select: { termsVersion: true },
     });
   }
 
@@ -33,6 +43,8 @@ class UserRepository {
         isVerified: false,
         otpHash: data.otpHash,
         otpExpiresAt: data.otpExpiresAt,
+        termsAcceptedAt: data.termsAcceptedAt,
+        termsVersion: data.termsVersion,
         preferences: {
           create: {}, // Auto-generates default ZAR currency / english / push alerts
         },
@@ -48,7 +60,7 @@ class UserRepository {
 
   // Stores a fresh OTP (and resets the failed-attempt counter); optionally refreshes credentials
   // when an unverified account is re-registered
-  async setOtp(id, { otpHash, otpExpiresAt, passwordHash, fullName }) {
+  async setOtp(id, { otpHash, otpExpiresAt, passwordHash, fullName, termsAcceptedAt, termsVersion }) {
     return await prisma.user.update({
       where: { id },
       data: {
@@ -57,6 +69,7 @@ class UserRepository {
         otpAttempts: 0,
         ...(passwordHash && { passwordHash }),
         ...(fullName && { fullName }),
+        ...(termsAcceptedAt && { termsAcceptedAt, termsVersion }),
       },
       select: { id: true },
     });

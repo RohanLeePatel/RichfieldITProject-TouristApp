@@ -25,6 +25,7 @@ import Chat from "./pages/Chat.jsx";
 import Invite from "./pages/Invite.jsx";
 import Join from "./pages/Join.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
+import Legal from "./pages/Legal.jsx";
 
 import AppShell from "./components/layout/AppShell.jsx";
 import AdminRoute from "./components/admin/AdminRoute.jsx";
@@ -118,6 +119,10 @@ function App() {
         <Route path="/invite/:token" element={<Invite />} />
         {/* a shareable trip/group link (join code) */}
         <Route path="/join/:code" element={<Join />} />
+
+        {/* public, so they can be read before signing up */}
+        <Route path="/terms" element={<Legal kind="terms" />} />
+        <Route path="/privacy" element={<Legal kind="privacy" />} />
 
         {/* the wizard used to live at two addresses */}
         <Route

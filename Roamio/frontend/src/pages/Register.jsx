@@ -41,6 +41,7 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const [fieldErrors, setFieldErrors] = useState({});
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   // Set once the account is created: the page then asks for the emailed code
   const [pendingEmail, setPendingEmail] = useState("");
@@ -106,6 +107,7 @@ export default function Register() {
     if (passwordProblem) found.password = passwordProblem;
     if (!confirmPassword) found.confirmPassword = "Type your password again to confirm it.";
     else if (password !== confirmPassword) found.confirmPassword = "Passwords do not match.";
+    if (!acceptedTerms) found.terms = "Tick the box to agree to the Terms and Privacy Policy.";
     setFieldErrors(found);
     if (Object.keys(found).length) return;
 
@@ -114,6 +116,7 @@ export default function Register() {
         name: trimmedName,
         email: trimmedEmail,
         password,
+        acceptedTerms,
       },
       {
         onSuccess: ({ email: registeredEmail, devOtp }) => {
@@ -546,6 +549,28 @@ export default function Register() {
                   "Registration failed. Please try again."}
               </p>
             )}
+
+            {/* TERMS AND PRIVACY */}
+
+            <div className="input-group terms-check">
+              <label htmlFor="register-terms">
+                <input
+                  id="register-terms"
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  aria-invalid={Boolean(fieldErrors.terms)}
+                  aria-describedby={fieldErrors.terms ? "register-terms-error" : undefined}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                />
+                <span>
+                  I agree to the{" "}
+                  <Link to="/terms" target="_blank" rel="noopener noreferrer">Terms and Conditions</Link>{" "}
+                  and the{" "}
+                  <Link to="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</Link>.
+                </span>
+              </label>
+              <FieldError id="register-terms-error" message={fieldErrors.terms} />
+            </div>
 
             {/* REGISTER BUTTON */}
 

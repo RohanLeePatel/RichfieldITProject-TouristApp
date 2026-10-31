@@ -401,6 +401,10 @@ export default function Login() {
 
           {/* SECURITY */}
 
+          <p className="legal-note">
+            By signing in you agree to our <Link to="/terms">Terms</Link> and <Link to="/privacy">Privacy Policy</Link>.
+          </p>
+
           <div className="safe-message">
             <LockKeyhole size={13} />
 
