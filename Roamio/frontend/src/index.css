@@ -2,7 +2,7 @@
   /* One knob for how big the whole app is drawn. Every page scales itself by
      this (CSS zoom); the sidebar has its own, a little smaller. Lower = smaller. */
   --ui-zoom: 0.75;
-  --sidebar-zoom: 0.7;
+  --sidebar-zoom: 0.75;
 
   font-family:
     system-ui,
