@@ -32,9 +32,9 @@
 
   position: relative;
   transition: background-color 0.25s ease, color 0.25s ease;
-  /* same 0.8 zoom as the PageShell pages and Settings */
-  zoom: 0.8;
-  min-height: calc(100vh / 0.8);
+  /* same --ui-zoom as the PageShell pages and Settings */
+  zoom: var(--ui-zoom);
+  min-height: calc(100vh / var(--ui-zoom));
   overflow-x: hidden;
   background:
     radial-gradient(900px 500px at 0% -10%, rgba(61, 219, 196, 0.14), transparent 60%),

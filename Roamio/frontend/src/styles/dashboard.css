@@ -47,7 +47,7 @@
   --radius-sm: 10px;
 
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
-  --sidebar-width: 200px; /* as drawn, after the sidebar's 0.8 zoom */
+  --sidebar-width: 176px; /* as drawn, after the sidebar's zoom */
 
   --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
   --font-body: "DM Sans", system-ui, sans-serif;
@@ -109,8 +109,8 @@
   inset: 0 auto 0 0;
   z-index: 100;
 
-  zoom: 0.8;
-  width: calc(var(--sidebar-width) / 0.8);
+  zoom: var(--sidebar-zoom);
+  width: calc(var(--sidebar-width) / var(--sidebar-zoom));
 
   display: flex;
   flex-direction: column;
@@ -273,15 +273,15 @@
    MAIN + HEADER
 ========================================================= */
 
-/* Same 0.8 zoom the PageShell pages and Settings use (see .recommendations-page),
+/* Same --ui-zoom the PageShell pages and Settings use (see .recommendations-page),
    so text and spacing match across the app. */
 .dashboard-main {
   flex: 1;
   min-width: 0;
 
-  zoom: 0.8;
+  zoom: var(--ui-zoom);
   /* the sidebar is outside the zoom, so its width is divided by it here */
-  margin-left: calc(var(--sidebar-width) / 0.8);
+  margin-left: calc(var(--sidebar-width) / var(--ui-zoom));
 }
 
 .dashboard-header {

@@ -78,7 +78,7 @@
 
 .admin-content {
   /* the top band above is at 0.8 (see PageTopBar.css); match it so the column lines up */
-  zoom: 0.8;
+  zoom: var(--ui-zoom);
   width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
   padding: 28px 0 56px;

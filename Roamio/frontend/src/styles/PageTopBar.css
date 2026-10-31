@@ -4,7 +4,7 @@
   /* the PageShell pages (Trips, Travel Groups, Settings...) render at
      zoom 0.8 - see .recommendations-page - so match it or this band's
      back link, brand and toggle come out 25% larger than theirs */
-  zoom: 0.8;
+  zoom: var(--ui-zoom);
   color: #FBF9F4;
   line-height: 1.5;
   background:

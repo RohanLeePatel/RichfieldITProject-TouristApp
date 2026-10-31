@@ -137,10 +137,10 @@ input {
 ========================================================= */
 
 .auth-page {
-  /* 0.8 zoom, like the PageShell pages and Settings (see .recommendations-page). */
-  zoom: 0.8;
+  /* Scaled by --ui-zoom, like the PageShell pages and Settings (see .recommendations-page). */
+  zoom: var(--ui-zoom);
   width: 100%;
-  min-height: calc(100vh / 0.8);
+  min-height: calc(100vh / var(--ui-zoom));
 
   display: grid;
   grid-template-columns: 51% 49%;
@@ -159,7 +159,7 @@ input {
 .travel-panel {
   position: relative;
 
-  min-height: calc(100vh / 0.8);
+  min-height: calc(100vh / var(--ui-zoom));
 
   padding: 30px 6% 28px;
 
@@ -728,7 +728,7 @@ input {
 .auth-panel {
   position: relative;
 
-  min-height: calc(100vh / 0.8);
+  min-height: calc(100vh / var(--ui-zoom));
 
   display: flex;
 
@@ -847,7 +847,7 @@ input {
   width: min(100%, 470px);
 
   max-height:
-    calc(100vh / 0.8 - 64px);
+    calc(100vh / var(--ui-zoom) - 64px);
 
   padding:
     34px
@@ -1662,7 +1662,7 @@ input {
   .auth-page {
     display: block;
 
-    min-height: calc(100vh / 0.8);
+    min-height: calc(100vh / var(--ui-zoom));
   }
 
   .travel-panel {
@@ -1672,7 +1672,7 @@ input {
   .auth-panel {
     width: 100%;
 
-    min-height: calc(100vh / 0.8);
+    min-height: calc(100vh / var(--ui-zoom));
 
     padding: 26px 16px;
   }

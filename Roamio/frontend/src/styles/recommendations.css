@@ -37,8 +37,8 @@
 
   /* Everything is authored in px; 0.8 matches the density the team wants at
      100% browser zoom. Native CSS zoom scales it all in one place. */
-  zoom: 0.8;
-  min-height: calc(100vh / 0.8);
+  zoom: var(--ui-zoom);
+  min-height: calc(100vh / var(--ui-zoom));
   color: var(--ink);
   background: var(--bg);
   font: 0.875rem/1.5 "DM Sans", sans-serif;
