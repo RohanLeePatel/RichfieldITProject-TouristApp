@@ -4,13 +4,17 @@ import { Link } from "react-router-dom";
 
 import { deleteConversation, getConversation, listConversations, sendChatMessage } from "../../api/chat.js";
 import useActiveTrip from "../../hooks/useActiveTrip.js";
+import useTips from "../../store/tipsStore.js";
 import "../../styles/chat.css";
+
+const SUGGESTIONS = ["What is planned for day 2?", "Is it safe where I'm going?", "What should I pack?"];
 
 // The assistant conversation, used by the floating widget and the /chat page.
 // A new chat is about the active trip; an opened one keeps the trip it started
 // with (the server decides, so the label below is only a hint).
 export default function ChatPanel({ showHistory = false }) {
   const { trip } = useActiveTrip();
+  const tips = useTips();
   const [messages, setMessages] = useState([]);
   const [conversationId, setConversationId] = useState(null);
   const [conversations, setConversations] = useState([]);
@@ -70,6 +74,7 @@ export default function ChatPanel({ showHistory = false }) {
     try {
       const data = await sendChatMessage({ message, conversationId, tripId: trip?.id });
       setConversationId(data.conversationId);
+      tips.mark("done:chat");
       setMessages((current) => [
         ...current,
         { id: `reply-${Date.now()}`, role: "assistant", content: data.reply, itineraryTripId: data.added ? data.tripId : null },
@@ -114,9 +119,14 @@ export default function ChatPanel({ showHistory = false }) {
 
         <div className="chat-messages" role="log" aria-live="polite">
           {messages.length === 0 && (
-            <p className="chat-empty">
-              Ask about your itinerary, the safety advisory or travelling in general. Try: &quot;What is planned for day 2?&quot;
-            </p>
+            <div className="chat-empty">
+              <p>Ask about your itinerary, the safety advisory, the weather or travelling in general. Tap one to start:</p>
+              <div className="chat-suggestions">
+                {SUGGESTIONS.map((text) => (
+                  <button key={text} type="button" onClick={() => setDraft(text)}>{text}</button>
+                ))}
+              </div>
+            </div>
           )}
           {messages.map((m) => (
             <p key={m.id} className={`chat-bubble ${m.role}`}>

@@ -34,6 +34,7 @@ import {
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import TravelGroups from "../components/groups/TravelGroups.jsx";
+import Hint from "../components/onboarding/Hint.jsx";
 import PageShell from "../components/recommendations/PageShell.jsx";
 import { saveCompanions } from "../api/groups.js";
 import { fetchTrips } from "../api/trips";
@@ -966,6 +967,10 @@ export default function Family() {
       hero={hero}
     >
       <div className="family-page-content">
+
+        <Hint id="groups">
+          A travel group is the people you plan with. Add them here, share trips with the group, and the trip suggestions will take everyone&apos;s preferences into account.
+        </Hint>
 
         {/* TRAVEL GROUP OVERVIEW */}
 

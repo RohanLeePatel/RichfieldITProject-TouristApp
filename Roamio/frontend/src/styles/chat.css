@@ -93,6 +93,10 @@
 
 .chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 2px 2px 8px; }
 .chat-empty { margin: auto 0; padding: 18px; border: 1px dashed var(--line); border-radius: 16px; color: var(--ink-soft); font-size: 0.9375rem; line-height: 1.5; text-align: center; }
+.chat-empty p { margin: 0 0 12px; }
+.chat-suggestions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.chat-suggestions button { padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font: inherit; font-size: 0.875rem; cursor: pointer; }
+.chat-suggestions button:hover { border-color: var(--primary); color: var(--primary); }
 .chat-bubble { margin: 0; max-width: 86%; padding: 10px 14px; border-radius: 16px; font-size: 0.9375rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .chat-bubble.user { align-self: flex-end; background: var(--primary); color: var(--primary-ink); border-bottom-right-radius: 6px; }
 .chat-bubble.assistant { align-self: flex-start; background: var(--surface-2); color: var(--ink); border-bottom-left-radius: 6px; }

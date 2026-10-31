@@ -4,6 +4,7 @@ import { Sparkles } from "lucide-react";
 
 import ItineraryEditor from "../components/recommendations/ItineraryEditor.jsx";
 import LandmarkPicker from "../components/recommendations/LandmarkPicker.jsx";
+import Hint from "../components/onboarding/Hint.jsx";
 import PageShell from "../components/recommendations/PageShell.jsx";
 import ResultsView from "../components/recommendations/ResultsView.jsx";
 import TripDone from "../components/recommendations/TripDone.jsx";
@@ -804,6 +805,11 @@ export default function Recommendations() {
 
   return (
     <PageShell hero={hero}>
+      {stage === "wizard" && (
+        <Hint id="wizard">
+          Tell us your budget, dates and what you enjoy. Pick at least 3 interests and we&apos;ll suggest places that fit. You can go back and change any answer before you see results.
+        </Hint>
+      )}
       {stage === "wizard" && (
         <WizardView
           step={step}

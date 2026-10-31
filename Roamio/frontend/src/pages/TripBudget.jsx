@@ -169,6 +169,12 @@ export default function TripBudget() {
                 <p>{expenses.length === 0 ? "Nothing recorded yet." : `${expenses.length} recorded, newest first.`}</p>
               </div>
             </div>
+            {expenses.length === 0 && (
+              <div className="results-empty">
+                <h3>No expenses yet.</h3>
+                <p>Add what you spend, like flights, food and tickets. Roamio tracks it against your budget and warns you before you go over.</p>
+              </div>
+            )}
             <ul className="trip-hub-list budget-expenses">
               {expenses.map((expense) => (
                 <li key={expense.id}>

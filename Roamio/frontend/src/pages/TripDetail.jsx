@@ -6,6 +6,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 
 import ClimateInsights from "../components/insights/ClimateInsights.jsx";
 import ItineraryMap from "../components/recommendations/ItineraryMap.jsx";
+import Hint from "../components/onboarding/Hint.jsx";
 import PageShell from "../components/recommendations/PageShell.jsx";
 import TripDocuments from "../components/trips/TripDocuments.jsx";
 import { AddLandmark, TripBudgetCard, TripPeople, TripSnapshot } from "../components/trips/TripHub.jsx";
@@ -165,6 +166,9 @@ export default function TripDetail() {
 
             {tab === "plan" && (
             <>
+            <Hint id="trip-tabs">
+              Everything for this trip is in the tabs above: the plan, safety and weather, budget, the people on it and your booking documents.
+            </Hint>
             <section className="recommendations-results">
               <div className="results-heading">
                 <div>
@@ -191,7 +195,7 @@ export default function TripDetail() {
               {dayGroups.length === 0 ? (
                 <div className="results-empty">
                   <h3>No stops yet.</h3>
-                  <p>Landmarks you add to this trip&apos;s itinerary will show up here, grouped by day.</p>
+                  <p>Search for places near your destination and add them to a day, or ask the trip assistant (the chat button at the bottom right) to add one for you. They will show up here, grouped by day.</p>
                 </div>
               ) : (
                 <div className="trip-days">

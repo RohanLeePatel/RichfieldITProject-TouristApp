@@ -1,0 +1,99 @@
+/* First-run help: the Dashboard "Get started" card and the one-time hints.
+   Used on pages with different token sets (dashboard.css, recommendations.css),
+   so every colour falls back to a literal. */
+
+.tip {
+  --tip-brand: var(--brand, var(--primary, #0f7f92));
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--tip-brand) 35%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--tip-brand) 9%, var(--surface, #fff));
+  color: var(--ink, #132a40);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+/* the wizard card below is pulled up 44px over the hero, so leave room for it */
+.recommendations-content > .tip { margin: 16px 0 60px; }
+
+.tip > svg { flex: none; margin-top: 2px; color: var(--tip-brand); }
+.tip p { flex: 1; min-width: 0; margin: 0; }
+
+.tip button {
+  flex: none;
+  padding: 6px 12px;
+  border: 1px solid var(--tip-brand);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--tip-brand);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tip button:hover { background: color-mix(in srgb, var(--tip-brand) 12%, transparent); }
+.tip button:focus-visible,
+.get-started a:focus-visible,
+.get-started-hide:focus-visible { outline: 2px solid var(--tip-brand, var(--brand, #0f7f92)); outline-offset: 2px; }
+
+@media (max-width: 520px) {
+  .tip { flex-wrap: wrap; }
+  .tip p { flex-basis: calc(100% - 40px); }
+  .tip button { margin-left: 30px; }
+}
+
+/* ---------- Get started card ---------- */
+
+.get-started { margin-bottom: 24px; }
+.get-started .card-heading { margin-bottom: 10px; }
+.get-started .card-heading p { margin: 2px 0 0; color: var(--muted, #627384); font-size: 0.85rem; }
+
+.get-started-hide {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted, #627384);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.get-started-hide:hover { background: var(--surface-hover, #f0f6f7); color: var(--ink, #132a40); }
+
+.get-started ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.get-started a {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  height: 100%;
+  padding: 12px;
+  border: 1px solid var(--line, #e2e8ed);
+  border-radius: 12px;
+  color: var(--ink, #132a40);
+  text-decoration: none;
+}
+
+.get-started a:hover { background: var(--surface-hover, #f0f6f7); }
+.get-started a > svg { flex: none; margin-top: 1px; color: var(--faint, #8a98a6); }
+.get-started span { display: grid; gap: 2px; min-width: 0; }
+.get-started strong { font-size: 0.92rem; }
+.get-started small { color: var(--muted, #627384); font-size: 0.82rem; line-height: 1.35; }
+
+.get-started .is-done a > svg { color: var(--green, #16805a); }
+.get-started .is-done strong { color: var(--muted, #627384); text-decoration: line-through; }

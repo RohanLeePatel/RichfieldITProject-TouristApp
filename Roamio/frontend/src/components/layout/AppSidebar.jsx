@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Bell, CalendarDays, CloudSun, Compass, Home, Languages, LogOut, Map, MessageCircle, Plane, Settings, ShieldCheck, Users, X,
+  Bell, CalendarDays, CircleHelp, CloudSun, Compass, Home, Languages, LogOut, Map, MessageCircle, Plane, Settings, ShieldCheck, Users, X,
 } from "lucide-react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
@@ -178,6 +178,11 @@ export default function AppSidebar({ open, onClose }) {
               )}
             </ul>
           )}
+
+          <Link to="/settings#help" className="sidebar-logout" onClick={onClose}>
+            <CircleHelp size={17} />
+            Help &amp; tips
+          </Link>
 
           <button type="button" className="sidebar-logout" onClick={handleLogout}>
             <LogOut size={17} />

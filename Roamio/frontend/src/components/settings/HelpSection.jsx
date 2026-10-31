@@ -5,6 +5,7 @@ import {
   ChevronDown,
   CircleHelp,
   LifeBuoy,
+  Lightbulb,
   Mail,
   Scale,
   Search,
@@ -13,6 +14,7 @@ import {
 import { useId, useMemo, useState } from "react";
 
 import { reportProblem, SUPPORT_EMAIL } from "../../api/settings.js";
+import useTips from "../../store/tipsStore.js";
 import { FAQS, LEGAL_LAST_UPDATED, REPORT_CATEGORIES, TERMS } from "./settingsContent.js";
 import { CardHead, Field, LegalDocument, Modal, Notice, SettingsSection, Spinner } from "./SettingsUI.jsx";
 import { describeDevice, formatDate } from "./settingsUtils.js";
@@ -236,6 +238,7 @@ function ReportCard({ email, notify }) {
 
 export default function HelpSection({ email, notify }) {
   const [termsOpen, setTermsOpen] = useState(false);
+  const tips = useTips();
 
   return (
     <SettingsSection
@@ -260,6 +263,24 @@ export default function HelpSection({ email, notify }) {
             </span>
             <ArrowRight size={16} aria-hidden="true" />
           </a>
+
+          <button
+            type="button"
+            className="st-link-card"
+            onClick={() => {
+              tips.reset();
+              notify("Tips are back. You'll see them as you visit each page, and the Get started card returns to the Dashboard.");
+            }}
+          >
+            <span className="st-card-icon" aria-hidden="true">
+              <Lightbulb size={18} />
+            </span>
+            <span className="st-link-card-copy">
+              <strong>Show tips again</strong>
+              <span>Bring back the page hints and the Get started checklist</span>
+            </span>
+            <ArrowRight size={16} aria-hidden="true" />
+          </button>
 
           <button type="button" className="st-link-card" onClick={() => setTermsOpen(true)}>
             <span className="st-card-icon" aria-hidden="true">

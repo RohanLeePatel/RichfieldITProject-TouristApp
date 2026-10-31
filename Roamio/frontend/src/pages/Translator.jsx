@@ -23,6 +23,8 @@ import {
   X,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+
+import Hint from "../components/onboarding/Hint.jsx";
 import ThemeToggle from "../components/recommendations/ThemeToggle.jsx";
 import useTheme from "../components/recommendations/useTheme.js";
 import {
@@ -454,6 +456,10 @@ function Translator() {
             Take a photo of a sign, menu or document, or type and speak phrases to translate instantly.
           </p>
         </section>
+
+        <Hint id="translator">
+          Photo mode reads the text in a picture of a sign or menu. Type or speak mode translates phrases. Choose the language you are travelling to first.
+        </Hint>
 
         {/* UNIFIED SINGLE WORKSPACE CARD */}
         <section className="translator-card-unified">
