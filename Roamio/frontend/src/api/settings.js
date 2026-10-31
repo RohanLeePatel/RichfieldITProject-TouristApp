@@ -1,7 +1,7 @@
 // Settings API: notifications, sessions, travellers, data export,
 // account deletion and support reports.
 //
-// Every call goes to the Spring Boot backend first. If an endpoint isn't
+// Every call goes to the Core API (Express) first. If an endpoint isn't
 // there yet (404 / 405 / 501, or the dev server answering with index.html),
 // the read/write falls back to this browser so the page still works while
 // the backend catches up. Each result says where it came from
@@ -9,9 +9,10 @@
 //
 // The endpoint contract is in SETTINGS_API.md.
 
+import { TOKEN_KEY } from "./client.js";
 import { useAuthStore } from "../store/authStore.js";
 
-const API_BASE = String(import.meta.env?.VITE_API_URL || "").replace(/\/+$/, "");
+const API_BASE = String(import.meta.env?.VITE_BACKEND_API_URL || "http://127.0.0.1:3000").replace(/\/+$/, ""); // the Core API, same as api/client.js
 
 // Change this to your real support inbox
 export const SUPPORT_EMAIL = "support@roamio.app";
@@ -42,7 +43,7 @@ function authHeaders() {
   } catch {
     token = null;
   }
-  token = token || safeGet("token") || safeGet("accessToken");
+  token = token || safeGet(TOKEN_KEY);
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
