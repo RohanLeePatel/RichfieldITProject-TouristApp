@@ -8,6 +8,10 @@ import { formatDimension } from "../../pages/recommendations/constants.js";
 // Six on-palette cover gradients; which one a destination gets is a stable
 // hash of its name, so the same place always looks the same.
 const COVERS = [1, 2, 3, 4, 5, 6].map((n) => `var(--cover-${n})`);
+
+// Plain names for the engine's scoring dimensions, and how well each one went.
+const DIMENSION_LABELS = { interests: "Your interests", budget: "Budget", climate: "Climate", safety: "Safety", accessibility: "Accessibility" };
+const strengthOf = (value) => (value >= 0.75 ? ["strong", "Strong match"] : value >= 0.5 ? ["fair", "Partial match"] : ["weak", "Weak spot"]);
 const coverFor = (name) => COVERS[[...name].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % COVERS.length];
 
 function ScoreRing({ percent }) {
@@ -44,9 +48,11 @@ export default function DestinationCard({
   const interestsEntry = recommendation.breakdown?.find((entry) => entry.dimension === "interests");
   const priorityTags = new Set(interestsEntry?.evidence?.priority || []);
   const requestedTags = interestsEntry?.evidence?.requested || [];
-  const otherEvidence = recommendation.breakdown
-    ?.filter((entry) => entry.dimension !== "interests" && entry.weight > 0 && entry.value >= 0.6)
-    .slice(0, 3);
+  // Every scored dimension that counted, best first - including the weak ones,
+  // so the traveller sees the trade-offs and not just the good news.
+  const reasons = (recommendation.breakdown || [])
+    .filter((entry) => entry.weight > 0)
+    .sort((a, b) => b.weight * b.value - a.weight * a.value);
   const percent = Math.round(recommendation.total_score * 100);
 
   return (
@@ -80,18 +86,35 @@ export default function DestinationCard({
             ))}
           </ul>
         )}
-        <p className="recommendation-why">Why it matched</p>
-        <div className="chip-list recommendation-evidence">
-          {otherEvidence?.map((entry) => (
-            <span key={entry.dimension} className="chip"><Check size={12} />{formatDimension(entry.dimension)}</span>
-          ))}
-          {requestedTags.map((tag) => (
-            <span key={tag} className={`chip ${priorityTags.has(tag) ? "priority" : ""}`}>
-              {priorityTags.has(tag) ? <Star size={12} /> : <Check size={12} />}
-              {formatDimension(tag)}
-            </span>
-          ))}
-        </div>
+        {reasons.length > 0 && (
+          <>
+            <p className="recommendation-why">Why we picked it</p>
+            <ul className="recommendation-reasons">
+              {reasons.map((entry) => {
+                const [level, word] = strengthOf(entry.value);
+                return (
+                  <li key={entry.dimension} className={`reason reason-${level}`}>
+                    <span className="reason-head">
+                      <b>{DIMENSION_LABELS[entry.dimension] || formatDimension(entry.dimension)}</b>
+                      <span className="reason-strength">{word} - {Math.round(entry.value * 100)}%</span>
+                    </span>
+                    <span className="reason-text">{entry.explanation}</span>
+                    {entry.dimension === "interests" && requestedTags.length > 0 && (
+                      <span className="chip-list recommendation-evidence">
+                        {requestedTags.map((tag) => (
+                          <span key={tag} className={`chip ${priorityTags.has(tag) ? "priority" : ""}`}>
+                            {priorityTags.has(tag) ? <Star size={12} /> : <Check size={12} />}
+                            {formatDimension(tag)}
+                          </span>
+                        ))}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </>
+        )}
         {(onToggleShortlist || onDislike) && (
           <div className="recommendation-feedback">
             {onToggleShortlist && (

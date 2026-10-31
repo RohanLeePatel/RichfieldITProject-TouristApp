@@ -140,3 +140,21 @@
 @media (max-width: 420px) {
   .terms-gate-actions { flex-direction: column-reverse; }
 }
+
+/* ---------- Language prompt (a hint with a picker) ---------- */
+
+.tip-language .tip-body { flex: 1; min-width: 0; }
+.tip-language .tip-body p { margin: 0; }
+.tip-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.tip-controls select {
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--line, #d3dce3);
+  border-radius: 8px;
+  background: var(--surface, #fff);
+  color: var(--ink, #132a40);
+  font: inherit;
+}
+.tip-controls button { margin-left: 0; }
+.tip-controls button:disabled { opacity: 0.5; cursor: default; }
+.tip-error { margin-top: 8px !important; color: #b4432b; }

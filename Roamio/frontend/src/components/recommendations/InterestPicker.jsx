@@ -21,7 +21,7 @@ export default function InterestPicker({ interests, priorityInterests, onCycle, 
     <section key={group.key} className={flat ? "interest-group" : "panel interest-group"}>
       <h4 className="interest-group-label">{group.label}</h4>
       <div className="interest-list">
-        {[...group.tags].sort((a, b) => priorityInterests.includes(b.id) - priorityInterests.includes(a.id)).map((tag) => {
+        {group.tags.map((tag) => {
           const Icon = TAG_ICONS[tag.id] || Trees;
           const isSelected = interests.includes(tag.id);
           const isPriority = priorityInterests.includes(tag.id);

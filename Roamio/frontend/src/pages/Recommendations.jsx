@@ -23,6 +23,7 @@ import { buildDayPlan, dayCapacity, daysNeeded, recomputeDayStopTimes, STOPS_PER
 import {
   COUNTRIES,
   ITINERARY_HISTORY_LIMIT,
+  MIN_INTERESTS,
   buildMemberPreferences,
   buildPreferences,
   cycleTagState,
@@ -42,8 +43,6 @@ const MAX_ADULTS = 50;
 const MAX_CHILDREN = 20;
 const MAX_TRIP_DAYS = 365;
 const MAX_START_YEARS_AHEAD = 3;
-// the engine needs a spread of interests to rank anything; avoided ones don't count
-const MIN_INTERESTS = 3;
 
 function maxStartDate() {
   const limit = new Date();
@@ -65,6 +64,7 @@ export default function Recommendations() {
   // just you to start; picking a travel group on the first step brings in its
   // people (TripGroupPanel)
   const [form, setForm] = useState(initialForm);
+  const [presetId, setPresetId] = useState(null); // the Quick start the traveller picked, if any
 
   // the home currency saved in Settings
   useEffect(() => {
@@ -233,13 +233,29 @@ export default function Recommendations() {
   }, [searchParams, setSearchParams]);
 
   const applyPreset = (preset) => {
+    setPresetId(preset.id);
     setForm((current) => ({
       ...current,
       interests: preset.interests,
       priorityInterests: preset.priorityInterests,
       pace: preset.pace,
-      // never overwrite ages the traveller has already typed
-      children: preset.children && !current.children.trim() ? preset.children : current.children,
+      // never overwrite ages the traveller has already typed; "Just me" has no children
+      children: preset.children && !current.children.trim() && current.travelGroupId ? preset.children : current.children,
+    }));
+  };
+
+  // Unselecting a Quick start. `reset` puts what it filled in back to the
+  // wizard's defaults; without it the traveller keeps their answers as they are.
+  const clearPreset = (preset, reset) => {
+    setPresetId(null);
+    if (!reset) return;
+    setForm((current) => ({
+      ...current,
+      interests: initialForm.interests,
+      priorityInterests: initialForm.priorityInterests,
+      pace: initialForm.pace,
+      // only the ages the preset suggested; a travel group's children stay
+      children: preset.children && current.children === preset.children ? initialForm.children : current.children,
     }));
   };
 
@@ -760,6 +776,7 @@ export default function Recommendations() {
   const resetWizard = () => {
     if (!window.confirm("Start over? This clears all your answers.")) return;
     setForm((current) => ({ ...initialForm, currency: current.currency, country: countries.some((c) => c.name === initialForm.country) ? initialForm.country : countries[0]?.name || initialForm.country }));
+    setPresetId(null);
     setReturnToReview(false);
     setError("");
     setStep(0);
@@ -825,6 +842,8 @@ export default function Recommendations() {
           updateForm={updateForm}
           countries={countries}
           applyPreset={applyPreset}
+          presetId={presetId}
+          clearPreset={clearPreset}
           cycleInterest={cycleInterest}
           cycleTravelerInterest={cycleTravelerInterest}
           addTraveler={addTraveler}

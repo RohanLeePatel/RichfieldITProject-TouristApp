@@ -1,6 +1,6 @@
 import { Ban, Plus, Users, X } from "lucide-react";
 
-import { INTEREST_GROUPS } from "../../../pages/recommendations/constants.js";
+import { INTEREST_GROUPS, MIN_INTERESTS, resolveInterests } from "../../../pages/recommendations/constants.js";
 import { nameError } from "../../../utils/validation.js";
 import FieldError from "../../FieldError.jsx";
 import InterestPicker from "../InterestPicker.jsx";
@@ -82,6 +82,9 @@ const travelerName = (traveler, index) => traveler.name?.trim() || `Traveler ${i
 export default function InterestsStep({
   form, cycleInterest, cycleTravelerInterest, addTraveler, removeTraveler, updateTraveler, toggleDealbreaker, toggleTravelerDealbreaker,
 }) {
+  // what the engine will still get once the avoided tags are taken out
+  const usable = resolveInterests(form).interests.length;
+  const enoughPicked = form.interests.length >= MIN_INTERESTS;
   return (
     <>
       <div className="wizard-intro">
@@ -137,6 +140,18 @@ export default function InterestsStep({
         <h3 className="panel-title"><Ban size={15} /> Anything to avoid?</h3>
         <p className="wizard-help">These are excluded from every traveler&apos;s matches, even if someone else picked them.</p>
         <AvoidChips avoided={form.dealbreakers} onToggle={toggleDealbreaker} />
+        <div aria-live="polite">
+          {enoughPicked && usable < MIN_INTERESTS && (
+            <p className="recommendations-error">
+              Only {usable} of your interests {usable === 1 ? "is" : "are"} left once the ones you avoid are removed. We need at least {MIN_INTERESTS} - stop avoiding one, or pick another interest above.
+            </p>
+          )}
+          {enoughPicked && usable === MIN_INTERESTS && (
+            <p className="wizard-help">
+              You have exactly {MIN_INTERESTS} interests left that you&apos;re not avoiding - the minimum. Avoiding any more of them would leave too few, so pick another interest first.
+            </p>
+          )}
+        </div>
       </section>
     </>
   );

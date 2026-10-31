@@ -178,6 +178,8 @@ export const COUNTRIES = [
 export const CURRENCIES = ["ZAR", "USD", "EUR", "GBP", "AUD", "CAD", "AED", "INR", "JPY", "KES"];
 
 export const DEFAULT_TRIP_DAYS = 3;
+// the engine needs a spread of interests to rank anything; avoided ones don't count
+export const MIN_INTERESTS = 3;
 export const ITINERARY_HISTORY_LIMIT = 20;
 
 export const initialForm = {
@@ -196,7 +198,7 @@ export const initialForm = {
   // `member_preferences` and merged by the engine (engine/group.py).
   // Session-only, see the TODO(db) note on blendTravelerInterests().
   travelers: [],
-  adults: "2",
+  adults: "1", // "Just me" is the default, and locks this to 1
   children: "",
   wheelchair: "none",
   climate: "",

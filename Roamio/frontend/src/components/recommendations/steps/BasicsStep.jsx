@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { CalendarDays, Check, Globe, MapPin, Wallet, Wand2 } from "lucide-react";
 
-import { CURRENCIES, DEFAULT_TRIP_DAYS, TRIP_PRESETS, PACE_OPTIONS, formatDimension } from "../../../pages/recommendations/constants.js";
+import { CURRENCIES, DEFAULT_TRIP_DAYS, TRIP_PRESETS, PACE_OPTIONS, formatDimension, initialForm } from "../../../pages/recommendations/constants.js";
 import TripGroupPanel from "./TripGroupPanel.jsx";
 
 const sameSet = (a, b) => a.length === b.length && a.every((tag) => b.includes(tag));
@@ -19,12 +20,15 @@ const maxStartDate = (() => {
   return limit.toLocaleDateString("en-CA");
 })();
 
-export default function BasicsStep({ form, updateForm, countries, applyPreset }) {
+export default function BasicsStep({ form, updateForm, countries, applyPreset, presetId, clearPreset }) {
+  const [confirming, setConfirming] = useState(false);
   const parsedAges = parseAges(form.children);
+  // "Just me" is one adult and no children; picking a travel group unlocks both
+  const solo = !form.travelGroupId;
   // A preset only changes interests/pace (set on later steps), so show which
   // one is active and what it filled in - otherwise clicking looks like a no-op.
   const active = TRIP_PRESETS.find(
-    (preset) => sameSet(preset.interests, form.interests) && sameSet(preset.priorityInterests, form.priorityInterests) && preset.pace === form.pace
+    (preset) => preset.id === presetId && sameSet(preset.interests, form.interests) && sameSet(preset.priorityInterests, form.priorityInterests) && preset.pace === form.pace
   );
   return (
     <>
@@ -39,16 +43,36 @@ export default function BasicsStep({ form, updateForm, countries, applyPreset })
         <h3 className="panel-title"><Wand2 size={15} /> Quick start</h3>
         <div className="preset-list" role="group" aria-label="Quick starting points">
           {TRIP_PRESETS.map((preset) => (
-            <button type="button" key={preset.id} className={`preset-option ${active?.id === preset.id ? "selected" : ""}`} aria-pressed={active?.id === preset.id} onClick={() => applyPreset(preset)}>
+            <button
+              type="button"
+              key={preset.id}
+              className={`preset-option ${active?.id === preset.id ? "selected" : ""}`}
+              aria-pressed={active?.id === preset.id}
+              title={active?.id === preset.id ? "Tap to unselect" : undefined}
+              onClick={() => (active?.id === preset.id ? setConfirming(true) : applyPreset(preset))}
+            >
               {active?.id === preset.id ? <Check size={14} /> : <Wand2 size={14} />} {preset.label}
             </button>
           ))}
         </div>
-        {active && (
+        {active && !confirming && (
           <p className="wizard-help preset-note">
             Applied: {active.interests.map(formatDimension).join(", ")} · {PACE_OPTIONS.find((o) => o.id === active.pace)?.label} pace
-            {active.children ? ", and suggested ages below" : ""}. Fine-tune on the next steps.
+            {active.children && !solo ? ", and suggested ages below" : ""}. Fine-tune on the next steps, or tap it again to unselect.
           </p>
+        )}
+        {active && confirming && (
+          <div className="preset-confirm" role="group" aria-labelledby="preset-confirm-title">
+            <p id="preset-confirm-title"><strong>Unselect &ldquo;{active.label}&rdquo;?</strong></p>
+            <p className="wizard-help">
+              Resetting puts your interests ({initialForm.interests.map(formatDimension).join(", ")}), pace ({PACE_OPTIONS.find((o) => o.id === initialForm.pace)?.label.toLowerCase()}) and any ages it suggested back to the defaults, and anything you changed since is lost. Or keep everything as it is and just unselect it.
+            </p>
+            <div className="preset-confirm-actions">
+              <button type="button" className="secondary-button" onClick={() => { clearPreset(active, true); setConfirming(false); }}>Reset to defaults</button>
+              <button type="button" className="secondary-button" autoFocus onClick={() => { clearPreset(active, false); setConfirming(false); }}>Keep my choices</button>
+              <button type="button" className="card-link-button" onClick={() => setConfirming(false)}>Cancel</button>
+            </div>
+          </div>
         )}
       </section>
 
@@ -92,20 +116,23 @@ export default function BasicsStep({ form, updateForm, countries, applyPreset })
                 ))}
               </select>
             </label>
-            <label className="wizard-field">Adults<input type="number" min="1" max="50" step="1" value={form.adults} onChange={(event) => updateForm("adults", event.target.value)} /></label>
+            <label className="wizard-field">Adults<input type="number" min="1" max="50" step="1" value={solo ? "1" : form.adults} disabled={solo} onChange={(event) => updateForm("adults", event.target.value)} /></label>
             <label className="wizard-field">Children&apos;s ages
               <input
                 inputMode="numeric"
-                placeholder="e.g. 8, 12"
+                placeholder={solo ? "None" : "e.g. 8, 12"}
                 maxLength={80}
-                value={form.children}
+                disabled={solo}
+                value={solo ? "" : form.children}
                 onChange={(event) => updateForm("children", event.target.value)}
                 aria-describedby="children-ages-read"
               />
             </label>
           </div>
           <p className="wizard-help" id="children-ages-read">
-            {form.children.trim()
+            {solo
+              ? "Travelling solo: one adult, no children. Choose a travel group under \"Who's going?\" to change this."
+              : form.children.trim()
               ? parsedAges.length > 0
                 ? `Travelling with ${parsedAges.length} ${parsedAges.length === 1 ? "child" : "children"}, aged ${parsedAges.join(", ")}.`
                 : "We couldn't read any ages there - separate them with commas, like 8, 12."

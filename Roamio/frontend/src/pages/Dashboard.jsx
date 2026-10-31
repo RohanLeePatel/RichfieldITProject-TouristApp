@@ -38,6 +38,7 @@ import { useAuthStore } from "../store/authStore.js";
 
 import NeedsAttention from "../components/dashboard/NeedsAttention.jsx";
 import GetStarted from "../components/onboarding/GetStarted.jsx";
+import LanguagePrompt from "../components/onboarding/LanguagePrompt.jsx";
 import TermsGate from "../components/onboarding/TermsGate.jsx";
 import AppSidebar from "../components/layout/AppSidebar.jsx";
 import ChatWidget from "../components/chat/ChatWidget.jsx";
@@ -1003,6 +1004,7 @@ export default function Dashboard() {
               MAIN GRID
           ================================================= */}
 
+          <LanguagePrompt />
           {!tripsLoading && !tripsError && <GetStarted trips={trips} groups={groups} />}
 
           <div className="dashboard-grid">

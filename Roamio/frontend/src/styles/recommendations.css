@@ -1223,3 +1223,33 @@ path.map-route.day-6 { stroke: var(--day-6); }
 @media (max-width: 768px) {
   .rx-hero-body p:not(.recommendations-eyebrow) { font-size: 0.9375rem; }
 }
+
+/* ---------- Quick start unselect, reasons, landmark translate ---------- */
+
+.preset-confirm { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--primary); border-radius: 12px; background: var(--sage-bg); }
+.preset-confirm p { margin: 0 0 6px; }
+.preset-confirm-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+
+.wizard-field input:disabled { opacity: 0.7; cursor: not-allowed; }
+
+.recommendation-reasons { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.reason { display: grid; gap: 2px; padding-left: 10px; border-left: 3px solid var(--line, #d7dfe2); font-size: 0.85rem; }
+.reason-strong { border-left-color: var(--primary); }
+.reason-weak { border-left-color: #c2410c; }
+.reason-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 10px; }
+.reason-strength { color: var(--ink-soft); font-size: 0.75rem; font-weight: 600; }
+.reason-weak .reason-strength { color: #c2410c; }
+.reason-text { color: var(--ink-soft); line-height: 1.4; }
+.reason .recommendation-evidence { margin-top: 4px; }
+
+.landmark-name-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.landmark-translate {
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px;
+  border: 1px solid var(--line, #d7dfe2); border-radius: 999px; background: transparent;
+  color: var(--primary); font: inherit; font-size: 0.75rem; font-weight: 600; cursor: pointer;
+}
+.landmark-translate:hover:not(:disabled) { background: var(--sage-bg); }
+.landmark-translate:disabled { opacity: 0.6; cursor: default; }
+.landmark-translate:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.landmark-translation { color: var(--ink); font-style: italic; }
+.landmark-translation-error { color: #b4432b; font-style: normal; }

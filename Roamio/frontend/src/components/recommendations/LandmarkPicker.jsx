@@ -1,12 +1,43 @@
-import { ArrowRight, Check, ChevronLeft, MapPin, Search, Sparkles, Wand2 } from "lucide-react";
+import { useState } from "react";
+import { ArrowRight, Check, ChevronLeft, Languages, MapPin, Search, Sparkles, Wand2 } from "lucide-react";
 
+import { translateText } from "../../api/translate.js";
 import { formatDimension } from "../../pages/recommendations/constants.js";
+import { SOURCE_LANGUAGES, baseCode } from "../../utils/translatorHelpers";
+import useDefaultLanguage from "./useDefaultLanguage.js";
 
 export default function LandmarkPicker({
   cityName, landmarksData, selectedLandmarks, toggleLandmark, filter, setFilter,
   autoPick, onBuild, onBack, loading, error, daysNeeded, tripDays,
 }) {
   const count = selectedLandmarks.size;
+  const language = useDefaultLanguage();
+  // key -> { status: "loading" | "done" | "error" | "hidden", text, from, message }
+  const [translations, setTranslations] = useState({});
+
+  const translate = async (key, name, event) => {
+    event.preventDefault(); // the row is a label: don't tick the place
+    event.stopPropagation();
+    const current = translations[key];
+    if (current?.status === "done") {
+      setTranslations((all) => ({ ...all, [key]: { ...current, status: "hidden" } }));
+      return;
+    }
+    if (current?.status === "hidden") {
+      setTranslations((all) => ({ ...all, [key]: { ...current, status: "done" } }));
+      return;
+    }
+    setTranslations((all) => ({ ...all, [key]: { status: "loading" } }));
+    try {
+      const result = await translateText(name, language.code);
+      setTranslations((all) => ({ ...all, [key]: { status: "done", text: result.text, from: result.from } }));
+    } catch (requestError) {
+      setTranslations((all) => ({ ...all, [key]: { status: "error", message: requestError.message } }));
+    }
+  };
+
+  const languageName = (code) => SOURCE_LANGUAGES.find((l) => l.code === baseCode(code))?.name || "";
+
   return (
     <section className="recommendations-results">
       <div className="results-heading">
@@ -66,7 +97,31 @@ export default function LandmarkPicker({
                           <input type="checkbox" checked={checked} onChange={() => toggleLandmark(key)} />
                           <span className="landmark-check" aria-hidden="true"><Check size={14} /></span>
                           <span className="landmark-text">
-                            <strong>{landmark.name}</strong>
+                            <span className="landmark-name-row">
+                              <strong>{landmark.name}</strong>
+                              <button
+                                type="button"
+                                className="landmark-translate"
+                                onClick={(event) => translate(key, landmark.name, event)}
+                                disabled={translations[key]?.status === "loading"}
+                                aria-label={`Translate ${landmark.name} into ${language.name}`}
+                                title={`Translate into ${language.name} (change in Settings)`}
+                              >
+                                <Languages size={13} />
+                                {translations[key]?.status === "loading" ? "Translating..." : translations[key]?.status === "done" ? "Hide translation" : "Translate"}
+                              </button>
+                            </span>
+                            {translations[key]?.status === "done" && (
+                              <small className="landmark-translation">
+                                {baseCode(translations[key].from) === baseCode(language.code) ||
+                                translations[key].text.trim().toLowerCase() === landmark.name.trim().toLowerCase()
+                                  ? `Already in ${language.name.replace(/ \(.*\)/, "")}.`
+                                  : `${language.name.replace(/ \(.*\)/, "")}: ${translations[key].text}${languageName(translations[key].from) ? ` (from ${languageName(translations[key].from)})` : ""}`}
+                              </small>
+                            )}
+                            {translations[key]?.status === "error" && (
+                              <small className="landmark-translation landmark-translation-error" role="alert">{translations[key].message}</small>
+                            )}
                             {landmark.address && <small>{landmark.address}</small>}
                             {landmark.opening_hours && <small>Hours: {landmark.opening_hours}</small>}
                           </span>
