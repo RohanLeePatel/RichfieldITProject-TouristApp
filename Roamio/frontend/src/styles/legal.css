@@ -7,7 +7,9 @@
   --legal-muted: #627384;
   --legal-line: #e2e8ed;
   --legal-brand: #0b6878;
-  min-height: 100vh;
+  /* 0.8 zoom, like the PageShell pages and Settings (see .recommendations-page). */
+  zoom: 0.8;
+  min-height: calc(100vh / 0.8);
   background: var(--legal-bg);
   color: var(--legal-ink);
   font-family: "DM Sans", system-ui, sans-serif;

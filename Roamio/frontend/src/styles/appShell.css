@@ -9,7 +9,7 @@
   --sidebar-bg: #11273d;
   --sidebar-ink: rgba(255, 255, 255, 0.72);
   --sidebar-line: rgba(255, 255, 255, 0.08);
-  --sidebar-width: 248px;
+  --sidebar-width: 200px; /* as drawn, after the sidebar's 0.8 zoom */
   --accent: #3ddbc4;
   --radius-sm: 10px;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);

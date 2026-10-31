@@ -47,7 +47,7 @@
   --radius-sm: 10px;
 
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
-  --sidebar-width: 248px;
+  --sidebar-width: 200px; /* as drawn, after the sidebar's 0.8 zoom */
 
   --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
   --font-body: "DM Sans", system-ui, sans-serif;
@@ -109,7 +109,8 @@
   inset: 0 auto 0 0;
   z-index: 100;
 
-  width: var(--sidebar-width);
+  zoom: 0.8;
+  width: calc(var(--sidebar-width) / 0.8);
 
   display: flex;
   flex-direction: column;

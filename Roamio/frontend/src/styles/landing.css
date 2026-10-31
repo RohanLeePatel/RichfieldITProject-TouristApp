@@ -42,7 +42,9 @@
 }
 
 .landing-page {
-  min-height: 100vh;
+  /* 0.8 zoom, like the PageShell pages and Settings (see .recommendations-page). */
+  zoom: 0.8;
+  min-height: calc(100vh / 0.8);
 
   background: var(--bg);
   color: var(--ink);
@@ -295,8 +297,8 @@ html:has(.landing-page) {
 .landing-hero {
   position: relative;
 
-  min-height: 100vh;
-  min-height: 100svh;
+  min-height: calc(100vh / 0.8);
+  min-height: calc(100svh / 0.8);
 
   display: flex;
   align-items: center;
