@@ -36,7 +36,7 @@ class AuthController {
 
   async verifyOtp(req, res, next) {
     try {
-      const { user, accessToken, refreshToken } = await authService.verifyOtp(req.body);
+      const { user, accessToken, refreshToken } = await authService.verifyOtp(req.body, req);
       setSession(res, accessToken, refreshToken);
       // token: the name the frontend stores (same value as accessToken)
       res.status(200).json({ message: 'Email verified successfully.', user, accessToken, token: accessToken });
@@ -80,7 +80,7 @@ class AuthController {
 
   async login(req, res, next) {
     try {
-      const { user, accessToken, refreshToken } = await authService.login(req.body);
+      const { user, accessToken, refreshToken } = await authService.login(req.body, req);
       setSession(res, accessToken, refreshToken);
       res.status(200).json({
         message: 'Login successful',
@@ -97,7 +97,7 @@ class AuthController {
     try {
       // Assuming your refreshToken is unsigned in cookie-parser, otherwise use req.signedCookies
       const token = req.cookies.refreshToken || req.signedCookies.refreshToken;
-      const { accessToken, refreshToken: newRefreshToken } = await authService.refreshTokens(token);
+      const { accessToken, refreshToken: newRefreshToken } = await authService.refreshTokens(token, req);
       
       tokenService.setRefreshTokenCookie(res, newRefreshToken);
       
@@ -115,6 +115,7 @@ class AuthController {
   }
 
   async logout(req, res) {
+    await authService.signOut(req.cookies?.refreshToken || req.signedCookies?.refreshToken);
     tokenService.clearRefreshTokenCookie(res);
     res.clearCookie('accessToken'); // Clear the access token too
     res.json({ message: 'Logged out successfully' });

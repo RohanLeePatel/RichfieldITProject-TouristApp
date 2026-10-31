@@ -36,6 +36,12 @@ def delete_record(user_id: str, record_id: str) -> dict | None:
     return rows[0] if rows else None
 
 
+def delete_all(user_id: str) -> list[dict]:
+    """Deletes every row for user_id (account deletion) and returns them, so the
+    caller can remove the stored photographs too."""
+    return get_client().table(TABLE).delete().eq("user_id", user_id).execute().data or []
+
+
 def prune_photos(user_id: str) -> list[str]:
     """Deletes the user's photo rows past the newest PHOTO_LIMIT and returns
     their image URLs, so the caller can remove the files too."""
@@ -50,4 +56,4 @@ def prune_photos(user_id: str) -> list[str]:
     return [r["image_url"] for r in rows if r.get("image_url")]
 
 
-__all__ = ["StorageError", "save_record", "list_records", "delete_record", "prune_photos", "PHOTO_LIMIT", "TYPES"]
+__all__ = ["StorageError", "save_record", "list_records", "delete_record", "delete_all", "prune_photos", "PHOTO_LIMIT", "TYPES"]

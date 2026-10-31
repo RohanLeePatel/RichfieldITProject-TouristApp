@@ -54,11 +54,21 @@ const chatLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Problem reports: 5 per 15 minutes (each one sends an email)
+const supportLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { message: 'You have sent several reports already. Please wait a few minutes before sending another.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 module.exports = {
   generalLimiter,
   authLimiter,
   translateLimiter,
   recommendationsLimiter,
   weatherLimiter,
-  chatLimiter
+  chatLimiter,
+  supportLimiter
 };

@@ -18,6 +18,7 @@ const CONFIRM_WORD = "DELETE";
 
 function DeleteAccountModal({ open, email, onClose, onDeleted }) {
   const [typed, setTyped] = useState("");
+  const [password, setPassword] = useState("");
   const [understood, setUnderstood] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -25,12 +26,13 @@ function DeleteAccountModal({ open, email, onClose, onDeleted }) {
   const close = () => {
     if (busy) return;
     setTyped("");
+    setPassword("");
     setUnderstood(false);
     setError("");
     onClose();
   };
 
-  const ready = typed.trim() === CONFIRM_WORD && understood;
+  const ready = typed.trim() === CONFIRM_WORD && Boolean(password) && understood;
 
   const confirm = async (event) => {
     event.preventDefault();
@@ -38,7 +40,7 @@ function DeleteAccountModal({ open, email, onClose, onDeleted }) {
     setBusy(true);
     setError("");
     try {
-      await deleteAccount(email);
+      await deleteAccount(email, password);
       onDeleted();
     } catch (requestError) {
       setError(requestError.message);
@@ -87,6 +89,19 @@ function DeleteAccountModal({ open, email, onClose, onDeleted }) {
           </div>
         </Field>
 
+        <Field label="Your password" hint="So only you can delete your account.">
+          <div className="st-input">
+            <Lock size={17} aria-hidden="true" />
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete="current-password"
+              aria-label="Your password"
+            />
+          </div>
+        </Field>
+
         <label className="st-check">
           <input type="checkbox" checked={understood} onChange={(event) => setUnderstood(event.target.checked)} />
           <span>I understand my account and data will be permanently deleted.</span>
@@ -119,12 +134,7 @@ export default function PrivacySection({ notify }) {
   const [exporting, setExporting] = useState(false);
 
   const buildExport = async () => {
-    let account = null;
-    try {
-      account = await fetchMe();
-    } catch {
-      account = null;
-    }
+    const account = await fetchMe().catch(() => null);
 
     const [notifications, travellers] = await Promise.all([
       getNotificationPrefs(email).then((result) => result.data).catch(() => null),

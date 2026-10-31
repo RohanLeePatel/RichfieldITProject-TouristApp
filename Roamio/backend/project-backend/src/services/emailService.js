@@ -60,4 +60,44 @@ async function sendOtpEmail(email, otp, purpose = 'verify') {
   }
 }
 
-module.exports = { sendOtpEmail, isConfigured };
+// A problem report from Settings, sent to the support inbox. Replies go to the
+// traveller (replyTo). Same delivery rules as the codes: printed outside
+// production when SMTP isn't set, a 503 in production.
+const SUPPORT_EMAIL = () => process.env.SUPPORT_EMAIL || 'support.roamiio.live@gmail.com';
+
+async function sendSupportReport({ reference, category, subject, description, fromEmail, fromName, context }) {
+  const lines = [
+    `Reference: ${reference}`,
+    `From: ${fromName ? `${fromName} ` : ''}<${fromEmail}>`,
+    `Category: ${category}`,
+    '',
+    description,
+  ];
+  if (context && Object.keys(context).length) {
+    lines.push('', '---', ...Object.entries(context).map(([key, value]) => `${key}: ${value}`));
+  }
+  const message = {
+    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    to: SUPPORT_EMAIL(),
+    replyTo: fromEmail,
+    subject: `[${reference}] ${category}: ${subject}`,
+    text: lines.join('\n'),
+  };
+
+  if (!isConfigured()) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('SMTP_HOST is not set: cannot email problem reports.');
+      throw httpError(503, 'Reports can not be sent right now. Please email us directly.');
+    }
+    console.log(`[DEV REPORT] ${message.subject}`);
+    return;
+  }
+  try {
+    await getTransporter().sendMail(message);
+  } catch (error) {
+    console.error('Failed to send problem report:', error.message);
+    throw httpError(503, 'Could not send your report. Please try again shortly.');
+  }
+}
+
+module.exports = { sendOtpEmail, sendSupportReport, isConfigured };

@@ -30,6 +30,10 @@ const fakeUsers = {
     Object.assign(row, { termsAcceptedAt: new Date(), termsVersion });
     return { termsVersion };
   },
+  setResetPasswordOtp: async (id, hash, expiresAt) => {
+    Object.assign([...users.values()].find((u) => u.id === id), { resetPasswordOtpHash: hash, resetPasswordExpiresAt: expiresAt, resetPasswordAttempts: 0 });
+  },
+  updatePasswordAndClearResetOtp: async () => true,
   recordFailedOtp: async (id) => {
     [...users.values()].find((u) => u.id === id).otpAttempts += 1;
   },
@@ -42,11 +46,34 @@ const fakeUsers = {
 };
 require.cache[path.join(__dirname, '../repositories/userRepository.js')] = { exports: fakeUsers };
 
+// Sessions: an in-memory stand-in for sessionService (its own queries are checked in sessions.selfcheck.js)
+const sessions = new Map(); // id -> { userId, open, record, agent }
+const failures = [];
+const revokedAll = [];
+require.cache[path.join(__dirname, '../services/sessionService.js')] = {
+  exports: {
+    start: async (userId, req, { record = true } = {}) => {
+      const id = `s${sessions.size + 1}`;
+      sessions.set(id, { userId, open: true, record, agent: req?.headers?.['user-agent'] });
+      return id;
+    },
+    recordFailure: async (userId) => { failures.push(userId); },
+    touch: async (id, userId) => Boolean(sessions.get(id)?.open && sessions.get(id).userId === userId),
+    revoke: async (userId, id) => {
+      const session = sessions.get(id);
+      if (!session || session.userId !== userId || !session.open) return false;
+      session.open = false;
+      return true;
+    },
+    revokeAll: async (userId) => { revokedAll.push(userId); for (const s of sessions.values()) if (s.userId === userId) s.open = false; },
+  },
+};
+
 // capture the code the "email" would carry
 const sent = [];
 const realLog = console.log;
 console.log = (...args) => {
-  const match = /^\[DEV OTP\] (.+):(\d{6})$/.exec(args.join(' '));
+  const match = /^\[DEV (?:RESET )?OTP\] (.+):(\d{6})$/.exec(args.join(' '));
   if (match) sent.push({ email: match[1], otp: match[2] });
   else realLog(...args);
 };
@@ -107,6 +134,59 @@ const server = app.listen(0, async () => {
     assert.equal(r.status, 200);
     assert.equal(typeof r.body.token, 'string');
     assert.equal(r.body.user.email, 'ada@example.com');
+
+    // wrong password for a real account is recorded; an unknown email has no one to show it to
+    assert.equal((await post('/login', { ...account, password: 'not-the-password' })).status, 401);
+    assert.equal((await post('/login', { email: 'nobody@example.com', password: 'whatever1' })).status, 401);
+    assert.deepEqual(failures, [1]);
+
+    // every sign-in opens a session, and both tokens carry its id
+    const jwt = require('jsonwebtoken');
+    const loginAs = (headers = {}) =>
+      fetch(base + '/login', { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(account) });
+    const refreshCookie = (res) => res.headers.getSetCookie().find((c) => c.startsWith('refreshToken=')).split(';')[0];
+    const renew = (cookie) => fetch(base + '/refresh', { method: 'POST', headers: { cookie } });
+    let signIn = await loginAs({ 'user-agent': 'selfcheck-phone' });
+    const cookieOne = refreshCookie(signIn);
+    const { sid } = jwt.decode((await signIn.json()).token);
+    assert.ok(sessions.get(sid).open);
+    assert.equal(sessions.get(sid).agent, 'selfcheck-phone'); // the request reaches sessionService, so it can describe the device
+    assert.equal(jwt.decode(cookieOne.split('=')[1]).sid, sid);
+
+    // renewing works while the session is open, and keeps it
+    let renewed = await renew(cookieOne);
+    assert.equal(renewed.status, 200);
+    assert.equal(jwt.decode((await renewed.json()).accessToken).sid, sid);
+
+    // signed out from Settings: the next renewal is refused, so that device is out
+    sessions.get(sid).open = false;
+    renewed = await renew(cookieOne);
+    assert.equal(renewed.status, 401);
+    assert.match((await renewed.json()).error, /signed out/);
+
+    // logging out ends the session behind the cookie
+    signIn = await loginAs();
+    const cookieTwo = refreshCookie(signIn);
+    const second = jwt.decode((await signIn.json()).token).sid;
+    await fetch(base + '/logout', { method: 'POST', headers: { cookie: cookieTwo } });
+    assert.equal(sessions.get(second).open, false);
+    assert.equal((await renew(cookieTwo)).status, 401);
+
+    // a token from before sessions existed still renews, and is given one (without a sign-in entry)
+    const tokenService = require('../auth/tokenService');
+    const count = sessions.size;
+    renewed = await renew(`refreshToken=${tokenService.generateRefreshToken({ id: 1 })}`);
+    assert.equal(renewed.status, 200);
+    assert.equal(sessions.size, count + 1);
+    assert.equal([...sessions.values()].at(-1).record, false);
+    assert.ok(jwt.decode((await renewed.json()).accessToken).sid);
+
+    // resetting the password signs every device out
+    await post('/forgot-password', { email: account.email });
+    r = await post('/reset-password', { email: account.email, otp: sent.at(-1).otp, newPassword: 'another-long-one' });
+    assert.equal(r.status, 200);
+    assert.deepEqual(revokedAll, [1]);
+    assert.ok([...sessions.values()].every((s) => !s.open));
 
     // an account on an older (or no) version of the terms is asked again, and agreeing records the current one
     const authed = (p, method = 'GET') =>

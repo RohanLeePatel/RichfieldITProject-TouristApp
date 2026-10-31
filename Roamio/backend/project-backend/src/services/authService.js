@@ -1,5 +1,6 @@
 const userRepository = require('../repositories/userRepository');
 const tokenService = require('../auth/tokenService');
+const sessionService = require('./sessionService');
 const { generateOtp, hashOtp, otpExpiry, otpMatches, MAX_OTP_ATTEMPTS } = require('../utils/otp');
 const { sendOtpEmail } = require('./emailService');
 const { httpError } = require('./tripAccessService');
@@ -86,7 +87,8 @@ class AuthService {
     return { email: normalizedEmail, otp };
   }
 
-  async verifyOtp({ email, otp } = {}) {
+  // req: the request, so the new session can say which device it is
+  async verifyOtp({ email, otp } = {}, req) {
     const user = await userRepository.findByEmail(normalizeEmail(email));
     // One generic error for unknown user, no/expired/exhausted code, or wrong code
     if (!user || user.isVerified || !user.otpHash || !user.otpExpiresAt
@@ -101,10 +103,11 @@ class AuthService {
 
     if (!(await userRepository.markVerified(user.id, user.otpHash))) throw httpError(400, INVALID_OTP);
 
+    const sid = await sessionService.start(user.id, req);
     return {
       user: toProfile(user),
-      accessToken: tokenService.generateAccessToken(user),
-      refreshToken: tokenService.generateRefreshToken(user),
+      accessToken: tokenService.generateAccessToken(user, sid),
+      refreshToken: tokenService.generateRefreshToken(user, sid),
     };
   }
 
@@ -158,25 +161,32 @@ class AuthService {
     const passwordHash = await tokenService.hashPassword(newPassword);
     const updated = await userRepository.updatePasswordAndClearResetOtp(user.id, passwordHash, user.resetPasswordOtpHash);
     if (!updated) throw httpError(400, INVALID_RESET_CODE);
+    // whoever knew the old password must not stay signed in
+    await sessionService.revokeAll(user.id);
   }
 
-  async login({ email, password } = {}) {
+  async login({ email, password } = {}, req) {
     const user = typeof password === 'string' ? await userRepository.findByEmail(normalizeEmail(email)) : null;
     if (!user) throw httpError(401, 'Invalid email or password');
 
     const valid = await tokenService.comparePassword(password, user.passwordHash);
-    if (!valid) throw httpError(401, 'Invalid email or password');
+    if (!valid) {
+      // shown to the account's owner under "Login activity"; never blocks the answer
+      await sessionService.recordFailure(user.id, req).catch((error) => console.error('Could not record a failed sign-in:', error.message));
+      throw httpError(401, 'Invalid email or password');
+    }
 
     if (!user.isVerified) throw httpError(403, 'Account not verified. Please verify your email first.');
 
+    const sid = await sessionService.start(user.id, req);
     return {
       user: toProfile(user),
-      accessToken: tokenService.generateAccessToken(user),
-      refreshToken: tokenService.generateRefreshToken(user),
+      accessToken: tokenService.generateAccessToken(user, sid),
+      refreshToken: tokenService.generateRefreshToken(user, sid),
     };
   }
 
-  async refreshTokens(refreshToken) {
+  async refreshTokens(refreshToken, req) {
     if (!refreshToken) throw httpError(401, 'Refresh token missing');
 
     let payload;
@@ -190,10 +200,31 @@ class AuthService {
     if (!user) throw httpError(404, 'User not found');
     if (!user.isVerified) throw httpError(403, 'Account not verified. Please verify your email first.');
 
+    let sid = payload.sid;
+    if (sid) {
+      // signed out from Settings (or unused for a week): no new tokens
+      if (!(await sessionService.touch(sid, user.id))) throw httpError(401, 'This session was signed out. Please sign in again.');
+    } else {
+      // a token from before sessions existed: give it one, so it shows up and can be signed out
+      sid = await sessionService.start(user.id, req, { record: false });
+    }
+
     return {
-      accessToken: tokenService.generateAccessToken(user),
-      refreshToken: tokenService.generateRefreshToken(user),
+      accessToken: tokenService.generateAccessToken(user, sid),
+      refreshToken: tokenService.generateRefreshToken(user, sid),
     };
+  }
+
+  // Sign out: ends the session the refresh cookie belongs to. Best effort - an
+  // expired or missing cookie just means there is nothing left to end.
+  async signOut(refreshToken) {
+    if (!refreshToken) return;
+    try {
+      const { userId, sid } = tokenService.verifyRefreshToken(refreshToken);
+      if (sid) await sessionService.revoke(userId, sid);
+    } catch {
+      // already over
+    }
   }
 }
 

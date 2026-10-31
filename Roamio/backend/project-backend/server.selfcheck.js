@@ -14,7 +14,9 @@ const stub = new Proxy({}, { get: () => new Proxy(() => {}, { get: () => async (
 for (const m of ['src/config/prisma.js', 'src/prismaClient.js', 'src/services/safetySyncService.js'])
   require.cache[path.join(root, m)] = { exports: stub };
 const Module = require('module'); const load = Module._load;
-Module._load = function (r, ...a) { return r === 'node-cron' ? { schedule() {} } : load.call(this, r, ...a); };
+// dotenv is stubbed too: server.js would otherwise read superSecretKey back in from a local .env
+const stubs = { 'node-cron': { schedule() {} }, dotenv: { config() {} } };
+Module._load = function (r, ...a) { return r in stubs ? stubs[r] : load.call(this, r, ...a); };
 const express = require(require.resolve('express', { paths: [root] }));
 const listen = express.application.listen;
 express.application.listen = function (port, cb) {
@@ -44,6 +46,11 @@ express.application.listen = function (port, cb) {
       // admin routes are mounted and guarded: no token = 401, never an HTML 404
       for (const p of ['analytics/overview', 'config/tracking', 'health/services'])
         assert.equal((await req('/api/admin/' + p)).status, 401);
+      // the Settings API is mounted and guarded: 401 without a token, never the catch-all 404
+      for (const p of ['notification-preferences', 'sessions', 'login-activity', 'travellers', 'export'])
+        assert.equal((await req('/api/users/me/' + p)).status, 401);
+      assert.equal((await req('/api/users/me', { method: 'DELETE' })).status, 401);
+      assert.equal((await req('/api/support/reports', { method: 'POST' })).status, 401);
       // the group routes are still reachable behind the trip router
       assert.equal((await req('/api/groups')).status, 401);
       // health check and API docs (main's, kept)

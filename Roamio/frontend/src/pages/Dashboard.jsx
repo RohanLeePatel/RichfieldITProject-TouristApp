@@ -329,7 +329,6 @@ function CountUp({ value, duration = 900 }) {
 export default function Dashboard() {
   const { theme, toggle: toggleTheme } = useTheme(); // app-wide theme, also set in Settings
   const navigate = useNavigate();
-  const logout = useAuthStore((state) => state.logout);
 
   // =========================================================
   // MOBILE MENU

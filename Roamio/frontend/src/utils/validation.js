@@ -31,6 +31,7 @@ export function labelError(value, label = "the name", { min = 2, max = 60, requi
   if (!text) return required ? `Enter ${label}.` : "";
   if (text.length < min) return `${sentence(label)} must be at least ${min} characters.`;
   if (text.length > max) return `${sentence(label)} can't be longer than ${max} characters.`;
+  // eslint-disable-next-line no-control-regex -- control characters are exactly what this rejects
   if (/[<>\u0000-\u001f]/.test(text)) return `${sentence(label)} can't contain < or > or control characters.`;
   return "";
 }

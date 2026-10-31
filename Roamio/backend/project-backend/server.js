@@ -10,7 +10,7 @@ const swaggerJsdoc = require('swagger-jsdoc');
 const safetySyncService = require('./src/services/safetySyncService');
 
 // 2. Custom Middleware Imports
-const { generalLimiter, authLimiter, recommendationsLimiter, weatherLimiter, chatLimiter } = require('./src/middleware/rateLimiter');
+const { generalLimiter, authLimiter, recommendationsLimiter, weatherLimiter, chatLimiter, supportLimiter } = require('./src/middleware/rateLimiter');
 const attachActivityLogger = require('./src/middleware/activityLoggerMiddleware');
 
 // 3. Route Imports
@@ -33,6 +33,8 @@ const weatherRoutes = require('./src/routes/weather');
 const ratesRoutes = require('./src/routes/rates');
 const adminRoutes = require('./src/routes/admin');
 const chatRoutes = require('./src/routes/chat');
+const meRoutes = require('./src/routes/me');
+const supportRoutes = require('./src/routes/support');
 
 // 4. App Initialization
 const app = express();
@@ -114,6 +116,12 @@ app.use('/api/weather', weatherLimiter, weatherRoutes);
 app.use('/api/rates', weatherLimiter, ratesRoutes); // same shared-quota limit
 app.use('/api/chat', chatLimiter, chatRoutes);
 
+// Settings page: notifications, sessions, travellers, data export, account
+// deletion, problem reports. They guard themselves with requireAuth, so they
+// go before the /api routers below that would 401 them.
+app.use('/api/users/me', meRoutes);
+app.use('/api/support', supportLimiter, supportRoutes);
+
 // Admin dashboard API. Before the /api routers below, which would 401 it;
 // the router guards itself with isAdmin and has its own error handler.
 app.use('/api/admin', adminRoutes);
@@ -151,6 +159,7 @@ app.use((err, req, res, next) => {
   const message = err.message || 'Internal Server Error';
 
   res.status(statusCode).json({
+    message, // the shape the pages read; `error` below is kept for older callers
     error: {
       message: message,
       ...(process.env.NODE_ENV === 'development' && { stack: err.stack }) // Hide stack trace in production

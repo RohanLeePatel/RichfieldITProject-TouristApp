@@ -323,9 +323,7 @@ function ExpenseForm({ trip, budgetCurrency, busy, onAdd }) {
         className="trip-hub-search"
         onSubmit={(event) => {
           event.preventDefault();
-          let problem = "";
-          if (!title.trim()) problem = "Say what the purchase was.";
-          else problem = amountError(amount, "the amount");
+          let problem = title.trim() ? amountError(amount, "the amount") : "Say what the purchase was.";
           if (!problem && !/^\d{4}-\d{2}-\d{2}$/.test(date)) problem = "Pick the date of the purchase.";
           else if (!problem && minDate && date < minDate) problem = "That date is more than a year before the trip.";
           else if (!problem && maxDate && date > maxDate) problem = "That date is after the trip ends.";

@@ -224,7 +224,7 @@ function chunkByCounts(list, counts) {
  * @param {{ landmarks: Array<{name, lat, lon, category, address}>, tripDays: number, pace: "packed"|"balanced"|"relaxed", dayStopCounts?: number[], familyFriendly?: boolean }} args
  * @returns {Array<{ dayNumber: number, stops: Array<{ landmark, startTime, endTime }> }>}
  */
-export function buildDayPlan({ landmarks, tripDays, pace, dayStopCounts, familyFriendly }) {
+export function buildDayPlan({ landmarks, pace, dayStopCounts, familyFriendly }) {
   if (!landmarks || landmarks.length === 0) return [];
 
   // familyFriendly is ignored once the user takes precise per-day control

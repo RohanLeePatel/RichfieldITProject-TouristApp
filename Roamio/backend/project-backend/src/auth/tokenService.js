@@ -12,17 +12,19 @@ const comparePassword = async (password, hash) => {
   return await bcrypt.compare(password, hash);
 };
 
-const generateAccessToken = (user) => {
+// sid: the session this token belongs to (see sessionService); signing a session
+// out stops its refresh token being renewed.
+const generateAccessToken = (user, sid) => {
   return jwt.sign(
-    { userId: user.id, email: user.email },
+    { userId: user.id, email: user.email, ...(sid ? { sid } : {}) },
     ACCESS_SECRET,
     { expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m' }
   );
 };
 
-const generateRefreshToken = (user) => {
+const generateRefreshToken = (user, sid) => {
   return jwt.sign(
-    { userId: user.id },
+    { userId: user.id, ...(sid ? { sid } : {}) },
     REFRESH_SECRET,
     { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
   );

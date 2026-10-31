@@ -119,6 +119,11 @@ router.get('/history', authenticateToken, (req, res) => {
   return forward(res, `/api/translate/history?${query}`, { method: 'GET' }, String(req.user.userId));
 });
 
+// Every saved translation and stored photograph of the signed-in traveller
+router.delete('/history', authenticateToken, (req, res) => {
+  return forward(res, '/api/translate/history', { method: 'DELETE' }, String(req.user.userId));
+});
+
 router.delete('/history/:id', authenticateToken, (req, res) => {
   return forward(
     res,

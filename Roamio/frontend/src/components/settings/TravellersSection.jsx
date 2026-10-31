@@ -252,7 +252,7 @@ function TravellerForm({ traveller, deviceOnly, onCancel, onSaved }) {
             label="Document number"
             optional
             error={errors.documentNumber}
-            hint={editing && savedLast4 ? `Leave blank to keep •••• ${savedLast4}` : "Optional. We do not save passport or ID numbers yet, so you will need to enter it again when you book."}
+            hint={editing && savedLast4 ? `Leave blank to keep •••• ${savedLast4}` : "Optional. We keep only the last 4 characters, so you will need the full number when you book."}
           >
             <div className={`st-input${errors.documentNumber ? " is-invalid" : ""}`}>
               <Lock size={17} aria-hidden="true" />

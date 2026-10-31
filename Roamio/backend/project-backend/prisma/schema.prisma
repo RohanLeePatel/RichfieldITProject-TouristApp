@@ -47,6 +47,10 @@ model User {
   paidExpenses      Expense[]           @relation("ExpensePaidBy")
   expenseSplits     ExpenseSplit[]
   uploadedDocuments TripDocument[]
+  notificationPrefs NotificationPreference?
+  sessions          UserSession[]
+  loginEvents       LoginEvent[]
+  savedTravellers   SavedTraveller[]
 
   @@index([email])
 }
@@ -467,4 +471,70 @@ model ChatMessage {
   createdAt      DateTime         @default(now())
 
   @@index([conversationId, id])
+}
+
+// Settings page tables. Added to the live DB by prisma/live-sql/006_settings.sql,
+// then mirrored here.
+model NotificationPreference {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prefs     Json
+  updatedAt DateTime @default(now()) @db.Timestamptz(6)
+}
+
+// One row per sign-in. The refresh token carries id; revokedAt ends it.
+model UserSession {
+  id         String    @id
+  userId     Int
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  browser    String    @default("")
+  os         String    @default("")
+  deviceType String    @default("desktop")
+  location   String    @default("")
+  ipAddress  String    @default("")
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+  lastSeenAt DateTime  @default(now()) @db.Timestamptz(6)
+  revokedAt  DateTime? @db.Timestamptz(6)
+
+  @@index([userId, lastSeenAt(sort: Desc)])
+}
+
+model LoginEvent {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  at         DateTime @default(now()) @db.Timestamptz(6)
+  browser    String   @default("")
+  os         String   @default("")
+  deviceType String   @default("desktop")
+  location   String   @default("")
+  ipAddress  String   @default("")
+  success    Boolean
+
+  @@index([userId, at(sort: Desc)])
+}
+
+// Passport / ID numbers are never stored: documentLast4 is all we keep.
+model SavedTraveller {
+  id              String   @id
+  userId          Int
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName       String
+  lastName        String
+  relationship    String
+  dateOfBirth     DateTime @db.Date
+  nationality     String   @default("")
+  email           String   @default("")
+  phone           String   @default("")
+  documentType    String   @default("passport")
+  documentLast4   String?
+  documentExpiry  DateTime? @db.Date
+  consentGiven    Boolean
+  consentGuardian Boolean  @default(false)
+  consentAt       DateTime @default(now()) @db.Timestamptz(6)
+  createdAt       DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([userId, createdAt])
 }

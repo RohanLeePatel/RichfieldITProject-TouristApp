@@ -17,7 +17,7 @@ export async function fetchWeather(city) {
     `${encodeURIComponent(normalizedCity)}?units=metric`;
 
   const response = await fetch(apiUrl);
-  let data = null;
+  let data;
 
   try {
     data = await response.json();

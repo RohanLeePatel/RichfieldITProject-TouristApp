@@ -18,7 +18,7 @@ function getSessionId() {
 }
 
 async function readJsonResponse(response, invalidMessage, fallbackMessage) {
-  let data = null;
+  let data;
 
   try {
     data = await response.json();

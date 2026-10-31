@@ -40,7 +40,7 @@ export const FAQS = [
   },
   {
     q: "What happens when I delete my account?",
-    a: "Email us from your account address and we will delete your profile, preferences, the trips you own, your documents and your chat history within 30 days. Records we must keep by law are kept only for as long as required. This can't be undone.",
+    a: "Go to Settings, then Privacy & data, then Delete account, and enter your password. Your profile, preferences, saved travellers, sign-in history, chat and translation history are deleted straight away, along with trips that only you were part of. In groups with other people the trips stay for them. Records we must keep by law are kept only for as long as required. This can't be undone.",
   },
   {
     q: "How do I change my home currency or translation language?",
@@ -72,9 +72,11 @@ export const PRIVACY_POLICY = [
       "Account details: your name, email address and password. Your password is stored only as a secure hash, never as readable text.",
       "Trip information: the trips, itineraries, budgets, expenses, travel groups and invitations you create or that are shared with you, and the booking documents (PDFs and images) you attach to a trip.",
       "Assistant and translator content: the questions you ask the trip assistant and its replies, and the text and photos you translate, with your translation history.",
-      "Preferences: your currency, language, theme and notification choices. Some of these, and your saved travellers and profile photo, are kept in your own browser rather than on our servers.",
+      "Preferences: your currency, language, theme and notification choices. Your profile photo is kept in your own browser rather than on our servers.",
+      "Saved travellers: if you save the details of people you travel with, we keep their name, date of birth, nationality, contact details, the type and expiry date of their travel document, and a record that you had their permission.",
+      "Sign-in history: each time you sign in we record the time, your browser and operating system, your IP address and an approximate location (a country and city worked out from the IP address). It lets you see your signed-in devices and spot activity you don't recognise, and is kept for 90 days.",
       "Technical information: like most websites, our hosting records your IP address and the pages requested in server logs, which we use to keep Roamio running and secure.",
-      "We do not currently store passport or ID numbers.",
+      "We never store passport or ID numbers. For a saved traveller we keep only the document type, its expiry date and the last 4 characters of the number.",
     ],
   },
   {
@@ -104,19 +106,19 @@ export const PRIVACY_POLICY = [
   {
     heading: "Saved travellers and other people's details",
     body: [
-      "You may only add another person's details with their permission, or as their parent or legal guardian if they are under 18. Saved travellers are kept in your browser on your device, not on our servers.",
+      "You may only add another person's details with their permission, or as their parent or legal guardian if they are under 18. You can edit or delete a saved traveller in Settings at any time.",
     ],
   },
   {
     heading: "How long we keep it",
     body: [
-      "We keep your information while your account is open. To delete your account, email us from the address on your account and we will delete your personal information, including the trips you own, your documents and your chat history, within 30 days. We keep only records the law requires us to keep, and only for as long as required. Trips shared with other people may remain for those people.",
+      "We keep your information while your account is open. You can delete your account yourself in Settings (you will need your password), or email us from the address on your account and we will do it within 30 days. Your profile, preferences, saved travellers, sign-in history, chat history and translation history are deleted, along with trips that only you were part of. In a group with other people, the trips stay for them, and if you were its owner another member takes over. We keep only records the law requires us to keep, and only for as long as required.",
     ],
   },
   {
     heading: "Your rights",
     body: [
-      "You can ask to see, correct, download or delete your information, and object to certain processing, by emailing us. You can change your name and preferences in Settings, and the Download my data option there gives you a copy of what is held on your device. If you are unhappy with how we handle your information, you may complain to the Information Regulator of South Africa.",
+      "You can ask to see, correct, download or delete your information, and object to certain processing, by emailing us. You can change your name and preferences in Settings, and the Download my data option there gives you a file with your profile, preferences, saved travellers, groups and trips, notifications, assistant chats, translation history and sign-in history. If you are unhappy with how we handle your information, you may complain to the Information Regulator of South Africa.",
     ],
   },
   {
@@ -190,7 +192,7 @@ export const TERMS = [
   {
     heading: "Ending your account",
     body: [
-      "You can stop using Roamio at any time, and ask us to delete your account by email, as described in the Privacy Policy. We may suspend accounts that break these terms, and will tell you why unless the law prevents us.",
+      "You can stop using Roamio at any time, and delete your account in Settings (or by email), as described in the Privacy Policy. We may suspend accounts that break these terms, and will tell you why unless the law prevents us.",
     ],
   },
   {

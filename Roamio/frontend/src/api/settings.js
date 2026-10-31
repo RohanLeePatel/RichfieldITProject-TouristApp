@@ -35,7 +35,7 @@ function safeGet(key) {
 
 // Match this to however api/account.js attaches the JWT
 function authHeaders() {
-  let token = null;
+  let token;
   try {
     const state = useAuthStore.getState?.() || {};
     token = state.token || state.accessToken || state.user?.token || null;
@@ -64,11 +64,15 @@ async function request(path, { method = "GET", body, expect = "json" } = {}) {
     throw new Error("We couldn't reach Roamio. Check your connection and try again.");
   }
 
-  if ([404, 405, 501].includes(response.status)) {
-    throw new EndpointMissingError(path);
-  }
-
   const type = response.headers.get("content-type") || "";
+
+  if ([404, 405, 501].includes(response.status)) {
+    // "no such route" is the API's catch-all ({ message: "Not found." }) or a
+    // host's HTML page. Any other 404 is a real answer about a missing record
+    // ("Traveller not found.") and must reach the person, not fall back to the browser.
+    const reply = type.includes("json") ? await response.clone().json().catch(() => null) : null;
+    if (!reply || reply.message === "Not found." || response.status !== 404) throw new EndpointMissingError(path);
+  }
 
   if (!response.ok) {
     let message = "";
@@ -278,13 +282,14 @@ export async function downloadMyData(buildFallback) {
 
 /* ---------------- delete account ---------------- */
 
-export async function deleteAccount(email) {
+export async function deleteAccount(email, password) {
   try {
-    await request("/api/users/me", { method: "DELETE", body: { confirmation: "DELETE" } });
+    await request("/api/users/me", { method: "DELETE", body: { confirmation: "DELETE", password } });
   } catch (error) {
     if (error instanceof EndpointMissingError) {
       throw new Error(
-        `Account deletion isn't available online yet. Email ${SUPPORT_EMAIL} from your account address and we'll delete it for you.`
+        `Account deletion isn't available online yet. Email ${SUPPORT_EMAIL} from your account address and we'll delete it for you.`,
+        { cause: error }
       );
     }
     throw error;
