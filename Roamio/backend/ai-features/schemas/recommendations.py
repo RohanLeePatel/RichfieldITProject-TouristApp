@@ -38,6 +38,9 @@ class ClimatePrefs(BaseModel):
     travel_month_end: Optional[int] = Field(default=None, ge=1, le=12)
 
 
+MIN_INTERESTS = 3  # the wizard (Recommendations.jsx) enforces the same minimum
+
+
 class Preferences(BaseModel):
     budget_per_day: float = Field(gt=0)
     currency: str = Field(min_length=3, max_length=3, description="ISO 4217, e.g. ZAR.")
@@ -139,6 +142,18 @@ class RecommendationRequest(BaseModel):
     def _candidates_not_explicitly_empty(self) -> "RecommendationRequest":
         if self.candidates is not None and not self.candidates:
             raise ValueError("candidates must not be empty when provided")
+        return self
+
+    @model_validator(mode="after")
+    def _enough_interests(self) -> "RecommendationRequest":
+        # Only the organiser's set: it already blends every traveller's picks.
+        # member_preferences may carry none (a member who only set a limit).
+        usable = set(self.preferences.interests) - set(self.preferences.avoid_interests)
+        if len(usable) < MIN_INTERESTS:
+            raise ValueError(
+                f"preferences.interests needs at least {MIN_INTERESTS} different interests "
+                f"that are not in avoid_interests (got {len(usable)})"
+            )
         return self
 
 

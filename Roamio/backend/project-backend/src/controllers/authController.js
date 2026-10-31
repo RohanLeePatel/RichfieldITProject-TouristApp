@@ -137,6 +137,7 @@ class AuthController {
       const updated = await userRepository.update(req.user.userId, data);
       res.json(updated);
     } catch (err) {
+      if (err.statusCode === 400) return res.status(400).json({ message: err.message, error: err.message });
       next(err);
     }
   }
@@ -149,7 +150,11 @@ const PREFERENCE_FIELDS = { currency: 'string', language: 'string', theme: 'stri
 
 function profileUpdate(body = {}) {
   const data = {};
-  if (typeof body.fullName === 'string' && body.fullName.trim()) data.fullName = body.fullName.trim().slice(0, 120);
+  if (body.fullName !== undefined) {
+    const problem = authService.fullNameProblem(body.fullName);
+    if (problem) throw Object.assign(new Error(problem), { statusCode: 400 });
+    data.fullName = body.fullName.trim();
+  }
   if (body.avatarUrl === null || (typeof body.avatarUrl === 'string' && /^https:\/\//.test(body.avatarUrl))) {
     data.avatarUrl = body.avatarUrl;
   }

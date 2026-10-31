@@ -29,8 +29,10 @@ router.post('/', async (req, res) => {
     const data = await response.json().catch(() => null);
 
     if (!response.ok) {
+      // FastAPI sends validation failures as a list of { msg }; the browser shows one sentence
+      const detail = Array.isArray(data?.detail) ? data.detail[0]?.msg?.replace(/^Value error, /, '') : data?.detail;
       return res.status(response.status).json({
-        message: data?.detail || 'Recommendation service is unavailable.',
+        message: detail || 'Recommendation service is unavailable.',
       });
     }
 

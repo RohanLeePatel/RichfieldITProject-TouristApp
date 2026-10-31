@@ -26,6 +26,15 @@ const issueOtp = async (userId, extra = {}) => {
 const toProfile = (user) => ({ id: user.id, email: user.email, fullName: user.fullName });
 
 class AuthService {
+  // '' when the name is fine, otherwise the sentence to show (register and PATCH /users/me)
+  fullNameProblem(fullName) {
+    const name = typeof fullName === 'string' ? fullName.trim() : '';
+    if (name.length < 2 || name.length > MAX_NAME_LENGTH || !NAME_PATTERN.test(name)) {
+      return `Full name must be 2-${MAX_NAME_LENGTH} characters and use letters, spaces, hyphens, apostrophes and full stops only.`;
+    }
+    return '';
+  }
+
   async register({ email, password, fullName } = {}) {
     const normalizedEmail = normalizeEmail(email);
     if (!EMAIL_PATTERN.test(normalizedEmail) || normalizedEmail.length > MAX_EMAIL_LENGTH) {
@@ -38,9 +47,8 @@ class AuthService {
       throw httpError(400, `Password can't be longer than ${MAX_PASSWORD_LENGTH} characters.`);
     }
     if (typeof fullName !== 'string' || !fullName.trim()) throw httpError(400, 'Full name is required.');
-    if (fullName.trim().length < 2 || fullName.trim().length > MAX_NAME_LENGTH || !NAME_PATTERN.test(fullName.trim())) {
-      throw httpError(400, `Full name must be 2-${MAX_NAME_LENGTH} characters and use letters, spaces, hyphens, apostrophes and full stops only.`);
-    }
+    const nameProblem = this.fullNameProblem(fullName);
+    if (nameProblem) throw httpError(400, nameProblem);
 
     const passwordHash = await tokenService.hashPassword(password);
     const existing = await userRepository.findByEmail(normalizedEmail);

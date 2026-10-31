@@ -14,7 +14,7 @@ VALID_PAYLOAD = {
     "preferences": {
         "budget_per_day": 850,
         "currency": "ZAR",
-        "interests": ["history", "nature"],
+        "interests": ["history", "nature", "food"],
         "travellers": {"adults": 2, "children": [4, 9]},
         "accessibility": {"wheelchair": "preferred"},
         "climate": {"prefer": "mild", "travel_month": 12},
@@ -26,6 +26,34 @@ VALID_PAYLOAD = {
 
 def test_valid_payload_parses():
     RecommendationRequest.model_validate(VALID_PAYLOAD)
+
+
+def _with_interests(interests, avoid=()):
+    prefs = {**VALID_PAYLOAD["preferences"], "interests": interests, "avoid_interests": list(avoid)}
+    return {**VALID_PAYLOAD, "preferences": prefs}
+
+
+@pytest.mark.parametrize(
+    "interests, avoid",
+    [
+        ([], []),
+        (["food", "nature"], []),
+        (["food", "food", "nature"], []),  # duplicates count once
+        (["food", "nature", "history"], ["history"]),  # an avoided one doesn't count
+    ],
+)
+def test_fewer_than_three_usable_interests_rejected(interests, avoid):
+    with pytest.raises(ValidationError, match="at least 3"):
+        RecommendationRequest.model_validate(_with_interests(interests, avoid))
+
+
+def test_three_usable_interests_accepted():
+    RecommendationRequest.model_validate(_with_interests(["food", "nature", "history"]))
+
+
+def test_members_may_have_no_interests_of_their_own():
+    member = {**VALID_PAYLOAD["preferences"], "interests": []}
+    RecommendationRequest.model_validate({**VALID_PAYLOAD, "member_preferences": [member]})
 
 
 def test_empty_candidates_rejected():

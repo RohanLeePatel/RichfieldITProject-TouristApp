@@ -116,6 +116,10 @@ const server = app.listen(0, async () => {
     );
     assert.equal(profileUpdate({ avatarUrl: 'javascript:alert(1)' }), null);
     assert.equal(profileUpdate({}), null);
+    // a bad name is refused with the reason instead of being saved or silently cut
+    for (const fullName of ['R2D2', 'A', '', '   ', 'x'.repeat(81), 42]) {
+      assert.throws(() => profileUpdate({ fullName }), (e) => e.statusCode === 400 && /Full name must be 2-80/.test(e.message));
+    }
 
     console.log = realLog;
     console.log('auth selfcheck: all assertions passed');
