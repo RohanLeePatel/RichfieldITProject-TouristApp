@@ -23,6 +23,9 @@ import {
   useResendCode,
 } from "../hooks/useRegister";
 
+import FieldError from "../components/FieldError.jsx";
+import { emailError, MAX_EMAIL, MAX_PASSWORD, nameError, passwordError } from "../utils/validation.js";
+
 import "../styles/auth.css";
 
 export default function Register() {
@@ -37,7 +40,7 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const [passwordError, setPasswordError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
 
   // Set once the account is created: the page then asks for the emailed code
   const [pendingEmail, setPendingEmail] = useState("");
@@ -91,35 +94,20 @@ export default function Register() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    setPasswordError("");
-
     const trimmedName = name.trim();
     const trimmedEmail = email.trim();
 
-    if (!trimmedName) {
-      setPasswordError("Please enter your full name.");
-      return;
-    }
-
-    if (trimmedName.length > 80) {
-      setPasswordError("Keep your name under 80 characters.");
-      return;
-    }
-
-    if (!trimmedEmail) {
-      setPasswordError("Please enter your email address.");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setPasswordError("Passwords do not match.");
-      return;
-    }
-
-    if (password.length < 8) {
-      setPasswordError("Password must be at least 8 characters.");
-      return;
-    }
+    const found = {};
+    const nameProblem = nameError(trimmedName, "your full name");
+    if (nameProblem) found.name = nameProblem;
+    const emailProblem = emailError(trimmedEmail);
+    if (emailProblem) found.email = emailProblem;
+    const passwordProblem = passwordError(password);
+    if (passwordProblem) found.password = passwordProblem;
+    if (!confirmPassword) found.confirmPassword = "Type your password again to confirm it.";
+    else if (password !== confirmPassword) found.confirmPassword = "Passwords do not match.";
+    setFieldErrors(found);
+    if (Object.keys(found).length) return;
 
     registerUser(
       {
@@ -294,6 +282,10 @@ export default function Register() {
                       required
                     />
                   </div>
+                  <FieldError
+                    id="register-code-error"
+                    message={code.length > 0 && code.length < 6 ? `Enter all 6 digits - you've typed ${code.length}.` : ""}
+                  />
                 </div>
 
                 {(verifyError || codeNotice) && (
@@ -370,7 +362,7 @@ export default function Register() {
 
           {/* FORM */}
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} noValidate>
             {/* NAME */}
 
             <div className="input-group">
@@ -389,12 +381,15 @@ export default function Register() {
                   autoComplete="name"
                   maxLength={80}
                   value={name}
+                  aria-invalid={Boolean(fieldErrors.name)}
+                  aria-describedby={fieldErrors.name ? "register-name-error" : undefined}
                   onChange={(e) =>
                     setName(e.target.value)
                   }
                   required
                 />
               </div>
+              <FieldError id="register-name-error" message={fieldErrors.name} />
             </div>
 
             {/* EMAIL */}
@@ -414,12 +409,16 @@ export default function Register() {
                   placeholder="you@example.com"
                   autoComplete="email"
                   value={email}
+                  maxLength={MAX_EMAIL}
+                  aria-invalid={Boolean(fieldErrors.email)}
+                  aria-describedby={fieldErrors.email ? "register-email-error" : undefined}
                   onChange={(e) =>
                     setEmail(e.target.value)
                   }
                   required
                 />
               </div>
+              <FieldError id="register-email-error" message={fieldErrors.email} />
             </div>
 
             {/* PASSWORD */}
@@ -443,6 +442,9 @@ export default function Register() {
                   placeholder="Create a password"
                   autoComplete="new-password"
                   value={password}
+                  maxLength={MAX_PASSWORD}
+                  aria-invalid={Boolean(fieldErrors.password)}
+                  aria-describedby={fieldErrors.password ? "register-password-error" : undefined}
                   onChange={(e) =>
                     setPassword(e.target.value)
                   }
@@ -470,6 +472,7 @@ export default function Register() {
                   )}
                 </button>
               </div>
+              <FieldError id="register-password-error" message={fieldErrors.password} />
             </div>
 
             {/* CONFIRM PASSWORD */}
@@ -493,6 +496,9 @@ export default function Register() {
                   placeholder="Confirm your password"
                   autoComplete="new-password"
                   value={confirmPassword}
+                  maxLength={MAX_PASSWORD}
+                  aria-invalid={Boolean(fieldErrors.confirmPassword)}
+                  aria-describedby={fieldErrors.confirmPassword ? "register-confirm-error" : undefined}
                   onChange={(e) =>
                     setConfirmPassword(
                       e.target.value
@@ -522,11 +528,12 @@ export default function Register() {
                   )}
                 </button>
               </div>
+              <FieldError id="register-confirm-error" message={fieldErrors.confirmPassword} />
             </div>
 
             {/* ERROR */}
 
-            {(passwordError || error) && (
+            {error && (
               <p
                 style={{
                   color: "#e05252",
@@ -535,8 +542,7 @@ export default function Register() {
                   margin: "0 0 10px",
                 }}
               >
-                {passwordError ||
-                  error?.message ||
+                {error?.message ||
                   "Registration failed. Please try again."}
               </p>
             )}

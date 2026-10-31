@@ -3,6 +3,7 @@ import { LoaderCircle, Plus, Users } from "lucide-react";
 
 import { createGroup, fetchMyGroups } from "../../../api/groups.js";
 import { groupFromTravelGroup } from "../../../pages/recommendations/constants.js";
+import { labelError } from "../../../utils/validation.js";
 
 const NEW = "new";
 
@@ -41,6 +42,11 @@ export default function TripGroupPanel({ form, updateForm }) {
   };
 
   const create = async () => {
+    const problem = labelError(name, "the group name");
+    if (problem) {
+      setError(problem);
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -80,7 +86,10 @@ export default function TripGroupPanel({ form, updateForm }) {
             <div className="trip-group-new">
               <input
                 value={name}
-                onChange={(event) => setName(event.target.value)}
+                onChange={(event) => {
+                  setName(event.target.value);
+                  setError("");
+                }}
                 placeholder="Group name, e.g. Cape Town crew"
                 aria-label="New group name"
                 maxLength={60}

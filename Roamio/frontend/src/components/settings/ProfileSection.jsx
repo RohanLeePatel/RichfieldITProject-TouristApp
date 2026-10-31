@@ -17,6 +17,7 @@ import { fetchMe, updateMe } from "../../api/account.js";
 import { CURRENCIES } from "../../pages/recommendations/constants.js";
 import { useAuthStore } from "../../store/authStore.js";
 import { LANGUAGES } from "../../utils/translatorHelpers";
+import { nameError } from "../../utils/validation.js";
 import { CardHead, Field, Notice, SettingsSection, Spinner } from "./SettingsUI.jsx";
 import { initialsOf } from "./settingsUtils.js";
 
@@ -170,8 +171,9 @@ export default function ProfileSection({ theme, setTheme, notify }) {
     event.preventDefault();
 
     const trimmedName = name.trim();
-    if (!trimmedName) {
-      setSaveError("Please enter your full name.");
+    const nameProblem = nameError(trimmedName, "your full name");
+    if (nameProblem) {
+      setSaveError(nameProblem);
       return;
     }
 
@@ -284,6 +286,7 @@ export default function ProfileSection({ theme, setTheme, notify }) {
                 value={name}
                 placeholder="Your full name"
                 autoComplete="name"
+                maxLength={80}
                 onChange={(event) => setName(event.target.value)}
                 required
               />

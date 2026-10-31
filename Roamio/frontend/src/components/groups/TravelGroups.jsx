@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { createGroup, createInvite, fetchMyGroups, inviteLink, joinGroup } from "../../api/groups.js";
 import { useAuthStore } from "../../store/authStore.js";
 import { useTripStore } from "../../store/tripStore.js";
+import { emailError, labelError, MAX_EMAIL } from "../../utils/validation.js";
 
 const MANAGERS = ["OWNER", "ADMIN"];
 
@@ -86,10 +87,12 @@ export default function TravelGroups({ onGroups }) {
         <form
           onSubmit={(event) => {
             event.preventDefault();
-            if (newName.trim()) run(() => createGroup(newName.trim()).then(() => setNewName("")));
+            const problem = labelError(newName, "the group name");
+            if (problem) return setError(problem);
+            run(() => createGroup(newName.trim()).then(() => setNewName("")));
           }}
         >
-          <input value={newName} onChange={(event) => setNewName(event.target.value)} placeholder="New group name" aria-label="New group name" maxLength={80} />
+          <input value={newName} onChange={(event) => { setNewName(event.target.value); setError(""); }} placeholder="New group name" aria-label="New group name" maxLength={60} />
           <button type="submit" className="family-button family-button-primary" disabled={busy || !newName.trim()}>
             <Plus size={15} /> Create group
           </button>
@@ -98,10 +101,13 @@ export default function TravelGroups({ onGroups }) {
         <form
           onSubmit={(event) => {
             event.preventDefault();
-            if (code.trim()) run(() => joinGroup(code.trim()).then(() => setCode("")));
+            if (!/^[A-Za-z0-9]{4,16}$/.test(code.trim())) {
+              return setError("Join codes are 4-16 letters and numbers, like 9F2A1B8C - no spaces or symbols.");
+            }
+            run(() => joinGroup(code.trim()).then(() => setCode("")));
           }}
         >
-          <input value={code} onChange={(event) => setCode(event.target.value)} placeholder="Join code, e.g. 9F2A1B8C" aria-label="Group join code" maxLength={16} />
+          <input value={code} onChange={(event) => { setCode(event.target.value); setError(""); }} placeholder="Join code, e.g. 9F2A1B8C" aria-label="Group join code" maxLength={16} />
           <button type="submit" className="family-button family-button-secondary" disabled={busy || !code.trim()}>
             Join
           </button>
@@ -121,6 +127,8 @@ function GroupCard({ group, canManage }) {
     event.preventDefault();
     setInviteError("");
     setLink("");
+    const problem = emailError(email);
+    if (problem) return setInviteError(problem.replace("your email address", "their email address"));
     try {
       const token = await createInvite(group.id, email.trim());
       setLink(`${window.location.origin}/invite/${token}`);
@@ -171,8 +179,8 @@ function GroupCard({ group, canManage }) {
               <Copy size={13} /> {joinCopied ? "Link copied" : "Copy invite link"}
             </button>
           </p>
-          <form className="family-group-invite" onSubmit={invite}>
-            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Their email" aria-label="Email to invite" required />
+          <form className="family-group-invite" onSubmit={invite} noValidate>
+            <input type="email" value={email} onChange={(event) => { setEmail(event.target.value); setInviteError(""); }} placeholder="Their email" aria-label="Email to invite" maxLength={MAX_EMAIL} required />
             <button type="submit" className="family-button family-button-secondary">
               <UserPlus size={15} /> Invite
             </button>

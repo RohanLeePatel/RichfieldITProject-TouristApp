@@ -16,6 +16,7 @@ import {
 import { createTrip, addItineraryItem, deleteTrip } from "../api/trips.js";
 import { useTripStore } from "../store/tripStore.js";
 import { fetchMe } from "../api/account.js";
+import { nameError } from "../utils/validation.js";
 
 import { buildDayPlan, dayCapacity, daysNeeded, recomputeDayStopTimes, STOPS_PER_DAY_BY_PACE } from "../utils/itineraryPlanner.js";
 import {
@@ -39,6 +40,15 @@ const MAX_DAILY_BUDGET = 1_000_000;
 const MAX_ADULTS = 50;
 const MAX_CHILDREN = 20;
 const MAX_TRIP_DAYS = 365;
+const MAX_START_YEARS_AHEAD = 3;
+// the engine needs a spread of interests to rank anything; avoided ones don't count
+const MIN_INTERESTS = 3;
+
+function maxStartDate() {
+  const limit = new Date();
+  limit.setFullYear(limit.getFullYear() + MAX_START_YEARS_AHEAD);
+  return limit.toLocaleDateString("en-CA");
+}
 
 export default function Recommendations() {
   // wizard -> collecting preferences
@@ -255,8 +265,8 @@ export default function Recommendations() {
     });
   };
 
-  const validateStep = () => {
-    if (step === 0) {
+  const validateStep = (stepToCheck = step) => {
+    if (stepToCheck === 0) {
       if (!Number.isFinite(Number(form.budget)) || Number(form.budget) <= 0) {
         return "Enter a daily budget greater than zero.";
       }
@@ -293,10 +303,25 @@ export default function Recommendations() {
       if (form.startDate && form.endDate && tripLengthDays(form) > MAX_TRIP_DAYS) {
         return `A trip can be at most ${MAX_TRIP_DAYS} days long.`;
       }
+      if (form.startDate && form.startDate > maxStartDate()) {
+        return `Trip start date can't be more than ${MAX_START_YEARS_AHEAD} years from today.`;
+      }
+      if (form.mode === "country" && !countries.some((item) => item.name === form.country)) {
+        return "Choose a country from the list.";
+      }
     }
-    if (step === 1) {
-      if (form.interests.length === 0) {
-        return "Choose at least one interest.";
+    if (stepToCheck === 1) {
+      // dealbreakers are taken out of the interests before the engine sees them
+      const usable = resolveInterests(form).interests.length;
+      if (usable < MIN_INTERESTS) {
+        if (form.interests.length < MIN_INTERESTS) {
+          return `Choose at least ${MIN_INTERESTS} interests so we can rank good matches - you've chosen ${form.interests.length}.`;
+        }
+        return `Only ${usable} of your interests are left once the ones you chose to avoid are removed. Keep at least ${MIN_INTERESTS} that you're not avoiding.`;
+      }
+      const unnamed = form.travelers.find((traveler) => nameError(traveler.name, "a traveller's name", { max: 60, required: false }));
+      if (unnamed) {
+        return nameError(unnamed.name, "a traveller's name", { max: 60, required: false });
       }
       // a blank budget means that traveller uses the group's
       const badBudget = form.travelers.find((traveler) => {
@@ -341,7 +366,20 @@ export default function Recommendations() {
   };
 
   const handleNext = async () => {
-    const validationError = validateStep();
+    let validationError = validateStep();
+    // The review step is also reached from a template or an "Edit" link, which
+    // skip the steps above - so check every earlier step before searching.
+    const lastStep = step === steps.length - 1;
+    if (!validationError && lastStep) {
+      for (const earlier of [0, 1]) {
+        validationError = validateStep(earlier);
+        if (validationError) {
+          setReturnToReview(false);
+          setStep(earlier);
+          break;
+        }
+      }
+    }
     if (validationError) {
       setError(validationError);
       return;

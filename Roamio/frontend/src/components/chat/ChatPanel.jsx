@@ -144,6 +144,9 @@ export default function ChatPanel({ showHistory = false }) {
             <Send size={16} />
           </button>
         </form>
+        {draft.length >= 1800 && (
+          <p className="chat-note" role="status">{draft.length}/2000 characters - messages can't be longer than 2000.</p>
+        )}
         <p className="chat-note">AI answers can be wrong. Check safety advice with official sources.</p>
       </section>
     </div>

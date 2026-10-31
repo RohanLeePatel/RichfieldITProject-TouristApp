@@ -53,11 +53,25 @@ const server = app.listen(0, async () => {
   const post = (p, body) =>
     fetch(base + p, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
       .then(async (r) => ({ status: r.status, body: await r.json() }));
-  const account = { email: 'ada@example.com', password: 'longenough', fullName: 'Ada' };
+  const account = { email: 'ada@example.com', password: 'longenough', fullName: "Zoë O'Brien-Smith Jr." }; // accents, apostrophe, hyphen, full stop are all fine
 
   try {
+    // register refuses input that doesn't fit the fields, with the reason
+    let r;
+    for (const [change, pattern] of [
+      [{ fullName: 'R2D2 99' }, /letters, spaces/],
+      [{ fullName: 'A' }, /2-80 characters/],
+      [{ fullName: 'x'.repeat(81) }, /2-80 characters/],
+      [{ password: 'a'.repeat(73) }, /longer than 72/],
+      [{ email: `${'a'.repeat(250)}@example.com` }, /valid email/],
+    ]) {
+      r = await post('/register', { ...account, ...change });
+      assert.equal(r.status, 400);
+      assert.match(r.body.error, pattern);
+    }
+
     // register: no session yet, a code is "emailed"
-    let r = await post('/register', account);
+    r = await post('/register', account);
     assert.equal(r.status, 201);
     assert.equal(r.body.email, 'ada@example.com');
     assert.equal(r.body.token, undefined);
@@ -74,7 +88,7 @@ const server = app.listen(0, async () => {
     assert.equal(r.status, 200);
     assert.equal(typeof r.body.token, 'string');
     assert.equal(r.body.token, r.body.accessToken);
-    assert.deepEqual(r.body.user, { id: 1, email: 'ada@example.com', fullName: 'Ada' });
+    assert.deepEqual(r.body.user, { id: 1, email: 'ada@example.com', fullName: "Zoë O'Brien-Smith Jr." });
 
     // login returns user + token too (the old API's shape)
     r = await post('/login', account);

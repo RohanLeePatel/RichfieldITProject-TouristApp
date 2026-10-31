@@ -38,22 +38,20 @@ import PageShell from "../components/recommendations/PageShell.jsx";
 import { saveCompanions } from "../api/groups.js";
 import { fetchTrips } from "../api/trips";
 import { INTEREST_TAGS } from "./recommendations/constants.js";
+import { emailError, MAX_EMAIL, nameError } from "../utils/validation.js";
 
 const MAX_NAME_CHARS = 60; // matches the companion schema in groupMeta.js
-// stricter than type="email", which lets "a@b" through
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 // "" when the member form is ok, otherwise the message to show
 function memberFormError(form) {
-  const name = form.name.trim();
-  if (!name) return "Enter the member's name.";
-  if (name.length > MAX_NAME_CHARS) return `Keep the name under ${MAX_NAME_CHARS} characters.`;
+  const nameProblem = nameError(form.name, "the member's name", { max: MAX_NAME_CHARS });
+  if (nameProblem) return nameProblem;
   if (form.type === "Child") {
     const age = String(form.age ?? "").trim();
     if (!/^\d{1,2}$/.test(age) || Number(age) > 17) return "Enter the child's age as a whole number from 0 to 17.";
   }
-  const email = form.email.trim();
-  if (email && !EMAIL_PATTERN.test(email)) return "Enter a valid email address, like member@example.com, or leave it blank.";
+  const emailProblem = emailError(form.email, { required: false });
+  if (emailProblem) return `${emailProblem.replace(/\.$/, "")}, or leave it blank.`;
   return "";
 }
 import "../styles/Family.css";
@@ -310,7 +308,7 @@ function MemberModal({
           </button>
         </div>
 
-        <form onSubmit={onSave}>
+        <form onSubmit={onSave} noValidate>
           <div className="family-form-grid">
             <label className="family-form-field family-form-field-wide">
               <span>Full name</span>
@@ -417,6 +415,7 @@ function MemberModal({
                     })
                   }
                   placeholder="member@example.com"
+                  maxLength={MAX_EMAIL}
                 />
               </div>
             </label>
@@ -513,7 +512,6 @@ function MemberModal({
             <button
               type="submit"
               className="family-button family-button-primary"
-              disabled={!form.name.trim()}
             >
               <Check size={16} />
 
@@ -1153,6 +1151,7 @@ export default function Family() {
                     )
                   }
                   placeholder="Search group members..."
+                  maxLength={60}
                   aria-label="Search group members"
                 />
 

@@ -204,6 +204,10 @@ export default function Weather() {
       setError("Enter a destination to search for weather.");
       return;
     }
+    if (query.length < 2 || !/\p{L}/u.test(query)) {
+      setError("Enter at least 2 letters of a city or town name, like Durban.");
+      return;
+    }
 
     try {
       setError("");
@@ -429,6 +433,7 @@ export default function Weather() {
                   );
                 }}
                 placeholder="Search any city..."
+                maxLength={80}
                 aria-label="Search city"
               />
 

@@ -25,7 +25,7 @@ export default function LandmarkPicker({
           <div className="landmark-toolbar">
             <label className="landmark-search">
               <Search size={15} />
-              <input type="text" placeholder="Filter by name or area..." value={filter} onChange={(event) => setFilter(event.target.value)} />
+              <input type="text" maxLength={60} aria-label="Filter places" placeholder="Filter by name or area..." value={filter} onChange={(event) => setFilter(event.target.value)} />
             </label>
             <button type="button" className="secondary-button" onClick={autoPick}>
               <Wand2 size={15} /> Pick top matches for me

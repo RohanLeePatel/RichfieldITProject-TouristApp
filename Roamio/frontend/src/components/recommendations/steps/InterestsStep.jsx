@@ -1,6 +1,8 @@
 import { Ban, Plus, Users, X } from "lucide-react";
 
 import { INTEREST_GROUPS } from "../../../pages/recommendations/constants.js";
+import { nameError } from "../../../utils/validation.js";
+import FieldError from "../../FieldError.jsx";
 import InterestPicker from "../InterestPicker.jsx";
 
 function AvoidChips({ avoided, onToggle }) {
@@ -84,7 +86,7 @@ export default function InterestsStep({
     <>
       <div className="wizard-intro">
         <h2>What do you enjoy?</h2>
-        <p className="wizard-help">Tap once to pick, tap again to mark it a must-have (★) - must-haves count for more when we rank matches.</p>
+        <p className="wizard-help">Pick at least 3 interests. Tap once to pick, tap again to mark it a must-have (★) - must-haves count for more when we rank matches. Anything you avoid below doesn&apos;t count.</p>
       </div>
 
       <InterestPicker interests={form.interests} priorityInterests={form.priorityInterests} onCycle={cycleInterest} />
@@ -109,6 +111,7 @@ export default function InterestsStep({
                 placeholder="So we can say who a place suits"
                 onChange={(event) => updateTraveler(traveler.id, "name", event.target.value)}
               />
+              <FieldError message={nameError(traveler.name, "the name", { max: 60, required: false })} />
             </label>
             <InterestPicker
               flat

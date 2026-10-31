@@ -8,6 +8,11 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const INVALID_OTP = 'Invalid or expired OTP.';
 const INVALID_RESET_CODE = 'Invalid or expired reset code.';
 const MIN_PASSWORD_LENGTH = 8;
+const MAX_PASSWORD_LENGTH = 72; // bcrypt ignores everything after 72 bytes
+const MAX_EMAIL_LENGTH = 254;
+const MAX_NAME_LENGTH = 80;
+// letters from any language, then spaces . ' - between them
+const NAME_PATTERN = /^[\p{L}\p{M}][\p{L}\p{M} .'’-]*$/u;
 
 const normalizeEmail = (email) => (typeof email === 'string' ? email.trim().toLowerCase() : '');
 
@@ -23,11 +28,19 @@ const toProfile = (user) => ({ id: user.id, email: user.email, fullName: user.fu
 class AuthService {
   async register({ email, password, fullName } = {}) {
     const normalizedEmail = normalizeEmail(email);
-    if (!EMAIL_PATTERN.test(normalizedEmail)) throw httpError(400, 'A valid email is required.');
-    if (typeof password !== 'string' || password.length < 8) {
-      throw httpError(400, 'Password must be at least 8 characters.');
+    if (!EMAIL_PATTERN.test(normalizedEmail) || normalizedEmail.length > MAX_EMAIL_LENGTH) {
+      throw httpError(400, 'A valid email is required.');
+    }
+    if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
+      throw httpError(400, `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+    }
+    if (password.length > MAX_PASSWORD_LENGTH) {
+      throw httpError(400, `Password can't be longer than ${MAX_PASSWORD_LENGTH} characters.`);
     }
     if (typeof fullName !== 'string' || !fullName.trim()) throw httpError(400, 'Full name is required.');
+    if (fullName.trim().length < 2 || fullName.trim().length > MAX_NAME_LENGTH || !NAME_PATTERN.test(fullName.trim())) {
+      throw httpError(400, `Full name must be 2-${MAX_NAME_LENGTH} characters and use letters, spaces, hyphens, apostrophes and full stops only.`);
+    }
 
     const passwordHash = await tokenService.hashPassword(password);
     const existing = await userRepository.findByEmail(normalizedEmail);
@@ -105,6 +118,9 @@ class AuthService {
     // Checked first so a too-short password doesn't burn an attempt or the code
     if (typeof newPassword !== 'string' || newPassword.length < MIN_PASSWORD_LENGTH) {
       throw httpError(400, `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+    }
+    if (newPassword.length > MAX_PASSWORD_LENGTH) {
+      throw httpError(400, `Password can't be longer than ${MAX_PASSWORD_LENGTH} characters.`);
     }
 
     const user = await userRepository.findByEmail(normalizeEmail(email));

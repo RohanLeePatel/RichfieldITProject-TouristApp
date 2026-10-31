@@ -36,6 +36,7 @@ import {
 import "../styles/Translator.css";
 
 const MAX_TEXT_CHARS = 2000;
+const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
 const SpeechRecognition =
   typeof window !== "undefined" &&
   (window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -135,8 +136,12 @@ function Translator() {
     setTranslationResult(null);
     setCopied(false);
 
-    if (!file.type || !file.type.startsWith("image/")) {
-      setError("Please select a valid image file.");
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setError("That file type isn't supported. Choose a JPG, PNG or WEBP photo.");
+      return;
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      setError(`That photo is ${(file.size / 1048576).toFixed(1)} MB. Choose one under 10 MB.`);
       return;
     }
 
@@ -676,7 +681,7 @@ function Translator() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 className="hidden-file-input"
                 onChange={handleFileChange}
               />

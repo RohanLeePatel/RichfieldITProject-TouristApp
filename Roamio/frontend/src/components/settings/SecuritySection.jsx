@@ -22,6 +22,7 @@ import {
   revokeOtherSessions,
   revokeSession,
 } from "../../api/settings.js";
+import { passwordError } from "../../utils/validation.js";
 import { CardHead, Field, Modal, Notice, PasswordInput, SettingsSection, Spinner } from "./SettingsUI.jsx";
 import {
   describeDevice,
@@ -82,12 +83,9 @@ function PasswordCard({ email, notify }) {
       setError("Enter the 6-digit code from your email.");
       return;
     }
-    if (!newPassword) {
-      setError("Please enter a new password.");
-      return;
-    }
-    if (newPassword.length < 8) {
-      setError("Your new password must be at least 8 characters long.");
+    const passwordProblem = passwordError(newPassword, "new password");
+    if (passwordProblem) {
+      setError(passwordProblem);
       return;
     }
     if (newPassword !== confirmPassword) {

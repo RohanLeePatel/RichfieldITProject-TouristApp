@@ -6,11 +6,15 @@ exports.createGroup = async (req, res, next) => {
     const userId = req.user.id;
     const { name, description } = req.body;
 
-    if (!name) {
+    const groupName = typeof name === 'string' ? name.trim() : '';
+    if (!groupName) {
       return res.status(400).json({ error: 'Group name is required.' });
     }
+    if (groupName.length < 2 || groupName.length > 60 || /[<>\u0000-\u001f]/.test(groupName)) {
+      return res.status(400).json({ error: 'Group name must be 2-60 characters, without < or >.' });
+    }
 
-    const group = await travelGroupRepository.createGroup(userId, { name, description });
+    const group = await travelGroupRepository.createGroup(userId, { name: groupName, description });
     return res.status(201).json({ message: 'Travel group created successfully.', group });
   } catch (error) {
     next(error);
@@ -34,6 +38,9 @@ exports.joinGroup = async (req, res, next) => {
 
     if (!inviteCode || typeof inviteCode !== 'string') {
       return res.status(400).json({ error: 'Invite code is required.' });
+    }
+    if (!/^[A-Za-z0-9]{4,16}$/.test(inviteCode.trim())) {
+      return res.status(400).json({ error: 'Invite codes are 4-16 letters and numbers.' });
     }
 
     const membership = await travelGroupRepository.joinGroupByCode(userId, inviteCode);

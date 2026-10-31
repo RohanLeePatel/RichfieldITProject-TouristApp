@@ -13,6 +13,12 @@ const parseAges = (value) =>
     .map((age) => Number(age.trim()))
     .filter((age) => Number.isInteger(age) && age >= 0);
 
+const maxStartDate = (() => {
+  const limit = new Date();
+  limit.setFullYear(limit.getFullYear() + 3); // same ceiling as validateStep in Recommendations.jsx
+  return limit.toLocaleDateString("en-CA");
+})();
+
 export default function BasicsStep({ form, updateForm, countries, applyPreset }) {
   const parsedAges = parseAges(form.children);
   // A preset only changes interests/pace (set on later steps), so show which
@@ -91,6 +97,7 @@ export default function BasicsStep({ form, updateForm, countries, applyPreset })
               <input
                 inputMode="numeric"
                 placeholder="e.g. 8, 12"
+                maxLength={80}
                 value={form.children}
                 onChange={(event) => updateForm("children", event.target.value)}
                 aria-describedby="children-ages-read"
@@ -109,7 +116,7 @@ export default function BasicsStep({ form, updateForm, countries, applyPreset })
         <section className="panel">
           <h3 className="panel-title"><CalendarDays size={15} /> Dates</h3>
           <div className="field-grid wizard-fields">
-            <label className="wizard-field">Start date<input type="date" min={new Date().toLocaleDateString("en-CA")} value={form.startDate} onChange={(event) => updateForm("startDate", event.target.value)} /></label>
+            <label className="wizard-field">Start date<input type="date" min={new Date().toLocaleDateString("en-CA")} max={maxStartDate} value={form.startDate} onChange={(event) => updateForm("startDate", event.target.value)} /></label>
             <label className="wizard-field">End date<input type="date" value={form.endDate} min={form.startDate || undefined} onChange={(event) => updateForm("endDate", event.target.value)} /></label>
           </div>
           <p className="wizard-help">Dates sharpen climate matching and let us lay out your itinerary by day - skip them and we&apos;ll use a sample {DEFAULT_TRIP_DAYS}-day plan later.</p>

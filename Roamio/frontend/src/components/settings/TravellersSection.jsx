@@ -16,6 +16,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 
 import { deleteTraveller, listTravellers, saveTraveller } from "../../api/settings.js";
+import { nameError } from "../../utils/validation.js";
 import { Field, Modal, Notice, SettingsSection, Spinner } from "./SettingsUI.jsx";
 import { ageFrom, formatDate, initialsOf, isEmail, lastFour, monthsUntil } from "./settingsUtils.js";
 
@@ -82,15 +83,26 @@ function TravellerForm({ traveller, deviceOnly, onCancel, onSaved }) {
 
   const validate = () => {
     const next = {};
-    if (!form.firstName.trim()) next.firstName = "Enter a first name.";
-    if (!form.lastName.trim()) next.lastName = "Enter a last name.";
+    const firstProblem = nameError(form.firstName, "the first name", { max: 40 });
+    if (firstProblem) next.firstName = firstProblem;
+    const lastProblem = nameError(form.lastName, "the last name", { max: 40 });
+    if (lastProblem) next.lastName = lastProblem;
     if (!form.relationship) next.relationship = "Choose how you know them.";
     if (!form.dateOfBirth) next.dateOfBirth = "Enter their date of birth.";
     else if (form.dateOfBirth > today()) next.dateOfBirth = "Date of birth can't be in the future.";
-    if (form.email && !isEmail(form.email)) next.email = "Enter a valid email address.";
-    if (form.phone && !/^\+?[\d\s()-]{7,20}$/.test(form.phone.trim())) next.phone = "Enter a valid phone number.";
+    else if (form.dateOfBirth < "1900-01-01") next.dateOfBirth = "Enter a date of birth from 1900 onwards.";
+    const nationalityProblem = nameError(form.nationality, "the nationality", { max: 40, required: false });
+    if (nationalityProblem) next.nationality = nationalityProblem;
+    if (form.documentExpiry && form.documentExpiry > "2100-12-31") next.documentExpiry = "Enter an expiry date before 2100.";
+    else if (form.documentExpiry && form.dateOfBirth && form.documentExpiry <= form.dateOfBirth) {
+      next.documentExpiry = "The expiry date must be after the date of birth.";
+    }
+    if (form.email && !isEmail(form.email)) next.email = "Enter a valid email address, like name@example.com.";
+    if (form.phone && !/^\+?[\d\s()-]{7,20}$/.test(form.phone.trim())) {
+      next.phone = "Enter a valid phone number: 7-20 digits, optionally starting with + (like +27 82 123 4567).";
+    }
     if (form.documentNumber && !/^[A-Za-z0-9\s-]{5,20}$/.test(form.documentNumber.trim())) {
-      next.documentNumber = "Use 5–20 letters and numbers.";
+      next.documentNumber = "Use 5–20 letters and numbers only.";
     }
     if (!form.consent) next.consent = "You need their permission to save their details.";
     if (isMinor && !form.guardianConsent) next.guardianConsent = "Confirm you're their parent or legal guardian.";
@@ -153,13 +165,13 @@ function TravellerForm({ traveller, deviceOnly, onCancel, onSaved }) {
           <Field label="First name" error={errors.firstName} hint="As shown on their passport or ID.">
             <div className={`st-input${errors.firstName ? " is-invalid" : ""}`}>
               <User size={17} aria-hidden="true" />
-              <input value={form.firstName} onChange={set("firstName")} autoComplete="off" />
+              <input value={form.firstName} onChange={set("firstName")} maxLength={40} autoComplete="off" />
             </div>
           </Field>
 
           <Field label="Last name" error={errors.lastName}>
             <div className={`st-input${errors.lastName ? " is-invalid" : ""}`}>
-              <input value={form.lastName} onChange={set("lastName")} autoComplete="off" />
+              <input value={form.lastName} onChange={set("lastName")} maxLength={40} autoComplete="off" />
             </div>
           </Field>
 
@@ -182,14 +194,14 @@ function TravellerForm({ traveller, deviceOnly, onCancel, onSaved }) {
           >
             <div className={`st-input${errors.dateOfBirth ? " is-invalid" : ""}`}>
               <CalendarDays size={17} aria-hidden="true" />
-              <input type="date" value={form.dateOfBirth} max={today()} onChange={set("dateOfBirth")} />
+              <input type="date" value={form.dateOfBirth} min="1900-01-01" max={today()} onChange={set("dateOfBirth")} />
             </div>
           </Field>
 
-          <Field label="Nationality" optional>
-            <div className="st-input">
+          <Field label="Nationality" optional error={errors.nationality}>
+            <div className={`st-input${errors.nationality ? " is-invalid" : ""}`}>
               <Globe2 size={17} aria-hidden="true" />
-              <input value={form.nationality} onChange={set("nationality")} placeholder="e.g. South African" />
+              <input value={form.nationality} onChange={set("nationality")} maxLength={40} placeholder="e.g. South African" />
             </div>
           </Field>
         </div>
@@ -255,10 +267,10 @@ function TravellerForm({ traveller, deviceOnly, onCancel, onSaved }) {
             </div>
           </Field>
 
-          <Field label="Expiry date" optional>
-            <div className="st-input">
+          <Field label="Expiry date" optional error={errors.documentExpiry}>
+            <div className={`st-input${errors.documentExpiry ? " is-invalid" : ""}`}>
               <CalendarDays size={17} aria-hidden="true" />
-              <input type="date" value={form.documentExpiry || ""} onChange={set("documentExpiry")} />
+              <input type="date" max="2100-12-31" value={form.documentExpiry || ""} onChange={set("documentExpiry")} />
             </div>
           </Field>
         </div>

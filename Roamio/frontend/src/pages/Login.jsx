@@ -20,6 +20,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { nextPath } from "../utils/nextPath.js";
 
 import { useLogin } from "../hooks/useLogin";
+import FieldError from "../components/FieldError.jsx";
+import { emailError, MAX_EMAIL, MAX_PASSWORD } from "../utils/validation.js";
 
 import "../styles/auth.css";
 
@@ -37,8 +39,17 @@ export default function Login() {
     error,
   } = useLogin();
 
+  const [fieldErrors, setFieldErrors] = useState({});
+
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    const found = {};
+    const emailProblem = emailError(email);
+    if (emailProblem) found.email = emailProblem;
+    if (!password) found.password = "Enter your password.";
+    setFieldErrors(found);
+    if (Object.keys(found).length) return;
 
     loginUser(
       {
@@ -244,7 +255,7 @@ export default function Login() {
 
           {/* LOGIN FORM */}
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} noValidate>
             {/* EMAIL */}
 
             <div className="input-group">
@@ -262,12 +273,16 @@ export default function Login() {
                   placeholder="you@example.com"
                   autoComplete="email"
                   value={email}
+                  maxLength={MAX_EMAIL}
+                  aria-invalid={Boolean(fieldErrors.email)}
+                  aria-describedby={fieldErrors.email ? "login-email-error" : undefined}
                   onChange={(e) =>
                     setEmail(e.target.value)
                   }
                   required
                 />
               </div>
+              <FieldError id="login-email-error" message={fieldErrors.email} />
             </div>
 
             {/* PASSWORD */}
@@ -291,6 +306,9 @@ export default function Login() {
                   placeholder="Enter your password"
                   autoComplete="current-password"
                   value={password}
+                  maxLength={MAX_PASSWORD}
+                  aria-invalid={Boolean(fieldErrors.password)}
+                  aria-describedby={fieldErrors.password ? "login-password-error" : undefined}
                   onChange={(e) =>
                     setPassword(e.target.value)
                   }
@@ -318,6 +336,7 @@ export default function Login() {
                   )}
                 </button>
               </div>
+              <FieldError id="login-password-error" message={fieldErrors.password} />
             </div>
 
             {/* REMEMBER ME */}
