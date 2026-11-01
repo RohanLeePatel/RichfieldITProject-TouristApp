@@ -51,7 +51,7 @@ app.set('trust proxy', 1);
 // forbids framing; the Swagger page at /api-docs needs its own scripts and
 // styles, so it gets helmet without a CSP.
 const apiHeaders = helmet({
-  contentSecurityPolicy: { directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] } },
+  contentSecurityPolicy: { useDefaults: false, directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] } },
   crossOriginResourcePolicy: { policy: 'cross-origin' }, // the SPA is on another origin
 });
 const docsHeaders = helmet({ contentSecurityPolicy: false });
