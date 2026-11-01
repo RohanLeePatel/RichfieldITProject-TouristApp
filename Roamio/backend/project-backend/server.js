@@ -135,8 +135,8 @@ app.use('/api', activityRoutes);
 app.use('/api', safetyRoutes);
 app.use('/api/notifications', notificationRoutes);
 
-// An /api path nothing answered: JSON, not Express's HTML page
-app.use('/api', (req, res) => {
+// An address nothing answered: JSON, not Express's HTML page
+app.use((req, res) => {
   res.status(404).json({ message: 'Not found.' });
 });
 
@@ -146,7 +146,10 @@ app.use((err, req, res, next) => {
   console.error('Global Error Handler:', err.message);
   
   const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
+  let message = err.message || 'Internal Server Error';
+  // body-parser's own wording is technical; say it plainly
+  if (err.type === 'entity.too.large') message = 'That is too much to send at once. Try something smaller.';
+  else if (err.type === 'entity.parse.failed') message = 'We could not read that request. Please try again.';
 
   res.status(statusCode).json({
     message, // the shape the pages read; `error` below is kept for older callers

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Activity, AlertTriangle, Database, HardDrive, Languages, RefreshCw } from "lucide-react";
 
 import { retryUnlessForbidden, serviceHealthQuery } from "../../api/admin.js";
+import { formatTime } from "../../utils/format.js";
 
 const SERVICES = [
   { key: "database", name: "Database", sub: "Supabase PostgreSQL", icon: Database },
@@ -31,7 +32,7 @@ export default function ServiceHealthCard() {
 
   const services = data?.services || {};
   const issues = SERVICES.filter(({ key }) => services[key] && services[key].status !== "online").length;
-  const checkedAt = data?.checkedAt ? new Date(data.checkedAt).toLocaleTimeString() : null;
+  const checkedAt = data?.checkedAt ? formatTime(data.checkedAt) : null;
 
   return (
     <section className="admin-card" aria-labelledby="admin-health-title">

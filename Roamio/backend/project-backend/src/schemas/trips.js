@@ -1,7 +1,7 @@
 const { z } = require('zod');
 
 // Trip Schemas
-const createTripSchema = z.object({
+const tripFields = z.object({
   title: z.string().min(1, 'Title is required').max(100, 'Title is too long'),
   destination: z.string().min(1, 'Destination is required'),
   startDate: z.string().datetime({ offset: true }).optional().nullable().or(z.string().optional()),
@@ -22,9 +22,21 @@ const createTripSchema = z.object({
   travelGroupId: z.number().int().positive().optional().nullable(),
 });
 
+// A new trip: dates must be real and the end can't come before the start.
+const createTripSchema = tripFields.superRefine((trip, ctx) => {
+  const start = trip.startDate ? new Date(trip.startDate) : null;
+  const end = trip.endDate ? new Date(trip.endDate) : null;
+  for (const [field, date] of [['startDate', start], ['endDate', end]]) {
+    if (date && Number.isNaN(date.getTime())) ctx.addIssue({ code: 'custom', path: [field], message: 'That date is not valid.' });
+  }
+  if (start && end && !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && end < start) {
+    ctx.addIssue({ code: 'custom', path: ['endDate'], message: "The trip can't end before it starts." });
+  }
+});
+
 // Edit a saved trip: any of the fields above, each optional. The dates come
 // together or not at all (checked in the route, which knows the itinerary).
-const updateTripSchema = createTripSchema.omit({ travelGroupId: true }).partial();
+const updateTripSchema = tripFields.omit({ travelGroupId: true }).partial();
 
 // New order of a saved itinerary: each day lists its item ids top to bottom.
 const reorderItinerarySchema = z.object({

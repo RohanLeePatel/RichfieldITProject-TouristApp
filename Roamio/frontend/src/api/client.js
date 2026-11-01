@@ -65,7 +65,12 @@ async function request(path, { auth = false, retried = false, headers, ...option
   }
 
   // include: the login response sets the refresh cookie on the API's domain
-  const response = await fetch(apiUrl(path), { ...options, headers: requestHeaders, credentials: "include" });
+  let response;
+  try {
+    response = await fetch(apiUrl(path), { ...options, headers: requestHeaders, credentials: "include" });
+  } catch {
+    throw Object.assign(new Error("We can't reach Roamio right now. Check your connection and try again."), { status: 0 });
+  }
 
   let data = null;
   try {

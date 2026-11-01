@@ -13,17 +13,13 @@ import PageShell from "../components/recommendations/PageShell.jsx";
 import DeletedTrips from "../components/trips/DeletedTrips.jsx";
 import TripTemplates from "../components/trips/TripTemplates.jsx";
 import { fetchTrips } from "../api/trips.js";
+import { formatDate } from "../utils/format.js";
 import "../styles/trips.css";
 
 function tripDateLabel(trip) {
   if (!trip.startDate) return "Dates not set";
 
-  const format = (iso) =>
-    new Date(iso).toLocaleDateString("en", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
+  const format = (iso) => formatDate(iso, { month: "short" });
 
   return trip.endDate
     ? `${format(trip.startDate)} → ${format(trip.endDate)}`

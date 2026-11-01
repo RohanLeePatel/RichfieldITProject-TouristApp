@@ -25,7 +25,8 @@
   text-align: left;
 }
 
-.insights-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.insights-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.insights-grid > * { min-width: 0; overflow-wrap: anywhere; }
 
 .insights-card {
   padding: 16px 20px;
@@ -90,7 +91,7 @@
 @keyframes insights-spin { to { transform: rotate(360deg); } }
 
 @media (max-width: 700px) {
-  .insights-grid { grid-template-columns: 1fr; }
+  .insights-grid { grid-template-columns: minmax(0, 1fr); }
   .insights-about { flex-direction: column; }
 }
 

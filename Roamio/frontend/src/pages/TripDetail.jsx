@@ -15,6 +15,7 @@ import useActiveTrip from "../hooks/useActiveTrip.js";
 
 import { fetchTrip, deleteTrip, removeItineraryItem, reorderItinerary } from "../api/trips.js";
 import { groupItineraryByDay } from "../utils/itineraryPlanner.js";
+import { formatDate } from "../utils/format.js";
 import { useTripStore } from "../store/tripStore.js";
 import "../styles/trips.css";
 
@@ -29,8 +30,14 @@ const TABS = [
   { id: "documents", label: "Documents", icon: FileText },
 ];
 
-function formatDate(iso) {
-  return new Date(iso).toLocaleDateString("en", { day: "2-digit", month: "long", year: "numeric" });
+
+// the month most of the trip falls in (its middle day), so a trip that starts
+// on 31 Oct and runs into November reads as November
+function tripMonth(trip) {
+  if (!trip.startDate) return undefined;
+  const start = new Date(trip.startDate).getTime();
+  const end = trip.endDate ? new Date(trip.endDate).getTime() : start;
+  return new Date((start + end) / 2).getUTCMonth() + 1;
 }
 
 export default function TripDetail() {
@@ -219,7 +226,7 @@ export default function TripDetail() {
                     onClick={() => window.print()}
                     title="Opens your browser's print dialog - choose 'Save as PDF' as the destination to download it"
                   >
-                    <Printer size={15} /> Download as PDF
+                    <Printer size={15} /> Print or save as PDF
                   </button>
                   <button type="button" className="secondary-button" onClick={() => setEditing((open) => !open)} disabled={busy}>
                     <Pencil size={15} /> Edit trip
@@ -392,7 +399,7 @@ export default function TripDetail() {
                 <ClimateInsights
                   name={trip.destination.split(",")[0].trim()}
                   country={trip.destination.split(",").slice(1).join(",").trim() || undefined}
-                  month={trip.startDate ? new Date(trip.startDate).getUTCMonth() + 1 : undefined}
+                  month={tripMonth(trip)}
                 />
               </section>
             )}

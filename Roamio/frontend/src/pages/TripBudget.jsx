@@ -6,6 +6,7 @@ import { createExpense, deleteExpense, fetchBudgetSummary, fetchExpenses, fetchR
 import { fetchTrip } from "../api/trips.js";
 import PageShell from "../components/recommendations/PageShell.jsx";
 import { useAuthStore } from "../store/authStore.js";
+import { formatMoney } from "../utils/format.js";
 import { CURRENCIES } from "./recommendations/constants.js";
 import "../styles/trips.css";
 
@@ -18,8 +19,7 @@ const CATEGORIES = [
 ];
 const categoryLabel = (id) => CATEGORIES.find((c) => c.id === id)?.label || id;
 
-const money = (amount, currency) =>
-  `${Number(amount).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency || ""}`.trim();
+const money = formatMoney;
 const today = () => new Date().toLocaleDateString("en-CA");
 
 // generous ceiling - anything above is almost certainly a typo
@@ -84,8 +84,10 @@ export default function TripBudget() {
     try {
       await action();
       await load();
+      return true;
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Something went wrong.");
+      return false;
     } finally {
       setBusy(false);
     }
@@ -184,7 +186,7 @@ export default function TripBudget() {
                   </strong>
                   <span>
                     {categoryLabel(expense.category)} · paid by {names.get(expense.paidById) || "a member"} ·{" "}
-                    {new Date(expense.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                    {new Date(expense.date).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}
                     {expense.exchangeRate && ` · at ${expense.exchangeRate} ${budgetCurrency}/${expense.currency}`}
                   </span>
                   <button
@@ -253,6 +255,7 @@ function BudgetOverview({ summary, defaultCurrency, busy, onSave }) {
       ) : (
         <form
           className="trip-hub-search"
+          noValidate
           onSubmit={(event) => {
             event.preventDefault();
             const problem = amountError(amount, "the trip budget");
@@ -272,7 +275,9 @@ function BudgetOverview({ summary, defaultCurrency, busy, onSave }) {
               {[...new Set([defaultCurrency, ...CURRENCIES])].map((code) => <option key={code}>{code}</option>)}
             </select>
           </label>
-          <button type="submit" className="recommendations-submit" disabled={busy}>Save budget</button>
+          <button type="submit" className="recommendations-submit" disabled={busy}>
+            {busy && <LoaderCircle className="recommendations-spinner" size={15} />} Save budget
+          </button>
         </form>
       )}
       {formError && editing && <p className="recommendations-error" role="alert">{formError}</p>}
@@ -321,7 +326,8 @@ function ExpenseForm({ trip, budgetCurrency, busy, onAdd }) {
       </div>
       <form
         className="trip-hub-search"
-        onSubmit={(event) => {
+        noValidate
+        onSubmit={async (event) => {
           event.preventDefault();
           let problem = title.trim() ? amountError(amount, "the amount") : "Say what the purchase was.";
           if (!problem && !/^\d{4}-\d{2}-\d{2}$/.test(date)) problem = "Pick the date of the purchase.";
@@ -329,9 +335,11 @@ function ExpenseForm({ trip, budgetCurrency, busy, onAdd }) {
           else if (!problem && maxDate && date > maxDate) problem = "That date is after the trip ends.";
           setFormError(problem);
           if (problem) return;
-          onAdd({ title: title.trim(), amount: Number(amount).toFixed(2), currency, category, date });
-          setTitle("");
-          setAmount("");
+          // keep what was typed if the save fails
+          if (await onAdd({ title: title.trim(), amount: Number(amount).toFixed(2), currency, category, date })) {
+            setTitle("");
+            setAmount("");
+          }
         }}
       >
         <label className="wizard-field">
@@ -358,7 +366,9 @@ function ExpenseForm({ trip, budgetCurrency, busy, onAdd }) {
           Date
           <input type="date" min={minDate} max={maxDate} value={date} onChange={(event) => setDate(event.target.value)} required />
         </label>
-        <button type="submit" className="recommendations-submit" disabled={busy}>Add</button>
+        <button type="submit" className="recommendations-submit" disabled={busy}>
+          {busy && <LoaderCircle className="recommendations-spinner" size={15} />} {busy ? "Adding..." : "Add"}
+        </button>
       </form>
       {formError && <p className="recommendations-error" role="alert">{formError}</p>}
       {preview && <p className="wizard-help">{preview}</p>}
@@ -375,6 +385,7 @@ function CategoryRow({ label, row, currency, totalBudget, busy, onLimit }) {
       <span>{label}</span>
       <span>{money(spent, currency)}{row?.limit != null && ` of ${money(row.limit, currency)}`}</span>
       <form
+        noValidate
         onSubmit={(event) => {
           event.preventDefault();
           let problem = amountError(limit, `the ${label} limit`, { allowZero: true });

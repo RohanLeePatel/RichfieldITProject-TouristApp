@@ -27,6 +27,10 @@ export default function TripEditForm({ trip, onSaved, onCancel }) {
     if (!form.title.trim()) return setError("Give the trip a name.");
     if (!form.destination.trim()) return setError("Add a destination.");
     if (!form.startDate !== !form.endDate) return setError("Set both dates, or clear both.");
+    if (form.startDate && form.endDate < form.startDate) return setError("The trip can't end before it starts.");
+    if (form.budget !== "" && !(Number(form.budget) >= 0 && Number(form.budget) <= 10_000_000)) {
+      return setError("Enter a budget between R0 and R10,000,000, or leave it empty.");
+    }
 
     setSaving(true);
     try {
@@ -50,7 +54,7 @@ export default function TripEditForm({ trip, onSaved, onCancel }) {
   };
 
   return (
-    <form className="trip-edit print-hide" onSubmit={submit}>
+    <form className="trip-edit print-hide" onSubmit={submit} noValidate>
       <label className="wizard-field">
         Trip name
         <input value={form.title} onChange={set("title")} maxLength={100} />

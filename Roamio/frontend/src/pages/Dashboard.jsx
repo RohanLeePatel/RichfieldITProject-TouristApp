@@ -543,7 +543,7 @@ export default function Dashboard() {
   const stats = [
     {
       to: "/trips",
-      label: "Upcoming trips",
+      label: "Current & upcoming",
       value: relevantTrips.length,
       icon: Plane,
       tone: "blue",
@@ -719,7 +719,7 @@ export default function Dashboard() {
 
             <dd>
               {windSpeed != null
-                ? `${Math.round(windSpeed)} km/h`
+                ? `${Math.round(windSpeed * 3.6)} km/h`
                 : "--"}
             </dd>
           </div>

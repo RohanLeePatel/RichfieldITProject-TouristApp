@@ -41,6 +41,9 @@ export async function uploadDocument(tripId, file, kind) {
   if (isDevBypass()) {
     throw new Error("Documents need a real sign-in - the dev bypass has no database.");
   }
+  if (!ACCEPTED_TYPES.split(",").includes(file.type)) {
+    throw new Error("Attach a PDF or an image (PNG, JPEG or WebP).");
+  }
   if (file.size > MAX_DOCUMENT_BYTES) {
     throw new Error("That file is too large (1 MB max).");
   }
