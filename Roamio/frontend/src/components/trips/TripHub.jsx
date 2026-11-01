@@ -11,6 +11,7 @@ import { fetchWeather } from "../../api/weather.js";
 import { INTEREST_TAGS } from "../../pages/recommendations/constants.js";
 import { splitDestination } from "../../utils/countries.js";
 import { wholeSentences } from "../../utils/travelAdvice.js";
+import { formatMoney } from "../../utils/format.js";
 import "../../styles/insights.css";
 
 // The trip page's hub sections. Each one loads on its own and says plainly
@@ -115,8 +116,7 @@ export function TripSnapshot({ trip }) {
 // Budget at a glance; the full page is /trips/:id/budget.
 export function TripBudgetCard({ trip }) {
   const budget = useLoad(() => fetchBudgetSummary(trip.id), [trip.id]);
-  const money = (amount, currency) =>
-    `${Number(amount).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
+  const money = formatMoney;
 
   return (
     <section className="insights-card">

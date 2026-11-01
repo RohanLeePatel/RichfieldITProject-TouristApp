@@ -99,7 +99,7 @@ function getWeatherInfo(weatherCode) {
 const getDayName = (dateString) => {
   const date = new Date(`${dateString}T12:00:00`);
 
-  return date.toLocaleDateString("en-ZA", {
+  return date.toLocaleDateString("en-GB", {
     weekday: "short",
   });
 };
@@ -107,7 +107,7 @@ const getDayName = (dateString) => {
 const getShortDate = (dateString) => {
   const date = new Date(`${dateString}T12:00:00`);
 
-  return date.toLocaleDateString("en-ZA", {
+  return date.toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "short",
   });

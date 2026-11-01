@@ -90,7 +90,7 @@ function tripDateLabel(trip) {
   if (!trip.startDate) return "Dates not set";
 
   const format = (iso) =>
-    new Date(iso).toLocaleDateString("en-ZA", {
+    new Date(iso).toLocaleDateString("en-GB", {
       day: "numeric",
       month: "short",
     });
@@ -1119,7 +1119,7 @@ export default function Dashboard() {
                             {start ? (
                               <>
                                 <span>
-                                  {start.toLocaleDateString("en-ZA", {
+                                  {start.toLocaleDateString("en-GB", {
                                     month: "short",
                                   })}
                                 </span>

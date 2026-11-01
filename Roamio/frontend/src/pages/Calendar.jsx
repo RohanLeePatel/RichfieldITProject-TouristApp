@@ -139,7 +139,7 @@ function isoToKey(value) {
 }
 
 function formatShort(key) {
-  return parseKey(key).toLocaleDateString("en-ZA", { day: "numeric", month: "short" });
+  return parseKey(key).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
 // A Monday or Friday holiday makes a three-day weekend.
@@ -506,7 +506,7 @@ export default function Calendar() {
           className={classes}
           onClick={() => selectDate(date)}
           aria-pressed={key === selectedKey}
-          aria-label={date.toLocaleDateString("en-ZA", { weekday: "long", day: "numeric", month: "long" })}
+          aria-label={date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
         >
           <span className="cal-day-top">
             <span className="cal-day-number">{date.getDate()}</span>
@@ -791,7 +791,7 @@ export default function Calendar() {
                 <div>
                   <span className="cal-eyebrow">ITINERARY</span>
                   <h3>
-                    {selectedDate.toLocaleDateString("en-ZA", {
+                    {selectedDate.toLocaleDateString("en-GB", {
                       weekday: "long",
                       day: "numeric",
                       month: "short",
@@ -927,7 +927,7 @@ export default function Calendar() {
                             <span>
                               {inDays === 0 ? "Today" : inDays === 1 ? "Tomorrow" : `In ${inDays} days`}
                               {" · "}
-                              {date.toLocaleDateString("en-ZA", { weekday: "long" })}
+                              {date.toLocaleDateString("en-GB", { weekday: "long" })}
                             </span>
                           </span>
                           {isLongWeekend(h.date) && <em className="cal-chip">Long weekend</em>}
@@ -964,7 +964,7 @@ export default function Calendar() {
               <div>
                 <h3 id="cal-modal-title">{editingEvent ? "Edit event" : "Add event or reminder"}</h3>
                 <span>
-                  {parseKey(modalDateKey).toLocaleDateString("en-ZA", {
+                  {parseKey(modalDateKey).toLocaleDateString("en-GB", {
                     weekday: "long",
                     day: "numeric",
                     month: "long",

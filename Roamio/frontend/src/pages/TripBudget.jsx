@@ -30,7 +30,7 @@ const amountError = (value, label, { allowZero = false } = {}) => {
   const n = Number(value);
   if (value === "" || !Number.isFinite(n)) return `Enter ${label} as a number.`;
   if (allowZero ? n < 0 : n <= 0) return `${label[0].toUpperCase()}${label.slice(1)} must be ${allowZero ? "zero or more" : "more than zero"}.`;
-  if (n > MAX_AMOUNT) return `${label[0].toUpperCase()}${label.slice(1)} can't be more than ${MAX_AMOUNT.toLocaleString("en-ZA")}.`;
+  if (n > MAX_AMOUNT) return `${label[0].toUpperCase()}${label.slice(1)} can't be more than ${MAX_AMOUNT.toLocaleString("en-GB")}.`;
   if (!/^\d+(\.\d{1,2})?$/.test(String(value).trim())) return `Use at most two decimal places for ${label}.`;
   return "";
 };
@@ -186,7 +186,7 @@ export default function TripBudget() {
                   </strong>
                   <span>
                     {categoryLabel(expense.category)} · paid by {names.get(expense.paidById) || "a member"} ·{" "}
-                    {new Date(expense.date).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}
+                    {new Date(expense.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                     {expense.exchangeRate && ` · at ${expense.exchangeRate} ${budgetCurrency}/${expense.currency}`}
                   </span>
                   <button

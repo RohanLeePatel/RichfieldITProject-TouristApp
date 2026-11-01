@@ -331,7 +331,7 @@ function Planner({ draft }) {
         return "Enter a daily budget greater than zero.";
       }
       if (Number(form.budget) > MAX_DAILY_BUDGET) {
-        return `Daily budget can't be more than ${MAX_DAILY_BUDGET.toLocaleString("en-ZA")}.`;
+        return `Daily budget can't be more than ${MAX_DAILY_BUDGET.toLocaleString("en-GB")}.`;
       }
       if (!/^[a-z]{3}$/i.test(form.currency)) {
         return "Currency must be a 3-letter ISO code, such as ZAR.";
@@ -390,7 +390,7 @@ function Planner({ draft }) {
         return !Number.isFinite(amount) || amount <= 0 || amount > MAX_DAILY_BUDGET;
       });
       if (badBudget) {
-        return `Each traveller's own daily budget must be between 1 and ${MAX_DAILY_BUDGET.toLocaleString("en-ZA")}, or left blank.`;
+        return `Each traveller's own daily budget must be between 1 and ${MAX_DAILY_BUDGET.toLocaleString("en-GB")}, or left blank.`;
       }
     }
     return "";
