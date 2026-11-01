@@ -9,6 +9,7 @@ router.use(isAdmin);
 router.use('/analytics', require('./adminAnalytics'));
 router.use('/config', require('./adminConfig'));
 router.use('/health', require('./adminHealth'));
+router.use('/users', require('./adminUsers'));
 
 // Unknown admin path: JSON, not Express's HTML page
 router.use((req, res) => res.status(404).json({ success: false, status: 404, message: 'Not found.' }));

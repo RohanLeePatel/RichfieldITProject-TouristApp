@@ -5,6 +5,7 @@ import useTheme from "../components/recommendations/useTheme.js";
 import AnalyticsOverview from "../components/admin/AnalyticsOverview.jsx";
 import ServiceHealthCard from "../components/admin/ServiceHealthCard.jsx";
 import TrackingConfigCard from "../components/admin/TrackingConfigCard.jsx";
+import UserProfilesList from "../components/admin/UserProfilesList.jsx";
 import "../styles/Admin.css";
 
 // Admins only (AdminRoute). Each section fetches on its own, so one failing
@@ -39,6 +40,8 @@ export default function AdminDashboard() {
           <ServiceHealthCard />
           <TrackingConfigCard />
         </div>
+
+        <UserProfilesList />
       </main>
     </div>
   );

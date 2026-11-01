@@ -100,4 +100,7 @@ async function sendSupportReport({ reference, category, subject, description, fr
   }
 }
 
-module.exports = { sendOtpEmail, sendSupportReport, isConfigured };
+// Connects and authenticates against the SMTP server without sending anything
+const verifyConnection = () => getTransporter().verify();
+
+module.exports = { sendOtpEmail, sendSupportReport, isConfigured, verifyConnection };

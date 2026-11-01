@@ -1,6 +1,8 @@
 const prisma = require('../config/prisma');
+const emailService = require('./emailService');
 
 const TIMEOUT_MS = 5000;
+let gaClient;
 const SLOW_MS = 1500; // answered, but slower than this = degraded
 
 // Times a check. It resolves { status, latencyMs, detail? } and never throws,
@@ -47,9 +49,74 @@ const checkDeepL = () => timed(async () => {
   await probe(`https://${host}/v2/usage`, { headers: { Authorization: `DeepL-Auth-Key ${key}` } });
 });
 
+// The FastAPI service behind translation, weather, recommendations and chat.
+// /health is guarded by the same shared secret the proxies send.
+const checkAiService = () => timed(async () => {
+  const { AI_FEATURES_URL, superSecretKey } = process.env;
+  if (!AI_FEATURES_URL) throw notConfigured('AI_FEATURES_URL');
+  await probe(`${AI_FEATURES_URL.replace(/\/$/, '')}/health`, { headers: { 'node-secretkey': superSecretKey || '' } });
+});
+
+// SMTP handshake only: verify() connects and authenticates but sends nothing.
+const checkEmail = () => timed(async () => {
+  if (!emailService.isConfigured()) throw notConfigured('SMTP_HOST');
+  await Promise.race([
+    emailService.verifyConnection(),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP timed out')), TIMEOUT_MS)),
+  ]);
+});
+
+// Lists models: needs the key but generates nothing.
+const checkGemini = () => timed(async () => {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) throw notConfigured('GEMINI_API_KEY');
+  await probe('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1', { headers: { 'x-goog-api-key': key } });
+});
+
+// One current-weather lookup (free tier)
+const checkWeather = () => timed(async () => {
+  const key = process.env.OPENWEATHER_API_KEY;
+  if (!key) throw notConfigured('OPENWEATHER_API_KEY');
+  await probe(`https://api.openweathermap.org/data/2.5/weather?lat=0&lon=0&appid=${encodeURIComponent(key)}`);
+});
+
+// One single-result geocode (free tier)
+const checkGeoapify = () => timed(async () => {
+  const key = process.env.GEOAPIFY_API_KEY;
+  if (!key) throw notConfigured('GEOAPIFY_API_KEY');
+  await probe(`https://api.geoapify.com/v1/geocode/search?text=London&limit=1&apiKey=${encodeURIComponent(key)}`);
+});
+
+// One USD->EUR rate
+const checkFastForex = () => timed(async () => {
+  const key = process.env.FASTFOREX_API_KEY;
+  if (!key) throw notConfigured('FASTFOREX_API_KEY');
+  await probe(`https://api.fastforex.io/fetch-one?from=USD&to=EUR&api_key=${encodeURIComponent(key)}`);
+});
+
+// Same endpoint and header safetySyncService uses. In mock mode the real API isn't used.
+const checkTravelRisk = () => timed(async () => {
+  const { TRAVEL_RISK_API_KEY_1: key, TRAVEL_RISK_API_URL_1: url, SAFETY_SYNC_MODE } = process.env;
+  if (!key || !url) throw notConfigured('TRAVEL_RISK_API_KEY_1 / TRAVEL_RISK_API_URL_1');
+  if (SAFETY_SYNC_MODE === 'mock') return 'Mock mode';
+  await probe(`${url.replace(/\/$/, '')}/countries/US`, { headers: { 'X-API-Key': key } });
+});
+
+// Property metadata: needs credentials and property access, returns no report data.
+const checkAnalytics = () => timed(async () => {
+  const { GA_PROPERTY_ID, GOOGLE_APPLICATION_CREDENTIALS } = process.env;
+  if (!GA_PROPERTY_ID || !GOOGLE_APPLICATION_CREDENTIALS) throw notConfigured('GA_PROPERTY_ID / GOOGLE_APPLICATION_CREDENTIALS');
+  gaClient ??= new (require('@google-analytics/data').BetaAnalyticsDataClient)();
+  await gaClient.getMetadata({ name: `properties/${GA_PROPERTY_ID}/metadata` }, { timeout: TIMEOUT_MS });
+});
+
 async function checkAll() {
-  const [database, storage, deepl] = await Promise.all([checkDatabase(), checkStorage(), checkDeepL()]);
-  return { database, storage, deepl };
+  const [database, storage, deepl, aiService, email, gemini, weather, geoapify, fastforex, travelRisk, analytics] =
+    await Promise.all([
+      checkDatabase(), checkStorage(), checkDeepL(), checkAiService(), checkEmail(), checkGemini(),
+      checkWeather(), checkGeoapify(), checkFastForex(), checkTravelRisk(), checkAnalytics(),
+    ]);
+  return { database, storage, deepl, aiService, email, gemini, weather, geoapify, fastforex, travelRisk, analytics };
 }
 
 module.exports = { checkAll };
