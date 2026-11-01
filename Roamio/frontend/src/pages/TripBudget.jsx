@@ -78,12 +78,15 @@ export default function TripBudget() {
     return map;
   }, [trip, expenses, me]);
 
-  const run = async (action) => {
+  // quick: the action already put its result on screen, so refresh the totals
+  // in the background instead of keeping the button busy
+  const run = async (action, { quick = false } = {}) => {
     setBusy(true);
     setError("");
     try {
       await action();
-      await load();
+      if (quick) load();
+      else await load();
       return true;
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Something went wrong.");
@@ -133,7 +136,9 @@ export default function TripBudget() {
               run(async () => {
                 const result = await createExpense(tripId, expense);
                 setNotice(result.warnings || []);
-              })
+                // show it at once; the refresh that follows replaces it with the server's copy
+                setExpenses((current) => [result.expense, ...current]);
+              }, { quick: true })
             }
           />
 
