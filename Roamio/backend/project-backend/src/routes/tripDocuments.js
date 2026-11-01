@@ -74,20 +74,7 @@ const listFields = {
   uploadedBy: { select: { id: true, fullName: true } },
 };
 
-/**
- * @openapi
- * /api/trips/{tripId}/documents:
- *   get:
- *     summary: List the documents attached to a trip (metadata only)
- *     security: [{ bearerAuth: [] }]
- *     parameters:
- *       - in: path
- *         name: tripId
- *         required: true
- *         schema: { type: integer }
- *     responses:
- *       200: { description: The trip's documents }
- */
+// List the documents attached to a trip (metadata only)
 router.get('/:tripId/documents', async (req, res) => {
   try {
     const trip = await authorisedTrip(req, res);
@@ -106,29 +93,7 @@ router.get('/:tripId/documents', async (req, res) => {
   }
 });
 
-/**
- * @openapi
- * /api/trips/{tripId}/documents:
- *   post:
- *     summary: Attach a document (PDF or image) to a trip
- *     security: [{ bearerAuth: [] }]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [filename, mimeType, dataBase64]
- *             properties:
- *               filename:   { type: string }
- *               mimeType:   { type: string, enum: [application/pdf, image/png, image/jpeg, image/webp] }
- *               kind:       { type: string, enum: [TICKET, BOOKING, RECEIPT, VISA, INSURANCE, OTHER] }
- *               dataBase64: { type: string, description: The file, base64-encoded. 1 MB decoded maximum. }
- *     responses:
- *       201: { description: Stored }
- *       413: { description: File too large, or the trip is already full }
- *       415: { description: Unsupported file type }
- */
+// Attach a document (PDF or image) to a trip
 router.post('/:tripId/documents', validate(createDocumentSchema), async (req, res) => {
   try {
     const trip = await authorisedTrip(req, res);
@@ -179,15 +144,7 @@ router.post('/:tripId/documents', validate(createDocumentSchema), async (req, re
   }
 });
 
-/**
- * @openapi
- * /api/trips/{tripId}/documents/{documentId}:
- *   get:
- *     summary: Download one document
- *     security: [{ bearerAuth: [] }]
- *     responses:
- *       200: { description: The file }
- */
+// Download one document
 router.get('/:tripId/documents/:documentId', async (req, res) => {
   try {
     const trip = await authorisedTrip(req, res);
@@ -217,15 +174,7 @@ router.get('/:tripId/documents/:documentId', async (req, res) => {
   }
 });
 
-/**
- * @openapi
- * /api/trips/{tripId}/documents/{documentId}:
- *   delete:
- *     summary: Remove a document from a trip
- *     security: [{ bearerAuth: [] }]
- *     responses:
- *       200: { description: Deleted }
- */
+// Remove a document from a trip
 router.delete('/:tripId/documents/:documentId', async (req, res) => {
   try {
     const trip = await authorisedTrip(req, res);

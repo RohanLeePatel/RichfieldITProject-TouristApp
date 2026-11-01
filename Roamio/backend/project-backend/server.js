@@ -5,9 +5,6 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const cron = require('node-cron');
-const path = require('node:path');
-const swaggerUi = require('swagger-ui-express');
-const swaggerJsdoc = require('swagger-jsdoc');
 const safetySyncService = require('./src/services/safetySyncService');
 
 // 2. Custom Middleware Imports
@@ -48,14 +45,11 @@ const PORT = process.env.PORT || 3000; // the frontend's default VITE_BACKEND_AP
 app.set('trust proxy', 1);
 
 // Security headers. The API only answers JSON, so its CSP allows nothing and
-// forbids framing; the Swagger page at /api-docs needs its own scripts and
-// styles, so it gets helmet without a CSP.
-const apiHeaders = helmet({
+// forbids framing.
+app.use(helmet({
   contentSecurityPolicy: { useDefaults: false, directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] } },
   crossOriginResourcePolicy: { policy: 'cross-origin' }, // the SPA is on another origin
-});
-const docsHeaders = helmet({ contentSecurityPolicy: false });
-app.use((req, res, next) => (req.path.startsWith('/api-docs') ? docsHeaders : apiHeaders)(req, res, next));
+}));
 
 // Enable CORS for your React frontend. CLIENT_URL may list several origins,
 // comma-separated (e.g. the Vercel site and a preview URL).
@@ -80,26 +74,6 @@ app.use(express.urlencoded({ extended: true }));
 
 // Parse cookies (using the secret from .env if you are using signed cookies)
 app.use(cookieParser(process.env.COOKIE_SECRET || 'roamio_secret'));
-
-// Interactive API docs, built from the @openapi comments in src/routes
-const swaggerDocs = swaggerJsdoc({
-  definition: {
-    openapi: '3.0.0',
-    info: {
-      title: 'Roamio Backend API',
-      version: '1.0.0',
-      description: 'API documentation for travel planning, user authentication, itineraries, and expense tracking.',
-    },
-    servers: [{ url: `http://localhost:${PORT}`, description: 'Local Development Server' }],
-    components: {
-      securitySchemes: {
-        bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
-      },
-    },
-  },
-  apis: [path.join(__dirname, 'src/routes/*.js')],
-});
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 // Health check endpoint
 app.get('/', (req, res) => {
@@ -198,5 +172,4 @@ if (process.env.NODE_ENV === 'development') {
 app.listen(PORT, () => {
   console.log(`Roamio API Server running on http://localhost:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`Interactive API Docs available at http://localhost:${PORT}/api-docs`);
 });

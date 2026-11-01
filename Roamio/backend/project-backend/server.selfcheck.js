@@ -62,9 +62,8 @@ express.application.listen = function (port, cb) {
       assert.equal((await req('/api/support/reports', { method: 'POST' })).status, 401);
       // the group routes are still reachable behind the trip router
       assert.equal((await req('/api/groups')).status, 401);
-      // health check and API docs (main's, kept)
+      // health check
       assert.equal((await req('/')).status, 200);
-      assert.equal((await fetch(base + '/api-docs/')).status, 200);
       console.log('server smoke test: all assertions passed');
       process.exit(0);
     } catch (e) { console.error(e); process.exit(1); }
