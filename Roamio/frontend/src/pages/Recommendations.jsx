@@ -16,6 +16,7 @@ import {
 } from "../api/recommendations.js";
 import { createTrip, addItineraryItem, deleteTrip } from "../api/trips.js";
 import { useTripStore } from "../store/tripStore.js";
+import { clearDraft, flushDraft, pickDraft, saveDraft } from "../utils/plannerDraft.js";
 import { fetchMe } from "../api/account.js";
 import { nameError } from "../utils/validation.js";
 
@@ -50,44 +51,61 @@ function maxStartDate() {
   return limit.toLocaleDateString("en-CA");
 }
 
+// Waits (briefly) for the saved plan, from this browser or another device,
+// then hands it to the planner as its starting point.
 export default function Recommendations() {
+  const [draft, setDraft] = useState(null);
+  useEffect(() => {
+    let active = true;
+    pickDraft().then((picked) => active && setDraft(picked));
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (!draft) return <PageShell backLabel="Back to dashboard"><p className="recommendations-loading">Loading your plan...</p></PageShell>;
+  return <Planner draft={draft} />;
+}
+
+function Planner({ draft }) {
   // wizard -> collecting preferences
   // results -> ranked countries or cities
   // landmarks -> a city was chosen, pick stops for it
   // itinerary -> stops auto-sequenced into a day-by-day agenda, editable
   // done -> itinerary saved
-  const [stage, setStage] = useState("wizard");
-  const [step, setStep] = useState(0);
+  // draft: the unfinished plan from earlier (tab closed, another device), or {}
+  const [stage, setStage] = useState(draft.stage || "wizard");
+  const [step, setStep] = useState(draft.step ?? 0);
   // set by an "Edit" link on the review step: Continue then goes straight
   // back to the review instead of through every step in between
-  const [returnToReview, setReturnToReview] = useState(false);
+  const [returnToReview, setReturnToReview] = useState(draft.returnToReview ?? false);
   // just you to start; picking a travel group on the first step brings in its
   // people (TripGroupPanel)
-  const [form, setForm] = useState(initialForm);
-  const [presetId, setPresetId] = useState(null); // the Quick start the traveller picked, if any
+  const [form, setForm] = useState({ ...initialForm, ...draft.form });
+  const [presetId, setPresetId] = useState(draft.presetId ?? null); // the Quick start the traveller picked, if any
 
   // the home currency saved in Settings
   useEffect(() => {
     fetchMe()
       .then((me) => {
         const currency = me?.preferences?.currency;
-        if (currency) setForm((current) => ({ ...current, currency }));
+        if (currency && !draft.form) setForm((current) => ({ ...current, currency }));
       })
       .catch(() => {});
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [countries, setCountries] = useState(
     COUNTRIES.map((name) => ({ id: slugify(name), name }))
   );
-  const [recommendationData, setRecommendationData] = useState(null);
-  const [selectedCountry, setSelectedCountry] = useState(null);
-  const [selectedCity, setSelectedCity] = useState(null);
-  const [trip, setTrip] = useState(null);
-  const [landmarksData, setLandmarksData] = useState(null);
-  const [selectedLandmarks, setSelectedLandmarks] = useState(new Set());
-  const [landmarkFilter, setLandmarkFilter] = useState("");
+  const [recommendationData, setRecommendationData] = useState(draft.recommendationData ?? null);
+  const [selectedCountry, setSelectedCountry] = useState(draft.selectedCountry ?? null);
+  const [selectedCity, setSelectedCity] = useState(draft.selectedCity ?? null);
+  const [trip, setTrip] = useState(draft.trip ?? null);
+  const [landmarksData, setLandmarksData] = useState(draft.landmarksData ?? null);
+  const [selectedLandmarks, setSelectedLandmarks] = useState(new Set(draft.selectedLandmarks));
+  const [landmarkFilter, setLandmarkFilter] = useState(draft.landmarkFilter ?? "");
   // [{ dayNumber, stops: [{ landmark, startTime, endTime }] }] - seeded once
   // from buildDayPlan(), then mutated directly by drag-and-drop/remove/add-day.
-  const [itineraryDays, setItineraryDays] = useState([]);
+  const [itineraryDays, setItineraryDays] = useState(draft.itineraryDays || []);
   // Snapshots of itineraryDays taken right before each mutating edit, so
   // "Undo" can pop the last one back. Capped so an editing spree can't grow
   // this unbounded.
@@ -100,13 +118,38 @@ export default function Recommendations() {
   // (e.g. exploring a country, then quickly switching to another) can't
   // land after a newer one and overwrite it with stale results.
   const requestIdRef = useRef(0);
-  const savedStopsRef = useRef(new Set()); // stops already saved, so a retry doesn't duplicate them
+  const savedStopsRef = useRef(new Set(draft.savedStops)); // stops already saved, so a retry doesn't duplicate them
   // Stack of previous "results" views (country list before drilling into a
   // city, city list before picking one) so the back button can restore them
   // without an extra fetch. Empty means the only way back is the wizard.
-  const [resultsHistory, setResultsHistory] = useState([]);
-  const [dislikedIds, setDislikedIds] = useState([]); // "not quite right" picks, sent as exclude_ids
-  const [shortlist, setShortlist] = useState([]); // up to MAX_SHORTLIST results to compare
+  const [resultsHistory, setResultsHistory] = useState(draft.resultsHistory || []);
+  const [dislikedIds, setDislikedIds] = useState(draft.dislikedIds || []); // "not quite right" picks, sent as exclude_ids
+  const [shortlist, setShortlist] = useState(draft.shortlist || []); // up to MAX_SHORTLIST results to compare
+
+  // Send the latest save as the tab is hidden or closed, before the timer would
+  useEffect(() => {
+    const flush = () => document.visibilityState === "hidden" && flushDraft();
+    document.addEventListener("visibilitychange", flush);
+    window.addEventListener("pagehide", flushDraft);
+    return () => {
+      document.removeEventListener("visibilitychange", flush);
+      window.removeEventListener("pagehide", flushDraft);
+    };
+  }, []);
+
+  // Keep the plan (here and on the server) as it changes (and once a save attempt ends,
+  // so the stops already saved are remembered); drop it when the trip is saved.
+  useEffect(() => {
+    if (stage === "done") return clearDraft();
+    saveDraft({
+      stage, step, returnToReview, form, presetId, recommendationData, selectedCountry, selectedCity, trip,
+      landmarksData, selectedLandmarks: [...selectedLandmarks], landmarkFilter, itineraryDays, resultsHistory,
+      dislikedIds, shortlist, savedStops: [...savedStopsRef.current],
+    });
+  }, [
+    stage, step, returnToReview, form, presetId, recommendationData, selectedCountry, selectedCity, trip, landmarksData,
+    selectedLandmarks, landmarkFilter, itineraryDays, resultsHistory, dislikedIds, shortlist, loading,
+  ]);
 
   useEffect(() => {
     let active = true;

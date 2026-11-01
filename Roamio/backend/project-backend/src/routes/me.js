@@ -80,6 +80,35 @@ router.put('/notification-preferences', handle(async (req, res) => {
   res.json(prefs);
 }));
 
+/* ---------------- trip planner draft ---------------- */
+
+// The unfinished plan from the recommendations planner, so it follows the
+// traveller to another device. One row each; the page owns the shape, we only
+// check it is an object of sane size.
+const MAX_DRAFT_BYTES = 1_000_000;
+
+router.get('/planner-draft', handle(async (req, res) => {
+  const row = await prisma.plannerDraft.findUnique({ where: { userId: req.user.userId } });
+  res.json({ draft: row ? row.data : null });
+}));
+
+router.put('/planner-draft', handle(async (req, res) => {
+  const data = req.body;
+  if (!data || typeof data !== 'object' || Array.isArray(data)) throw httpError(400, 'Send the draft as an object.');
+  if (Buffer.byteLength(JSON.stringify(data)) > MAX_DRAFT_BYTES) throw httpError(413, 'That draft is too large to keep.');
+  await prisma.plannerDraft.upsert({
+    where: { userId: req.user.userId },
+    create: { userId: req.user.userId, data },
+    update: { data },
+  });
+  res.json({ ok: true });
+}));
+
+router.delete('/planner-draft', handle(async (req, res) => {
+  await prisma.plannerDraft.deleteMany({ where: { userId: req.user.userId } });
+  res.json({ ok: true });
+}));
+
 /* ---------------- sessions and sign-in history ---------------- */
 
 router.get('/sessions', handle(async (req, res) => {

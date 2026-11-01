@@ -20,6 +20,7 @@ const db = {
     { id: 2, email: 'bob@example.com', fullName: 'Bob', passwordHash: 'x', deletedAt: null },
   ],
   prefs: [],
+  drafts: [],
   sessions: [],
   events: [],
   travellers: [],
@@ -57,6 +58,15 @@ const prisma = {
       return Object.fromEntries(Object.keys(select).filter((key) => select[key]).map((key) => [key, user[key]]));
     },
     delete: async ({ where }) => { removeWhere(db.users, { id: where.id }); removeWhere(db.sessions, { userId: where.id }); removeWhere(db.travellers, { userId: where.id }); removeWhere(db.members, { userId: where.id }); },
+  },
+  plannerDraft: {
+    findUnique: async ({ where }) => db.drafts.find((d) => d.userId === where.userId) || null,
+    upsert: async ({ where, create, update }) => {
+      const row = db.drafts.find((d) => d.userId === where.userId);
+      if (row) Object.assign(row, update);
+      else db.drafts.push({ ...create });
+    },
+    deleteMany: async ({ where }) => { db.drafts = db.drafts.filter((d) => d.userId !== where.userId); },
   },
   notificationPreference: {
     findUnique: async ({ where }) => db.prefs.find((p) => p.userId === where.userId) || null,
@@ -271,6 +281,18 @@ const server = app.listen(0, async () => {
     assert.deepEqual(r.body.notificationPreferences.channels, { email: true, browser: true });
     assert.deepEqual(Object.keys(r.body).sort(), ['assistantChats', 'documentsYouUploaded', 'exportedAt', 'format', 'groups', 'notificationPreferences', 'notifications', 'profile', 'savedTravellers', 'signInHistory', 'translationHistory'].sort());
     assert.ok(!JSON.stringify(r.body).includes('passwordHash'));
+
+    /* ---- planner draft: one per traveller, private ---- */
+    assert.equal((await call('GET', '/api/users/me/planner-draft')).status, 200);
+    assert.equal((await call('GET', '/api/users/me/planner-draft')).body.draft, null);
+    assert.equal((await call('PUT', '/api/users/me/planner-draft', { body: [1] })).status, 400);
+    assert.equal((await call('PUT', '/api/users/me/planner-draft', { body: { pad: 'x'.repeat(1_000_001) } })).status, 413);
+    assert.equal((await call('PUT', '/api/users/me/planner-draft', { body: { stage: 'itinerary', step: 2 } })).status, 200);
+    assert.equal((await call('GET', '/api/users/me/planner-draft')).body.draft.stage, 'itinerary');
+    assert.equal((await call('GET', '/api/users/me/planner-draft', { token: tokenFor(2, 's2') })).body.draft, null);
+    assert.equal((await call('DELETE', '/api/users/me/planner-draft')).status, 200);
+    assert.equal((await call('GET', '/api/users/me/planner-draft')).body.draft, null);
+    assert.equal((await call('GET', '/api/users/me/planner-draft', { token: null })).status, 401);
 
     /* ---- delete my account ---- */
     // a group Ada is alone in, a group she owns with Bob in it, and one Bob owns

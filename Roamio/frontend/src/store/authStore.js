@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 import { endSession, setToken } from "../api/client";
+import { clearAllDrafts } from "../utils/plannerDraft.js";
 
 const USER_KEY = "user";
 
@@ -90,6 +91,7 @@ export const useAuthStore = create((set, get) => ({
   logout: () => {
     endSession(); // drop the 7-day refresh cookie too: a signed-out browser keeps no session
     localStorage.removeItem(USER_KEY);
+    clearAllDrafts();
     setToken(null);
 
     set({

@@ -64,11 +64,12 @@ app.use(cors({
 
 // Parse incoming JSON payloads and URL-encoded data. Trip documents arrive as
 // base64 in JSON, so that one path gets a 2 MB limit (a 1 MB file, kept under
-// Vercel's ~4.5 MB body cap); the route re-checks the decoded size.
+// Vercel's ~4.5 MB body cap); the route re-checks the decoded size. The saved
+// trip-planner draft (itinerary and landmarks) is bigger than 100 KB too.
 const jsonDefault = express.json();
 const jsonDocuments = express.json({ limit: '2mb' });
 app.use((req, res, next) =>
-  (/^\/api\/trips\/[^/]+\/documents\/?$/.test(req.path) ? jsonDocuments : jsonDefault)(req, res, next)
+  (/^\/api\/(trips\/[^/]+\/documents|users\/me\/planner-draft)\/?$/.test(req.path) ? jsonDocuments : jsonDefault)(req, res, next)
 );
 app.use(express.urlencoded({ extended: true }));
 
