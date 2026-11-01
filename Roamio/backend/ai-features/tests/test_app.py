@@ -105,3 +105,14 @@ def test_the_schema_is_served_only_with_the_service_key(authed_client):
 def test_the_hosted_docs_pages_are_off(client):
     assert client.get("/docs").status_code == 404
     assert client.get("/redoc").status_code == 404
+
+
+def test_every_response_carries_the_security_headers():
+    from fastapi.testclient import TestClient
+
+    import main
+
+    response = TestClient(main.app).get("/")
+    assert response.headers["Content-Security-Policy"] == "default-src 'none'; frame-ancestors 'none'"
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+    assert response.headers["Referrer-Policy"] == "no-referrer"

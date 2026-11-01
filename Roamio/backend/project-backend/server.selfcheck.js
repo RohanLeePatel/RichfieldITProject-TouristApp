@@ -43,6 +43,15 @@ express.application.listen = function (port, cb) {
       assert.equal(r.headers.get('access-control-allow-origin'), 'http://localhost:5173');
       r = await req('/api/trips', { headers: { origin: 'https://evil.example' } });
       assert.equal(r.headers.get('access-control-allow-origin'), null);
+      // security headers on every answer, and the cron route shut unless it has the secret
+      r = await req('/api/trips');
+      assert.equal(r.headers.get('x-content-type-options'), 'nosniff');
+      assert.match(r.headers.get('content-security-policy'), /default-src 'none'/);
+      assert.equal((await req('/api/cron/safety-alerts')).status, 503);
+      process.env.CRON_SECRET = 'cron-secret';
+      assert.equal((await req('/api/cron/safety-alerts')).status, 401);
+      assert.equal((await req('/api/cron/safety-alerts', { headers: { authorization: 'Bearer wrong-secret' } })).status, 401);
+      assert.equal((await req('/api/cron/safety-alerts', { headers: { authorization: 'Bearer cron-secret' } })).status, 200);
       // admin routes are mounted and guarded: no token = 401, never an HTML 404
       for (const p of ['analytics/overview', 'config/tracking', 'health/services'])
         assert.equal((await req('/api/admin/' + p)).status, 401);

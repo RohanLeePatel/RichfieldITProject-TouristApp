@@ -9,8 +9,7 @@
 //
 // The endpoint contract is in SETTINGS_API.md.
 
-import { TOKEN_KEY } from "./client.js";
-import { useAuthStore } from "../store/authStore.js";
+import { ensureToken } from "./client.js";
 
 const API_BASE = String(import.meta.env?.VITE_BACKEND_API_URL || "http://127.0.0.1:3000").replace(/\/+$/, ""); // the Core API, same as api/client.js
 
@@ -25,24 +24,9 @@ export class EndpointMissingError extends Error {
 
 /* ---------------- request helper ---------------- */
 
-function safeGet(key) {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
-// Match this to however api/account.js attaches the JWT
-function authHeaders() {
-  let token;
-  try {
-    const state = useAuthStore.getState?.() || {};
-    token = state.token || state.accessToken || state.user?.token || null;
-  } catch {
-    token = null;
-  }
-  token = token || safeGet(TOKEN_KEY);
+// The access token is memory-only; after a reload it comes back via the refresh cookie.
+async function authHeaders() {
+  const token = await ensureToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -56,7 +40,7 @@ async function request(path, { method = "GET", body, expect = "json" } = {}) {
       headers: {
         Accept: expect === "blob" ? "*/*" : "application/json",
         ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
-        ...authHeaders(),
+        ...(await authHeaders()),
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });

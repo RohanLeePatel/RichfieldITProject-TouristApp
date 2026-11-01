@@ -64,6 +64,25 @@ async def enforce_rate_limit(request: Request, call_next):
     )
 
 
+# Browsers never call this service, but the headers cost nothing: JSON can't be
+# sniffed as something else, and nothing can load or frame a response. The
+# Content-Security-Policy blocks every resource a response might pull in.
+SECURITY_HEADERS = {
+    "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    "Cache-Control": "no-store",
+}
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    for name, value in SECURITY_HEADERS.items():
+        response.headers.setdefault(name, value)
+    return response
+
+
 # One access line per request, with the id the Core API sent so a problem can be
 # followed across both services (NFR-29). Path only - no query string, headers or
 # body, so nothing a traveller typed is logged.

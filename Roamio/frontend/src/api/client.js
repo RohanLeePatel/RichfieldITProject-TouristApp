@@ -5,7 +5,22 @@
 const API_BASE_URL =
   import.meta.env.VITE_BACKEND_API_URL || "http://127.0.0.1:3000";
 
-export const TOKEN_KEY = "Roamio_token";
+// The access token lives in memory only (P-03 / 4.8.1): script injected into the
+// page cannot read it from storage. A reload starts without one and trades the
+// httpOnly refresh cookie for a new one (ensureToken).
+let accessToken = null;
+export const getToken = () => accessToken;
+export const setToken = (token) => {
+  accessToken = token || null;
+};
+// Older builds kept the token in localStorage; clear what they left behind.
+try {
+  localStorage.removeItem("Roamio_token");
+} catch {
+  // blocked storage - nothing to clear
+}
+// Only the dev server, with nobody signed in, uses the fake local trip store.
+export const isDevBypass = () => import.meta.env.DEV && !accessToken && !localStorage.getItem("user");
 
 const apiUrl = (path) => `${API_BASE_URL.replace(/\/$/, "")}${path}`;
 
@@ -18,7 +33,7 @@ function refreshSession() {
     .then((response) => (response.ok ? response.json() : null))
     .then((data) => {
       if (!data?.accessToken) return false;
-      localStorage.setItem(TOKEN_KEY, data.accessToken);
+      setToken(data.accessToken);
       return true;
     })
     .catch(() => false)
@@ -26,6 +41,12 @@ function refreshSession() {
       refreshing = null;
     });
   return refreshing;
+}
+
+// The token to send: the one in memory, else one from the refresh cookie.
+export async function ensureToken() {
+  if (!accessToken) await refreshSession();
+  return accessToken;
 }
 
 // Tells the API to drop the refresh cookie on sign-out; best effort.
@@ -37,7 +58,7 @@ async function request(path, { auth = false, retried = false, headers, ...option
   const requestHeaders = { "Content-Type": "application/json", ...headers };
 
   if (auth) {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = await ensureToken();
     if (token) {
       requestHeaders.Authorization = `Bearer ${token}`;
     }
@@ -56,11 +77,11 @@ async function request(path, { auth = false, retried = false, headers, ...option
   // Expired access token: refresh once and retry. If the session can't be
   // refreshed (signed out, cookie blocked by the browser), sign out and come
   // back here after logging in.
-  if (auth && response.status === 401 && localStorage.getItem(TOKEN_KEY)) {
+  if (auth && response.status === 401) {
     if (!retried && (await refreshSession())) {
       return request(path, { auth, retried: true, headers, ...options });
     }
-    localStorage.removeItem(TOKEN_KEY);
+    setToken(null);
     localStorage.removeItem("user");
     const here = window.location.pathname + window.location.search;
     window.location.assign(`/login?next=${encodeURIComponent(here)}`);
@@ -77,7 +98,7 @@ async function request(path, { auth = false, retried = false, headers, ...option
           (typeof data?.error === "string" ? data.error : null) ||
           "Request failed. Please try again."
       ),
-      { status: response.status }
+      { status: response.status, data }
     );
   }
 

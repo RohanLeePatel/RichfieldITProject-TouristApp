@@ -22,6 +22,18 @@ const createTripSchema = z.object({
   travelGroupId: z.number().int().positive().optional().nullable(),
 });
 
+// Edit a saved trip: any of the fields above, each optional. The dates come
+// together or not at all (checked in the route, which knows the itinerary).
+const updateTripSchema = createTripSchema.omit({ travelGroupId: true }).partial();
+
+// New order of a saved itinerary: each day lists its item ids top to bottom.
+const reorderItinerarySchema = z.object({
+  days: z
+    .array(z.object({ dayNumber: z.number().int().min(1).max(30), itemIds: z.array(z.string().min(1)).max(200) }))
+    .min(1)
+    .max(30),
+});
+
 // Itinerary Item Schema
 const createItinerarySchema = z.object({
   title: z.string().min(1, 'Activity title is required'),
@@ -51,6 +63,8 @@ const createDocumentSchema = z.object({
 
 module.exports = {
   createTripSchema,
+  updateTripSchema,
+  reorderItinerarySchema,
   createItinerarySchema,
   createDocumentSchema,
 };

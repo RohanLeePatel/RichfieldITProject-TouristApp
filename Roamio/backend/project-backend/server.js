@@ -3,6 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const helmet = require('helmet');
 const cron = require('node-cron');
 const path = require('node:path');
 const swaggerUi = require('swagger-ui-express');
@@ -35,6 +36,7 @@ const adminRoutes = require('./src/routes/admin');
 const chatRoutes = require('./src/routes/chat');
 const meRoutes = require('./src/routes/me');
 const supportRoutes = require('./src/routes/support');
+const cronRoutes = require('./src/routes/cron');
 
 // 4. App Initialization
 const app = express();
@@ -44,6 +46,16 @@ const PORT = process.env.PORT || 3000; // the frontend's default VITE_BACKEND_AP
 
 // Tell Express to trust the cloud provider's reverse proxy (MUST be before limiters)
 app.set('trust proxy', 1);
+
+// Security headers. The API only answers JSON, so its CSP allows nothing and
+// forbids framing; the Swagger page at /api-docs needs its own scripts and
+// styles, so it gets helmet without a CSP.
+const apiHeaders = helmet({
+  contentSecurityPolicy: { directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] } },
+  crossOriginResourcePolicy: { policy: 'cross-origin' }, // the SPA is on another origin
+});
+const docsHeaders = helmet({ contentSecurityPolicy: false });
+app.use((req, res, next) => (req.path.startsWith('/api-docs') ? docsHeaders : apiHeaders)(req, res, next));
 
 // Enable CORS for your React frontend. CLIENT_URL may list several origins,
 // comma-separated (e.g. the Vercel site and a preview URL).
@@ -121,6 +133,9 @@ app.use('/api/chat', chatLimiter, chatRoutes);
 // go before the /api routers below that would 401 them.
 app.use('/api/users/me', meRoutes);
 app.use('/api/support', supportLimiter, supportRoutes);
+
+// Vercel Cron (vercel.json). Guarded by CRON_SECRET, not by a login.
+app.use('/api/cron', cronRoutes);
 
 // Admin dashboard API. Before the /api routers below, which would 401 it;
 // the router guards itself with isAdmin and has its own error handler.

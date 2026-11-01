@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  CalendarDays, CloudSun, FileText, Languages, ListOrdered, LoaderCircle, MapPin, Printer, ShieldCheck, Sparkles, Trash2, Users, Wallet, X,
+  ArrowDown, ArrowUp, CalendarDays, CloudSun, FileText, Languages, ListOrdered, LoaderCircle, MapPin, Pencil, Printer, ShieldCheck, Sparkles, Trash2, Users, Wallet, X,
 } from "lucide-react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
@@ -9,10 +9,11 @@ import ItineraryMap from "../components/recommendations/ItineraryMap.jsx";
 import Hint from "../components/onboarding/Hint.jsx";
 import PageShell from "../components/recommendations/PageShell.jsx";
 import TripDocuments from "../components/trips/TripDocuments.jsx";
+import TripEditForm from "../components/trips/TripEditForm.jsx";
 import { AddLandmark, TripBudgetCard, TripPeople, TripSnapshot } from "../components/trips/TripHub.jsx";
 import useActiveTrip from "../hooks/useActiveTrip.js";
 
-import { fetchTrip, deleteTrip, removeItineraryItem } from "../api/trips.js";
+import { fetchTrip, deleteTrip, removeItineraryItem, reorderItinerary } from "../api/trips.js";
 import { groupItineraryByDay } from "../utils/itineraryPlanner.js";
 import { useTripStore } from "../store/tripStore.js";
 import "../styles/trips.css";
@@ -39,6 +40,7 @@ export default function TripDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
   const { setActiveTrip } = useActiveTrip();
   const [params, setParams] = useSearchParams();
   const tab = TABS.some((t) => t.id === params.get("tab")) ? params.get("tab") : "plan";
@@ -94,6 +96,41 @@ export default function TripDetail() {
       setError(requestError instanceof Error ? requestError.message : "Could not remove that stop.");
       setBusy(false);
     }
+  };
+
+  // Day numbers a stop can move to: the trip's length, else up to the last day in use
+  const dayCount = useMemo(() => {
+    const used = Math.max(1, ...dayGroups.map((group) => group.dayNumber || 0));
+    if (!trip?.startDate || !trip?.endDate) return Math.min(30, used);
+    const length = Math.round((new Date(trip.endDate) - new Date(trip.startDate)) / DAY_MS) + 1;
+    return Math.min(30, Math.max(length, used));
+  }, [trip, dayGroups]);
+
+  // Moves a stop up or down within its day, or to another day (it joins the end
+  // of that day). The server hands each day's time slots out in the new order.
+  const moveStop = async (itemId, fromDay, { direction, toDay }) => {
+    const ids = (day) => dayGroups.find((group) => group.dayNumber === day)?.items.map((item) => item.id) || [];
+    const days = [];
+    if (toDay && toDay !== fromDay) {
+      days.push({ dayNumber: fromDay, itemIds: ids(fromDay).filter((id) => id !== itemId) });
+      days.push({ dayNumber: toDay, itemIds: [...ids(toDay), itemId] });
+    } else {
+      const list = ids(fromDay);
+      const from = list.indexOf(itemId);
+      const to = from + direction;
+      if (to < 0 || to >= list.length) return;
+      [list[from], list[to]] = [list[to], list[from]];
+      days.push({ dayNumber: fromDay, itemIds: list });
+    }
+    setBusy(true);
+    setError("");
+    try {
+      await reorderItinerary(tripId, days);
+      await refresh();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not move that stop.");
+    }
+    setBusy(false);
   };
 
   const handleDeleteTrip = async () => {
@@ -184,6 +221,9 @@ export default function TripDetail() {
                   >
                     <Printer size={15} /> Download as PDF
                   </button>
+                  <button type="button" className="secondary-button" onClick={() => setEditing((open) => !open)} disabled={busy}>
+                    <Pencil size={15} /> Edit trip
+                  </button>
                   <button type="button" className="secondary-button" onClick={handleDeleteTrip} disabled={busy}>
                     <Trash2 size={15} /> Delete trip
                   </button>
@@ -191,6 +231,17 @@ export default function TripDetail() {
               </div>
 
               {error && <p className="recommendations-error">{error}</p>}
+
+              {editing && (
+                <TripEditForm
+                  trip={trip}
+                  onCancel={() => setEditing(false)}
+                  onSaved={() => {
+                    setEditing(false);
+                    load();
+                  }}
+                />
+              )}
 
               {dayGroups.length === 0 ? (
                 <div className="results-empty">
@@ -210,7 +261,7 @@ export default function TripDetail() {
                         {dayDate(group.dayNumber) && <span>{dayDate(group.dayNumber)}</span>}
                       </header>
                       <ol className="trip-stops">
-                        {group.items.map((item) => (
+                        {group.items.map((item, position) => (
                           <li key={item.id} className="trip-stop">
                             <time>{item.startTime || ""}</time>
                             <div>
@@ -218,15 +269,49 @@ export default function TripDetail() {
                               {/* street and district are enough here; the full address is the tooltip */}
                               {item.location && <small title={item.location}>{item.location.split(",").slice(0, 2).join(",")}</small>}
                             </div>
-                            <button
-                              type="button"
-                              className="print-hide"
-                              onClick={() => handleDeleteItem(item.id, item.title)}
-                              disabled={busy}
-                              aria-label={`Remove ${item.title}`}
-                            >
-                              <X size={14} />
-                            </button>
+                            <span className="trip-stop-tools print-hide">
+                              {group.dayNumber && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => moveStop(item.id, group.dayNumber, { direction: -1 })}
+                                    disabled={busy || position === 0}
+                                    aria-label={`Move ${item.title} earlier`}
+                                  >
+                                    <ArrowUp size={14} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => moveStop(item.id, group.dayNumber, { direction: 1 })}
+                                    disabled={busy || position === group.items.length - 1}
+                                    aria-label={`Move ${item.title} later`}
+                                  >
+                                    <ArrowDown size={14} />
+                                  </button>
+                                  {dayCount > 1 && (
+                                    <select
+                                      value={group.dayNumber}
+                                      onChange={(event) => moveStop(item.id, group.dayNumber, { toDay: Number(event.target.value) })}
+                                      disabled={busy}
+                                      aria-label={`Move ${item.title} to another day`}
+                                    >
+                                      {Array.from({ length: dayCount }, (_, index) => (
+                                        <option key={index + 1} value={index + 1}>Day {index + 1}</option>
+                                      ))}
+                                    </select>
+                                  )}
+                                </>
+                              )}
+                              <button
+                                type="button"
+                                className="trip-stop-remove"
+                                onClick={() => handleDeleteItem(item.id, item.title)}
+                                disabled={busy}
+                                aria-label={`Remove ${item.title}`}
+                              >
+                                <X size={14} />
+                              </button>
+                            </span>
                           </li>
                         ))}
                       </ol>
