@@ -23,7 +23,7 @@ require.cache[require.resolve('axios')] = { exports: { get: async (url) => {
 } } };
 const stub = (file) => { require.cache[path.join(__dirname, file)] = { exports: {} }; };
 stub('../repositories/safetyRepository.js');
-stub('../repositories/notificationRepository.js');
+stub('./pushService.js');
 
 const sync = require('./safetySyncService');
 
