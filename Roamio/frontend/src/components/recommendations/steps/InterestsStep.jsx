@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Ban, Plus, Users, X } from "lucide-react";
 
 import { INTEREST_GROUPS, MIN_INTERESTS, resolveInterests } from "../../../pages/recommendations/constants.js";
@@ -77,6 +78,40 @@ function TravelerConstraints({ traveler, index, currency, onChange }) {
   );
 }
 
+const TAG_LABELS = Object.fromEntries(INTEREST_GROUPS.flatMap((group) => group.tags).map((tag) => [tag.id, tag.label]));
+
+// Popup shown when a tap would make a tag both an interest and avoided.
+// "avoid": they tapped avoid on a picked interest; "pick": they tapped an
+// interest that is already avoided.
+function ConflictDialog({ conflict, onConfirm, onCancel }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const dialog = ref.current;
+    if (conflict && !dialog.open) dialog.showModal();
+    if (!conflict && dialog.open) dialog.close();
+  }, [conflict]);
+  const label = conflict ? TAG_LABELS[conflict.tagId] || conflict.tagId : "";
+  const avoid = conflict?.kind === "avoid";
+  return (
+    <dialog ref={ref} className="conflict-dialog" onCancel={onCancel} onClose={onCancel}>
+      <h3>{conflict?.who || "You"} can&apos;t pick and avoid {label}</h3>
+      <p>
+        {avoid
+          ? `${label} is one of the interests picked. Do you want to avoid it instead?`
+          : `${label} is marked to avoid. Do you want to pick it as an interest instead?`}
+      </p>
+      <div className="conflict-dialog-actions">
+        <button type="button" className="secondary-button" onClick={onCancel}>
+          {avoid ? "Keep it as an interest" : "Keep avoiding it"}
+        </button>
+        <button type="button" className="recommendations-submit" onClick={onConfirm}>
+          {avoid ? "Avoid it instead" : "Pick it instead"}
+        </button>
+      </div>
+    </dialog>
+  );
+}
+
 const travelerName = (traveler, index) => traveler.name?.trim() || `Traveler ${index + 2}`;
 
 export default function InterestsStep({
@@ -85,14 +120,54 @@ export default function InterestsStep({
   // what the engine will still get once the avoided tags are taken out
   const usable = resolveInterests(form).interests.length;
   const enoughPicked = form.interests.length >= MIN_INTERESTS;
+
+  // travelerId null = the organiser. Taps that would contradict themselves open
+  // the popup first; everything else goes straight through.
+  const [conflict, setConflict] = useState(null);
+  const stateFor = (travelerId) => (travelerId ? form.travelers.find((t) => t.id === travelerId) : form);
+  const cycle = (travelerId, tagId) => (travelerId ? cycleTravelerInterest(travelerId, tagId) : cycleInterest(tagId));
+  const toggleAvoid = (travelerId, tagId) => (travelerId ? toggleTravelerDealbreaker(travelerId, tagId) : toggleDealbreaker(tagId));
+  const whoFor = (travelerId) => {
+    const index = form.travelers.findIndex((t) => t.id === travelerId);
+    return travelerId ? travelerName(form.travelers[index], index) : "You";
+  };
+
+  const tapInterest = (travelerId, tagId) => {
+    const state = stateFor(travelerId);
+    const avoided = (state.dealbreakers || []).includes(tagId);
+    if (avoided && !state.interests.includes(tagId)) setConflict({ kind: "pick", travelerId, tagId, who: whoFor(travelerId) });
+    else cycle(travelerId, tagId);
+  };
+  const tapAvoid = (travelerId, tagId) => {
+    const state = stateFor(travelerId);
+    const avoided = (state.dealbreakers || []).includes(tagId);
+    if (!avoided && state.interests.includes(tagId)) setConflict({ kind: "avoid", travelerId, tagId, who: whoFor(travelerId) });
+    else toggleAvoid(travelerId, tagId);
+  };
+  const resolveConflict = () => {
+    const { kind, travelerId, tagId } = conflict;
+    if (kind === "pick") {
+      toggleAvoid(travelerId, tagId); // stop avoiding it
+      cycle(travelerId, tagId); // pick it
+    } else {
+      const state = stateFor(travelerId);
+      toggleAvoid(travelerId, tagId);
+      // pick -> must-have -> off takes up to two taps
+      cycle(travelerId, tagId);
+      if (!state.priorityInterests.includes(tagId)) cycle(travelerId, tagId);
+    }
+    setConflict(null);
+  };
+
   return (
     <>
+      <ConflictDialog conflict={conflict} onConfirm={resolveConflict} onCancel={() => setConflict(null)} />
       <div className="wizard-intro">
         <h2>What do you enjoy?</h2>
         <p className="wizard-help">Pick at least 3 interests. Tap once to pick, tap again to mark it a must-have (★) - must-haves count for more when we rank matches. Anything you avoid below doesn&apos;t count.</p>
       </div>
 
-      <InterestPicker interests={form.interests} priorityInterests={form.priorityInterests} onCycle={cycleInterest} />
+      <InterestPicker interests={form.interests} priorityInterests={form.priorityInterests} onCycle={(tagId) => tapInterest(null, tagId)} />
 
       <section className="panel">
         <h3 className="panel-title"><Users size={15} /> Travelling with others?</h3>
@@ -120,10 +195,10 @@ export default function InterestsStep({
               flat
               interests={traveler.interests}
               priorityInterests={traveler.priorityInterests}
-              onCycle={(tagId) => cycleTravelerInterest(traveler.id, tagId)}
+              onCycle={(tagId) => tapInterest(traveler.id, tagId)}
             />
             <h4 className="interest-group-label">{travelerName(traveler, index)} wants to avoid</h4>
-            <AvoidChips avoided={traveler.dealbreakers || []} onToggle={(tagId) => toggleTravelerDealbreaker(traveler.id, tagId)} />
+            <AvoidChips avoided={traveler.dealbreakers || []} onToggle={(tagId) => tapAvoid(traveler.id, tagId)} />
             <h4 className="interest-group-label">{travelerName(traveler, index)}&apos;s own limits</h4>
             <TravelerConstraints traveler={traveler} index={index} currency={form.currency} onChange={updateTraveler} />
           </div>
@@ -139,7 +214,7 @@ export default function InterestsStep({
       <section className="panel">
         <h3 className="panel-title"><Ban size={15} /> Anything to avoid?</h3>
         <p className="wizard-help">These are excluded from every traveler&apos;s matches, even if someone else picked them.</p>
-        <AvoidChips avoided={form.dealbreakers} onToggle={toggleDealbreaker} />
+        <AvoidChips avoided={form.dealbreakers} onToggle={(tagId) => tapAvoid(null, tagId)} />
         <div aria-live="polite">
           {enoughPicked && usable < MIN_INTERESTS && (
             <p className="recommendations-error">

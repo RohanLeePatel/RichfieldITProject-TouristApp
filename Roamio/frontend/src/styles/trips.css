@@ -661,6 +661,7 @@
 .trip-stop-tools button:disabled { opacity: 0.25 !important; cursor: default; }
 
 /* Recently deleted trips */
+.deleted-trips { margin-top: 28px; }
 .deleted-trips ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
 .deleted-trips li {
   display: flex;
