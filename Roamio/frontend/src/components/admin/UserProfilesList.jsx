@@ -73,7 +73,7 @@ export default function UserProfilesList() {
               type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search name or email"
+              placeholder="Search by full email or user ID"
               aria-label="Search users"
             />
           </label>

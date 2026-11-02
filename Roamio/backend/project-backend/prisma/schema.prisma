@@ -12,7 +12,10 @@ generator client {
 
 model User {
   id           Int       @id @default(autoincrement())
-  email        String    @unique
+  // email and fullName are AES-GCM ciphertext (src/utils/columnEncryption.js). Email is
+  // looked up and kept unique through emailHash, a keyed hash of the lowercased address.
+  email        String
+  emailHash    String?   @unique
   passwordHash String
   fullName     String
   avatarUrl    String?
@@ -53,7 +56,7 @@ model User {
   loginEvents       LoginEvent[]
   savedTravellers   SavedTraveller[]
 
-  @@index([email])
+  @@index([emailHash])
 }
 
 model UserPreference {
@@ -106,7 +109,8 @@ model Invitation {
   travelGroup   TravelGroup @relation(fields: [travelGroupId], references: [id], onDelete: Cascade)
   inviterId     Int
   inviter       User        @relation("SenderInvitations", fields: [inviterId], references: [id], onDelete: Cascade)
-  email         String
+  email         String // encrypted; match through emailHash (src/utils/columnEncryption.js)
+  emailHash     String?
   token         String      @unique
   status        String      @default("PENDING") // "PENDING", "ACCEPTED", "DECLINED", "EXPIRED"
   role          String      @default("MEMBER") // role granted on acceptance: "ADMIN", "MEMBER", "VIEWER"
@@ -114,7 +118,7 @@ model Invitation {
   createdAt     DateTime    @default(now())
 
   @@index([token])
-  @@index([email])
+  @@index([emailHash])
 }
 
 // -------------------------------------------------------------
@@ -227,7 +231,7 @@ model TripDocument {
   mimeType     String
   sizeBytes    Int
   kind         String   @default("OTHER")
-  data         Bytes
+  data         Bytes // AES-GCM ciphertext (src/utils/columnEncryption.js)
   createdAt    DateTime @default(now()) @db.Timestamptz(6)
 
   trip       Trip @relation(fields: [tripId], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -313,8 +317,8 @@ model PushSubscription {
   userId    Int
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   endpoint  String   @unique
-  p256dh    String
-  auth      String
+  p256dh    String // encrypted (src/utils/columnEncryption.js)
+  auth      String // encrypted
   createdAt DateTime @default(now())
   userAgent    String   @default("")
   lastUsedAt   DateTime @default(now())
@@ -509,8 +513,8 @@ model UserSession {
   browser    String    @default("")
   os         String    @default("")
   deviceType String    @default("desktop")
-  location   String    @default("")
-  ipAddress  String    @default("")
+  location   String    @default("") // encrypted (src/utils/columnEncryption.js)
+  ipAddress  String    @default("") // encrypted
   createdAt  DateTime  @default(now()) @db.Timestamptz(6)
   lastSeenAt DateTime  @default(now()) @db.Timestamptz(6)
   revokedAt  DateTime? @db.Timestamptz(6)
@@ -526,8 +530,8 @@ model LoginEvent {
   browser    String   @default("")
   os         String   @default("")
   deviceType String   @default("desktop")
-  location   String   @default("")
-  ipAddress  String   @default("")
+  location   String   @default("") // encrypted (src/utils/columnEncryption.js)
+  ipAddress  String   @default("") // encrypted
   success    Boolean
 
   @@index([userId, at(sort: Desc)])
@@ -541,13 +545,15 @@ model SavedTraveller {
   firstName       String
   lastName        String
   relationship    String
-  dateOfBirth     DateTime @db.Date
+  // Encrypted columns hold AES-GCM ciphertext (src/utils/columnEncryption.js); the
+  // extension hands the app plaintext, and Dates for dateOfBirth / documentExpiry.
+  dateOfBirth     String
   nationality     String   @default("")
   email           String   @default("")
   phone           String   @default("")
   documentType    String   @default("passport")
   documentLast4   String?
-  documentExpiry  DateTime? @db.Date
+  documentExpiry  String?
   consentGiven    Boolean
   consentGuardian Boolean  @default(false)
   consentAt       DateTime @default(now()) @db.Timestamptz(6)
