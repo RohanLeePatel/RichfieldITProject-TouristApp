@@ -4,6 +4,7 @@ import { Ban, Plus, Users, X } from "lucide-react";
 import { INTEREST_GROUPS, MIN_INTERESTS, resolveInterests } from "../../../pages/recommendations/constants.js";
 import { nameError } from "../../../utils/validation.js";
 import FieldError from "../../FieldError.jsx";
+import AskButton from "../../chat/AskButton.jsx";
 import InterestPicker from "../InterestPicker.jsx";
 
 function AvoidChips({ avoided, onToggle }) {
@@ -164,6 +165,7 @@ export default function InterestsStep({
       <ConflictDialog conflict={conflict} onConfirm={resolveConflict} onCancel={() => setConflict(null)} />
       <div className="wizard-intro">
         <h2>What do you enjoy?</h2>
+        <AskButton prompt="I'm not sure which interests to pick for my trip. What would you suggest for a first-time visitor?" label="Ask the assistant what to pick">Not sure? Ask</AskButton>
         <p className="wizard-help">Pick at least 3 interests. Tap once to pick, tap again to mark it a must-have (★) - must-haves count for more when we rank matches. Anything you avoid below doesn&apos;t count.</p>
       </div>
 

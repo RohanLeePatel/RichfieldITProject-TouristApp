@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MessageCircle, X } from "lucide-react";
 
 import useTheme from "../recommendations/useTheme.js";
+import { ASK_EVENT } from "./askAssistant.js";
 import ChatPanel from "./ChatPanel.jsx";
 import "../../styles/chat.css";
 
@@ -11,6 +12,17 @@ import "../../styles/chat.css";
 export default function ChatWidget() {
   const { theme } = useTheme();
   const [open, setOpen] = useState(false);
+  const [prefill, setPrefill] = useState(null);
+
+  // an "Ask" button elsewhere in the app: open with its question ready to send
+  useEffect(() => {
+    const onAsk = (event) => {
+      setPrefill({ text: String(event.detail || ""), at: Date.now() });
+      setOpen(true);
+    };
+    window.addEventListener(ASK_EVENT, onAsk);
+    return () => window.removeEventListener(ASK_EVENT, onAsk);
+  }, []);
 
   return (
     <div className="chat-widget" data-theme={theme}>
@@ -20,7 +32,7 @@ export default function ChatWidget() {
             <strong>Trip assistant</strong>
             <button type="button" onClick={() => setOpen(false)} aria-label="Close assistant"><X size={18} /></button>
           </header>
-          <ChatPanel />
+          <ChatPanel prefill={prefill} />
         </div>
       )}
       <button

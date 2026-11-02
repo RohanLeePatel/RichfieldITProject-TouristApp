@@ -116,6 +116,7 @@ function buildContext(trip, { advisories = [], weather = null, userId, today = n
   const lines = [
     `Today: ${day(today)}`,
     `Trip: ${text(formatted.title, 80)}`,
+    `Trip page: /trips/${trip.id}`,
     `Destination: ${text(formatted.destination || 'not set', 80)}${countries.length ? ` (${countries.map((c) => text(c, 60)).join(', ')})` : ''}`,
     `Dates: ${day(trip.startDate)} to ${day(trip.endDate)}`,
     `Status: ${trip.status}`,

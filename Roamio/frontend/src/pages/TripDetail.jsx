@@ -5,6 +5,7 @@ import {
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import ClimateInsights from "../components/insights/ClimateInsights.jsx";
+import AskButton from "../components/chat/AskButton.jsx";
 import ItineraryMap from "../components/recommendations/ItineraryMap.jsx";
 import Hint from "../components/onboarding/Hint.jsx";
 import PageShell from "../components/recommendations/PageShell.jsx";
@@ -277,6 +278,7 @@ export default function TripDetail() {
                               {item.location && <small title={item.location}>{item.location.split(",").slice(0, 2).join(",")}</small>}
                             </div>
                             <span className="trip-stop-tools print-hide">
+                              <AskButton prompt={`Tell me about ${item.title}: what to expect, how long to allow and any tips.`} label={`Ask about ${item.title}`} />
                               {group.dayNumber && (
                                 <>
                                   <button

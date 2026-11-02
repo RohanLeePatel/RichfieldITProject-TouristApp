@@ -17,6 +17,7 @@ import {
 
 import { useEffect, useState } from "react";
 
+import AskButton from "../components/chat/AskButton.jsx";
 import ClimateInsights from "../components/insights/ClimateInsights.jsx";
 import { geocodePlace } from "../api/climate.js";
 import { fetchWeather as fetchWeatherFromApi } from "../api/weather";
@@ -897,6 +898,7 @@ export default function Weather() {
               <div>
                 <span className="section-eyebrow">Know before you go</span>
                 <h2>Climate, best time &amp; advice for {weather.location.name}</h2>
+                <AskButton prompt={`What should I pack and plan for in ${weather.location.name} given this weather?`} label="Ask what to pack" />
               </div>
             </div>
             <ClimateInsights

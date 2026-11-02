@@ -31,6 +31,7 @@ const fakePrisma = {
   chatMessage: {
     findMany: async () => stored,
     createMany: async (args) => (calls.push(['chatMessage.createMany', args]), {}),
+    create: async (args) => (calls.push(['chatMessage.create', args]), {}),
     // the per-minute and per-day counts filter on createdAt; the per-chat one on conversationId
     count: async ({ where }) => {
       if (where.conversationId) return counts.conversation;
@@ -48,6 +49,23 @@ require.cache[path.join(__dirname, '../services/safetyService.js')] = {
 let accessError = null;
 require.cache[path.join(__dirname, '../services/tripAccessService.js')] = {
   exports: { assertTripAccess: async () => { if (accessError) throw accessError; } },
+};
+
+// the expense rules are their own tested service; here it records what it was asked and answers as set
+const expensesCreated = [];
+let expenseWarnings = [];
+require.cache[path.join(__dirname, '../services/expenseService.js')] = {
+  exports: {
+    CATEGORIES: ['TRANSPORT', 'FOOD', 'ACCOMMODATION', 'ACTIVITY', 'MISC'],
+    parseCurrency: (c) => {
+      if (!/^[A-Za-z]{3}$/.test(c)) throw new Error('currency must be a 3-letter ISO code');
+      return c.toUpperCase();
+    },
+    createExpense: async (tripId, userId, body) => {
+      expensesCreated.push({ tripId, userId, body });
+      return { expense: { id: 900, title: body.title, amount: body.amount, currency: body.currency || 'ZAR' }, warnings: expenseWarnings };
+    },
+  },
 };
 
 let placeAnswer = { ok: true, body: { found: true, name: 'Moses Mabhida Stadium', address: 'Moses Mabhida Stadium, Masabalala Yengwa Avenue, Durban', lat: -29.829, lon: 31.03 } };
@@ -158,7 +176,7 @@ const server = app.listen(0, async () => {
     let r = await ask({ message: 'What is on day 2?', tripId: 5 });
     assert.equal(r.status, 200);
     assert.equal(r.headers.get('cache-control'), 'no-store');
-    assert.deepEqual(r.body, { conversationId: 40, reply: 'Beach on day 2.', added: null, tripId: 5 });
+    assert.deepEqual(r.body, { conversationId: 40, reply: 'Beach on day 2.', proposal: null, tripId: 5 });
     assert.equal(aiRequest.body.can_edit, true);
     assert.equal(aiRequest.init.headers['node-secretkey'], 'service-key');
     assert.match(aiRequest.body.context, /uShaka Marine World/);
@@ -184,12 +202,28 @@ const server = app.listen(0, async () => {
     assert.match(aiRequest.body.context, /Weather: not available right now/);
 
     // ---- adding a stop ----
-    const addStop = (args, extra = {}) => {
+    // The assistant only proposes; nothing is written until the traveller confirms.
+    // addStop does both steps and hands back the confirmed result (or the refusal, which
+    // comes at the proposal step and so never reaches a confirm).
+    let proposed = null;
+    const addStop = async (args, extra = {}) => {
       aiAnswer = { ok: true, status: 200, body: { reply: 'I added it for you!', action: { name: 'add_itinerary_item', args }, ...extra } };
-      return ask({ message: 'add it', tripId: 5 });
+      const p = await ask({ message: 'add it', tripId: 5 });
+      proposed = p.body;
+      if (!p.body.proposal) return { ...p, body: { ...p.body, added: null } };
+      return call('/confirm', { method: 'POST', body: JSON.stringify({ conversationId: 40, ...p.body.proposal }) });
     };
     const created = () => calls.filter(([n]) => n === 'itineraryItem.create');
     let before = created().length;
+
+    // the proposal alone writes nothing, and is worded by the app, not the model
+    before = created().length;
+    aiAnswer = { ok: true, status: 200, body: { reply: 'Done!', action: { name: 'add_itinerary_item', args: { title: 'Sky car', day: 2, time: '09:30' } } } };
+    r = await ask({ message: 'add sky car', tripId: 5 });
+    assert.equal(r.body.reply, 'Add "Sky car" to Day 2 at 09:30. Shall I go ahead?');
+    assert.deepEqual(r.body.proposal.args, { title: 'Sky car', day: 2, time: '09:30' });
+    assert.equal(created().length, before);
+    foundConversation = { id: 40, userId: 7, tripId: 5 };
 
     // found nearby: added with its location and map pin, in the app's words, not the model's
     r = await addStop({ title: 'Moses Mabhida Stadium', day: 3, time: '14:00', notes: 'ask about the sky car' });
@@ -202,7 +236,7 @@ const server = app.listen(0, async () => {
     assert.equal(created().length, before + 1);
     assert.equal(last('itineraryItem.create').data.tripId, 5);
     assert.equal(last('itineraryItem.create').data.startTime.toISOString(), '2026-12-03T14:00:00.000Z');
-    assert.equal(last('chatMessage.createMany').data[1].content, r.body.reply); // the saved answer is the true one
+    assert.equal(last('chatMessage.create').data.content, r.body.reply); // the saved answer is the true one
     // it searched around the trip's city (this trip has no stop with coordinates yet)
     assert.equal(placeRequest.url.searchParams.get('near'), 'Durban, South Africa');
     assert.equal(placeRequest.url.searchParams.get('text'), 'Moses Mabhida Stadium');
@@ -265,6 +299,55 @@ const server = app.listen(0, async () => {
     await ask({ message: 'add zoo', tripId: 5 });
     assert.equal(aiRequest.body.can_edit, false);
     foundTrip = trip;
+
+    // ---- logging an expense ----
+    const logExpenseAsk = async (args) => {
+      aiAnswer = { ok: true, status: 200, body: { reply: '', action: { name: 'log_expense', args } } };
+      const p = await ask({ message: 'log it', tripId: 5 });
+      return p.body.proposal ? call('/confirm', { method: 'POST', body: JSON.stringify({ conversationId: 40, ...p.body.proposal }) }) : p;
+    };
+    aiAnswer = { ok: true, status: 200, body: { reply: '', action: { name: 'log_expense', args: { title: 'Dinner', amount: 180.5, category: 'food' } } } };
+    r = await ask({ message: 'I paid 180.50 for dinner', tripId: 5 });
+    assert.equal(r.body.reply, 'Log 180,50 for "Dinner" (food), paid by you and split equally. Shall I go ahead?'.replace('180,50', '180,50 ZAR'));
+    assert.equal(expensesCreated.length, 0);
+    r = await logExpenseAsk({ title: 'Dinner', amount: 180.5, category: 'food' });
+    assert.equal(r.status, 200);
+    assert.match(r.body.reply, /^Logged 180,50 ZAR for "Dinner" \(food\)\.$/);
+    assert.deepEqual(expensesCreated.at(-1), { tripId: 5, userId: 7, body: { title: 'Dinner', amount: '180.50', category: 'FOOD', currency: undefined } });
+    // a budget warning is passed on
+    expenseWarnings = ['FOOD: 90% used'];
+    r = await logExpenseAsk({ title: 'Lunch', amount: '50', category: 'FOOD', currency: 'usd' });
+    assert.match(r.body.reply, /Heads up: FOOD: 90% used\./);
+    assert.equal(expensesCreated.at(-1).body.currency, 'USD');
+    expenseWarnings = [];
+    // things that must not be logged
+    const n = expensesCreated.length;
+    for (const [args, pattern] of [
+      [{ amount: 10, category: 'food' }, /What was the expense for/],
+      [{ title: 'x', amount: 'lots', category: 'food' }, /couldn't read the amount/],
+      [{ title: 'x', amount: 0, category: 'food' }, /couldn't read the amount/],
+      [{ title: 'x', amount: 10, category: 'gifts' }, /Which category/],
+      [{ title: 'x', amount: 10, category: 'food', currency: 'rand' }, /isn't a currency code/],
+    ]) {
+      r = await logExpenseAsk(args);
+      assert.match(r.body.reply, pattern);
+    }
+    assert.equal(expensesCreated.length, n);
+    // a viewer is told no at the proposal
+    accessError = Object.assign(new Error('Viewers cannot modify'), { statusCode: 403 });
+    r = await logExpenseAsk({ title: 'x', amount: 10, category: 'food' });
+    assert.match(r.body.reply, /view-only access/);
+    accessError = null;
+
+    // confirming: only known actions, only your own conversation about a trip you can see
+    r = await call('/confirm', { method: 'POST', body: JSON.stringify({ conversationId: 40, name: 'delete_everything', args: {} }) });
+    assert.equal(r.status, 400);
+    r = await call('/confirm', { method: 'POST', body: JSON.stringify({ conversationId: 40, name: 'log_expense', args: [] }) });
+    assert.equal(r.status, 400);
+    foundConversation = null;
+    r = await call('/confirm', { method: 'POST', body: JSON.stringify({ conversationId: 41, name: 'log_expense', args: { title: 'x', amount: 1, category: 'food' } }) });
+    assert.equal(r.status, 404);
+    foundConversation = { id: 40, userId: 7, tripId: 5 };
 
     // an action it does not know changes nothing
     aiAnswer = { ok: true, status: 200, body: { reply: '', action: { name: 'delete_everything', args: {} } } };

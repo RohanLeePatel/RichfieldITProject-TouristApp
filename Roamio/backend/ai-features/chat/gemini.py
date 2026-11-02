@@ -38,6 +38,13 @@ SYSTEM_PROMPT = (
     "e-mail addresses, phone numbers, passwords, keys or payment details.\n"
     "- You only know this one traveller's trip. Refuse questions about other people or other users.\n"
     "- Stay on travel. Decline anything else in one short sentence.\n"
+    "- When it helps, point them to a part of the app with a link written [label](path). Only these paths exist: "
+    "the 'Trip page' path from the trip facts, with ?tab=plan (itinerary), ?tab=safety (safety and weather), "
+    "?tab=money (budget), ?tab=people or ?tab=documents on the end; /weather; /calendar; and "
+    "/translator?text=PHRASE&to=CODE, where PHRASE is the phrase to translate, URL-encoded, and CODE is a DeepL "
+    "language code such as FR, DE, ES, PT-BR, JA. Offer the translator link when they ask how to say something. Never invent any other link.\n"
+    "- Adding a stop or logging an expense is done by calling the tool; the traveller is then asked to confirm. "
+    "Never say it is already done.\n"
     "- Safety information is not official: point to the official advisory for anything serious. "
     "Do not give medical or legal advice."
 )
@@ -54,8 +61,28 @@ SAFETY_SETTINGS = [
 ]
 
 
-ADD_ITEM_TOOL = {
+TOOLS = {
     "functionDeclarations": [
+        {
+            "name": "log_expense",
+            "description": (
+                "Record an expense the traveller paid, split equally between the group. Call it only when the "
+                "traveller clearly says they paid for something, never for questions. Call it once per message."
+            ),
+            "parameters": {
+                "type": "OBJECT",
+                "properties": {
+                    "title": {"type": "STRING", "description": "What it was for, e.g. Dinner at the harbour."},
+                    "amount": {"type": "NUMBER", "description": "The amount paid, as a plain number."},
+                    "category": {
+                        "type": "STRING",
+                        "enum": ["TRANSPORT", "FOOD", "ACCOMMODATION", "ACTIVITY", "MISC"],
+                    },
+                    "currency": {"type": "STRING", "description": "3-letter code such as ZAR or USD, only if the traveller said one."},
+                },
+                "required": ["title", "amount", "category"],
+            },
+        },
         {
             "name": "add_itinerary_item",
             "description": (
@@ -76,7 +103,7 @@ ADD_ITEM_TOOL = {
         }
     ]
 }
-ACTION_NAMES = {"add_itinerary_item"}
+ACTION_NAMES = {"add_itinerary_item", "log_expense"}
 
 
 class ChatUnavailable(Exception):
@@ -118,7 +145,7 @@ def reply(messages: list[dict], context: str, can_edit: bool = False) -> tuple[s
         ],
         "generationConfig": {"maxOutputTokens": MAX_OUTPUT_TOKENS},
         "safetySettings": SAFETY_SETTINGS,
-        **({"tools": [ADD_ITEM_TOOL]} if can_edit else {}),
+        **({"tools": [TOOLS]} if can_edit else {}),
     }
     try:
         response = requests.post(

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Activity, AlertTriangle, CloudSun, Copy, LoaderCircle, MapPinPlus, ShieldAlert, UserPlus, Users, Wallet } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import AskButton from "../chat/AskButton.jsx";
+
 import { fetchBudgetSummary } from "../../api/budget.js";
 import { fetchLandmarks } from "../../api/recommendations.js";
 import { fetchCountrySafety, fetchTripActivity } from "../../api/tripHub.js";
@@ -84,7 +86,7 @@ export function TripSnapshot({ trip }) {
       </section>
 
       <section className="insights-card">
-        <h3><ShieldAlert size={15} /> Safety{country ? ` in ${country}` : ""}</h3>
+        <h3><ShieldAlert size={15} /> Safety{country ? ` in ${country}` : ""} <AskButton prompt="Explain the current safety advisory for my trip in plain words and what I should do about it." label="Ask about this advisory" /></h3>
         {safety.status === "loading" && <Loading label="Checking advisories..." />}
         {safety.status === "error" && <p className="wizard-help">Safety data unavailable for this destination.</p>}
         {safety.status === "ready" && (
