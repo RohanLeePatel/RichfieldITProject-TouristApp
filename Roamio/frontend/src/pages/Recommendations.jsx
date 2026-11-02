@@ -706,24 +706,23 @@ function Planner({ draft }) {
     );
   };
 
-  // Adding a day rebalances every already-picked stop evenly across the new
-  // day count instead of leaving the new day empty ("drag one here") - the
-  // itinerary only ever contains stops the user explicitly checked, so
-  // there's no separate pool to pull fresh suggestions from; redistributing
-  // the existing ones is what "auto-populate" can mean here.
-  // ponytail: even split in current order, not a re-run of the geographic
-  // sweep - upgrade to re-clustering if it visibly mixes far-apart stops.
+  // Adding a day only adds an empty day, so the user's own arrangement stays
+  // as it is. Spreading stops out is a separate, explicit action below.
   const addDay = () => {
+    snapshotItinerary();
+    setItineraryDays((current) => renumberDays([...current, { dayNumber: 0, stops: [] }]));
+  };
+
+  // Opt-in: share every picked stop evenly across the days, in current order.
+  // ponytail: even split, not a re-run of the geographic sweep - upgrade to
+  // re-clustering if it visibly mixes far-apart stops.
+  const spreadStops = () => {
     snapshotItinerary();
     setItineraryDays((current) => {
       const allLandmarks = current.flatMap((day) => day.stops.map((stop) => stop.landmark));
-      if (allLandmarks.length === 0) {
-        return renumberDays([...current, { dayNumber: 0, stops: [] }]);
-      }
-      const dayCount = current.length + 1;
-      const perDay = Math.ceil(allLandmarks.length / dayCount);
-      return Array.from({ length: dayCount }, (_, index) => ({
-        dayNumber: index + 1,
+      const perDay = Math.ceil(allLandmarks.length / current.length);
+      return current.map((day, index) => ({
+        ...day,
         stops: recomputeDayStopTimes(allLandmarks.slice(index * perDay, (index + 1) * perDay)),
       }));
     });
@@ -952,6 +951,7 @@ function Planner({ draft }) {
           undo={undoItineraryEdit}
           back={() => setStage("landmarks")}
           addDay={addDay}
+          spreadStops={spreadStops}
           removeDay={removeDay}
           removeStop={removeStop}
           moveStop={moveStop}
