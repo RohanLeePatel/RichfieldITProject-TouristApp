@@ -643,7 +643,8 @@
 .trip-edit-actions { grid-column: 1 / -1; margin: 0; }
 
 /* Moving a stop: up, down, to another day */
-.trip-stop-tools { display: flex; align-items: center; gap: 2px; }
+/* own row under the title: beside it, the buttons squeezed the title to one character wide (CJK names stacked vertically) */
+.trip-stop-tools { display: flex; align-items: center; gap: 2px; grid-column: 2 / -1; padding-left: 8px; }
 .trip-stop-tools select {
   max-width: 76px;
   padding: 3px 4px;

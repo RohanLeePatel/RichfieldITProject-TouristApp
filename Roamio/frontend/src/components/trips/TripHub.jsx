@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import { Activity, AlertTriangle, CloudSun, Copy, LoaderCircle, MapPinPlus, ShieldAlert, UserPlus, Users, Wallet } from "lucide-react";
+import { Activity, CloudSun, Copy, LoaderCircle, MapPinPlus, ShieldAlert, UserPlus, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import AskButton from "../chat/AskButton.jsx";
 
-import { fetchBudgetSummary } from "../../api/budget.js";
 import { fetchLandmarks } from "../../api/recommendations.js";
 import { fetchCountrySafety, fetchTripActivity } from "../../api/tripHub.js";
 import { fetchMyGroups, inviteLink } from "../../api/groups.js";
@@ -13,7 +12,6 @@ import { fetchWeather } from "../../api/weather.js";
 import { INTEREST_TAGS } from "../../pages/recommendations/constants.js";
 import { splitDestination } from "../../utils/countries.js";
 import { wholeSentences } from "../../utils/travelAdvice.js";
-import { formatMoney } from "../../utils/format.js";
 import "../../styles/insights.css";
 
 // The trip page's hub sections. Each one loads on its own and says plainly
@@ -112,36 +110,6 @@ export function TripSnapshot({ trip }) {
         )}
       </section>
     </div>
-  );
-}
-
-// Budget at a glance; the full page is /trips/:id/budget.
-export function TripBudgetCard({ trip }) {
-  const budget = useLoad(() => fetchBudgetSummary(trip.id), [trip.id]);
-  const money = formatMoney;
-
-  return (
-    <section className="insights-card">
-      <h3><Wallet size={15} /> Budget</h3>
-      {budget.status === "loading" && <Loading label="Loading budget..." />}
-      {budget.status === "error" && <p className="wizard-help">Budget unavailable right now.</p>}
-      {budget.status === "ready" && budget.data.totalBudget === null && (
-        <p className="wizard-help">
-          No budget set. {budget.data.expenseCount > 0 && `${budget.data.expenseCount} expenses recorded.`}
-        </p>
-      )}
-      {budget.status === "ready" && budget.data.totalBudget !== null && (
-        <>
-          <p className="trip-hub-big">
-            {money(budget.data.remaining, budget.data.currency)} <span>left of {money(budget.data.totalBudget, budget.data.currency)}</span>
-          </p>
-          {budget.data.warnings.map((text) => (
-            <p key={text} className="wizard-help trip-risk-3"><AlertTriangle size={13} /> {text}</p>
-          ))}
-        </>
-      )}
-      <Link className="trip-hub-link" to={`/trips/${trip.id}/budget`}>Record a purchase</Link>
-    </section>
   );
 }
 

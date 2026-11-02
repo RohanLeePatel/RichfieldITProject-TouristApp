@@ -11,7 +11,8 @@ import Hint from "../components/onboarding/Hint.jsx";
 import PageShell from "../components/recommendations/PageShell.jsx";
 import TripDocuments from "../components/trips/TripDocuments.jsx";
 import TripEditForm from "../components/trips/TripEditForm.jsx";
-import { AddLandmark, TripBudgetCard, TripPeople, TripSnapshot } from "../components/trips/TripHub.jsx";
+import TripBudget from "./TripBudget.jsx";
+import { AddLandmark, TripPeople, TripSnapshot } from "../components/trips/TripHub.jsx";
 import useActiveTrip from "../hooks/useActiveTrip.js";
 
 import { fetchTrip, deleteTrip, removeItineraryItem, reorderItinerary } from "../api/trips.js";
@@ -363,17 +364,7 @@ export default function TripDetail() {
             )}
 
             {tab === "money" && (
-            <section className="recommendations-results">
-              <div className="results-heading">
-                <div>
-                  <h2>Money</h2>
-                  <p>What's been spent, in the trip's currency.</p>
-                </div>
-              </div>
-              <div className="insights trip-hub-grid">
-                <TripBudgetCard trip={trip} />
-              </div>
-            </section>
+            <TripBudget embedded />
             )}
 
             {tab === "people" && (

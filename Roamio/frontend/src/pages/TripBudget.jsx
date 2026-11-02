@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, LoaderCircle, Plus, Trash2, Wallet } from "lucide-react";
 import { useParams } from "react-router-dom";
 
@@ -45,7 +45,8 @@ const shiftDays = (iso, days) => {
 
 // Durban tasks 7 and 8: record a purchase in whatever currency it was paid in,
 // and see what's left of the budget in the trip's currency.
-export default function TripBudget() {
+// embedded: shown inside the trip's Budget tab, so no page shell of its own.
+export default function TripBudget({ embedded = false }) {
   const { tripId } = useParams();
   const me = useAuthStore((state) => state.user);
   const [trip, setTrip] = useState(null);
@@ -108,8 +109,11 @@ export default function TripBudget() {
     </>
   ) : null;
 
+  const Wrapper = embedded ? Fragment : PageShell;
+  const wrapperProps = embedded ? {} : { backTo: `/trips/${tripId}`, backLabel: "Back to the trip", hero };
+
   return (
-    <PageShell backTo={`/trips/${tripId}`} backLabel="Back to the trip" hero={hero}>
+    <Wrapper {...wrapperProps}>
       {error && <p className="recommendations-error" role="alert">{error}</p>}
       {!summary ? (
         !error && <p className="wizard-help"><LoaderCircle className="recommendations-spinner" size={16} /> Loading budget...</p>
@@ -234,7 +238,7 @@ export default function TripBudget() {
           )}
         </>
       )}
-    </PageShell>
+    </Wrapper>
   );
 }
 
