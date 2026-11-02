@@ -1,5 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
-import { Activity, AlertTriangle, Database, HardDrive, Languages, RefreshCw } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  BarChart3,
+  CloudSun,
+  Database,
+  HardDrive,
+  Languages,
+  Mail,
+  MapPin,
+  RefreshCw,
+  Server,
+  ShieldAlert,
+  Sparkles,
+  TrendingUp,
+} from "lucide-react";
 
 import { retryUnlessForbidden, serviceHealthQuery } from "../../api/admin.js";
 import { formatTime } from "../../utils/format.js";
@@ -8,6 +23,14 @@ const SERVICES = [
   { key: "database", name: "Database", sub: "Supabase PostgreSQL", icon: Database },
   { key: "storage", name: "Storage", sub: "Supabase Storage", icon: HardDrive },
   { key: "deepl", name: "DeepL", sub: "Translation API", icon: Languages },
+  { key: "aiService", name: "AI service", sub: "Translation, chat and recommendations backend", icon: Server },
+  { key: "gemini", name: "Gemini", sub: "Chat assistant LLM", icon: Sparkles },
+  { key: "weather", name: "OpenWeather", sub: "Weather forecasts", icon: CloudSun },
+  { key: "geoapify", name: "Geoapify", sub: "Geocoding and places", icon: MapPin },
+  { key: "fastforex", name: "FastForex", sub: "Currency exchange rates", icon: TrendingUp },
+  { key: "travelRisk", name: "Travel Risk API", sub: "Safety advisories", icon: ShieldAlert },
+  { key: "email", name: "Email", sub: "SMTP for verification codes and reports", icon: Mail },
+  { key: "analytics", name: "Google Analytics", sub: "GA4 Data API", icon: BarChart3 },
 ];
 
 const STATUS_LABELS = { online: "Online", degraded: "Degraded", down: "Down" };
