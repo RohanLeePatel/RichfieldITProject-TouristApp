@@ -720,11 +720,16 @@ function Planner({ draft }) {
     snapshotItinerary();
     setItineraryDays((current) => {
       const allLandmarks = current.flatMap((day) => day.stops.map((stop) => stop.landmark));
-      const perDay = Math.ceil(allLandmarks.length / current.length);
-      return current.map((day, index) => ({
-        ...day,
-        stops: recomputeDayStopTimes(allLandmarks.slice(index * perDay, (index + 1) * perDay)),
-      }));
+      // the first (total % days) days take one extra, so no day is starved
+      const base = Math.floor(allLandmarks.length / current.length);
+      const extra = allLandmarks.length % current.length;
+      let start = 0;
+      return current.map((day, index) => {
+        const size = base + (index < extra ? 1 : 0);
+        const stops = recomputeDayStopTimes(allLandmarks.slice(start, start + size));
+        start += size;
+        return { ...day, stops };
+      });
     });
   };
 
