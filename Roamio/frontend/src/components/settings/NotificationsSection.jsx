@@ -8,6 +8,7 @@ import {
   PlaneTakeoff,
   RotateCcw,
   Save,
+  ShieldAlert,
   Ticket,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -35,6 +36,18 @@ const TOPIC_GROUPS = [
         icon: CalendarClock,
         label: "Travel updates",
         description: "Check-in reminders, trip countdowns and itinerary changes from your group.",
+      },
+    ],
+  },
+  {
+    title: "Safety",
+    recommended: true,
+    items: [
+      {
+        key: "safetyAlerts",
+        icon: ShieldAlert,
+        label: "Safety alerts",
+        description: "When the travel advisory for a destination on your trip rises to level 3 or 4.",
       },
     ],
   },
