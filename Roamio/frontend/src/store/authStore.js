@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
-import { endSession, setToken } from "../api/client";
+import { endSession, getToken, setToken } from "../api/client";
+import { disablePush } from "../services/push.js";
 import { clearAllDrafts } from "../utils/plannerDraft.js";
 
 const USER_KEY = "user";
@@ -89,6 +90,7 @@ export const useAuthStore = create((set, get) => ({
   },
 
   logout: () => {
+    disablePush(getToken()).catch(() => {}); // a signed-out browser must not keep receiving this user's alerts
     endSession(); // drop the 7-day refresh cookie too: a signed-out browser keeps no session
     localStorage.removeItem(USER_KEY);
     clearAllDrafts();

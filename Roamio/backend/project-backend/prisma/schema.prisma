@@ -299,7 +299,11 @@ model Notification {
   type      String   @default("INFO") // "INVITE", "TRIP_UPDATE", "ALERT", "INFO"
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+  url       String? // in-app path the notification opens, e.g. "/trips/4"
+  tripId    Int?
+  dedupeKey String? // one notification per (user, key): a re-run cron can't repeat itself
 
+  @@unique([userId, dedupeKey])
   @@index([userId])
   @@index([isRead])
 }
@@ -312,6 +316,9 @@ model PushSubscription {
   p256dh    String
   auth      String
   createdAt DateTime @default(now())
+  userAgent    String   @default("")
+  lastUsedAt   DateTime @default(now())
+  failureCount Int      @default(0) // dropped at 5 consecutive failures
 
   @@index([userId])
 }

@@ -63,6 +63,15 @@ const supportLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Push subscribe / test: 10 per minute (a test sends a real notification)
+const pushLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { message: 'Too many requests, please try again after a minute.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 module.exports = {
   generalLimiter,
   authLimiter,
@@ -70,5 +79,6 @@ module.exports = {
   recommendationsLimiter,
   weatherLimiter,
   chatLimiter,
-  supportLimiter
+  supportLimiter,
+  pushLimiter
 };

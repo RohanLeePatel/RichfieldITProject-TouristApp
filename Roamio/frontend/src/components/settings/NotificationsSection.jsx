@@ -11,6 +11,7 @@ import {
   Ticket,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { disablePush, enablePush, pushSupported, sendTestPush } from "../../services/push.js";
 
 import {
   DEFAULT_NOTIFICATIONS,
@@ -62,7 +63,7 @@ const CHANNELS = [
   { key: "browser", label: "Browser", icon: MonitorSmartphone },
 ];
 
-const browserSupported = () => typeof window !== "undefined" && "Notification" in window;
+const browserSupported = pushSupported;
 
 export default function NotificationsSection({ email, notify }) {
   const [prefs, setPrefs] = useState(DEFAULT_NOTIFICATIONS);
@@ -106,17 +107,18 @@ export default function NotificationsSection({ email, notify }) {
     if (channel === "browser" && on) {
       if (!browserSupported()) return;
 
-      let result = Notification.permission;
-      if (result === "default") {
-        try {
-          result = await Notification.requestPermission();
-        } catch {
-          result = Notification.permission;
-        }
+      let result;
+      try {
+        result = await enablePush(); // asks permission, subscribes this browser, saves it
+      } catch (error) {
+        setPermission(Notification.permission);
+        notify(error.message || "Couldn't turn on browser notifications. Please try again.", "error");
+        return;
       }
-      setPermission(result);
+      setPermission(Notification.permission);
       if (result !== "granted") return;
     }
+    if (channel === "browser" && !on) disablePush().catch(() => {});
 
     setPrefs((current) => ({ ...current, channels: { ...current.channels, [channel]: on } }));
   };
@@ -127,14 +129,11 @@ export default function NotificationsSection({ email, notify }) {
       topics: { ...current.topics, [topic]: { ...current.topics[topic], [channel]: on } },
     }));
 
-  const sendTest = () => {
+  const sendTest = async () => {
     try {
-      new Notification("Roamio", {
-        body: "Browser notifications are on. We'll alert you here about your trips.",
-        tag: "roamio-test",
-      });
-    } catch {
-      notify("Your browser only shows notifications from the installed app.", "error");
+      await sendTestPush();
+    } catch (error) {
+      notify(error.message || "Couldn't send a test notification.", "error");
     }
   };
 
