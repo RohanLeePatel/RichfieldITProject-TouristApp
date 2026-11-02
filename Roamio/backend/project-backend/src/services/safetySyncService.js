@@ -1,6 +1,6 @@
 const axios = require('axios');
 const safetyRepository = require('../repositories/safetyRepository');
-const notificationRepository = require('../repositories/notificationRepository');
+const { notifyUser } = require('./pushService');
 const { EMERGENCY_NUMBERS, DEFAULT_EMERGENCY_NUMBER, MOCK_ADVISORIES } = require('../data/safetyData');
 
 const ALERT_MIN_LEVEL = 3; // "Reconsider travel" and above raise a trip alert
@@ -188,11 +188,15 @@ class SafetySyncService {
         if (isNew) {
           newAlerts += 1;
           if (notify) {
-            await Promise.all(trip.members.map((m) => notificationRepository.createNotification({
-              userId: m.userId,
+            const day = new Date().toISOString().slice(0, 10); // a re-run today stays quiet; a reopened alert tomorrow speaks again
+            await Promise.all(trip.members.map((m) => notifyUser(m.userId, {
+              type: 'ALERT',
+              topic: 'safetyAlerts',
               title: `Safety alert for "${trip.title}"`,
-              message,
-              type: 'ALERT'
+              body: message,
+              url: `/trips/${trip.id}`,
+              tripId: trip.id,
+              dedupeKey: `safety:${trip.id}:${destination.id}:${advisory.riskLevel}:${day}`
             })));
           }
         }
