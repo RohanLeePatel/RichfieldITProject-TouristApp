@@ -44,6 +44,7 @@
 .weather-page {
   min-height: 100vh;
   width: 100%;
+  overflow-x: clip;
 
   background:
     radial-gradient(

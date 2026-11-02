@@ -3,10 +3,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const helmet = require('helmet');
 const cron = require('node-cron');
-const path = require('node:path');
-const swaggerUi = require('swagger-ui-express');
-const swaggerJsdoc = require('swagger-jsdoc');
 const safetySyncService = require('./src/services/safetySyncService');
 
 // 2. Custom Middleware Imports
@@ -35,6 +33,7 @@ const adminRoutes = require('./src/routes/admin');
 const chatRoutes = require('./src/routes/chat');
 const meRoutes = require('./src/routes/me');
 const supportRoutes = require('./src/routes/support');
+const cronRoutes = require('./src/routes/cron');
 
 // 4. App Initialization
 const app = express();
@@ -44,6 +43,13 @@ const PORT = process.env.PORT || 3000; // the frontend's default VITE_BACKEND_AP
 
 // Tell Express to trust the cloud provider's reverse proxy (MUST be before limiters)
 app.set('trust proxy', 1);
+
+// Security headers. The API only answers JSON, so its CSP allows nothing and
+// forbids framing.
+app.use(helmet({
+  contentSecurityPolicy: { useDefaults: false, directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] } },
+  crossOriginResourcePolicy: { policy: 'cross-origin' }, // the SPA is on another origin
+}));
 
 // Enable CORS for your React frontend. CLIENT_URL may list several origins,
 // comma-separated (e.g. the Vercel site and a preview URL).
@@ -58,36 +64,17 @@ app.use(cors({
 
 // Parse incoming JSON payloads and URL-encoded data. Trip documents arrive as
 // base64 in JSON, so that one path gets a 2 MB limit (a 1 MB file, kept under
-// Vercel's ~4.5 MB body cap); the route re-checks the decoded size.
+// Vercel's ~4.5 MB body cap); the route re-checks the decoded size. The saved
+// trip-planner draft (itinerary and landmarks) is bigger than 100 KB too.
 const jsonDefault = express.json();
 const jsonDocuments = express.json({ limit: '2mb' });
 app.use((req, res, next) =>
-  (/^\/api\/trips\/[^/]+\/documents\/?$/.test(req.path) ? jsonDocuments : jsonDefault)(req, res, next)
+  (/^\/api\/(trips\/[^/]+\/documents|users\/me\/planner-draft)\/?$/.test(req.path) ? jsonDocuments : jsonDefault)(req, res, next)
 );
 app.use(express.urlencoded({ extended: true }));
 
 // Parse cookies (using the secret from .env if you are using signed cookies)
 app.use(cookieParser(process.env.COOKIE_SECRET || 'roamio_secret'));
-
-// Interactive API docs, built from the @openapi comments in src/routes
-const swaggerDocs = swaggerJsdoc({
-  definition: {
-    openapi: '3.0.0',
-    info: {
-      title: 'Roamio Backend API',
-      version: '1.0.0',
-      description: 'API documentation for travel planning, user authentication, itineraries, and expense tracking.',
-    },
-    servers: [{ url: `http://localhost:${PORT}`, description: 'Local Development Server' }],
-    components: {
-      securitySchemes: {
-        bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
-      },
-    },
-  },
-  apis: [path.join(__dirname, 'src/routes/*.js')],
-});
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 // Health check endpoint
 app.get('/', (req, res) => {
@@ -122,6 +109,9 @@ app.use('/api/chat', chatLimiter, chatRoutes);
 app.use('/api/users/me', meRoutes);
 app.use('/api/support', supportLimiter, supportRoutes);
 
+// Vercel Cron (vercel.json). Guarded by CRON_SECRET, not by a login.
+app.use('/api/cron', cronRoutes);
+
 // Admin dashboard API. Before the /api routers below, which would 401 it;
 // the router guards itself with isAdmin and has its own error handler.
 app.use('/api/admin', adminRoutes);
@@ -145,8 +135,8 @@ app.use('/api', activityRoutes);
 app.use('/api', safetyRoutes);
 app.use('/api/notifications', notificationRoutes);
 
-// An /api path nothing answered: JSON, not Express's HTML page
-app.use('/api', (req, res) => {
+// An address nothing answered: JSON, not Express's HTML page
+app.use((req, res) => {
   res.status(404).json({ message: 'Not found.' });
 });
 
@@ -156,7 +146,10 @@ app.use((err, req, res, next) => {
   console.error('Global Error Handler:', err.message);
   
   const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
+  let message = err.message || 'Internal Server Error';
+  // body-parser's own wording is technical; say it plainly
+  if (err.type === 'entity.too.large') message = 'That is too much to send at once. Try something smaller.';
+  else if (err.type === 'entity.parse.failed') message = 'We could not read that request. Please try again.';
 
   res.status(statusCode).json({
     message, // the shape the pages read; `error` below is kept for older callers
@@ -183,5 +176,4 @@ if (process.env.NODE_ENV === 'development') {
 app.listen(PORT, () => {
   console.log(`Roamio API Server running on http://localhost:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`Interactive API Docs available at http://localhost:${PORT}/api-docs`);
 });

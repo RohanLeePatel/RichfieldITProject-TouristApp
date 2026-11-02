@@ -4,7 +4,7 @@ const requireAuth = require('../middleware/authMiddleware');
 const safetyService = require('../services/safetyService');
 const { accessibleTrips } = require('../utils/tripFormat');
 const { buildContext } = require('../services/chatContext');
-const { addItineraryItem } = require('../services/chatActions');
+const { addItineraryItem, logExpense } = require('../services/chatActions');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -115,6 +115,15 @@ async function tripContext(userId, tripId) {
   };
 }
 
+// Runs (or, with dryRun, only checks) an action the assistant asked for.
+// -> { reply, item?, expense?, proposal? }
+async function runAction(name, args, { facts, userId, dryRun }) {
+  if (name === 'add_itinerary_item') return addItineraryItem({ userId, trip: facts.trip, near: facts.near, args, searchPlace, dryRun });
+  if (name === 'log_expense') return logExpense({ userId, trip: facts.trip, args, dryRun });
+  return { reply: "I can't do that." };
+}
+const ACTIONS = ['add_itinerary_item', 'log_expense'];
+
 // POST /api/chat { message, conversationId?, tripId? } -> { conversationId, reply }
 router.post('/', async (req, res) => {
   const nodeSecretKey = process.env.superSecretKey;
@@ -183,15 +192,16 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // The assistant asked to change the trip: carry it out here, and answer with what
-    // actually happened rather than with the model's own words.
+    // The assistant asked to change the trip. Nothing is changed yet: the change is
+    // checked here and offered back as a proposal the traveller must confirm, and the
+    // words they read come from the app, never from the model.
     let reply = data.reply;
-    let added = null;
+    let proposal = null;
     if (data.action) {
-      if (data.action.name === 'add_itinerary_item' && facts) {
-        ({ reply, item: added } = await addItineraryItem({
-          userId, trip: facts.trip, near: facts.near, args: data.action.args || {}, searchPlace,
-        }));
+      if (ACTIONS.includes(data.action.name) && facts) {
+        const checked = await runAction(data.action.name, data.action.args || {}, { facts, userId, dryRun: true });
+        proposal = checked.proposal || null;
+        reply = proposal ? `${proposal.summary}. Shall I go ahead?` : checked.reply;
       } else {
         reply = 'Choose a trip first (the Active trip in the sidebar), then ask again.';
       }
@@ -211,10 +221,36 @@ router.post('/', async (req, res) => {
     });
     await prisma.chatConversation.update({ where: { id: conversation.id }, data: { updatedAt: new Date() } });
 
-    return res.json({ conversationId: conversation.id, reply, added, tripId: facts ? facts.trip.id : null });
+    return res.json({ conversationId: conversation.id, reply, proposal, tripId: facts ? facts.trip.id : null });
   } catch (error) {
     console.error('Chat error:', error);
     return res.status(502).json({ message: 'The assistant is unavailable right now.' });
+  }
+});
+
+// POST /api/chat/confirm { conversationId, name, args } -> { reply, added, expense, tripId }
+// The traveller said yes to a proposal. Everything is checked again, as if they had used the
+// itinerary or budget screen themselves, and the result is written into the chat.
+router.post('/confirm', async (req, res) => {
+  const userId = req.user.userId;
+  const { name, args } = req.body;
+  const id = parseId(req.body.conversationId);
+  if (!ACTIONS.includes(name) || !args || typeof args !== 'object' || Array.isArray(args)) {
+    return res.status(400).json({ message: 'That action is not recognised.' });
+  }
+  try {
+    const conversation = id && await prisma.chatConversation.findFirst({ where: { id, userId } });
+    if (!conversation || !conversation.tripId) return res.status(404).json({ message: 'Conversation not found.' });
+    const facts = await tripContext(userId, conversation.tripId);
+    if (!facts) return res.status(404).json({ message: 'Trip not found.' });
+
+    const done = await runAction(name, args, { facts, userId, dryRun: false });
+    await prisma.chatMessage.create({ data: { conversationId: conversation.id, role: 'assistant', content: done.reply } });
+    await prisma.chatConversation.update({ where: { id: conversation.id }, data: { updatedAt: new Date() } });
+    return res.json({ reply: done.reply, added: done.item || null, expense: done.expense || null, tripId: facts.trip.id });
+  } catch (error) {
+    console.error('Chat confirm error:', error);
+    return res.status(502).json({ message: 'I could not do that right now. Try again.' });
   }
 });
 

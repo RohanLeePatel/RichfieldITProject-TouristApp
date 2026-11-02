@@ -60,7 +60,11 @@ export default function AnalyticsOverview() {
       {error ? (
         <div className="admin-card admin-error" role="alert">
           <AlertTriangle size={18} />
-          <span>{error.message}</span>
+          <span>
+            {error.status === 503
+              ? "Visitor numbers aren't connected yet. Google Analytics still needs to be set up for this site."
+              : error.message}
+          </span>
         </div>
       ) : (
         <div className="admin-stats">

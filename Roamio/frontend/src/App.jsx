@@ -3,6 +3,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useLocation,
 } from "react-router-dom";
 
 import Landing from "./pages/Landing.jsx";
@@ -26,6 +27,7 @@ import Invite from "./pages/Invite.jsx";
 import Join from "./pages/Join.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
 import Legal from "./pages/Legal.jsx";
+import NotFound from "./pages/NotFound.jsx";
 
 import AppShell from "./components/layout/AppShell.jsx";
 import AdminRoute from "./components/admin/AdminRoute.jsx";
@@ -40,10 +42,13 @@ function ProtectedRoute({ children }) {
     (state) => state.isAuthenticated
   );
 
+  const location = useLocation();
+
+  // remember the page asked for, so signing in lands there
   if (!isAuthenticated) {
     return (
       <Navigate
-        to="/login"
+        to={`/login?next=${encodeURIComponent(location.pathname + location.search)}`}
         replace
       />
     );
@@ -143,15 +148,7 @@ function App() {
             UNKNOWN ROUTES
         ================================================= */}
 
-        <Route
-          path="*"
-          element={
-            <Navigate
-              to="/"
-              replace
-            />
-          }
-        />
+        <Route path="*" element={<NotFound />} />
 
       </Routes>
     </BrowserRouter>

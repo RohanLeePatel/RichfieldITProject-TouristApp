@@ -11,11 +11,14 @@ process.env.JWT_ACCESS_SECRET = 'selfcheck-secret';
 const calls = [];
 let personalMembership = null; // what travelGroupMember.findFirst returns
 let foundTrip = null; // what trip.findFirst returns
+let tripRole = 'ORGANIZER'; // the caller's TripMember role, for the viewer checks
 
 const fakePrisma = {
   travelGroupMember: {
     findFirst: async (args) => (calls.push(['travelGroupMember.findFirst', args]), personalMembership),
   },
+  tripMember: { findFirst: async () => ({ role: tripRole }) },
+  $transaction: async (ops) => Promise.all(ops),
   user: { findUnique: async () => ({ id: 7, fullName: 'Ada' }) },
   travelGroup: {
     create: async (args) => (calls.push(['travelGroup.create', args]), { id: 99 }),
@@ -28,16 +31,18 @@ const fakePrisma = {
     ]),
     findFirst: async (args) => (calls.push(['trip.findFirst', args]), foundTrip),
     // a share that makes a new group answers with it, as Prisma's include would
-    update: async (args) => (calls.push(['trip.update', args]), args.include?.travelGroup ? { travelGroup: { id: 50, ...args.data.travelGroup.create } } : {}),
+    update: async (args) => (calls.push(['trip.update', args]), args.include?.travelGroup ? { travelGroup: { id: 50, ...args.data.travelGroup.create } } : { id: 5, title: 'T', ...args.data }),
   },
   itineraryItem: {
     create: async (args) => (calls.push(['itineraryItem.create', args]), args.data),
     deleteMany: async (args) => (calls.push(['itineraryItem.deleteMany', args]), { count: 1 }),
+    update: async (args) => (calls.push(['itineraryItem.update', args]), args),
   },
 };
 
 // swap the real client for the fake before the router loads it
 require.cache[path.join(__dirname, '../config/prisma.js')] = { exports: fakePrisma };
+require.cache[path.join(__dirname, '../prismaClient.js')] = { exports: fakePrisma }; // the access check reads through this one
 
 const { generateAccessToken } = require('../auth/tokenService');
 const router = require('./trips');
@@ -132,7 +137,74 @@ const server = app.listen(0, async () => {
     assert.equal(r.status, 200);
     assert.deepEqual(last('itineraryItem.deleteMany').where, { id: 'i1', tripId: 5 });
 
+    // a viewer reads a trip but changes nothing in it
+    tripRole = 'VIEWER';
+    for (const [method, p, body] of [['POST', '/5/itinerary', { title: 'x' }], ['DELETE', '/5/itinerary/i1'], ['DELETE', '/5'],
+      ['PATCH', '/5', { title: 'x' }], ['PUT', '/5/itinerary/order', { days: [{ dayNumber: 1, itemIds: [] }] }]]) {
+      assert.equal((await call(p, { method, ...(body ? { body: JSON.stringify(body) } : {}) })).status, 403, method + ' ' + p);
+    }
+    tripRole = 'ORGANIZER';
+
+    // editing a saved trip: unsent fields keep their value; dates come in pairs, 1-30 days
+    foundTrip = {
+      id: 5, title: 'Old', description: '{"destination":"Lima","budget":500,"notes":"n","currency":"USD"}',
+      startDate: new Date('2026-10-01T00:00:00Z'),
+      itineraries: [
+        { id: 'a', dayNumber: 1, startTime: new Date('2026-10-01T09:00:00Z') },
+        { id: 'b', dayNumber: 3, startTime: new Date('2026-10-03T14:30:00Z') },
+      ],
+    };
+    r = await call('/5', { method: 'PATCH', body: JSON.stringify({ title: 'New', budget: 900 }) });
+    assert.equal(r.status, 200);
+    assert.deepEqual(JSON.parse(last('trip.update').data.description), { destination: 'Lima', budget: 900, notes: 'n', currency: 'USD' });
+    assert.equal(last('trip.update').data.title, 'New');
+    assert.equal(last('trip.update').data.startDate, undefined);
+    assert.equal((await call('/5', { method: 'PATCH', body: JSON.stringify({ startDate: '2026-11-01' }) })).status, 400);
+    assert.equal((await call('/5', { method: 'PATCH', body: JSON.stringify({ startDate: '2026-11-05', endDate: '2026-11-01' }) })).status, 400);
+    assert.equal((await call('/5', { method: 'PATCH', body: JSON.stringify({ startDate: '2026-11-01', endDate: '2026-12-15' }) })).status, 400);
+    r = await call('/5', { method: 'PATCH', body: JSON.stringify({ startDate: '2026-11-01', endDate: '2026-11-02' }) });
+    assert.equal(r.status, 409); // stop b is on day 3
+    assert.deepEqual(r.body.items.map((item) => item.id), ['b']);
+    r = await call('/5', { method: 'PATCH', body: JSON.stringify({ startDate: '2026-11-01', endDate: '2026-11-03' }) });
+    assert.equal(r.status, 200);
+    // every stop keeps its day and time of day, on the new calendar dates
+    const moved = calls.filter(([n]) => n === 'itineraryItem.update').slice(-2).map(([, a]) => [a.where.id, a.data.startTime.toISOString()]);
+    assert.deepEqual(moved, [['a', '2026-11-01T09:00:00.000Z'], ['b', '2026-11-03T14:30:00.000Z']]);
+
+    // reordering: a day keeps its time slots, handed out in the new order; stops can change day
+    foundTrip = {
+      id: 5, startDate: new Date('2026-10-01T00:00:00Z'),
+      itineraries: [
+        { id: 'a', dayNumber: 1, startTime: new Date('2026-10-01T09:00:00Z') },
+        { id: 'b', dayNumber: 1, startTime: new Date('2026-10-01T14:00:00Z') },
+        { id: 'c', dayNumber: 2, startTime: new Date('2026-10-02T10:00:00Z') },
+      ],
+    };
+    const before = calls.length;
+    r = await call('/5/itinerary/order', { method: 'PUT', body: JSON.stringify({ days: [{ dayNumber: 1, itemIds: ['b', 'c'] }, { dayNumber: 2, itemIds: ['a'] }] }) });
+    assert.equal(r.status, 200);
+    assert.deepEqual(
+      calls.slice(before).filter(([n]) => n === 'itineraryItem.update').map(([, a]) => [a.where.id, a.data.dayNumber, a.data.startTime.toISOString()]),
+      [['b', 1, '2026-10-01T10:00:00.000Z'], ['c', 1, '2026-10-01T14:00:00.000Z'], ['a', 2, '2026-10-02T09:00:00.000Z']]
+    );
+    assert.equal((await call('/5/itinerary/order', { method: 'PUT', body: JSON.stringify({ days: [{ dayNumber: 1, itemIds: ['zzz'] }] }) })).status, 400);
+    assert.equal((await call('/5/itinerary/order', { method: 'PUT', body: JSON.stringify({ days: [{ dayNumber: 1, itemIds: ['a', 'a'] }] }) })).status, 400);
+
+    // deleted trips: listed for 30 days, restored by anyone but a viewer
+    r = await call('/deleted');
+    assert.equal(r.status, 200);
+    assert.ok(last('trip.findMany').where.deletedAt.gte instanceof Date);
+    foundTrip = { id: 5, title: 'T', members: [], travelGroup: { members: [{ role: 'VIEWER' }] } };
+    assert.equal((await call('/5/restore', { method: 'POST' })).status, 403);
+    foundTrip.travelGroup.members = [{ role: 'MEMBER' }];
+    r = await call('/5/restore', { method: 'POST' });
+    assert.equal(r.status, 200);
+    assert.equal(last('trip.update').data.deletedAt, null);
+    foundTrip = null;
+    assert.equal((await call('/5/restore', { method: 'POST' })).status, 404);
+
     // soft delete
+    foundTrip = { id: 5, startDate: '2026-10-01T00:00:00Z' };
     r = await call('/5', { method: 'DELETE' });
     assert.equal(r.status, 200);
     assert.ok(last('trip.update').data.deletedAt instanceof Date);

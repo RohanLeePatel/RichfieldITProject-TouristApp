@@ -1,0 +1,45 @@
+# Known-vulnerability check on the dependencies (4.8.2 supply chain): npm audit
+# for the Core API and the SPA, pip-audit for the Expert service. Runs on every
+# pull request that changes a dependency list, and weekly, because advisories
+# are published against code that has not changed. Only what ships is checked
+# (--omit=dev); a high or critical finding fails the run.
+name: audit
+
+on:
+  pull_request:
+    paths:
+      - "Roamio/backend/project-backend/package*.json"
+      - "Roamio/frontend/package*.json"
+      - "Roamio/backend/ai-features/requirements*.txt"
+      - ".github/workflows/audit.yml"
+  schedule:
+    - cron: "0 5 * * 1" # Mondays, 07:00 SAST
+  workflow_dispatch:
+
+jobs:
+  npm:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dir: [Roamio/backend/project-backend, Roamio/frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: npm audit
+        working-directory: ${{ matrix.dir }}
+        run: npm audit --omit=dev --audit-level=high
+
+  pip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: pip-audit
+        working-directory: Roamio/backend/ai-features
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt

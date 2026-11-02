@@ -1,4 +1,4 @@
-import { authedFetch, TOKEN_KEY } from "./client";
+import { authedFetch, isDevBypass } from "./client";
 
 // DEV-ONLY: no database is configured on the Node backend yet, so a real
 // POST /api/trips 500s and itinerary saves would too. When there's no real
@@ -8,7 +8,6 @@ import { authedFetch, TOKEN_KEY } from "./client";
 // Remove this fallback once DATABASE_URL is wired up; real sessions
 // (a real token present) always go through the real API untouched.
 const DEV_TRIPS_KEY = "roamio_dev_trips";
-const isDevBypass = () => import.meta.env.DEV && !localStorage.getItem(TOKEN_KEY);
 
 function readDevTrips() {
   try {
@@ -102,4 +101,28 @@ export async function removeItineraryItem(tripId, itemId) {
 // group of its own first (organizer only). { inviteCode, travelGroupId, groupName }
 export function shareTrip(tripId) {
   return authedFetch(`/api/trips/${tripId}/share`, { method: "POST" });
+}
+
+// Edit a saved trip: any of title, destination, budget, notes, startDate and
+// endDate (the dates go together; null clears them). A 409 carries the stops
+// that fall outside the new dates in error.data.items.
+export async function updateTrip(tripId, changes) {
+  const result = await authedFetch(`/api/trips/${tripId}`, { method: "PATCH", body: JSON.stringify(changes) });
+  return result.trip;
+}
+
+// days: [{ dayNumber, itemIds }] - each day's stops, top to bottom
+export function reorderItinerary(tripId, days) {
+  return authedFetch(`/api/trips/${tripId}/itinerary/order`, { method: "PUT", body: JSON.stringify({ days }) });
+}
+
+// Trips deleted in the last 30 days, and bringing one back
+export async function fetchDeletedTrips() {
+  const result = await authedFetch("/api/trips/deleted");
+  return result.trips;
+}
+
+export async function restoreTrip(tripId) {
+  const result = await authedFetch(`/api/trips/${tripId}/restore`, { method: "POST" });
+  return result.trip;
 }

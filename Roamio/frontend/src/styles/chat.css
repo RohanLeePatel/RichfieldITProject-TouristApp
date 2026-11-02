@@ -129,3 +129,17 @@
 .chat-bubble.assistant li { margin: 0 0 4px; }
 .chat-bubble.assistant > :last-child { margin-bottom: 0; }
 .chat-bubble.assistant .chat-bubble-link { margin-top: 8px; }
+
+/* ---------- Ask the assistant (buttons elsewhere in the app) ---------- */
+
+.ask-button { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--primary); font: inherit; font-size: 0.75rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.ask-button:hover { border-color: var(--primary); background: var(--surface-2); }
+
+.chat-inline-link { color: var(--primary); font-weight: 700; text-decoration: underline; }
+.chat-proposal { display: flex; gap: 8px; margin-top: 10px; }
+.chat-proposal button { padding: 7px 14px; border-radius: 999px; font-weight: 700; cursor: pointer; }
+.chat-proposal button:disabled { opacity: 0.6; cursor: default; }
+.chat-yes { border: 0; background: var(--primary); color: var(--primary-ink); }
+.chat-yes:hover:not(:disabled) { background: var(--primary-hover); }
+.chat-no { border: 1px solid var(--line); background: transparent; color: var(--ink); }
+.chat-proposal-note { margin: 8px 0 0; color: var(--ink-soft); font-size: 0.8125rem; }

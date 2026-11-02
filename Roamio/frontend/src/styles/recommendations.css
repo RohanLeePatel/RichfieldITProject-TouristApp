@@ -1253,3 +1253,17 @@ path.map-route.day-6 { stroke: var(--day-6); }
 .landmark-translate:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .landmark-translation { color: var(--ink); font-style: italic; }
 .landmark-translation-error { color: #b4432b; font-style: normal; }
+
+/* Pick-and-avoid conflict popup */
+.conflict-dialog {
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.conflict-dialog::backdrop { background: rgb(0 0 0 / 0.5); }
+.conflict-dialog h3 { margin: 0 0 8px; font-size: 1.125rem; }
+.conflict-dialog p { margin: 0 0 18px; color: var(--ink-soft); line-height: 1.5; }
+.conflict-dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }

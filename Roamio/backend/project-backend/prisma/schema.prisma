@@ -43,6 +43,7 @@ model User {
   chatConversations ChatConversation[]
   notifications     Notification[]
   pushSubscriptions PushSubscription[]
+  plannerDraft      PlannerDraft?
   activityLogs      ActivityLog[]
   paidExpenses      Expense[]           @relation("ExpensePaidBy")
   expenseSplits     ExpenseSplit[]
@@ -475,6 +476,16 @@ model ChatMessage {
 
 // Settings page tables. Added to the live DB by prisma/live-sql/006_settings.sql,
 // then mirrored here.
+// The trip planner's unfinished plan, one per user, so it follows them between
+// devices. data is the page's own snapshot.
+model PlannerDraft {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data      Json
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+}
+
 model NotificationPreference {
   id        Int      @id @default(autoincrement())
   userId    Int      @unique

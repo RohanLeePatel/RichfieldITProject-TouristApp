@@ -5,8 +5,9 @@ const requireAuth = require('../middleware/authMiddleware');
 
 const prisma = require('../config/prisma');
 const validate = require('../middleware/validate');
-const { createTripSchema, createItinerarySchema } = require('../schemas/trips');
-const { packMeta, packItemMeta, itemStartDate, formatItem, formatTrip, accessibleTrips } = require('../utils/tripFormat');
+const { createTripSchema, updateTripSchema, reorderItinerarySchema, createItinerarySchema } = require('../schemas/trips');
+const { packMeta, unpackMeta, packItemMeta, itemStartDate, formatTime, formatItem, formatTrip, planReorder, accessibleTrips } = require('../utils/tripFormat');
+const { assertTripAccess } = require('../services/tripAccessService');
 
 // The frontend's trip API: personal and group trips in one list. Every trip
 // belongs to a TravelGroup; a solo user's trips live in a personal group (see
@@ -46,6 +47,27 @@ const parseId = (value) => {
   const id = parseInt(value, 10);
   return Number.isNaN(id) ? null : id;
 };
+
+const DAY_MS = 86_400_000;
+const MAX_TRIP_DAYS = 30; // P-06: a trip lasts 1 to 30 days
+const RESTORE_WINDOW_DAYS = 30; // a deleted trip can be brought back for this long
+
+// Viewers read a trip but may not change it. Sends the 403 itself; true = go on.
+async function canWrite(req, res, tripId, denied) {
+  try {
+    await assertTripAccess(tripId, req.user.userId, { write: true, denied });
+    return true;
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ message: error.message });
+    return false;
+  }
+}
+
+// Deleted trips the user could see, deleted within the restore window
+const deletedTrips = (userId, extra = {}) => ({
+  ...accessibleTrips(userId, extra),
+  deletedAt: { gte: new Date(Date.now() - RESTORE_WINDOW_DAYS * DAY_MS) },
+});
 
 // ==========================================
 // TRIP ENDPOINTS
@@ -102,6 +124,20 @@ router.get('/', async (req, res) => {
     res.json({ trips: userTrips.map(formatTrip) });
   } catch (error) {
     console.error('Error fetching trips:', error);
+    res.status(500).json({ message: 'Internal server error.' });
+  }
+});
+
+// GET /api/trips/deleted - Trips deleted in the last 30 days, which can be restored
+router.get('/deleted', async (req, res) => {
+  try {
+    const trips = await prisma.trip.findMany({
+      where: deletedTrips(req.user.userId),
+      orderBy: { deletedAt: 'desc' },
+    });
+    res.json({ trips: trips.map((trip) => ({ ...formatTrip(trip), deletedAt: trip.deletedAt })) });
+  } catch (error) {
+    console.error('Error fetching deleted trips:', error);
     res.status(500).json({ message: 'Internal server error.' });
   }
 });
@@ -176,6 +212,95 @@ router.post('/:id/share', async (req, res) => {
   }
 });
 
+// PATCH /api/trips/:id - Edit a saved trip. Dates move together: items keep
+// their day numbers, so every stop's calendar date moves with the trip (P-06).
+router.patch('/:id', validate(updateTripSchema), async (req, res) => {
+  try {
+    const tripId = parseId(req.params.id);
+    if (tripId === null) return res.status(400).json({ message: 'Invalid trip ID.' });
+    const body = req.body;
+
+    const trip = await prisma.trip.findFirst({
+      where: accessibleTrips(req.user.userId, { id: tripId }),
+      include: { itineraries: true },
+    });
+    if (!trip) return res.status(404).json({ message: 'Trip not found or unauthorized.' });
+    if (!(await canWrite(req, res, tripId, 'Viewers cannot change this trip.'))) return;
+
+    const data = {};
+    if (body.title !== undefined) data.title = body.title;
+
+    // a field left out keeps its saved value
+    const meta = unpackMeta(trip.description);
+    for (const key of ['destination', 'budget', 'notes', 'currency', 'travellers', 'interests']) {
+      if (body[key] !== undefined) meta[key] = body[key];
+    }
+    data.description = packMeta(meta);
+
+    let moveItems = false;
+    if (body.startDate !== undefined || body.endDate !== undefined) {
+      const start = body.startDate ? new Date(body.startDate) : null;
+      const end = body.endDate ? new Date(body.endDate) : null;
+      if (!start !== !end) return res.status(400).json({ message: 'Give both dates or neither.' });
+      if (start) {
+        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return res.status(400).json({ message: 'Those dates are not valid.' });
+        const days = Math.round((end - start) / DAY_MS) + 1;
+        if (days < 1 || days > MAX_TRIP_DAYS) return res.status(400).json({ message: `A trip lasts 1 to ${MAX_TRIP_DAYS} days.` });
+        const outside = trip.itineraries.filter((item) => (item.dayNumber || 1) > days);
+        if (outside.length) {
+          return res.status(409).json({ message: 'Move or remove these stops first.', items: outside.map(formatItem) });
+        }
+      }
+      data.startDate = start;
+      data.endDate = end;
+      moveItems = (trip.startDate?.getTime() ?? null) !== (start?.getTime() ?? null);
+    }
+
+    const [updated] = await prisma.$transaction([
+      prisma.trip.update({ where: { id: tripId }, data }),
+      ...(moveItems
+        ? trip.itineraries.map((item) =>
+            prisma.itineraryItem.update({
+              where: { id: item.id },
+              data: { startTime: itemStartDate(data.startDate, item.dayNumber, formatTime(item.startTime)) },
+            })
+          )
+        : []),
+    ]);
+
+    res.json({ message: 'Trip updated.', trip: formatTrip(updated) });
+  } catch (error) {
+    console.error('Error updating trip:', error);
+    res.status(500).json({ message: 'Internal server error.' });
+  }
+});
+
+// POST /api/trips/:id/restore - Bring back a trip deleted in the last 30 days
+router.post('/:id/restore', async (req, res) => {
+  try {
+    const tripId = parseId(req.params.id);
+    if (tripId === null) return res.status(400).json({ message: 'Invalid trip ID.' });
+    const userId = req.user.userId;
+
+    const trip = await prisma.trip.findFirst({
+      where: deletedTrips(userId, { id: tripId, travelGroup: { deletedAt: null } }),
+      include: {
+        members: { where: { userId }, select: { role: true } },
+        travelGroup: { include: { members: { where: { userId }, select: { role: true } } } },
+      },
+    });
+    if (!trip) return res.status(404).json({ message: 'Trip not found, or it was deleted more than 30 days ago.' });
+    const role = trip.members[0]?.role || trip.travelGroup.members[0]?.role;
+    if (role === 'VIEWER') return res.status(403).json({ message: 'Viewers cannot restore trips.' });
+
+    const restored = await prisma.trip.update({ where: { id: tripId }, data: { deletedAt: null } });
+    res.json({ message: 'Trip restored.', trip: formatTrip(restored) });
+  } catch (error) {
+    console.error('Error restoring trip:', error);
+    res.status(500).json({ message: 'Internal server error.' });
+  }
+});
+
 // DELETE /api/trips/:id - Delete (soft) a trip
 router.delete('/:id', async (req, res) => {
   try {
@@ -186,6 +311,7 @@ router.delete('/:id', async (req, res) => {
     if (!trip) {
       return res.status(404).json({ message: 'Trip not found or unauthorized.' });
     }
+    if (!(await canWrite(req, res, tripId, 'Viewers cannot delete this trip.'))) return;
 
     await prisma.trip.update({ where: { id: tripId }, data: { deletedAt: new Date() } });
 
@@ -212,6 +338,7 @@ router.post('/:tripId/itinerary', validate(createItinerarySchema), async (req, r
     if (!trip) {
       return res.status(404).json({ message: 'Trip not found or unauthorized.' });
     }
+    if (!(await canWrite(req, res, tripId, 'Viewers cannot add stops to this trip.'))) return;
 
     const newItem = await prisma.itineraryItem.create({
       data: {
@@ -235,6 +362,32 @@ router.post('/:tripId/itinerary', validate(createItinerarySchema), async (req, r
   }
 });
 
+// PUT /api/trips/:tripId/itinerary/order - Reorder stops and move them between days
+router.put('/:tripId/itinerary/order', validate(reorderItinerarySchema), async (req, res) => {
+  try {
+    const tripId = parseId(req.params.tripId);
+    if (tripId === null) return res.status(400).json({ message: 'Invalid trip ID parameter.' });
+
+    const trip = await prisma.trip.findFirst({
+      where: accessibleTrips(req.user.userId, { id: tripId }),
+      include: { itineraries: true },
+    });
+    if (!trip) return res.status(404).json({ message: 'Trip not found or unauthorized.' });
+    if (!(await canWrite(req, res, tripId, 'Viewers cannot reorder this trip.'))) return;
+
+    const updates = planReorder(trip.itineraries, trip.startDate, req.body.days);
+    if (!updates) return res.status(400).json({ message: 'Those stops do not belong to this trip.' });
+
+    await prisma.$transaction(
+      updates.map(({ id, dayNumber, startTime }) => prisma.itineraryItem.update({ where: { id }, data: { dayNumber, startTime } }))
+    );
+    res.json({ message: 'Itinerary reordered.' });
+  } catch (error) {
+    console.error('Error reordering itinerary:', error);
+    res.status(500).json({ message: 'Internal server error.' });
+  }
+});
+
 // DELETE /api/trips/:tripId/itinerary/:itemId - Delete an itinerary item
 router.delete('/:tripId/itinerary/:itemId', async (req, res) => {
   try {
@@ -245,6 +398,8 @@ router.delete('/:tripId/itinerary/:itemId', async (req, res) => {
     if (!trip) {
       return res.status(404).json({ message: 'Trip not found or unauthorized.' });
     }
+
+    if (!(await canWrite(req, res, tripId, 'Viewers cannot remove stops from this trip.'))) return;
 
     // scoped to this trip so one trip's id can't delete another trip's item
     const { count } = await prisma.itineraryItem.deleteMany({ where: { id: req.params.itemId, tripId } });

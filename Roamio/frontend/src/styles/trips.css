@@ -500,7 +500,7 @@
 .trip-stop {
   position: relative;
   display: grid;
-  grid-template-columns: 46px 1fr 28px;
+  grid-template-columns: 46px 1fr auto;
   align-items: start;
   gap: 4px 14px;
   padding: 9px 0 9px;
@@ -627,3 +627,51 @@
   background: var(--surface); color: var(--ink); font: 500 0.8125rem "DM Sans", sans-serif;
 }
 .trip-invite .recommendations-error { flex-basis: 100%; margin: 0; }
+
+/* Editing a saved trip */
+.trip-edit {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px 16px;
+  margin-bottom: 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.trip-edit-error,
+.trip-edit-actions { grid-column: 1 / -1; margin: 0; }
+
+/* Moving a stop: up, down, to another day */
+.trip-stop-tools { display: flex; align-items: center; gap: 2px; }
+.trip-stop-tools select {
+  max-width: 76px;
+  padding: 3px 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  opacity: 0;
+}
+.trip-stop:hover .trip-stop-tools select,
+.trip-stop-tools select:focus-visible { opacity: 1; }
+@media (hover: none) { .trip-stop-tools select { opacity: 1; } }
+.trip-stop-tools button:hover:not(.trip-stop-remove) { background: var(--surface-2); color: var(--ink); }
+.trip-stop-tools button:disabled { opacity: 0.25 !important; cursor: default; }
+
+/* Recently deleted trips */
+.deleted-trips { margin-top: 28px; }
+.deleted-trips ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.deleted-trips li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.deleted-trips li div { display: grid; min-width: 0; }
+.deleted-trips small { color: var(--ink-soft); }

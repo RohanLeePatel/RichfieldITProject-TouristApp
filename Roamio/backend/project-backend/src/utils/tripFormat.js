@@ -64,6 +64,29 @@ function itemStartDate(tripStartDate, dayNumber, startTime) {
   return new Date(base + ((dayNumber || 1) - 1) * 86_400_000 + minutes * 60_000);
 }
 
+// Reordering a saved itinerary. Order is by start time, so each day keeps the
+// set of times it had and hands them out in the new order (move a stop up and
+// it takes the earlier slot). days: [{ dayNumber, itemIds }]. Returns the
+// rows to update, or null if an id isn't one of the items or is listed twice.
+function planReorder(items, tripStartDate, days) {
+  const byId = new Map(items.map((item) => [item.id, item]));
+  const seen = new Set();
+  const updates = [];
+  for (const { dayNumber, itemIds } of days) {
+    const times = [];
+    for (const id of itemIds) {
+      if (!byId.has(id) || seen.has(id)) return null;
+      seen.add(id);
+      times.push(formatTime(byId.get(id).startTime));
+    }
+    times.sort();
+    itemIds.forEach((id, index) => {
+      updates.push({ id, dayNumber, startTime: itemStartDate(tripStartDate, dayNumber, times[index]) });
+    });
+  }
+  return updates;
+}
+
 function formatTime(date) {
   const d = new Date(date);
   return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
@@ -117,4 +140,4 @@ const accessibleTrips = (userId, extra = {}) => ({
   ...extra,
 });
 
-module.exports = { packMeta, unpackMeta, packItemMeta, unpackItemMeta, itemStartDate, formatTime, formatItem, formatTrip, accessibleTrips };
+module.exports = { planReorder, packMeta, unpackMeta, packItemMeta, unpackItemMeta, itemStartDate, formatTime, formatItem, formatTrip, accessibleTrips };

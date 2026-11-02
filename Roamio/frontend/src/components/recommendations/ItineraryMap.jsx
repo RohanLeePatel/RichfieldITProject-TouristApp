@@ -20,6 +20,9 @@ export default function ItineraryMap({ itineraryDays }) {
   useEffect(() => {
     if (!containerRef.current) return undefined;
     const map = L.map(containerRef.current, { scrollWheelZoom: false });
+    // wheel zoom only after a click, so scrolling the page past the map still works
+    map.on("click", () => map.scrollWheelZoom.enable());
+    map.on("mouseout", () => map.scrollWheelZoom.disable());
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',

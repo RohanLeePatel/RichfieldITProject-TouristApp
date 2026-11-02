@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
-import { endSession, TOKEN_KEY } from "../api/client";
+import { endSession, setToken } from "../api/client";
+import { clearAllDrafts } from "../utils/plannerDraft.js";
 
 const USER_KEY = "user";
 
@@ -37,7 +38,8 @@ function withProfile(user) {
 function savedSession() {
   try {
     const user = JSON.parse(localStorage.getItem(USER_KEY));
-    if (user && localStorage.getItem(TOKEN_KEY)) return { user: withProfile(user), isAuthenticated: true };
+    // the token itself is memory-only: the first request trades the refresh cookie for one
+    if (user) return { user: withProfile(user), isAuthenticated: true };
   } catch {
     // corrupt/blocked storage - fall through to logged out
   }
@@ -53,7 +55,7 @@ function startSession(set, userData, token) {
   );
 
   if (token) {
-    localStorage.setItem(TOKEN_KEY, token);
+    setToken(token);
   }
 
   set({
@@ -89,7 +91,8 @@ export const useAuthStore = create((set, get) => ({
   logout: () => {
     endSession(); // drop the 7-day refresh cookie too: a signed-out browser keeps no session
     localStorage.removeItem(USER_KEY);
-    localStorage.removeItem(TOKEN_KEY);
+    clearAllDrafts();
+    setToken(null);
 
     set({
       user: null,

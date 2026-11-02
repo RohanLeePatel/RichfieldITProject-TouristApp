@@ -36,7 +36,7 @@ function StopCard({ stop, onRemove, onDragStart, onDrop }) {
 
 export default function ItineraryEditor({
   cityName, days, hasDates, canUndo, loading, error,
-  undo, back, addDay, removeDay, removeStop, moveStop, dragStop, setDragStop, onSave,
+  undo, back, addDay, spreadStops, removeDay, removeStop, moveStop, dragStop, setDragStop, onSave,
 }) {
   return (
     <section className="recommendations-results">
@@ -109,7 +109,7 @@ export default function ItineraryEditor({
         <button type="button" className="itinerary-add-day" onClick={addDay}>
           <Plus size={20} />
           <strong>Add a day</strong>
-          <span>Spreads your stops across one more day</span>
+          <span>Adds an empty day - your stops stay where they are</span>
         </button>
       </div>
 
@@ -117,6 +117,9 @@ export default function ItineraryEditor({
       <div className="action-bar">
         <button type="button" className="secondary-button" onClick={undo} disabled={!canUndo} title={canUndo ? "Undo the last change" : "No edits to undo"}>
           <Undo2 size={16} /> Undo
+        </button>
+        <button type="button" className="secondary-button" onClick={spreadStops} disabled={days.length < 2} title="Share all stops evenly across the days">
+          Spread stops evenly
         </button>
         <button type="button" className="recommendations-submit" onClick={onSave} disabled={loading}>
           {loading ? <><LoaderCircle className="recommendations-spinner" size={18} /> Saving...</> : <>Save itinerary <ArrowRight size={17} /></>}

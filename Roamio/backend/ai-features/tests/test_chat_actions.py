@@ -53,7 +53,8 @@ def test_the_tool_is_offered_only_when_the_traveller_may_edit(client, monkeypatc
     client.post("/chat", json=ASK, headers=SECRET)
     assert "tools" not in seen["json"]
     client.post("/chat", json={**ASK, "can_edit": True}, headers=SECRET)
-    assert seen["json"]["tools"][0]["functionDeclarations"][0]["name"] == "add_itinerary_item"
+    names = {f["name"] for f in seen["json"]["tools"][0]["functionDeclarations"]}
+    assert names == {"add_itinerary_item", "log_expense"}
 
 
 def test_a_tool_call_comes_back_as_an_action_with_scrubbed_arguments(client, monkeypatch):
@@ -63,6 +64,12 @@ def test_a_tool_call_comes_back_as_an_action_with_scrubbed_arguments(client, mon
     assert body["action"]["name"] == "add_itinerary_item"
     assert body["action"]["args"]["title"] == "uShaka Marine World" and body["action"]["args"]["day"] == 2
     assert "ada@example.com" not in str(body)
+
+
+def test_an_expense_tool_call_comes_back_as_an_action(client, monkeypatch):
+    _spy(monkeypatch, _call(name="log_expense", title="Dinner", amount=180.5, category="FOOD"))
+    body = client.post("/chat", json={**ASK, "can_edit": True}, headers=SECRET).json()
+    assert body["action"] == {"name": "log_expense", "args": {"title": "Dinner", "amount": 180.5, "category": "FOOD"}}
 
 
 def test_a_tool_call_is_ignored_when_editing_is_not_allowed_or_the_tool_is_unknown(client, monkeypatch):

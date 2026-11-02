@@ -90,7 +90,7 @@ function tripDateLabel(trip) {
   if (!trip.startDate) return "Dates not set";
 
   const format = (iso) =>
-    new Date(iso).toLocaleDateString("en-ZA", {
+    new Date(iso).toLocaleDateString("en-GB", {
       day: "numeric",
       month: "short",
     });
@@ -543,7 +543,7 @@ export default function Dashboard() {
   const stats = [
     {
       to: "/trips",
-      label: "Upcoming trips",
+      label: "Current & upcoming",
       value: relevantTrips.length,
       icon: Plane,
       tone: "blue",
@@ -719,7 +719,7 @@ export default function Dashboard() {
 
             <dd>
               {windSpeed != null
-                ? `${Math.round(windSpeed)} km/h`
+                ? `${Math.round(windSpeed * 3.6)} km/h`
                 : "--"}
             </dd>
           </div>
@@ -1119,7 +1119,7 @@ export default function Dashboard() {
                             {start ? (
                               <>
                                 <span>
-                                  {start.toLocaleDateString("en-ZA", {
+                                  {start.toLocaleDateString("en-GB", {
                                     month: "short",
                                   })}
                                 </span>

@@ -37,5 +37,6 @@ export const adminUsersQuery = ({ page = 1, q = "" } = {}) => ({
   placeholderData: keepPreviousData,
 });
 
-// a 403 won't change on retry; anything else gets the usual couple of tries
-export const retryUnlessForbidden = (failures, error) => error?.status !== 403 && failures < 2;
+// a 403 (not an admin) or 503 (service not set up) won't change on retry;
+// anything else gets the usual couple of tries
+export const retryUnlessForbidden = (failures, error) => ![403, 503].includes(error?.status) && failures < 2;

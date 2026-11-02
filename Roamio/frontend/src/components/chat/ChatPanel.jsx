@@ -2,18 +2,18 @@ import { useEffect, useRef, useState } from "react";
 import { Plus, Send, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import { deleteConversation, getConversation, listConversations, sendChatMessage } from "../../api/chat.js";
+import { confirmChatAction, deleteConversation, getConversation, listConversations, sendChatMessage } from "../../api/chat.js";
 import useActiveTrip from "../../hooks/useActiveTrip.js";
 import useTips from "../../store/tipsStore.js";
 import ChatText from "./ChatText.jsx";
 import "../../styles/chat.css";
 
-const SUGGESTIONS = ["What is planned for day 2?", "Is it safe where I'm going?", "What should I pack?"];
+const SUGGESTIONS = ["What is planned for day 2?", "Is it safe where I'm going?", "What should I pack?", "How do I say thank you in French?"];
 
 // The assistant conversation, used by the floating widget and the /chat page.
 // A new chat is about the active trip; an opened one keeps the trip it started
 // with (the server decides, so the label below is only a hint).
-export default function ChatPanel({ showHistory = false }) {
+export default function ChatPanel({ showHistory = false, prefill = null }) {
   const { trip } = useActiveTrip();
   const tips = useTips();
   const [messages, setMessages] = useState([]);
@@ -22,7 +22,13 @@ export default function ChatPanel({ showHistory = false }) {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [confirming, setConfirming] = useState(null);
   const endRef = useRef(null);
+
+  // a question handed over by an "Ask" button elsewhere in the app
+  useEffect(() => {
+    if (prefill?.text) setDraft(prefill.text);
+  }, [prefill]);
 
   const refreshHistory = () => {
     if (!showHistory) return;
@@ -78,7 +84,7 @@ export default function ChatPanel({ showHistory = false }) {
       tips.mark("done:chat");
       setMessages((current) => [
         ...current,
-        { id: `reply-${Date.now()}`, role: "assistant", content: data.reply, itineraryTripId: data.added ? data.tripId : null },
+        { id: `reply-${Date.now()}`, role: "assistant", content: data.reply, proposal: data.proposal },
       ]);
       refreshHistory();
     } catch (err) {
@@ -87,6 +93,32 @@ export default function ChatPanel({ showHistory = false }) {
       setMessages((current) => current.slice(0, -1));
     } finally {
       setSending(false);
+    }
+  };
+
+  // yes or no to something the assistant offered to do
+  const decide = async (message, yes) => {
+    const settle = (state) => setMessages((current) => current.map((m) => (m.id === message.id ? { ...m, decided: state } : m)));
+    if (!yes) return settle("cancelled");
+    setConfirming(message.id);
+    setError("");
+    try {
+      const data = await confirmChatAction({ conversationId, ...message.proposal });
+      settle("done");
+      setMessages((current) => [
+        ...current,
+        {
+          id: `done-${Date.now()}`,
+          role: "assistant",
+          content: data.reply,
+          itineraryTripId: data.added ? data.tripId : null,
+          budgetTripId: data.expense ? data.tripId : null,
+        },
+      ]);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setConfirming(null);
     }
   };
 
@@ -121,7 +153,7 @@ export default function ChatPanel({ showHistory = false }) {
         <div className="chat-messages" role="log" aria-live="polite">
           {messages.length === 0 && (
             <div className="chat-empty">
-              <p>Ask about your itinerary, the safety advisory, the weather or travelling in general. Tap one to start:</p>
+              <p>Ask about your itinerary, the safety advisory, the weather or travelling in general. You can also tell me to add a stop or log what you paid, and I'll check with you first. Tap one to start:</p>
               <div className="chat-suggestions">
                 {SUGGESTIONS.map((text) => (
                   <button key={text} type="button" onClick={() => setDraft(text)}>{text}</button>
@@ -135,6 +167,20 @@ export default function ChatPanel({ showHistory = false }) {
               {m.itineraryTripId && (
                 <Link className="chat-bubble-link" to={`/trips/${m.itineraryTripId}`}>View itinerary</Link>
               )}
+              {m.budgetTripId && (
+                <Link className="chat-bubble-link" to={`/trips/${m.budgetTripId}?tab=money`}>View budget</Link>
+              )}
+              {m.proposal && !m.decided && (
+                <div className="chat-proposal">
+                  <button type="button" className="chat-yes" disabled={confirming === m.id} onClick={() => decide(m, true)}>
+                    {confirming === m.id ? "Working..." : "Confirm"}
+                  </button>
+                  <button type="button" className="chat-no" disabled={confirming === m.id} onClick={() => decide(m, false)}>
+                    Cancel
+                  </button>
+                </div>
+              )}
+              {m.proposal && m.decided === "cancelled" && <p className="chat-proposal-note">Cancelled - nothing was changed.</p>}
             </div>
           ))}
           {sending && <div className="chat-bubble assistant pending">Thinking...</div>}

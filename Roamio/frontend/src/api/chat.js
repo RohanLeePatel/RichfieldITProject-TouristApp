@@ -8,6 +8,14 @@ export function sendChatMessage({ message, conversationId, tripId }) {
   });
 }
 
+// The traveller said yes to a proposal from the assistant. -> { reply, added, expense, tripId }
+export function confirmChatAction({ conversationId, name, args }) {
+  return authedFetch("/api/chat/confirm", {
+    method: "POST",
+    body: JSON.stringify({ conversationId, name, args }),
+  });
+}
+
 // -> { conversations: [{ id, title, tripId, updatedAt }] }
 export function listConversations() {
   return authedFetch("/api/chat/conversations");

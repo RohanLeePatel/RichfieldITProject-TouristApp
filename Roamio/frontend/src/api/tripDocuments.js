@@ -1,4 +1,4 @@
-import { authedFetch, TOKEN_KEY } from "./client";
+import { authedFetch, ensureToken, isDevBypass } from "./client";
 
 // Trip document vault. Files go up as base64 in a JSON body (the backend has
 // no multipart parser - see routes/tripDocuments.js) and come back down as a
@@ -20,7 +20,6 @@ export const DOCUMENT_KINDS = [
 
 // Documents need the real database, so the dev-login bypass has nothing to
 // show. Returning empty keeps the trip page rendering instead of erroring.
-const isDevBypass = () => import.meta.env.DEV && !localStorage.getItem(TOKEN_KEY);
 
 function readAsBase64(file) {
   return new Promise((resolve, reject) => {
@@ -41,6 +40,9 @@ export async function fetchDocuments(tripId) {
 export async function uploadDocument(tripId, file, kind) {
   if (isDevBypass()) {
     throw new Error("Documents need a real sign-in - the dev bypass has no database.");
+  }
+  if (!ACCEPTED_TYPES.split(",").includes(file.type)) {
+    throw new Error("Attach a PDF or an image (PNG, JPEG or WebP).");
   }
   if (file.size > MAX_DOCUMENT_BYTES) {
     throw new Error("That file is too large (1 MB max).");
@@ -67,7 +69,7 @@ export async function deleteDocument(tripId, documentId) {
 // bytes are fetched here and handed to the browser as a blob URL rather than
 // pointing a link straight at the URL.
 export async function openDocument(tripId, documentId) {
-  const token = localStorage.getItem(TOKEN_KEY);
+  const token = await ensureToken();
   const response = await fetch(
     `${API_BASE_URL.replace(/\/$/, "")}/api/trips/${tripId}/documents/${documentId}`,
     { headers: token ? { Authorization: `Bearer ${token}` } : {} }

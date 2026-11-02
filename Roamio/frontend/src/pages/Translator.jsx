@@ -22,7 +22,7 @@ import {
   Volume2,
   X,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import Hint from "../components/onboarding/Hint.jsx";
 import ThemeToggle from "../components/recommendations/ThemeToggle.jsx";
@@ -87,14 +87,18 @@ function Translator() {
   const { theme, toggle: toggleTheme } = useTheme();
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
-  const [targetLanguage, setTargetLanguage] = useState("EN-US");
+  // the trip assistant can link here with ?text=...&to=FR
+  const [params] = useSearchParams();
+  const linkedText = (params.get("text") || "").slice(0, MAX_TEXT_CHARS);
+  const linkedLanguage = LANGUAGES.find((l) => l.code === (params.get("to") || "").toUpperCase())?.code;
+  const [targetLanguage, setTargetLanguage] = useState(linkedLanguage || "EN-US");
   const [cameraOpen, setCameraOpen] = useState(false);
   const [translationResult, setTranslationResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
-  const [mode, setMode] = useState("photo");
-  const [inputText, setInputText] = useState("");
+  const [mode, setMode] = useState(linkedText ? "text" : "photo");
+  const [inputText, setInputText] = useState(linkedText);
   const [sourceLanguage, setSourceLanguage] = useState("auto");
   const [listening, setListening] = useState(false);
   const [photoSize, setPhotoSize] = useState(null);

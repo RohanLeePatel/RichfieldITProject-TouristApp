@@ -10,19 +10,16 @@ import {
 import { Link, useSearchParams } from "react-router-dom";
 
 import PageShell from "../components/recommendations/PageShell.jsx";
+import DeletedTrips from "../components/trips/DeletedTrips.jsx";
 import TripTemplates from "../components/trips/TripTemplates.jsx";
 import { fetchTrips } from "../api/trips.js";
+import { formatDate } from "../utils/format.js";
 import "../styles/trips.css";
 
 function tripDateLabel(trip) {
   if (!trip.startDate) return "Dates not set";
 
-  const format = (iso) =>
-    new Date(iso).toLocaleDateString("en", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
+  const format = (iso) => formatDate(iso, { month: "short" });
 
   return trip.endDate
     ? `${format(trip.startDate)} → ${format(trip.endDate)}`
@@ -51,6 +48,7 @@ export default function TripsList() {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [reload, setReload] = useState(0);
 
   const [searchParams] = useSearchParams();
   const statusFilter = searchParams.get("status");
@@ -82,7 +80,7 @@ export default function TripsList() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [reload]);
 
   const filteredTrips = useMemo(() => {
     if (statusFilter !== "completed") {
@@ -205,6 +203,7 @@ export default function TripsList() {
 
       {/* Starting points, shown alongside existing trips - most useful on an
           empty list, but worth offering either way. */}
+      {!showingCompleted && !loading && <DeletedTrips onRestored={() => setReload((count) => count + 1)} />}
       {!showingCompleted && !loading && <TripTemplates />}
     </PageShell>
   );
