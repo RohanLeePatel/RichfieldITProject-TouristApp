@@ -33,7 +33,7 @@ const handle = (fn) => async (req, res) => {
 
 /* ---------------- notification preferences ---------------- */
 
-const TOPICS = ['bookingConfirmations', 'travelUpdates', 'flightChanges', 'accommodationChanges'];
+const TOPICS = ['bookingConfirmations', 'travelUpdates', 'flightChanges', 'accommodationChanges', 'securityAlerts'];
 const DEFAULT_PREFS = {
   channels: { email: true, browser: false },
   topics: Object.fromEntries(TOPICS.map((topic) => [topic, { email: true, browser: true }])),

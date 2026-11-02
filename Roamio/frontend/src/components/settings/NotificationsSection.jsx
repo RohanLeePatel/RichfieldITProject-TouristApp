@@ -8,6 +8,7 @@ import {
   PlaneTakeoff,
   RotateCcw,
   Save,
+  ShieldCheck,
   Ticket,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -35,6 +36,18 @@ const TOPIC_GROUPS = [
         icon: CalendarClock,
         label: "Travel updates",
         description: "Check-in reminders, trip countdowns and itinerary changes from your group.",
+      },
+    ],
+  },
+  {
+    title: "Account security",
+    recommended: true,
+    items: [
+      {
+        key: "securityAlerts",
+        icon: ShieldCheck,
+        label: "New sign-ins",
+        description: "When your account is signed in from a browser or device we haven't seen before.",
       },
     ],
   },
