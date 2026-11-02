@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Ticket,
+  Users,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { disablePush, enablePush, pushSupported, sendTestPush } from "../../services/push.js";
@@ -61,6 +62,17 @@ const TOPIC_GROUPS = [
         icon: ShieldCheck,
         label: "New sign-ins",
         description: "When your account is signed in from a browser or device we haven't seen before.",
+      },
+    ],
+  },
+  {
+    title: "Group activity",
+    items: [
+      {
+        key: "groupActivity",
+        icon: Users,
+        label: "Invites and trip changes",
+        description: "When you're invited to a trip group, or someone in your group edits a shared trip.",
       },
     ],
   },

@@ -43,6 +43,7 @@ const fakePrisma = {
 // swap the real client for the fake before the router loads it
 require.cache[path.join(__dirname, '../config/prisma.js')] = { exports: fakePrisma };
 require.cache[path.join(__dirname, '../prismaClient.js')] = { exports: fakePrisma }; // the access check reads through this one
+require.cache[path.join(__dirname, '../services/groupActivityService.js')] = { exports: { notifyTripChange: async () => 0 } }; // tested in its own selfcheck
 
 const { generateAccessToken } = require('../auth/tokenService');
 const router = require('./trips');

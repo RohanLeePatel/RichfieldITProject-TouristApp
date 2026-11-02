@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const invitationRepo = require('../repositories/invitationRepository');
 const { httpError } = require('./tripAccessService');
+const groupActivity = require('./groupActivityService');
 
 const INVITE_ROLES = ['ADMIN', 'MEMBER', 'VIEWER'];
 const INVITE_VALID_DAYS = 7;
@@ -45,6 +46,14 @@ class InvitationService {
       role: normalizedRole,
       token,
       expiresAt,
+    });
+
+    await groupActivity.notifyInvite({
+      groupId: group.id,
+      groupName: group.name,
+      inviterName: inviter.fullName,
+      email: normalizedEmail,
+      token,
     });
 
     // A mailer would send the token here; it is returned directly for now.
