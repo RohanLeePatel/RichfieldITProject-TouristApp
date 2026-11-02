@@ -135,6 +135,7 @@ export const NOTIFICATION_TOPICS = [
   "flightChanges",
   "accommodationChanges",
   "safetyAlerts",
+  "securityAlerts",
 ];
 
 export const DEFAULT_NOTIFICATIONS = {

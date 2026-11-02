@@ -9,6 +9,7 @@ import {
   RotateCcw,
   Save,
   ShieldAlert,
+  ShieldCheck,
   Ticket,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -48,6 +49,18 @@ const TOPIC_GROUPS = [
         icon: ShieldAlert,
         label: "Safety alerts",
         description: "When the travel advisory for a destination on your trip rises to level 3 or 4.",
+      },
+    ],
+  },
+  {
+    title: "Account security",
+    recommended: true,
+    items: [
+      {
+        key: "securityAlerts",
+        icon: ShieldCheck,
+        label: "New sign-ins",
+        description: "When your account is signed in from a browser or device we haven't seen before.",
       },
     ],
   },
