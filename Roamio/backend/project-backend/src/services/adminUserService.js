@@ -14,13 +14,12 @@ async function listUsers({ page, pageSize, q } = {}) {
   const take = Math.min(positiveInt(pageSize, DEFAULT_PAGE_SIZE), MAX_PAGE_SIZE);
   const search = typeof q === 'string' ? q.trim() : '';
 
+  // email and fullName are encrypted, so they can only be matched exactly: a full email
+  // address (through its blind index) or a user id. No partial or by-name search.
   const where = {
     deletedAt: null,
     ...(search && {
-      OR: [
-        { email: { contains: search, mode: 'insensitive' } },
-        { fullName: { contains: search, mode: 'insensitive' } },
-      ],
+      OR: [{ email: search }, ...(/^\d{1,9}$/.test(search) ? [{ id: Number(search) }] : [])],
     }),
   };
 

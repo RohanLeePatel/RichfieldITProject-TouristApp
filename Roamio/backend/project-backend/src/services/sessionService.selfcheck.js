@@ -8,8 +8,14 @@ const day = 24 * 60 * 60 * 1000;
 const sessions = [];
 const events = [];
 const deletes = [];
+const alerts = [];
+const emails = [];
+require.cache[path.join(__dirname, 'emailService.js')] = { exports: { sendNewSignInEmail: async (to, info) => emails.push({ to, ...info }) } };
+const matches = (row, where) => Object.entries(where).every(([key, value]) => row[key] === value);
+require.cache[path.join(__dirname, 'pushService.js')] = { exports: { notifyUser: async (userId, args) => alerts.push({ userId, ...args }) } };
 require.cache[path.join(__dirname, '../config/prisma.js')] = {
   exports: {
+    user: { findUnique: async ({ where }) => ({ email: `user${where.id}@example.com` }) },
     userSession: {
       create: async ({ data }) => sessions.push({ revokedAt: null, lastSeenAt: new Date(), ...data }),
       updateMany: async ({ where, data }) => {
@@ -23,6 +29,8 @@ require.cache[path.join(__dirname, '../config/prisma.js')] = {
     loginEvent: {
       create: async ({ data }) => events.push(data),
       deleteMany: async ({ where }) => deletes.push(where),
+      findFirst: async ({ where }) => events.find((e) => matches(e, where)) || null,
+      count: async ({ where }) => events.filter((e) => matches(e, where)).length,
     },
   },
 };
@@ -66,6 +74,25 @@ const sessionService = require('./sessionService');
   await sessionService.start(7, req, { record: false });
   assert.equal(sessions.length, 2);
   assert.equal(events.length, 1);
+
+  assert.equal(alerts.length + emails.length, 0); // the first sign-in has nothing to compare with
+
+  // the same device again: quiet. A different browser on a known account: alerts, to that user
+  await sessionService.start(7, req);
+  assert.equal(alerts.length, 0);
+  const chrome = { ip: '10.0.0.2', headers: { 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36', 'x-vercel-ip-country': 'ZA' } };
+  const chromeId = await sessionService.start(7, chrome);
+  assert.equal(alerts.length, 1);
+  assert.deepEqual([alerts[0].userId, alerts[0].topic, alerts[0].dedupeKey], [7, 'securityAlerts', `signin:${chromeId}`]);
+  assert.deepEqual([emails.length, emails[0].to, emails[0].browser, emails[0].ipAddress], [1, 'user7@example.com', 'Chrome', '10.0.0.2']);
+  assert.match(alerts[0].body, /^Chrome on Windows in South Africa\./);
+  // another traveller's first sign-in, and a renewal, never alert
+  await sessionService.start(8, chrome);
+  await sessionService.start(7, { headers: {} }, { record: false });
+  assert.equal(alerts.length, 1);
+  assert.equal(emails.length, 1);
+  events.length = 1; // back to one event for the checks below
+  sessions.length = 2;
 
   await sessionService.recordFailure(7, req);
   assert.deepEqual([events[1].userId, events[1].success], [7, false]);

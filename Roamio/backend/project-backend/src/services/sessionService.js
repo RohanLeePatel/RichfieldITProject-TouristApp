@@ -1,6 +1,8 @@
 const crypto = require('node:crypto');
 const prisma = require('../config/prisma');
 const { clientInfo } = require('../utils/clientInfo');
+const { notifyUser } = require('./pushService');
+const { sendNewSignInEmail } = require('./emailService');
 
 // A refresh token lasts 7 days from its last renewal, so a session nobody has
 // renewed for that long is over even if it was never revoked.
@@ -18,12 +20,44 @@ const live = (userId) => ({ userId, revokedAt: null, lastSeenAt: { gte: sessionC
 async function start(userId, req, { record = true } = {}) {
   const info = clientInfo(req);
   const id = crypto.randomUUID();
+  const newDevice = record && (await isNewDevice(userId, info));
   await prisma.userSession.create({ data: { id, userId, ...info } });
   if (record) {
     await prisma.loginEvent.create({ data: { userId, success: true, ...info } });
     await prisma.loginEvent.deleteMany({ where: { userId, at: { lt: new Date(Date.now() - ACTIVITY_KEPT_DAYS * DAY) } } });
   }
+  if (newDevice) await alertNewDevice(userId, id, info);
   return id;
+}
+
+// A device is the browser, system and kind of device (the place changes too
+// easily on mobile networks to count). New means it is absent from the sign-in
+// history we keep, while the account has signed in before: a first sign-in
+// has nothing to compare with.
+async function isNewDevice(userId, { browser, os, deviceType }) {
+  const where = { userId, success: true };
+  if (await prisma.loginEvent.findFirst({ where: { ...where, browser, os, deviceType }, select: { id: true } })) return false;
+  return (await prisma.loginEvent.count({ where })) > 0;
+}
+
+// Tells the account's other signed-in browsers, and always emails the owner: not
+// every account has push on, and Settings promises security alerts by email.
+// Both are awaited, because serverless may freeze the work once the response is
+// sent; neither throws.
+async function alertNewDevice(userId, sessionId, info) {
+  const { browser, os, location } = info;
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+  await Promise.all([
+    notifyUser(userId, {
+      type: 'ALERT',
+      topic: 'securityAlerts',
+      title: 'New sign-in to your Roamio account',
+      body: `${browser} on ${os}${location ? ` in ${location}` : ''}. Not you? Sign out other devices in Settings.`,
+      url: '/settings#security',
+      dedupeKey: `signin:${sessionId}`,
+    }),
+    user ? sendNewSignInEmail(user.email, info) : null,
+  ]);
 }
 
 // A wrong password for a real account. Unknown emails have no one to show it to.

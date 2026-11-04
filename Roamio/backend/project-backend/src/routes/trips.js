@@ -8,6 +8,7 @@ const validate = require('../middleware/validate');
 const { createTripSchema, updateTripSchema, reorderItinerarySchema, createItinerarySchema } = require('../schemas/trips');
 const { packMeta, unpackMeta, packItemMeta, itemStartDate, formatTime, formatItem, formatTrip, planReorder, accessibleTrips } = require('../utils/tripFormat');
 const { assertTripAccess } = require('../services/tripAccessService');
+const groupActivity = require('../services/groupActivityService');
 
 // The frontend's trip API: personal and group trips in one list. Every trip
 // belongs to a TravelGroup; a solo user's trips live in a personal group (see
@@ -268,6 +269,12 @@ router.patch('/:id', validate(updateTripSchema), async (req, res) => {
         : []),
     ]);
 
+    await groupActivity.notifyTripChange({
+      tripId,
+      actorId: req.user.userId,
+      what: moveItems ? 'changed the trip dates' : 'updated the trip details',
+    });
+
     res.json({ message: 'Trip updated.', trip: formatTrip(updated) });
   } catch (error) {
     console.error('Error updating trip:', error);
@@ -352,6 +359,8 @@ router.post('/:tripId/itinerary', validate(createItinerarySchema), async (req, r
       },
     });
 
+    await groupActivity.notifyTripChange({ tripId, actorId: req.user.userId, what: 'added a stop to the itinerary' });
+
     res.status(201).json({
       message: 'Itinerary item added successfully!',
       item: formatItem(newItem),
@@ -406,6 +415,8 @@ router.delete('/:tripId/itinerary/:itemId', async (req, res) => {
     if (count === 0) {
       return res.status(404).json({ message: 'Itinerary item not found.' });
     }
+
+    await groupActivity.notifyTripChange({ tripId, actorId: req.user.userId, what: 'removed a stop from the itinerary' });
 
     res.json({ message: 'Itinerary item deleted successfully!' });
   } catch (error) {

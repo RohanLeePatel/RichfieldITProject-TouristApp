@@ -23,6 +23,7 @@ const safetyRoutes = require('./src/routes/safety');
 const expenseRoutes = require('./src/routes/expense');
 const budgetRoutes = require('./src/routes/budget');
 const notificationRoutes = require('./src/routes/notification');
+const pushRoutes = require('./src/routes/push');
 const translationRoutes = require('./src/routes/translation');
 const personalTripRoutes = require('./src/routes/trips');
 const { router: tripDocumentRoutes } = require('./src/routes/tripDocuments');
@@ -133,6 +134,7 @@ app.use('/api/trips/:tripId/expenses', expenseRoutes);
 app.use('/api/trips/:tripId/budget', budgetRoutes);
 app.use('/api', activityRoutes);
 app.use('/api', safetyRoutes);
+app.use('/api/notifications/push', pushRoutes);
 app.use('/api/notifications', notificationRoutes);
 
 // An address nothing answered: JSON, not Express's HTML page

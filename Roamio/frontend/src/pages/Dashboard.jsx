@@ -12,13 +12,11 @@ import {
   Clock3,
   CheckCircle2,
   Menu,
-  Moon,
   CloudSun,
   Cloud,
   CloudRain,
   CloudLightning,
   Snowflake,
-  Sun,
   Droplets,
   Wind,
   RefreshCw,
@@ -327,7 +325,7 @@ function CountUp({ value, duration = 900 }) {
 // =========================================================
 
 export default function Dashboard() {
-  const { theme, toggle: toggleTheme } = useTheme(); // app-wide theme, also set in Settings
+  const { theme } = useTheme(); // follows the app-wide theme selected in Settings
   const navigate = useNavigate();
 
   // =========================================================
@@ -779,16 +777,6 @@ export default function Dashboard() {
           </div>
 
           <div className="header-actions">
-
-            <button
-              type="button"
-              className="header-icon-button"
-              onClick={toggleTheme}
-              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              title={theme === "dark" ? "Light mode" : "Dark mode"}
-            >
-              {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
 
             <Link
               to="/settings"

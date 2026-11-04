@@ -60,6 +60,40 @@ async function sendOtpEmail(email, otp, purpose = 'verify') {
   }
 }
 
+// Tells the owner their account was just signed in from a browser we haven't
+// seen. Best effort: it never throws, so it can't break the sign-in it reports.
+async function sendNewSignInEmail(email, { browser, os, location, ipAddress, at = new Date() }) {
+  const message = {
+    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    to: email,
+    subject: 'New sign-in to your Roamio account',
+    text: [
+      'Your Roamio account was just signed in from a browser or device we have not seen before:',
+      '',
+      `Device: ${browser} on ${os}`,
+      location ? `Place: ${location}` : null,
+      ipAddress ? `Address: ${ipAddress}` : null,
+      `Time: ${at.toUTCString()}`,
+      '',
+      "If this was you, there's nothing to do.",
+      "If it wasn't, open Settings > Security, sign out your other devices and change your password.",
+    ].filter((line) => line !== null).join('\n'),
+  };
+
+  if (!isConfigured()) {
+    if (process.env.NODE_ENV !== 'production') console.log(`[DEV EMAIL] ${message.subject} -> ${email}`);
+    else console.error('SMTP_HOST is not set: cannot email sign-in alerts.');
+    return false;
+  }
+  try {
+    await getTransporter().sendMail(message);
+    return true;
+  } catch (error) {
+    console.error('Failed to send sign-in alert email:', error.message);
+    return false;
+  }
+}
+
 // A problem report from Settings, sent to the support inbox. Replies go to the
 // traveller (replyTo). Same delivery rules as the codes: printed outside
 // production when SMTP isn't set, a 503 in production.
@@ -103,4 +137,4 @@ async function sendSupportReport({ reference, category, subject, description, fr
 // Connects and authenticates against the SMTP server without sending anything
 const verifyConnection = () => getTransporter().verify();
 
-module.exports = { sendOtpEmail, sendSupportReport, isConfigured, verifyConnection };
+module.exports = { sendOtpEmail, sendNewSignInEmail, sendSupportReport, isConfigured, verifyConnection };
