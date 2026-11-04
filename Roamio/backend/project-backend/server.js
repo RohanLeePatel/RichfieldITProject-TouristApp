@@ -148,7 +148,7 @@ app.use((err, req, res, next) => {
   console.error('Global Error Handler:', err.message);
   
   const statusCode = err.statusCode || 500;
-  if (statusCode >= 500) console.error(err.stack);
+  if (statusCode >= 500) console.error(err.stack); // the log only, never the response
   let message = err.message || 'Internal Server Error';
   // body-parser's own wording is technical; say it plainly
   if (err.type === 'entity.too.large') message = 'That is too much to send at once. Try something smaller.';
