@@ -11,7 +11,7 @@ process.env.CLIENT_URL = '';
 delete process.env.superSecretKey;
 // stands in for Prisma and the safety sync, so nothing touches the database
 const stub = new Proxy({}, { get: () => new Proxy(() => {}, { get: () => async () => null, apply: () => {} }) });
-for (const m of ['src/config/prisma.js', 'src/prismaClient.js', 'src/services/safetySyncService.js'])
+for (const m of ['src/config/prisma.js', 'src/services/safetySyncService.js'])
   require.cache[path.join(root, m)] = { exports: stub };
 const Module = require('module'); const load = Module._load;
 // dotenv is stubbed too: server.js would otherwise read superSecretKey back in from a local .env

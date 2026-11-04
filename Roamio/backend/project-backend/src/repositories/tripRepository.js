@@ -1,5 +1,5 @@
 const { unpackMeta } = require('../utils/tripFormat');
-const prisma = require('../prismaClient');
+const prisma = require('../config/prisma');
 
 const tripRepository = {
   // Create a new trip linked to a group AND assign the creator as a TripMember
