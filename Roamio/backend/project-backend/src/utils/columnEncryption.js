@@ -1,4 +1,4 @@
-const { Prisma } = require('@prisma/client');
+const { Prisma } = require('../generated/prisma/index.js');
 const { encryptText, decryptText, encryptBytes, decryptBytes, blindIndex, getKey } = require('./fieldCrypto');
 
 // model -> { column: kind }. kind: 'text' | 'date' (a Date stored as 'YYYY-MM-DD' text) | 'bytes'
