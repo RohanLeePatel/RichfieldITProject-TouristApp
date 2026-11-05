@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MessageCircle, X } from "lucide-react";
+import { MessageCircle, Sparkles, X } from "lucide-react";
 
 import useTheme from "../recommendations/useTheme.js";
 import { ASK_EVENT } from "./askAssistant.js";
@@ -29,7 +29,11 @@ export default function ChatWidget() {
       {open && (
         <div className="chat-widget-window" role="dialog" aria-label="Trip assistant">
           <header>
-            <strong>Trip assistant</strong>
+            <span className="chat-widget-avatar"><Sparkles size={20} /></span>
+            <div className="chat-widget-heading">
+              <strong>Trip assistant</strong>
+              <small><i />Ready to help</small>
+            </div>
             <button type="button" onClick={() => setOpen(false)} aria-label="Close assistant"><X size={18} /></button>
           </header>
           <ChatPanel prefill={prefill} />
