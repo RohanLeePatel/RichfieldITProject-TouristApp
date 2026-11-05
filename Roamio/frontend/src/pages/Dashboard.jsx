@@ -17,6 +17,7 @@ import {
   CloudRain,
   CloudLightning,
   Snowflake,
+  Sun,
   Droplets,
   Wind,
   RefreshCw,
@@ -451,7 +452,7 @@ export default function Dashboard() {
 
   const tripGroup = groups.find((group) => group.id === nextTrip?.travelGroupId) || null;
   const initialsOf = (name) =>
-    name.trim().split(/s+/).slice(0, 2).map((part) => part.charAt(0)).join("").toUpperCase() || "?";
+    name.trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join("").toUpperCase() || "?";
   const groupMembers = tripGroup
     ? [
         ...tripGroup.members.map((member) => ({
