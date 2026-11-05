@@ -2,7 +2,6 @@ const prisma = require('../config/prisma');
 const emailService = require('./emailService');
 
 const TIMEOUT_MS = 5000;
-let gaClient;
 const SLOW_MS = 1500; // answered, but slower than this = degraded
 
 // Times a check. It resolves { status, latencyMs, detail? } and never throws,
@@ -104,10 +103,10 @@ const checkTravelRisk = () => timed(async () => {
 
 // Property metadata: needs credentials and property access, returns no report data.
 const checkAnalytics = () => timed(async () => {
-  const { GA_PROPERTY_ID, GOOGLE_APPLICATION_CREDENTIALS } = process.env;
-  if (!GA_PROPERTY_ID || !GOOGLE_APPLICATION_CREDENTIALS) throw notConfigured('GA_PROPERTY_ID / GOOGLE_APPLICATION_CREDENTIALS');
-  gaClient ??= new (require('@google-analytics/data').BetaAnalyticsDataClient)();
-  await gaClient.getMetadata({ name: `properties/${GA_PROPERTY_ID}/metadata` }, { timeout: TIMEOUT_MS });
+  const ga = require('./googleAnalyticsClient');
+  if (!ga.isConfigured()) throw notConfigured('GA_PROPERTY_ID / GOOGLE_CREDENTIALS_JSON');
+  const { GA_PROPERTY_ID } = process.env;
+  await ga.getClient().getMetadata({ name: `properties/${GA_PROPERTY_ID}/metadata` }, { timeout: TIMEOUT_MS });
 });
 
 async function checkAll() {

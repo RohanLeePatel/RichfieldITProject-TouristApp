@@ -1,17 +1,12 @@
-const { BetaAnalyticsDataClient } = require('@google-analytics/data');
+const { isConfigured, getClient: getGaClient } = require('./googleAnalyticsClient');
 
-let client;
-
-// Reads GOOGLE_APPLICATION_CREDENTIALS (path to the service-account JSON)
-// itself, and GA_PROPERTY_ID is the numeric GA4 property id.
 function getClient() {
-  if (!process.env.GA_PROPERTY_ID || !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    const error = new Error('Google Analytics is not configured (GA_PROPERTY_ID / GOOGLE_APPLICATION_CREDENTIALS).');
+  if (!isConfigured()) {
+    const error = new Error('Google Analytics is not configured (GA_PROPERTY_ID and GOOGLE_CREDENTIALS_JSON or GOOGLE_APPLICATION_CREDENTIALS).');
     error.statusCode = 503;
     throw error;
   }
-  client ??= new BetaAnalyticsDataClient();
-  return client;
+  return getGaClient();
 }
 
 const metricValue = (row, i) => Number(row?.metricValues?.[i]?.value ?? 0);
