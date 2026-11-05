@@ -122,5 +122,11 @@ def test_a_throttled_request_gets_429_with_the_header(monkeypatch):
     assert response.status_code == 429
     assert 0 < int(response.headers["Retry-After"]) <= rate_limit.WINDOW_SECONDS
     assert "wait a minute" in response.json()["detail"]
+    assert response.json()["code"] == "rate_limited" and "wait a minute" in response.json()["message"]
     # still logged and still carries the request id
     assert response.headers["X-Request-ID"]
+
+
+def test_versioned_and_legacy_paths_share_one_budget():
+    assert rate_limit._bucket("/v1/weather/Paris") == rate_limit._bucket("/weather/Paris") == "/weather"
+    assert rate_limit._bucket("/v1/destinations/enrich") == "/destinations"

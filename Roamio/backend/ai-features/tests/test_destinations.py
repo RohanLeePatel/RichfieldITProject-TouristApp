@@ -244,7 +244,7 @@ def test_geoapify_places_sends_the_conditions(monkeypatch):
         seen.update(params)
         return FakeResponse({"features": [{"properties": {"name": "x"}}]})
 
-    monkeypatch.setattr(enrich.requests, "get", fake_get)
+    monkeypatch.setattr(requests, "get", fake_get)
     assert enrich.geoapify_places("k", ["a", "b"], 1.0, 2.0, 500, conditions="wheelchair") == [{"name": "x"}]
     assert seen["categories"] == "a,b" and seen["conditions"] == "wheelchair" and seen["filter"] == "circle:2.0,1.0,500"
 
@@ -255,7 +255,7 @@ def test_climate_normals_average_per_month(monkeypatch):
         "temperature_2m_mean": [10.0, 12.0, None],
         "precipitation_sum": [1.0, 2.5, 4.0],
     }
-    monkeypatch.setattr(enrich.requests, "get", lambda *a, **k: FakeResponse({"daily": daily}))
+    monkeypatch.setattr(requests, "get", lambda *a, **k: FakeResponse({"daily": daily}))
     temp, rain = enrich.fetch_climate_normals(0, 0)
     assert temp == {"1": 11.0}  # a missing reading is skipped, not zero
     assert rain == {"1": 3.5, "2": 4.0}  # rainfall is a monthly total
@@ -271,7 +271,7 @@ def test_enrich_city_raw_collects_every_tag(monkeypatch):
 
 
 def test_a_provider_failure_never_leaks_the_key(monkeypatch):
-    monkeypatch.setattr(enrich.requests, "get", lambda *a, **k: FakeResponse({}, ok=False))
+    monkeypatch.setattr(requests, "get", lambda *a, **k: FakeResponse({}, ok=False))
     with pytest.raises(enrich.EnrichmentError) as error:
         enrich.enrich_city_raw("SECRET", 1.0, 2.0, 5000)
     assert "SECRET" not in str(error.value) and "SECRET" not in repr(error.value.__cause__.__class__)
@@ -292,15 +292,15 @@ def test_cover_image_tries_the_qualified_title_first(monkeypatch):
 
 
 def test_thumbnail_handles_missing_disambiguation_and_network_errors(monkeypatch):
-    monkeypatch.setattr(enrich.requests, "get", lambda *a, **k: FakeResponse({"thumbnail": {"source": "https://t/x.jpg"}}))
+    monkeypatch.setattr(requests, "get", lambda *a, **k: FakeResponse({"thumbnail": {"source": "https://t/x.jpg"}}))
     assert enrich.fetch_thumbnail("Paris, France") == "https://t/x.jpg"
-    monkeypatch.setattr(enrich.requests, "get", lambda *a, **k: FakeResponse({"type": "disambiguation", "thumbnail": {"source": "u"}}))
+    monkeypatch.setattr(requests, "get", lambda *a, **k: FakeResponse({"type": "disambiguation", "thumbnail": {"source": "u"}}))
     assert enrich.fetch_thumbnail("Mercury") is None
-    monkeypatch.setattr(enrich.requests, "get", lambda *a, **k: FakeResponse({}, ok=False))
+    monkeypatch.setattr(requests, "get", lambda *a, **k: FakeResponse({}, ok=False))
     assert enrich.fetch_thumbnail("Nope") is None
 
     def boom(*a, **k):
         raise requests.ConnectionError()
 
-    monkeypatch.setattr(enrich.requests, "get", boom)
+    monkeypatch.setattr(requests, "get", boom)
     assert enrich.fetch_thumbnail("Nope") is None

@@ -4,9 +4,10 @@ Nothing here runs at import time: the client is built on first use so the
 service still boots (and the rest of the API still works) without Supabase."""
 
 import logging
-import os
 import uuid
 from datetime import datetime, timezone
+
+from config import settings
 
 logger = logging.getLogger("roamio.storage")
 
@@ -21,15 +22,15 @@ class StorageError(Exception):
 
 
 def bucket_name() -> str:
-    return os.environ.get("TRANSLATION_BUCKET_NAME") or "translation-images"
+    return settings.get("TRANSLATION_BUCKET_NAME") or "translation-images"
 
 
 def get_client():
     """Shared Supabase client, or StorageError when it isn't configured."""
     global _client
     if _client is None:
-        url = os.environ.get("SUPABASE_URL")
-        key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        url = settings.get("SUPABASE_URL")
+        key = settings.get("SUPABASE_SERVICE_ROLE_KEY")
         if not url or not key:
             raise StorageError("Supabase is not configured (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY).")
         from supabase import create_client

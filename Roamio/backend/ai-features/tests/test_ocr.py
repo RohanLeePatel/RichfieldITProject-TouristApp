@@ -45,7 +45,7 @@ def test_missing_key_is_a_configuration_error(monkeypatch):
 
 
 def test_timeout_becomes_504(monkeypatch):
-    monkeypatch.setattr(ocr_module.requests, "post", _post(raises=requests.Timeout()))
+    monkeypatch.setattr(requests, "post", _post(raises=requests.Timeout()))
     with pytest.raises(OcrError) as caught:
         run_ocr(IMAGE)
     assert caught.value.status == 504 and "timed out" in caught.value.message
@@ -54,7 +54,7 @@ def test_timeout_becomes_504(monkeypatch):
 @pytest.mark.parametrize("provider_status", [403, 429])
 def test_quota_and_forbidden_become_429(monkeypatch, provider_status):
     monkeypatch.setattr(
-        ocr_module.requests, "post", _post(_Response(status_code=provider_status))
+        requests, "post", _post(_Response(status_code=provider_status))
     )
     with pytest.raises(OcrError) as caught:
         run_ocr(IMAGE)
@@ -62,7 +62,7 @@ def test_quota_and_forbidden_become_429(monkeypatch, provider_status):
 
 
 def test_other_http_error_becomes_502(monkeypatch):
-    monkeypatch.setattr(ocr_module.requests, "post", _post(_Response(status_code=500)))
+    monkeypatch.setattr(requests, "post", _post(_Response(status_code=500)))
     with pytest.raises(OcrError) as caught:
         run_ocr(IMAGE)
     assert caught.value.status == 502
@@ -70,7 +70,7 @@ def test_other_http_error_becomes_502(monkeypatch):
 
 def test_unreachable_provider_becomes_502(monkeypatch):
     monkeypatch.setattr(
-        ocr_module.requests, "post", _post(raises=requests.ConnectionError("down"))
+        requests, "post", _post(raises=requests.ConnectionError("down"))
     )
     with pytest.raises(OcrError) as caught:
         run_ocr(IMAGE)
@@ -79,7 +79,7 @@ def test_unreachable_provider_becomes_502(monkeypatch):
 
 def test_processing_error_becomes_422_with_the_providers_reason(monkeypatch):
     monkeypatch.setattr(
-        ocr_module.requests,
+        requests,
         "post",
         _post(_Response({"IsErroredOnProcessing": True, "ErrorMessage": ["File size exceeded"]})),
     )
@@ -89,7 +89,7 @@ def test_processing_error_becomes_422_with_the_providers_reason(monkeypatch):
 
 
 def test_no_parsed_results_is_empty_not_an_error(monkeypatch):
-    monkeypatch.setattr(ocr_module.requests, "post", _post(_Response({"ParsedResults": []})))
+    monkeypatch.setattr(requests, "post", _post(_Response({"ParsedResults": []})))
     assert run_ocr(IMAGE) == ("", [])
 
 
@@ -108,7 +108,7 @@ def test_success_returns_collapsed_text_and_positioned_lines(monkeypatch):
             }]},
         }]
     }
-    monkeypatch.setattr(ocr_module.requests, "post", _post(_Response(payload)))
+    monkeypatch.setattr(requests, "post", _post(_Response(payload)))
 
     text, lines = run_ocr(IMAGE)
     assert text == "Salida de emergencia"

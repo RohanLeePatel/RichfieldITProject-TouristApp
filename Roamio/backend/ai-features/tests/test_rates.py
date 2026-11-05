@@ -3,6 +3,7 @@
 import importlib
 
 import pytest
+import requests
 from fastapi.testclient import TestClient
 
 import engine.currency as currency
@@ -42,7 +43,7 @@ def test_rates_rejects_wrong_secret(client):
 
 def test_rates_returns_the_rate_and_when_it_was_fetched(client, monkeypatch):
     monkeypatch.setattr(currency, "EXCHANGE_RATE_API_KEY", "test-key")
-    monkeypatch.setattr(currency.requests, "get", lambda url, timeout: _Response())
+    monkeypatch.setattr(requests, "get", lambda url, timeout: _Response())
 
     response = client.get("/rates/zar/usd", headers=SECRET)
     assert response.status_code == 200

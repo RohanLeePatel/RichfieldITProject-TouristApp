@@ -26,6 +26,7 @@ from urllib.parse import quote
 
 import requests
 
+import http_client
 from landmarks.interest_categories import ACCESSIBILITY_SAMPLE_CATEGORIES, INTEREST_CATEGORY_MAP
 
 GEOAPIFY_PLACES_URL = "https://api.geoapify.com/v2/places"
@@ -64,7 +65,7 @@ def geoapify_places(
     if conditions:
         params["conditions"] = conditions
 
-    response = requests.get(GEOAPIFY_PLACES_URL, params=params, timeout=REQUEST_TIMEOUT_SECONDS)
+    response = http_client.get(GEOAPIFY_PLACES_URL, params=params, timeout=REQUEST_TIMEOUT_SECONDS)
     response.raise_for_status()
     return [f["properties"] for f in response.json()["features"]]
 
@@ -85,7 +86,7 @@ def fetch_climate_normals(lat: float, lon: float) -> tuple[dict[str, float], dic
         "daily": "temperature_2m_mean,precipitation_sum",
         "timezone": "auto",
     }
-    response = requests.get(OPEN_METEO_ARCHIVE_URL, params=params, timeout=REQUEST_TIMEOUT_SECONDS)
+    response = http_client.get(OPEN_METEO_ARCHIVE_URL, params=params, timeout=REQUEST_TIMEOUT_SECONDS)
     response.raise_for_status()
     daily = response.json()["daily"]
 
@@ -112,7 +113,7 @@ def fetch_accessibility(api_key: str, lat: float, lon: float, radius_m: int) -> 
     )
     ratio = (accessible_count / tagged_total) if tagged_total > 0 else None
 
-    if tagged_total < MIN_TAGGED_SAMPLE:
+    if ratio is None or tagged_total < MIN_TAGGED_SAMPLE:
         state = "unknown"
     elif ratio >= SUPPORTED_RATIO:
         state = "supported"
@@ -208,7 +209,7 @@ def enrich_city_raw(api_key: str, lat: float, lon: float, radius_m: int, workers
 def fetch_thumbnail(title: str) -> str | None:
     """A cover photo from the Wikipedia summary endpoint (free, no key), or None."""
     try:
-        response = requests.get(
+        response = http_client.get(
             f"{WIKIPEDIA_SUMMARY_URL}{quote(title.replace(' ', '_'))}", headers=WIKIPEDIA_HEADERS, timeout=15
         )
         if not response.ok:

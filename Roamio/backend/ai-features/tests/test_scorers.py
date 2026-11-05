@@ -1,4 +1,5 @@
 import pytest
+import requests
 
 import engine.currency as currency
 from engine.scorers import (
@@ -35,7 +36,7 @@ def test_budget_converts_non_zar_currency(destinations, prefs_factory, monkeypat
     currency._rate_cache.clear()
     monkeypatch.setattr(currency, "EXCHANGE_RATE_API_KEY", "test-key")
     monkeypatch.setattr(
-        currency.requests,
+        requests,
         "get",
         lambda url, timeout: type(
             "R", (), {"raise_for_status": lambda self: None, "json": lambda self: {"base": "ZAR", "result": {"USD": 0.055}}}

@@ -1,9 +1,7 @@
 const { httpError } = require('./tripAccessService');
+const { aiApiUrl } = require('../utils/aiService');
 
-const aiFeaturesUrl = (
-  process.env.AI_FEATURES_URL ||
-  'https://richfield-it-project-tourist-app.vercel.app'
-).replace(/\/$/, '');
+const aiFeaturesUrl = aiApiUrl();
 
 // One unit of `base` in `target`, from the ai-features /rates route (which
 // holds the fastFOREX key and caches). Same currency -> 1 with no call.

@@ -129,7 +129,7 @@ def merge_preferences(members: list[Preferences]) -> tuple[Preferences, dict]:
         # dates belong to the trip, not to a traveller - take the organiser's,
         # falling back to the first member who supplied one
         climate=ClimatePrefs(
-            prefer=climate,
+            prefer=climate,  # type: ignore[arg-type]  # one of mild/hot/cold or None by construction above
             travel_month=next(
                 (m.climate.travel_month for m in members if m.climate.travel_month is not None), None
             ),
@@ -137,7 +137,7 @@ def merge_preferences(members: list[Preferences]) -> tuple[Preferences, dict]:
                 (m.climate.travel_month_end for m in members if m.climate.travel_month_end is not None), None
             ),
         ),
-        pace=pace,
+        pace=pace,  # type: ignore[arg-type]  # a valid Pace by construction above
     )
 
     merged = _without_avoided(merged, avoided)

@@ -1,3 +1,5 @@
+import requests
+
 import engine.currency as currency
 from engine.gates import check_accessibility_gate, check_budget_gate, check_landmark_availability_gate, run_gates
 from tests.conftest import make_candidate
@@ -35,7 +37,7 @@ def test_budget_gate_converts_non_zar_currency(destinations, prefs_factory, monk
     currency._rate_cache.clear()
     monkeypatch.setattr(currency, "EXCHANGE_RATE_API_KEY", "test-key")
     monkeypatch.setattr(
-        currency.requests,
+        requests,
         "get",
         lambda url, timeout: type(
             "R", (), {"raise_for_status": lambda self: None, "json": lambda self: {"base": "ZAR", "result": {"USD": 0.055}}}

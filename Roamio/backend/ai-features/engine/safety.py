@@ -14,17 +14,18 @@ read as "unsafe".
 from __future__ import annotations
 
 import logging
-import os
 
 import requests
 
+import http_client
 from cache_utils import ttl_cache_get, ttl_cache_set
+from config import settings
 from schemas.recommendations import Candidate
 
 logger = logging.getLogger(__name__)
 
-TRAVEL_RISK_API_KEY = os.environ.get("TRAVEL_RISK_API_KEY_1")
-TRAVEL_RISK_API_URL = os.environ.get("TRAVEL_RISK_API_URL_1") or "https://travelriskapi.com/api/v1"
+TRAVEL_RISK_API_KEY = settings.get("TRAVEL_RISK_API_KEY_1")
+TRAVEL_RISK_API_URL = settings.get("TRAVEL_RISK_API_URL_1") or "https://travelriskapi.com/api/v1"
 CACHE_TTL_SECONDS = 12 * 60 * 60
 REQUEST_TIMEOUT_SECONDS = 5
 
@@ -44,11 +45,12 @@ def advisory_levels() -> dict[str, int]:
         return stale
 
     try:
-        response = requests.get(
+        response = http_client.get(
             f"{TRAVEL_RISK_API_URL}/countries",
             params={"limit": 1000},
             headers={"X-API-Key": TRAVEL_RISK_API_KEY},
             timeout=REQUEST_TIMEOUT_SECONDS,
+            retries=0,  # best effort: a slow advisory feed must not double a recommendation's wait
         )
         response.raise_for_status()
         # {"total": 231, "data": [{"iso_code": "IDN", "name": "Indonesia", "advisory_level": 2, ...}]}
@@ -76,16 +78,22 @@ def safety_index(country: str | None, levels: dict[str, int]) -> float | None:
     return None if level is None else round(1 - (min(max(level, 1), 4) - 1) / 3, 2)
 
 
-def with_safety(candidates: list[Candidate]) -> list[Candidate]:
+def spans_countries(candidates: list[Candidate]) -> bool:
+    """Whether the candidates are in more than one country, the only case safety can tell apart."""
+    return len({(c.country or c.name).lower() for c in candidates}) >= 2
+
+
+def with_safety(candidates: list[Candidate], levels: dict[str, int] | None = None) -> list[Candidate]:
     """Fills safety_index where it's missing (children too), from the country's advisory level.
 
     Skipped when every candidate is in the same country (a city-level run): the
     same value on all of them separates nothing and only squeezes the
-    dimensions that do - see the comment in scorers.score_safety.
+    dimensions that do - see the comment in scorers.score_safety. Pass `levels`
+    when the caller already fetched them, to avoid asking the provider twice.
     """
-    if len({(c.country or c.name).lower() for c in candidates}) < 2:
+    if not spans_countries(candidates):
         return candidates
-    levels = advisory_levels()
+    levels = advisory_levels() if levels is None else levels
     if not levels:
         return candidates
 

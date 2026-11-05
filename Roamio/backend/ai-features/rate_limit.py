@@ -53,6 +53,7 @@ _hits: dict[tuple[str, str], tuple[int, float]] = {}
 
 def _bucket(path: str) -> str:
     """The longest configured prefix the path falls under, else "" for the default."""
+    path = path.removeprefix("/v1")  # versioned and legacy paths share one budget
     for prefix in ROUTE_LIMITS:
         if path == prefix or path.startswith(prefix + "/"):
             return prefix

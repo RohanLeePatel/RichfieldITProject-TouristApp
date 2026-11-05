@@ -33,26 +33,50 @@ def test_health_check(client):
     assert client.get("/").json() == {"status": "ok"}
 
 
-def test_every_feature_route_is_mounted(client):
-    assert set(main.app.openapi()["paths"]) == {
-        "/",
-        "/health",
-        "/chat",
-        "/destinations/enrich",
-        "/destinations/geocode",
-        "/landmarks",
-        "/places/search",
-        "/ocr",
-        "/rates/{base}/{target}",
-        "/recommendations",
-        "/recommendations/catalog",
-        "/text",
-        "/weather/{city}",
-        "/api/translate/camera",
-        "/api/translate/history",
-        "/api/translate/history/{record_id}",
-        "/api/translate/text",
-    }
+FEATURE_ROUTES = {
+    "/chat",
+    "/destinations/enrich",
+    "/destinations/geocode",
+    "/landmarks",
+    "/places/search",
+    "/ocr",
+    "/rates/{base}/{target}",
+    "/recommendations",
+    "/recommendations/catalog",
+    "/text",
+    "/weather/{city}",
+    "/api/translate/camera",
+    "/api/translate/history",
+    "/api/translate/history/{record_id}",
+    "/api/translate/text",
+}
+
+
+def test_every_feature_route_is_mounted_under_v1(client):
+    paths = set(main.app.openapi()["paths"])
+    # uptime and tooling stay unversioned; the legacy copies are hidden from the schema
+    assert paths == {"/", "/health"} | {"/v1" + route for route in FEATURE_ROUTES}
+
+
+def test_the_old_unversioned_paths_still_answer(authed_client):
+    """until the Core API has moved to /v1, nothing may break"""
+    for prefix in ("", "/v1"):
+        response = authed_client.get(f"{prefix}/rates/ZAR/ZAR", headers=SECRET)
+        assert response.status_code == 200, prefix
+
+
+def test_every_error_has_a_message_and_a_stable_code(authed_client):
+    missing_key = authed_client.get("/v1/rates/ZAR/ZAR")
+    assert missing_key.status_code == 422
+    assert missing_key.json()["code"] == "invalid_request"
+    assert "node_secretkey" in missing_key.json()["message"].lower() or "node-secretkey" in missing_key.json()["message"].lower()
+    assert isinstance(missing_key.json()["detail"], list)  # what callers always got is still there
+
+    wrong_key = authed_client.get("/v1/rates/ZAR/ZAR", headers={"node-secretkey": "nope"})
+    assert wrong_key.json() == {"message": "Unauthorized", "code": "unauthorized", "detail": "Unauthorized"}
+
+    unknown = authed_client.get("/v1/nowhere", headers=SECRET)
+    assert unknown.status_code == 404 and unknown.json()["code"] == "not_found"
 
 
 def test_the_request_id_from_the_core_api_is_echoed_and_logged(client, caplog):

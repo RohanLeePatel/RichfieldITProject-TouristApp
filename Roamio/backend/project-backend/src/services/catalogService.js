@@ -1,15 +1,13 @@
 const prisma = require('../config/prisma');
 const { httpError } = require('./tripAccessService');
+const { aiApiUrl, aiMessage } = require('../utils/aiService');
 
 // The cities the recommendation engine can suggest. Rows live in the
 // CatalogDestination table and are managed from the admin dashboard; this file
 // validates them, fills in their provider data through the AI service, and
 // hands the active ones to the AI service with each recommendation request.
 
-const aiFeaturesUrl = (
-  process.env.AI_FEATURES_URL ||
-  'https://richfield-it-project-tourist-app.vercel.app'
-).replace(/\/$/, '');
+const aiFeaturesUrl = aiApiUrl();
 
 const STALE_AFTER_DAYS = 180; // climate and POI counts drift; refresh twice a year
 const ENRICH_TIMEOUT_MS = 50_000;
@@ -154,8 +152,7 @@ async function callAi(route, payload) {
     throw httpError(502, 'The data service did not answer in time. Try again in a minute.');
   }
   if (!response.ok) {
-    const detail = typeof data?.detail === 'string' ? data.detail : 'The data service could not read this place.';
-    throw httpError([404, 503].includes(response.status) ? response.status : 502, detail);
+    throw httpError([404, 503].includes(response.status) ? response.status : 502, aiMessage(data, 'The data service could not read this place.'));
   }
   return data;
 }

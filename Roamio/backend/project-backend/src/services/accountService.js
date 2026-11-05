@@ -4,11 +4,11 @@ const { unpackGroupMeta } = require('../utils/groupMeta');
 const { toTraveller } = require('./travellerService');
 const sessionService = require('./sessionService');
 const { httpError } = require('./tripAccessService');
+const { aiApiUrl } = require('../utils/aiService');
 
 // "Download my data" and "Delete my account" (POPIA: access and erasure).
 
-const aiFeaturesUrl = () =>
-  (process.env.AI_FEATURES_URL || 'https://richfield-it-project-tourist-app.vercel.app').replace(/\/$/, '');
+const aiFeaturesUrl = aiApiUrl;
 const AI_TIMEOUT_MS = 15000;
 const HISTORY_PAGE = 100;
 const HISTORY_PAGES = 5; // up to 500 translations in the file

@@ -4,8 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from config.auth import verify_secretKey
 from engine.catalog import load_city_candidates, load_country_catalog, raw_from_catalog
+from engine.currency import rate_unavailable
 from engine.pipeline import build_response
-from engine.safety import with_safety
+from engine.safety import advisory_levels, spans_countries, with_safety
 from schemas.recommendations import RecommendationRequest, RecommendationResponse
 
 logger = logging.getLogger(__name__)
@@ -57,10 +58,18 @@ def recommendations(request: RecommendationRequest) -> RecommendationResponse:
 
     # keep at least one candidate so a run of dislikes never yields a 500
     kept = [c for c in candidates if c.id not in request.exclude_ids]
-    candidates = with_safety(kept or candidates)
+    candidates = kept or candidates
+    # asked once and shared, so a provider outage costs one wait, not two
+    levels = advisory_levels() if spans_countries(candidates) else None
+    degraded = []
+    if levels is not None and not levels:
+        degraded.append("safety")
+    if rate_unavailable(request.preferences.currency):
+        degraded.append("currency")
+    candidates = with_safety(candidates, levels)
 
     try:
-        return build_response(request, candidates=candidates)
+        return build_response(request, candidates=candidates).model_copy(update={"degraded": degraded})
     except Exception:
         # the traceback belongs in the log, not in the response (NFR-22)
         logger.exception("Recommendation pipeline failed for level %s", request.level)

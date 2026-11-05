@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 
+import requests
+
 import translation.live_translation as lt
 from ocr.ocr import _lines
 from routers.translation_router import looks_like_image
@@ -32,7 +34,7 @@ def test_ocr_lines_box_from_words():
 
 def test_deepl_failures_become_friendly_messages(monkeypatch):
     monkeypatch.setattr(lt, "DEEPL_API_KEY", "k:fx")
-    monkeypatch.setattr(lt.requests, "post", lambda *a, **k: SimpleNamespace(ok=False, status_code=456))
+    monkeypatch.setattr(requests, "post", lambda *a, **k: SimpleNamespace(ok=False, status_code=456))
     result = lt.translate_text("Bonjour tout le monde", "EN-US")
     assert result["translation"] is None and "quota" in result["message"]
 
@@ -48,7 +50,7 @@ def test_detected_language_comes_from_the_translation_response(monkeypatch):
         )
 
     monkeypatch.setattr(lt, "DEEPL_API_KEY", "k:fx")
-    monkeypatch.setattr(lt.requests, "post", fake_post)
+    monkeypatch.setattr(requests, "post", fake_post)
 
     result = lt.translate_text("Salida de emergencia", "EN-US")
     assert result["translation"] == "Emergency exit"
@@ -68,7 +70,7 @@ def test_lines_are_sent_in_batches_of_fifty(monkeypatch):
         )
 
     monkeypatch.setattr(lt, "DEEPL_API_KEY", "k:fx")
-    monkeypatch.setattr(lt.requests, "post", fake_post)
+    monkeypatch.setattr(requests, "post", fake_post)
 
     lines = [{"text": f"line {i}", "left": 0, "top": i, "width": 1, "height": 1} for i in range(120)]
     translated = lt.translate_lines(lines, "EN")
@@ -90,7 +92,7 @@ def test_source_language_skips_detection_and_is_sent(monkeypatch):
         )
 
     monkeypatch.setattr(lt, "DEEPL_API_KEY", "k:fx")
-    monkeypatch.setattr(lt.requests, "post", fake_post)
+    monkeypatch.setattr(requests, "post", fake_post)
     result = lt.translate_text("Bonjour", "EN-US", "FR")
     assert result["translation"] == "Hello" and result["detected_lang"] == "fr"
     assert ("source_lang", "FR") in sent["data"]
@@ -109,7 +111,7 @@ def test_without_a_key_nothing_is_translated(monkeypatch):
 def test_a_timeout_is_reported_in_plain_language(monkeypatch):
     monkeypatch.setattr(lt, "DEEPL_API_KEY", "k:fx")
     monkeypatch.setattr(
-        lt.requests, "post", lambda *a, **k: (_ for _ in ()).throw(lt.requests.Timeout())
+        requests, "post", lambda *a, **k: (_ for _ in ()).throw(requests.Timeout())
     )
     assert "timed out" in lt.translate_text("Salida de emergencia", "EN")["message"]
 
@@ -117,16 +119,16 @@ def test_a_timeout_is_reported_in_plain_language(monkeypatch):
 def test_an_unreachable_service_is_reported_in_plain_language(monkeypatch):
     monkeypatch.setattr(lt, "DEEPL_API_KEY", "k:fx")
     monkeypatch.setattr(
-        lt.requests,
+        requests,
         "post",
-        lambda *a, **k: (_ for _ in ()).throw(lt.requests.ConnectionError("down")),
+        lambda *a, **k: (_ for _ in ()).throw(requests.ConnectionError("down")),
     )
     assert "Could not reach" in lt.translate_text("Salida de emergencia", "EN")["message"]
 
 
 def test_no_lines_means_no_call(monkeypatch):
     monkeypatch.setattr(
-        lt.requests, "post", lambda *a, **k: (_ for _ in ()).throw(AssertionError("no call expected"))
+        requests, "post", lambda *a, **k: (_ for _ in ()).throw(AssertionError("no call expected"))
     )
     assert lt.translate_lines([], "EN") == []
 

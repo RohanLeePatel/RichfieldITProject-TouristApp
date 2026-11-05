@@ -161,3 +161,11 @@ def _no_live_safety_levels(monkeypatch):
     safety._levels_cache.clear()
     yield
     safety._levels_cache.clear()
+
+
+@pytest.fixture(autouse=True)
+def _no_retry_pause(monkeypatch):
+    """a simulated provider outage must not make the suite wait out real retry pauses"""
+    import http_client
+
+    monkeypatch.setattr(http_client, "RETRY_PAUSE_SECONDS", 0)

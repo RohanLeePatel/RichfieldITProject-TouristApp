@@ -21,16 +21,15 @@ failing, flagged as stale (NFR-13).
 from __future__ import annotations
 
 import logging
-import os
 from datetime import datetime, timezone
 
-import requests
-
+import http_client
 from cache_utils import ttl_cache_get, ttl_cache_set
+from config import settings
 
 logger = logging.getLogger(__name__)
 
-EXCHANGE_RATE_API_KEY = os.environ.get("exchangeRateAPIKey")
+EXCHANGE_RATE_API_KEY = settings.get("exchangeRateAPIKey")
 EXCHANGE_RATE_PAIR_URL = "https://api.fastforex.io/fetch-one?from={base}&to={target}&api_key={key}"
 CACHE_TTL_SECONDS = 24 * 60 * 60  # rates don't need to be up to the second for a travel budget guess
 REQUEST_TIMEOUT_SECONDS = 5
@@ -67,7 +66,7 @@ def rate_detail(base: str, target: str) -> dict | None:
         return _stale_or_none(base, target)
 
     try:
-        response = requests.get(
+        response = http_client.get(
             EXCHANGE_RATE_PAIR_URL.format(key=EXCHANGE_RATE_API_KEY, base=base, target=target),
             timeout=REQUEST_TIMEOUT_SECONDS,
         )
@@ -106,3 +105,8 @@ def convert_from_zar(amount_zar: float, target_currency: str) -> float | None:
     if rate is None:
         return None
     return amount_zar * rate
+
+
+def rate_unavailable(currency: str) -> bool:
+    """True when budgets in `currency` cannot be compared with the cost bands right now."""
+    return convert_from_zar(1.0, currency) is None

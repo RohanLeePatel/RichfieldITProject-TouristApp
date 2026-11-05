@@ -5,6 +5,12 @@ import CompareView from "./CompareView.jsx";
 import DestinationCard from "./DestinationCard.jsx";
 import ResultsAdvice from "./ResultsAdvice.jsx";
 
+// What the service could not get for this search, in words for a traveller
+const DEGRADED_NOTES = {
+  safety: "Travel advisory data is unavailable right now, so safety isn't part of these scores.",
+  currency: "Exchange rates are unavailable right now, so your budget couldn't be compared with typical costs.",
+};
+
 export default function ResultsView({
   data, title, historyCount, loading, error, exploreCities, selectCity, selectExcluded,
   goBack, startOver, editPreferences, requirementExclusions, rankedOutCount, relaxSuggestions, travelMonth,
@@ -37,6 +43,12 @@ export default function ResultsView({
           )}
         </div>
       </div>
+
+      {data.degraded?.length > 0 && (
+        <p className="recommendation-comparison degraded-note" role="status">
+          {data.degraded.map((name) => DEGRADED_NOTES[name]).filter(Boolean).join(" ")} Try again in a few minutes for the full picture.
+        </p>
+      )}
 
       {data.results.length > 0 && (
         <>
@@ -112,6 +124,7 @@ export default function ResultsView({
                 <div>
                   <strong>{item.name}</strong>
                   <span>{item.reason}</span>
+                  {item.suggestion && <span className="excluded-suggestion">{item.suggestion}</span>}
                 </div>
                 <button type="button" onClick={() => selectExcluded(data.level, item)} disabled={loading}>
                   {isCountry ? "Explore anyway" : "Plan a trip here"}

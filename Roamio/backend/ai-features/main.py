@@ -12,10 +12,12 @@ from fastapi.responses import JSONResponse
 
 import chat.gemini
 import engine.currency
+import errors
 import landmarks.landmarks
 import ocr.ocr
 import translation.live_translation
 import weather.weather
+from config import settings
 from config.auth import verify_secretKey
 from rate_limit import check_rate_limit
 from routers.chat_router import router as chat_router
@@ -32,6 +34,7 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
 logger = logging.getLogger("roamio.access")
+settings.check_environment()  # says in the log which keys are missing, instead of failing on first use
 
 # No CORS middleware: only the Core API calls this service, and server-to-server
 # requests are not subject to CORS. The browser reaches these features through
@@ -50,6 +53,9 @@ app = FastAPI(
 )
 
 
+errors.install(app)
+
+
 # Middleware order: the one added last runs first, so the rate limiter is
 # declared first and the logger wraps it - a throttled request still gets an
 # access line.
@@ -60,7 +66,7 @@ async def enforce_rate_limit(request: Request, call_next):
         return await call_next(request)
     return JSONResponse(
         status_code=429,
-        content={"detail": "Too many requests - wait a minute and try again."},
+        content=errors.error_body(429, "Too many requests - wait a minute and try again."),
         headers={"Retry-After": str(retry_after)},
     )
 
@@ -104,14 +110,23 @@ async def log_requests(request: Request, call_next):
     return response
 
 
-app.include_router(translation_router)
-app.include_router(translation_history_router)
-app.include_router(recommendations_router)
-app.include_router(weather_router)
-app.include_router(landmarks_router)
-app.include_router(rates_router)
-app.include_router(chat_router)
-app.include_router(destinations_router)
+# Every feature route lives under /v1, so a response shape can change later
+# under /v2 without breaking the Core API mid-deploy. The same routes are also
+# answered at their old, unversioned paths (hidden from the schema) until every
+# caller has moved; delete the second line then. "/", "/health" and
+# "/openapi.json" stay unversioned: they are for uptime checks and tooling.
+for feature_router in (
+    translation_router,
+    translation_history_router,
+    recommendations_router,
+    weather_router,
+    landmarks_router,
+    rates_router,
+    chat_router,
+    destinations_router,
+):
+    app.include_router(feature_router, prefix="/v1")
+    app.include_router(feature_router, include_in_schema=False)
 
 # which module holds each provider's key, so /health reports the values the
 # service is actually running with rather than re-reading the environment

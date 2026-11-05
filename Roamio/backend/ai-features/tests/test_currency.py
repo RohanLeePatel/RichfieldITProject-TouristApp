@@ -1,6 +1,7 @@
 import time
 
 import pytest
+import requests
 
 import engine.currency as currency
 
@@ -34,7 +35,7 @@ def test_zar_short_circuits_without_a_network_call(monkeypatch):
     def _fail(*args, **kwargs):
         raise AssertionError("should not call the network for ZAR")
 
-    monkeypatch.setattr(currency.requests, "get", _fail)
+    monkeypatch.setattr(requests, "get", _fail)
     assert currency.get_zar_conversion_rate("zar") == 1.0
 
 
@@ -53,7 +54,7 @@ def test_successful_lookup_converts_and_caches(monkeypatch):
         calls.append(url)
         return _Response({"base": "ZAR", "result": {"USD": 0.055}})
 
-    monkeypatch.setattr(currency.requests, "get", _get)
+    monkeypatch.setattr(requests, "get", _get)
 
     rate = currency.get_zar_conversion_rate("USD")
     assert rate == 0.055
@@ -67,7 +68,7 @@ def test_successful_lookup_converts_and_caches(monkeypatch):
 def test_api_error_result_returns_none(monkeypatch):
     monkeypatch.setattr(currency, "EXCHANGE_RATE_API_KEY", "test-key")
     monkeypatch.setattr(
-        currency.requests,
+        requests,
         "get",
         lambda url, timeout: _Response({"error": "Invalid currency code"}),
     )
@@ -78,9 +79,9 @@ def test_network_failure_returns_none(monkeypatch):
     monkeypatch.setattr(currency, "EXCHANGE_RATE_API_KEY", "test-key")
 
     def _raise(url, timeout):
-        raise currency.requests.exceptions.ConnectionError("boom")
+        raise requests.exceptions.ConnectionError("boom")
 
-    monkeypatch.setattr(currency.requests, "get", _raise)
+    monkeypatch.setattr(requests, "get", _raise)
     assert currency.get_zar_conversion_rate("USD") is None
 
 
@@ -92,7 +93,7 @@ def test_expired_cache_entry_triggers_a_refetch(monkeypatch):
     stale_fetched_at = time.monotonic() - currency.CACHE_TTL_SECONDS - 1
     currency._rate_cache[("ZAR", "USD")] = ((0.05, "2026-10-01T00:00:00+00:00"), stale_fetched_at)
 
-    monkeypatch.setattr(currency.requests, "get", _ok(0.06))
+    monkeypatch.setattr(requests, "get", _ok(0.06))
     assert currency.get_zar_conversion_rate("USD") == 0.06
 
 
@@ -105,7 +106,7 @@ def test_any_pair_is_requested_and_cached_separately(monkeypatch):
         urls.append(url)
         return _Response({"base": "EUR", "result": {"GBP": 1.2}})
 
-    monkeypatch.setattr(currency.requests, "get", _get)
+    monkeypatch.setattr(requests, "get", _get)
 
     assert currency.get_rate("eur", "gbp") == 1.2
     assert ("EUR", "GBP") in currency._rate_cache
@@ -119,7 +120,7 @@ def test_same_currency_needs_no_rate():
 
 def test_detail_reports_when_the_rate_was_fetched(monkeypatch):
     monkeypatch.setattr(currency, "EXCHANGE_RATE_API_KEY", "test-key")
-    monkeypatch.setattr(currency.requests, "get", _ok())
+    monkeypatch.setattr(requests, "get", _ok())
 
     detail = currency.rate_detail("ZAR", "USD")
     assert detail["rate"] == 0.055 and detail["stale"] is False
@@ -133,9 +134,9 @@ def test_provider_failure_serves_the_expired_rate_as_stale(monkeypatch):
     currency._rate_cache[("ZAR", "USD")] = ((0.05, "2026-10-01T00:00:00+00:00"), stale_fetched_at)
 
     def _raise(url, timeout):
-        raise currency.requests.exceptions.ConnectionError("boom")
+        raise requests.exceptions.ConnectionError("boom")
 
-    monkeypatch.setattr(currency.requests, "get", _raise)
+    monkeypatch.setattr(requests, "get", _raise)
 
     detail = currency.rate_detail("ZAR", "USD")
     assert detail == {

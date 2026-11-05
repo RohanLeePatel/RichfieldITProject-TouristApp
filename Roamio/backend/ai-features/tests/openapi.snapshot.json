@@ -1,0 +1,2884 @@
+{
+  "components": {
+    "schemas": {
+      "Accessibility": {
+        "properties": {
+          "wheelchair": {
+            "default": "none",
+            "enum": [
+              "required",
+              "preferred",
+              "none"
+            ],
+            "title": "Wheelchair",
+            "type": "string"
+          }
+        },
+        "title": "Accessibility",
+        "type": "object"
+      },
+      "Body_ocr_and_translate_v1_ocr_post": {
+        "properties": {
+          "image": {
+            "contentMediaType": "application/octet-stream",
+            "title": "Image",
+            "type": "string"
+          },
+          "source_lang": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Lang"
+          },
+          "target_lang": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Lang"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "title": "Body_ocr_and_translate_v1_ocr_post",
+        "type": "object"
+      },
+      "Body_translate_camera_with_history_v1_api_translate_camera_post": {
+        "properties": {
+          "image": {
+            "contentMediaType": "application/octet-stream",
+            "title": "Image",
+            "type": "string"
+          },
+          "save_history": {
+            "default": "true",
+            "title": "Save History",
+            "type": "string"
+          },
+          "source_lang": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Lang"
+          },
+          "target_lang": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Lang"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "title": "Body_translate_camera_with_history_v1_api_translate_camera_post",
+        "type": "object"
+      },
+      "Candidate": {
+        "properties": {
+          "children": {
+            "items": {
+              "$ref": "#/components/schemas/Candidate"
+            },
+            "title": "Children",
+            "type": "array"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "features": {
+            "$ref": "#/components/schemas/CandidateFeatures"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "features"
+        ],
+        "title": "Candidate",
+        "type": "object"
+      },
+      "CandidateFeatures": {
+        "description": "Everything we know about a candidate place, aggregated. We never see raw\nPOI-level data here, just the rolled-up numbers.",
+        "properties": {
+          "accessibility": {
+            "default": "unknown",
+            "enum": [
+              "supported",
+              "unknown",
+              "poor"
+            ],
+            "title": "Accessibility",
+            "type": "string"
+          },
+          "accessible_ratio": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accessible Ratio"
+          },
+          "climate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ClimateNormals"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cost_index": {
+            "anyOf": [
+              {
+                "maximum": 5.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Index"
+          },
+          "family_poi_density": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Family Poi Density"
+          },
+          "interest_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Interest Counts",
+            "type": "object"
+          },
+          "interest_density": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Interest Density",
+            "type": "object"
+          },
+          "safety_index": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Safety Index"
+          },
+          "tagged_total": {
+            "default": 0,
+            "title": "Tagged Total",
+            "type": "integer"
+          }
+        },
+        "title": "CandidateFeatures",
+        "type": "object"
+      },
+      "CatalogEntry": {
+        "description": "One managed destination as the Core API stores it: the raw provider numbers,\nnot densities. The densities are worked out over the whole list on arrival\n(engine/enrich.py normalize_entries), so adding a city never needs the other\nrows rewritten.",
+        "properties": {
+          "accessibility": {
+            "default": "unknown",
+            "enum": [
+              "supported",
+              "unknown",
+              "poor"
+            ],
+            "title": "Accessibility",
+            "type": "string"
+          },
+          "accessible_ratio": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accessible Ratio"
+          },
+          "avg_rain_mm_by_month": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Avg Rain Mm By Month",
+            "type": "object"
+          },
+          "avg_temp_by_month": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Avg Temp By Month",
+            "type": "object"
+          },
+          "cost_index": {
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Cost Index",
+            "type": "integer"
+          },
+          "country": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Country",
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "interest_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Interest Counts",
+            "type": "object"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "tagged_total": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Tagged Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "country",
+          "cost_index"
+        ],
+        "title": "CatalogEntry",
+        "type": "object"
+      },
+      "ChatAction": {
+        "properties": {
+          "args": {
+            "additionalProperties": true,
+            "title": "Args",
+            "type": "object"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "args"
+        ],
+        "title": "ChatAction",
+        "type": "object"
+      },
+      "ChatMessage": {
+        "properties": {
+          "content": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Content",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "content"
+        ],
+        "title": "ChatMessage",
+        "type": "object"
+      },
+      "ChatRequest": {
+        "properties": {
+          "can_edit": {
+            "default": false,
+            "title": "Can Edit",
+            "type": "boolean"
+          },
+          "context": {
+            "default": "",
+            "maxLength": 8000,
+            "title": "Context",
+            "type": "string"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/ChatMessage"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Messages",
+            "type": "array"
+          }
+        },
+        "required": [
+          "messages"
+        ],
+        "title": "ChatRequest",
+        "type": "object"
+      },
+      "ChatResponse": {
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChatAction"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reply": {
+            "title": "Reply",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reply"
+        ],
+        "title": "ChatResponse",
+        "type": "object"
+      },
+      "ClimateNormals": {
+        "description": "Monthly averages keyed '1'..'12'. Comes from Open-Meteo for the offline\nseed data - not the same as the live OpenWeather forecast the app shows\nelsewhere (see enrich_destinations.py for why we use two different weather\nAPIs here).",
+        "properties": {
+          "avg_rain_mm_by_month": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Avg Rain Mm By Month",
+            "type": "object"
+          },
+          "avg_temp_by_month": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Avg Temp By Month",
+            "type": "object"
+          }
+        },
+        "title": "ClimateNormals",
+        "type": "object"
+      },
+      "ClimatePrefs": {
+        "properties": {
+          "prefer": {
+            "anyOf": [
+              {
+                "enum": [
+                  "mild",
+                  "hot",
+                  "cold"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prefer"
+          },
+          "travel_month": {
+            "anyOf": [
+              {
+                "maximum": 12.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Travel Month"
+          },
+          "travel_month_end": {
+            "anyOf": [
+              {
+                "maximum": 12.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Travel Month End"
+          }
+        },
+        "title": "ClimatePrefs",
+        "type": "object"
+      },
+      "CurrentConditions": {
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "feels_like": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feels Like"
+          },
+          "humidity": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Humidity"
+          },
+          "precipitation_mm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Precipitation Mm"
+          },
+          "temp": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temp"
+          },
+          "wind_speed": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wind Speed"
+          }
+        },
+        "title": "CurrentConditions",
+        "type": "object"
+      },
+      "EnrichRequest": {
+        "description": "Where a destination is. The Core API sends the admin's own entry.",
+        "properties": {
+          "country": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Country",
+            "type": "string"
+          },
+          "lat": {
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Lat",
+            "type": "number"
+          },
+          "lon": {
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Lon",
+            "type": "number"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "radius_m": {
+            "default": 12000,
+            "maximum": 30000.0,
+            "minimum": 1000.0,
+            "title": "Radius M",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "country",
+          "lat",
+          "lon"
+        ],
+        "title": "EnrichRequest",
+        "type": "object"
+      },
+      "EnrichResponse": {
+        "properties": {
+          "accessibility": {
+            "enum": [
+              "supported",
+              "unknown",
+              "poor"
+            ],
+            "title": "Accessibility",
+            "type": "string"
+          },
+          "accessible_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accessible Ratio"
+          },
+          "avg_rain_mm_by_month": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Avg Rain Mm By Month",
+            "type": "object"
+          },
+          "avg_temp_by_month": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Avg Temp By Month",
+            "type": "object"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "interest_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Interest Counts",
+            "type": "object"
+          },
+          "tagged_total": {
+            "title": "Tagged Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "interest_counts",
+          "accessibility",
+          "tagged_total",
+          "avg_temp_by_month",
+          "avg_rain_mm_by_month"
+        ],
+        "title": "EnrichResponse",
+        "type": "object"
+      },
+      "EvidenceEntry": {
+        "description": "one scoring dimension's contribution to the total, plus why it got that score",
+        "properties": {
+          "dimension": {
+            "title": "Dimension",
+            "type": "string"
+          },
+          "evidence": {
+            "additionalProperties": true,
+            "title": "Evidence",
+            "type": "object"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "value": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Value",
+            "type": "number"
+          },
+          "weight": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "dimension",
+          "value",
+          "weight",
+          "explanation"
+        ],
+        "title": "EvidenceEntry",
+        "type": "object"
+      },
+      "ExcludedCandidate": {
+        "properties": {
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "suggestion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggestion"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "reason"
+        ],
+        "title": "ExcludedCandidate",
+        "type": "object"
+      },
+      "ForecastDay": {
+        "properties": {
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "humidity": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Humidity"
+          },
+          "precipitation_chance": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Precipitation Chance"
+          },
+          "precipitation_mm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Precipitation Mm"
+          },
+          "temp": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temp"
+          },
+          "wind_speed": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wind Speed"
+          }
+        },
+        "required": [
+          "date"
+        ],
+        "title": "ForecastDay",
+        "type": "object"
+      },
+      "GeocodeRequest": {
+        "properties": {
+          "country": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Country",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "country"
+        ],
+        "title": "GeocodeRequest",
+        "type": "object"
+      },
+      "GeocodeResponse": {
+        "properties": {
+          "lat": {
+            "title": "Lat",
+            "type": "number"
+          },
+          "lon": {
+            "title": "Lon",
+            "type": "number"
+          }
+        },
+        "required": [
+          "lat",
+          "lon"
+        ],
+        "title": "GeocodeResponse",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "Landmark": {
+        "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "distance_m": {
+            "title": "Distance M",
+            "type": "number"
+          },
+          "lat": {
+            "title": "Lat",
+            "type": "number"
+          },
+          "lon": {
+            "title": "Lon",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "opening_hours": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opening Hours"
+          }
+        },
+        "required": [
+          "name",
+          "lat",
+          "lon",
+          "distance_m"
+        ],
+        "title": "Landmark",
+        "type": "object"
+      },
+      "LandmarkGroup": {
+        "properties": {
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "interest": {
+            "title": "Interest",
+            "type": "string"
+          },
+          "landmarks": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Landmark"
+            },
+            "title": "Landmarks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "interest",
+          "explanation"
+        ],
+        "title": "LandmarkGroup",
+        "type": "object"
+      },
+      "LandmarksResponse": {
+        "properties": {
+          "destination": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destination"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "groups": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LandmarkGroup"
+            },
+            "title": "Groups",
+            "type": "array"
+          }
+        },
+        "title": "LandmarksResponse",
+        "type": "object"
+      },
+      "MemberFit": {
+        "description": "How one traveller in the group scores this candidate on their own.",
+        "properties": {
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "score": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Score",
+            "type": "number"
+          },
+          "weakest_dimension": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weakest Dimension"
+          }
+        },
+        "required": [
+          "label",
+          "score",
+          "explanation"
+        ],
+        "title": "MemberFit",
+        "type": "object"
+      },
+      "OverlayLine": {
+        "properties": {
+          "height": {
+            "title": "Height",
+            "type": "number"
+          },
+          "left": {
+            "title": "Left",
+            "type": "number"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "top": {
+            "title": "Top",
+            "type": "number"
+          },
+          "translation": {
+            "title": "Translation",
+            "type": "string"
+          },
+          "width": {
+            "title": "Width",
+            "type": "number"
+          }
+        },
+        "required": [
+          "text",
+          "translation",
+          "left",
+          "top",
+          "width",
+          "height"
+        ],
+        "title": "OverlayLine",
+        "type": "object"
+      },
+      "PlaceSearchResponse": {
+        "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "distance_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance M"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "found": {
+            "title": "Found",
+            "type": "boolean"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "required": [
+          "found"
+        ],
+        "title": "PlaceSearchResponse",
+        "type": "object"
+      },
+      "Preferences": {
+        "properties": {
+          "accessibility": {
+            "$ref": "#/components/schemas/Accessibility"
+          },
+          "avoid_interests": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Avoid Interests",
+            "type": "array"
+          },
+          "budget_per_day": {
+            "exclusiveMinimum": 0.0,
+            "title": "Budget Per Day",
+            "type": "number"
+          },
+          "climate": {
+            "$ref": "#/components/schemas/ClimatePrefs"
+          },
+          "currency": {
+            "description": "ISO 4217, e.g. ZAR.",
+            "maxLength": 3,
+            "minLength": 3,
+            "title": "Currency",
+            "type": "string"
+          },
+          "interests": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Interests",
+            "type": "array"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "pace": {
+            "default": "balanced",
+            "enum": [
+              "packed",
+              "balanced",
+              "relaxed"
+            ],
+            "title": "Pace",
+            "type": "string"
+          },
+          "priority_interests": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Priority Interests",
+            "type": "array"
+          },
+          "travellers": {
+            "$ref": "#/components/schemas/Travellers"
+          }
+        },
+        "required": [
+          "budget_per_day",
+          "currency",
+          "travellers"
+        ],
+        "title": "Preferences",
+        "type": "object"
+      },
+      "RateResponse": {
+        "properties": {
+          "base": {
+            "title": "Base",
+            "type": "string"
+          },
+          "fetched_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fetched At"
+          },
+          "rate": {
+            "title": "Rate",
+            "type": "number"
+          },
+          "stale": {
+            "default": false,
+            "title": "Stale",
+            "type": "boolean"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "base",
+          "target",
+          "rate"
+        ],
+        "title": "RateResponse",
+        "type": "object"
+      },
+      "RecommendationRequest": {
+        "properties": {
+          "candidates": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Candidate"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidates"
+          },
+          "catalog": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/CatalogEntry"
+                },
+                "maxItems": 500,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalog"
+          },
+          "exclude_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Exclude Ids",
+            "type": "array"
+          },
+          "level": {
+            "enum": [
+              "country",
+              "city",
+              "place"
+            ],
+            "title": "Level",
+            "type": "string"
+          },
+          "member_preferences": {
+            "items": {
+              "$ref": "#/components/schemas/Preferences"
+            },
+            "maxItems": 10,
+            "title": "Member Preferences",
+            "type": "array"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "preferences": {
+            "$ref": "#/components/schemas/Preferences"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "session_id",
+          "level",
+          "preferences"
+        ],
+        "title": "RecommendationRequest",
+        "type": "object"
+      },
+      "RecommendationResponse": {
+        "properties": {
+          "comparison": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comparison"
+          },
+          "degraded": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Degraded",
+            "type": "array"
+          },
+          "excluded": {
+            "items": {
+              "$ref": "#/components/schemas/ExcludedCandidate"
+            },
+            "title": "Excluded",
+            "type": "array"
+          },
+          "group_conflicts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Group Conflicts",
+            "type": "array"
+          },
+          "group_merge": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Merge"
+          },
+          "group_merge_explanation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Merge Explanation"
+          },
+          "level": {
+            "enum": [
+              "country",
+              "city",
+              "place"
+            ],
+            "title": "Level",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/RecommendationResult"
+            },
+            "title": "Results",
+            "type": "array"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "session_id",
+          "level",
+          "results"
+        ],
+        "title": "RecommendationResponse",
+        "type": "object"
+      },
+      "RecommendationResult": {
+        "properties": {
+          "breakdown": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceEntry"
+            },
+            "title": "Breakdown",
+            "type": "array"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "fit_spread": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fit Spread"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "map_url": {
+            "title": "Map Url",
+            "type": "string"
+          },
+          "member_fit": {
+            "items": {
+              "$ref": "#/components/schemas/MemberFit"
+            },
+            "title": "Member Fit",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "rank": {
+            "title": "Rank",
+            "type": "integer"
+          },
+          "total_score": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Total Score",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "map_url",
+          "rank",
+          "total_score",
+          "breakdown",
+          "explanation"
+        ],
+        "title": "RecommendationResult",
+        "type": "object"
+      },
+      "TextBody": {
+        "properties": {
+          "save_history": {
+            "default": true,
+            "title": "Save History",
+            "type": "boolean"
+          },
+          "source_lang": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Lang"
+          },
+          "target_lang": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Lang"
+          },
+          "text": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "TextBody",
+        "type": "object"
+      },
+      "TextRequest": {
+        "properties": {
+          "source_lang": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Lang"
+          },
+          "target_lang": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Lang"
+          },
+          "text": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "TextRequest",
+        "type": "object"
+      },
+      "TranslationResponse": {
+        "properties": {
+          "detected_lang": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detected Lang"
+          },
+          "lines": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/OverlayLine"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "translation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Translation"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "TranslationResponse",
+        "type": "object"
+      },
+      "Travellers": {
+        "properties": {
+          "adults": {
+            "minimum": 1.0,
+            "title": "Adults",
+            "type": "integer"
+          },
+          "children": {
+            "description": "Ages of travelling children.",
+            "items": {
+              "type": "integer"
+            },
+            "title": "Children",
+            "type": "array"
+          }
+        },
+        "required": [
+          "adults"
+        ],
+        "title": "Travellers",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WeatherResponse": {
+        "properties": {
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "current": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CurrentConditions"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "fetched_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fetched At"
+          },
+          "forecast": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ForecastDay"
+            },
+            "title": "Forecast",
+            "type": "array"
+          },
+          "stale": {
+            "default": false,
+            "title": "Stale",
+            "type": "boolean"
+          },
+          "units": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Units"
+          }
+        },
+        "title": "WeatherResponse",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Recommendation engine, landmarks, translation, weather and exchange rates.",
+    "title": "Roamio Expert & Integration Service",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/": {
+      "get": {
+        "description": "Public uptime check - no detail.",
+        "operationId": "health_check__get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health Check"
+      }
+    },
+    "/health": {
+      "get": {
+        "description": "Which features this instance can actually serve, for the administrator\nhealth view (FR-25). Reports whether each key is set, never its value.",
+        "operationId": "health_detail_health_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "node-secretKey",
+            "required": true,
+            "schema": {
+              "title": "Node-Secretkey",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Health Detail"
+      }
+    },
+    "/v1/api/translate/camera": {
+      "post": {
+        "operationId": "translate_camera_with_history_v1_api_translate_camera_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-user-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "node-secretKey",
+            "required": true,
+            "schema": {
+              "title": "Node-Secretkey",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_translate_camera_with_history_v1_api_translate_camera_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Translate Camera With History"
+      }
+    },
+    "/v1/api/translate/history": {
+      "delete": {
+        "description": "Every saved translation and stored photograph of one traveller (they deleted their account).",
+        "operationId": "delete_all_history_v1_api_translate_history_delete",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-user-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "node-secretKey",
+            "required": true,
+            "schema": {
+              "title": "Node-Secretkey",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete All History"
+      },
+      "get": {
+        "operationId": "get_history_v1_api_translate_history_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(TEXT|IMAGE_CAMERA)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Type"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "node-secretKey",
+            "required": true,
+            "schema": {
+              "title": "Node-Secretkey",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get History"
+      }
+    },
+    "/v1/api/translate/history/{record_id}": {
+      "delete": {
+        "operationId": "delete_history_v1_api_translate_history__record_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "record_id",
+            "required": true,
+            "schema": {
+              "title": "Record Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "node-secretKey",
+            "required": true,
+            "schema": {
+              "title": "Node-Secretkey",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete History"
+      }
+    },
+    "/v1/api/translate/text": {
+      "post": {
+        "operationId": "translate_text_with_history_v1_api_translate_text_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-user-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "node-secretKey",
+            "required": true,
+            "schema": {
+              "title": "Node-Secretkey",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TextBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Translate Text With History"
+      }
+    },
+    "/v1/chat": {
+      "post": {
+        "description": "Next assistant reply for a trip conversation (FR-37).",
+        "operationId": "chat_v1_chat_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "node-secretKey",
+            "required": true,
+            "schema": {
+              "title": "Node-Secretkey",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Chat"
+      }
+    },
+    "/v1/destinations/enrich": {
+      "post": {
+        "operationId": "enrich_destination_v1_destinations_enrich_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "node-secretKey",
+            "required": true,
+            "schema": {
+              "title": "Node-Secretkey",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrichRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrichResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Enrich Destination"
+      }
+    },
+    "/v1/destinations/geocode": {
+      "post": {
+        "operationId": "geocode_destination_v1_destinations_geocode_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "node-secretKey",
+            "required": true,
+            "schema": {
+              "title": "Node-Secretkey",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GeocodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeocodeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Geocode Destination"
+      }
+    },
+    "/v1/landmarks": {
+      "get": {
+        "operationId": "landmarks_v1_landmarks_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "destination",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "title": "Destination",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Comma-separated interest tags, e.g. 'history,food'.",
+            "in": "query",
+            "name": "interests",
+            "required": true,
+            "schema": {
+              "description": "Comma-separated interest tags, e.g. 'history,food'.",
+              "maxLength": 200,
+              "title": "Interests",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "radius_m",
+            "required": false,
+            "schema": {
+              "default": 5000,
+              "exclusiveMinimum": 0,
+              "maximum": 50000,
+              "title": "Radius M",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "node-secretKey",
+            "required": true,
+            "schema": {
+              "title": "Node-Secretkey",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LandmarksResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Landmarks"
+      }
+    },
+    "/v1/ocr": {
+      "post": {
+        "operationId": "ocr_and_translate_v1_ocr_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "node-secretKey",
+            "required": true,
+            "schema": {
+              "title": "Node-Secretkey",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_ocr_and_translate_v1_ocr_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranslationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ocr And Translate"
+      }
+    },
+    "/v1/places/search": {
+      "get": {
+        "description": "Is this named place within reach of the trip? Used by the trip assistant when it\nadds a stop (FR-37). found=false is an answer, not an error.",
+        "operationId": "place_search_v1_places_search_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "text",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "title": "Text",
+              "type": "string"
+            }
+          },
+          {
+            "description": "City to search around, e.g. 'Durban, South Africa'.",
+            "in": "query",
+            "name": "near",
+            "required": true,
+            "schema": {
+              "description": "City to search around, e.g. 'Durban, South Africa'.",
+              "maxLength": 100,
+              "minLength": 1,
+              "title": "Near",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lat",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 90,
+                  "minimum": -90,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lat"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lon",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 180,
+                  "minimum": -180,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lon"
+            }
+          },
+          {
+            "in": "query",
+            "name": "radius_m",
+            "required": false,
+            "schema": {
+              "default": 30000,
+              "exclusiveMinimum": 0,
+              "maximum": 50000,
+              "title": "Radius M",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "node-secretKey",
+            "required": true,
+            "schema": {
+              "title": "Node-Secretkey",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaceSearchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Place Search"
+      }
+    },
+    "/v1/rates/{base}/{target}": {
+      "get": {
+        "description": "One unit of `base` in `target`. The Core API stores this with an expense\nrecorded in a currency other than the trip currency (FR-13).",
+        "operationId": "exchange_rate_v1_rates__base___target__get",
+        "parameters": [
+          {
+            "description": "ISO 4217 code, e.g. ZAR",
+            "in": "path",
+            "name": "base",
+            "required": true,
+            "schema": {
+              "description": "ISO 4217 code, e.g. ZAR",
+              "pattern": "^[A-Za-z]{3}$",
+              "title": "Base",
+              "type": "string"
+            }
+          },
+          {
+            "description": "ISO 4217 code, e.g. ZAR",
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "description": "ISO 4217 code, e.g. ZAR",
+              "pattern": "^[A-Za-z]{3}$",
+              "title": "Target",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "node-secretKey",
+            "required": true,
+            "schema": {
+              "title": "Node-Secretkey",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Exchange Rate"
+      }
+    },
+    "/v1/recommendations": {
+      "post": {
+        "operationId": "recommendations_v1_recommendations_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "node-secretKey",
+            "required": true,
+            "schema": {
+              "title": "Node-Secretkey",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecommendationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Recommendations"
+      }
+    },
+    "/v1/recommendations/catalog": {
+      "get": {
+        "operationId": "recommendation_catalog_v1_recommendations_catalog_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "node-secretKey",
+            "required": true,
+            "schema": {
+              "title": "Node-Secretkey",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Recommendation Catalog V1 Recommendations Catalog Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Recommendation Catalog"
+      }
+    },
+    "/v1/text": {
+      "post": {
+        "operationId": "translate_typed_text_v1_text_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "node-secretKey",
+            "required": true,
+            "schema": {
+              "title": "Node-Secretkey",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TextRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranslationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Translate Typed Text"
+      }
+    },
+    "/v1/weather/{city}": {
+      "get": {
+        "operationId": "weather_v1_weather__city__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "city",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "title": "City",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "units",
+            "required": false,
+            "schema": {
+              "default": "metric",
+              "pattern": "^(metric|imperial)$",
+              "title": "Units",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "node-secretKey",
+            "required": true,
+            "schema": {
+              "title": "Node-Secretkey",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeatherResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Weather"
+      }
+    }
+  }
+}

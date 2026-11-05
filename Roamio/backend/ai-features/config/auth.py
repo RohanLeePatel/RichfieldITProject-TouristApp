@@ -1,9 +1,10 @@
 import hmac
-import os
 
 from fastapi import Header, HTTPException
 
-secretKey = os.environ.get("superSecretKey")
+from config import settings
+
+secretKey = settings.get("superSecretKey")
 
 async def verify_secretKey(node_secretKey: str = Header(...)):
     if not secretKey:

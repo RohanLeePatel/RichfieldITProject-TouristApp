@@ -18,7 +18,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from engine.enrich import normalize_entries
-from schemas.recommendations import Candidate, CatalogEntry
+from schemas.recommendations import Candidate, CandidateFeatures, CatalogEntry
 
 SEED_PATH = Path(__file__).resolve().parent.parent / "data" / "destinations_seed.json"
 
@@ -92,7 +92,7 @@ def load_country_catalog(raw: list[dict] | None = None) -> list[Candidate]:
                 name=country_name,
                 country=country_name,
                 image_url=next((c.get("image_url") for c in cities if c.get("image_url")), None),
-                features={
+                features=CandidateFeatures.model_validate({
                     "cost_index": round(sum(cost_indexes) / len(cost_indexes)) if cost_indexes else None,
                     "safety_index": (sum(safety_indexes) / len(safety_indexes)) if safety_indexes else None,
                     "climate": (
@@ -110,7 +110,7 @@ def load_country_catalog(raw: list[dict] | None = None) -> list[Candidate]:
                     "interest_counts": interest_counts,
                     "interest_density": interest_density,
                     "family_poi_density": interest_density.get("family"),
-                },
+                }),
                 children=children,
             )
         )

@@ -63,7 +63,7 @@ const fails = async (promise, status, pattern) => {
   assert.equal(added.destination.id, 'japan-kyoto');
   assert.equal(added.destination.stale, false);
   assert.equal(added.destination.imageUrl, 'https://img.example/kyoto.jpg');
-  assert.equal(calls[0].url, 'https://richfield-it-project-tourist-app.vercel.app/destinations/enrich');
+  assert.equal(calls[0].url, 'https://richfield-it-project-tourist-app.vercel.app/v1/destinations/enrich');
   assert.equal(calls[0].init.headers['node-secretkey'], 'service-key');
   assert.deepEqual(JSON.parse(calls[0].init.body), { name: 'Kyoto', country: 'Japan', lat: 35.01, lon: 135.77, radius_m: 12000 });
   assert.deepEqual(rows.get('japan-kyoto').features, FEATURES); // the photo is a column, not part of features

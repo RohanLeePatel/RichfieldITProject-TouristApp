@@ -82,16 +82,16 @@ let weatherAnswer = {
   },
 };
 global.fetch = ((realFetch) => async (url, init) => {
-  if (String(url).startsWith('https://richfield-it-project-tourist-app.vercel.app/places/search')) {
+  if (String(url).startsWith('https://richfield-it-project-tourist-app.vercel.app/v1/places/search')) {
     placeRequest = { url: new URL(String(url)), init };
     if (!placeAnswer) throw new Error('down');
     return { ok: placeAnswer.ok, status: 200, json: async () => placeAnswer.body };
   }
-  if (String(url).startsWith('https://richfield-it-project-tourist-app.vercel.app/weather/')) {
+  if (String(url).startsWith('https://richfield-it-project-tourist-app.vercel.app/v1/weather/')) {
     weatherRequest = { url: String(url), init };
     return { ok: weatherAnswer.ok, status: weatherAnswer.ok ? 200 : 503, json: async () => weatherAnswer.body };
   }
-  if (!String(url).startsWith('https://richfield-it-project-tourist-app.vercel.app/chat')) return realFetch(url, init);
+  if (!String(url).startsWith('https://richfield-it-project-tourist-app.vercel.app/v1/chat')) return realFetch(url, init);
   aiRequest = { url: String(url), init, body: JSON.parse(init.body) };
   return { ok: aiAnswer.ok, status: aiAnswer.status, json: async () => aiAnswer.body };
 })(global.fetch);

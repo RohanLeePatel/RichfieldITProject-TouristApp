@@ -3,6 +3,7 @@
 import importlib
 
 import pytest
+import requests
 from fastapi.testclient import TestClient
 
 
@@ -69,7 +70,7 @@ def test_landmarks_succeeds_with_correct_secret(client, monkeypatch):
             }
         )
 
-    monkeypatch.setattr(landmarks_module.requests, "get", fake_get)
+    monkeypatch.setattr(requests, "get", fake_get)
 
     response = client.get(
         "/landmarks?destination=Cape%20Town&interests=nature", headers={"node-secretkey": "test-secret"}
@@ -93,7 +94,7 @@ def test_landmarks_resolves_specific_interest_tag(client, monkeypatch):
             return _FakeResponse({"features": [{"geometry": {"coordinates": [18.42, -33.92]}}]})
         return _FakeResponse({"features": []})
 
-    monkeypatch.setattr(landmarks_module.requests, "get", fake_get)
+    monkeypatch.setattr(requests, "get", fake_get)
 
     response = client.get(
         "/landmarks?destination=Cape%20Town&interests=waterparks",
@@ -104,10 +105,9 @@ def test_landmarks_resolves_specific_interest_tag(client, monkeypatch):
 
 
 def test_landmarks_destination_not_found_returns_404(client, monkeypatch):
-    import landmarks.landmarks as landmarks_module
 
     monkeypatch.setattr(
-        landmarks_module.requests, "get", lambda *a, **k: _FakeResponse({"features": []})
+        requests, "get", lambda *a, **k: _FakeResponse({"features": []})
     )
 
     response = client.get(
@@ -160,7 +160,7 @@ def test_landmarks_fixes_mojibake_names(client, monkeypatch):
             }
         )
 
-    monkeypatch.setattr(landmarks_module.requests, "get", fake_get)
+    monkeypatch.setattr(requests, "get", fake_get)
 
     response = client.get(
         "/landmarks?destination=Cape%20Town&interests=food", headers={"node-secretkey": "test-secret"}
@@ -216,7 +216,7 @@ def test_an_unmappable_destination_is_a_404(client, monkeypatch):
 
     landmarks_module._geocode_cache.clear()
     monkeypatch.setattr(
-        landmarks_module.requests, "get", lambda *a, **k: _FakeResponse({"features": []})
+        requests, "get", lambda *a, **k: _FakeResponse({"features": []})
     )
 
     response = client.get(
@@ -236,9 +236,9 @@ def test_a_geocode_failure_falls_back_to_the_expired_position(monkeypatch):
     landmarks_module._geocode_cache[("cape town", 5000)] = ((-33.9, 18.4), stale)
 
     def boom(*a, **k):
-        raise landmarks_module.requests.ConnectionError("provider down")
+        raise requests.ConnectionError("provider down")
 
-    monkeypatch.setattr(landmarks_module.requests, "get", boom)
+    monkeypatch.setattr(requests, "get", boom)
     assert landmarks_module.geocode_destination("Cape Town", 5000) == (-33.9, 18.4)
 
 
@@ -253,9 +253,9 @@ def test_a_places_failure_falls_back_to_the_expired_results(monkeypatch):
     landmarks_module._places_cache[("-33.9000,18.4000", "history", 5000)] = (cached, stale)
 
     def boom(*a, **k):
-        raise landmarks_module.requests.ConnectionError("provider down")
+        raise requests.ConnectionError("provider down")
 
-    monkeypatch.setattr(landmarks_module.requests, "get", boom)
+    monkeypatch.setattr(requests, "get", boom)
     assert landmarks_module._fetch_places("history", -33.9, 18.4, 5000) == cached
 
 
@@ -264,7 +264,7 @@ def test_an_unknown_interest_tag_asks_the_provider_for_nothing(monkeypatch):
 
     landmarks_module._places_cache.clear()
     monkeypatch.setattr(
-        landmarks_module.requests, "get", lambda *a, **k: (_ for _ in ()).throw(AssertionError("no call"))
+        requests, "get", lambda *a, **k: (_ for _ in ()).throw(AssertionError("no call"))
     )
     assert landmarks_module._fetch_places("underwater-basket-weaving", -33.9, 18.4, 5000) == []
 
@@ -309,7 +309,7 @@ def test_repeat_lookups_are_served_from_cache(monkeypatch):
             return _FakeResponse({"features": [{"geometry": {"coordinates": [18.4, -33.9]}}]})
         return _FakeResponse({"features": [{"properties": {"name": "Castle", "lat": -33.9, "lon": 18.4}}]})
 
-    monkeypatch.setattr(landmarks_module.requests, "get", counted_get)
+    monkeypatch.setattr(requests, "get", counted_get)
 
     first = landmarks_module.get_landmarks("Cape Town", ["history"], 5000)
     second = landmarks_module.get_landmarks("Cape Town", ["history"], 5000)
@@ -335,7 +335,7 @@ def test_unnamed_and_duplicate_places_are_dropped(monkeypatch):
         unnamed = {"lat": -29.84, "lon": 31.01, "formatted": "Greyville, Durban"}
         return _FakeResponse({"features": [{"properties": p} for p in (park, dict(park), unnamed, dict(unnamed))]})
 
-    monkeypatch.setattr(landmarks_module.requests, "get", fake_get)
+    monkeypatch.setattr(requests, "get", fake_get)
 
     stops = landmarks_module.get_landmarks("Durban", ["parks"], 5000)["groups"][0]["landmarks"]
     assert [s["name"] for s in stops] == ["Albert Park"]

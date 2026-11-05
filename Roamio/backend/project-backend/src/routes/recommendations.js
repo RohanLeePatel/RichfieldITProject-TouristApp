@@ -1,12 +1,10 @@
 const express = require('express');
 const catalogService = require('../services/catalogService');
+const { aiApiUrl, aiMessage } = require('../utils/aiService');
 
 const router = express.Router();
 
-const aiFeaturesUrl = (
-  process.env.AI_FEATURES_URL ||
-  'https://richfield-it-project-tourist-app.vercel.app'
-).replace(/\/$/, '');
+const aiFeaturesUrl = aiApiUrl();
 
 // The managed destinations (admin dashboard), for the AI service to score. The seed
 // file in the AI service answers when there are none or the database is down.
@@ -54,11 +52,7 @@ router.post('/', async (req, res) => {
     const data = await response.json().catch(() => null);
 
     if (!response.ok) {
-      // FastAPI sends validation failures as a list of { msg }; the browser shows one sentence
-      const detail = Array.isArray(data?.detail) ? data.detail[0]?.msg?.replace(/^Value error, /, '') : data?.detail;
-      return res.status(response.status).json({
-        message: detail || 'Recommendation service is unavailable.',
-      });
+      return res.status(response.status).json({ message: aiMessage(data, 'Recommendation service is unavailable.') });
     }
 
     return res.json(data);
@@ -92,7 +86,7 @@ router.get('/catalog', async (req, res) => {
 
     if (!response.ok) {
       return res.status(response.status).json({
-        message: data?.detail || 'Recommendation catalog is unavailable.',
+        message: aiMessage(data, 'Recommendation catalog is unavailable.'),
       });
     }
 
@@ -125,7 +119,7 @@ router.get('/landmarks', async (req, res) => {
 
     if (!response.ok) {
       return res.status(response.status).json({
-        message: data?.detail || 'Landmarks are unavailable.',
+        message: aiMessage(data, 'Landmarks are unavailable.'),
       });
     }
 

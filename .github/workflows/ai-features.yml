@@ -1,4 +1,4 @@
-# Lint and test the Expert & Integration Service on every push and pull request
+# Lint, type-check and test the Expert & Integration Service on every push and pull request
 # that touches it (NFR-25). No secrets are needed: the tests stub every provider.
 name: ai-features
 
@@ -34,7 +34,12 @@ jobs:
       - name: Lint
         run: ruff check .
 
+      - name: Type check
+        run: mypy
+
       - name: Test with coverage
+        # which files count is in .coveragerc: the whole app, so a new folder
+        # cannot go unmeasured by being left off a list
         run: |
-          coverage run --source=cache_utils,chat,config,engine,landmarks,main,ocr,rate_limit,routers,schemas,translation,weather -m pytest -q
+          coverage run -m pytest -q
           coverage report -m --fail-under=90

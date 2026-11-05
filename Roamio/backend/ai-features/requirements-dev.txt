@@ -4,3 +4,5 @@ pytest==9.1.1
 httpx==0.28.1  # FastAPI's TestClient needs it
 coverage==7.16.2
 ruff==0.16.10  # lint rules live in ruff.toml
+mypy==2.4.1  # type checks; settings in mypy.ini
+types-requests==2.33.0.20261030

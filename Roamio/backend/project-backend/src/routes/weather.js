@@ -1,11 +1,9 @@
 const express = require('express');
+const { aiApiUrl } = require('../utils/aiService');
 
 const router = express.Router();
 
-const aiFeaturesUrl = (
-  process.env.AI_FEATURES_URL ||
-  'https://richfield-it-project-tourist-app.vercel.app'
-).replace(/\/$/, '');
+const aiFeaturesUrl = aiApiUrl();
 
 // Same proxy pattern as recommendations/landmarks: the browser never needs the
 // node-secretkey, and the OpenWeather key stays inside the ai-features service.

@@ -231,6 +231,9 @@ class ExcludedCandidate(BaseModel):
     name: str
     country: Optional[str] = None
     reason: str
+    # what the traveller could change to get it back, when one change would
+    # (e.g. "Raise your budget to about 1500 ZAR a day"); null when none would
+    suggestion: Optional[str] = None
 
 
 class RecommendationResponse(BaseModel):
@@ -249,3 +252,7 @@ class RecommendationResponse(BaseModel):
     # Disagreements worth telling the group about rather than silently
     # resolving - one member's must-have that another ruled out, say.
     group_conflicts: list[str] = Field(default_factory=list)
+    # Inputs that could not be had for this request, so the scores lean on less
+    # than usual: "safety" (advisory levels unavailable) or "currency" (no
+    # exchange rate, so the budget could not be compared). Empty = nothing missing.
+    degraded: list[str] = Field(default_factory=list)

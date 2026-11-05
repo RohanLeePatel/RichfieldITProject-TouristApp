@@ -5,14 +5,12 @@ const safetyService = require('../services/safetyService');
 const { accessibleTrips } = require('../utils/tripFormat');
 const { buildContext } = require('../services/chatContext');
 const { addItineraryItem, logExpense } = require('../services/chatActions');
+const { aiApiUrl } = require('../utils/aiService');
 
 const router = express.Router();
 router.use(requireAuth);
 
-const aiFeaturesUrl = (
-  process.env.AI_FEATURES_URL ||
-  'https://richfield-it-project-tourist-app.vercel.app'
-).replace(/\/$/, '');
+const aiFeaturesUrl = aiApiUrl();
 
 const HISTORY_MESSAGES = 10; // sent to the model with each question
 const MAX_MESSAGE = 2000;

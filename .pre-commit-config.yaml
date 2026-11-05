@@ -1,0 +1,18 @@
+# Optional, per developer: `pip install pre-commit && pre-commit install`.
+# Runs the same checks CI does on the AI service, before a commit leaves your machine.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.10  # keep equal to ruff in ai-features/requirements-dev.txt
+    hooks:
+      - id: ruff
+        files: ^Roamio/backend/ai-features/
+        args: [--config, Roamio/backend/ai-features/ruff.toml]
+
+  - repo: local
+    hooks:
+      - id: ai-features-types-and-tests
+        name: mypy and pytest (ai-features)
+        entry: bash -c 'cd Roamio/backend/ai-features && python -m mypy && python -m pytest -q'
+        language: system
+        pass_filenames: false
+        files: ^Roamio/backend/ai-features/

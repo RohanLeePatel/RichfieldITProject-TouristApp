@@ -16,16 +16,15 @@ from __future__ import annotations
 
 import logging
 import math
-import os
 
-import requests
-
+import http_client
 from cache_utils import ttl_cache_get, ttl_cache_set
+from config import settings
 from landmarks.interest_categories import INTEREST_CATEGORY_MAP
 
 logger = logging.getLogger(__name__)
 
-GEOAPIFY_API_KEY = os.environ.get("geoapifyAPIKey")
+GEOAPIFY_API_KEY = settings.get("geoapifyAPIKey")
 GEOCODE_URL = "https://api.geoapify.com/v1/geocode/search"
 PLACES_URL = "https://api.geoapify.com/v2/places"
 REQUEST_TIMEOUT_SECONDS = 10
@@ -69,7 +68,7 @@ def geocode_destination(destination: str, radius_m: int) -> tuple[float, float] 
         return cached
 
     try:
-        response = requests.get(
+        response = http_client.get(
             GEOCODE_URL,
             params={"text": destination, "limit": 1, "apiKey": GEOAPIFY_API_KEY},
             timeout=REQUEST_TIMEOUT_SECONDS,
@@ -101,7 +100,7 @@ def _fetch_places(tag: str, lat: float, lon: float, radius_m: int) -> list[dict]
         return []
 
     try:
-        response = requests.get(
+        response = http_client.get(
             PLACES_URL,
             params={
                 "categories": ",".join(categories),
@@ -191,7 +190,7 @@ def search_place(text: str, near: str, radius_m: int = PLACE_SEARCH_RADIUS_M, la
         lat, lon = center
 
     try:
-        response = requests.get(
+        response = http_client.get(
             GEOCODE_URL,
             params={
                 "text": text,

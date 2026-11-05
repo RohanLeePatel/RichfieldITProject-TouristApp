@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 from engine.currency import convert_from_zar
 from engine.dimension import tag_list
 from engine.weights import ACCESSIBILITY_HARD_FAIL_STATE, COST_BAND_ZAR_RANGE
@@ -78,4 +80,18 @@ def run_gates(prefs: Preferences, candidate: Candidate) -> str | None:
         reason = gate(prefs, candidate)
         if reason is not None:
             return reason
+    return None
+
+
+def suggest_fix(prefs: Preferences, candidate: Candidate) -> str | None:
+    """The one change that would let an excluded candidate back in, in a sentence, if there is one."""
+    cost_index = candidate.features.cost_index
+    if cost_index is not None and check_budget_gate(prefs, candidate):
+        lower = convert_from_zar(COST_BAND_ZAR_RANGE[cost_index][0], prefs.currency)
+        if lower is None:
+            return None
+        needed = math.ceil(lower / 50) * 50  # a round figure a person would actually type
+        return f"Raise your budget to about {needed} {prefs.currency} a day to include it."
+    if check_accessibility_gate(prefs, candidate):
+        return "Change wheelchair access from required to preferred to include it."
     return None

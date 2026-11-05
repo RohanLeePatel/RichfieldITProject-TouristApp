@@ -3,6 +3,7 @@
 import importlib
 
 import pytest
+import requests
 from fastapi.testclient import TestClient
 
 SECRET = {"node-secretkey": "test-secret"}
@@ -69,9 +70,8 @@ def _fake_get(url, params=None, timeout=None):
 
 
 def test_weather_succeeds_with_correct_secret(client, monkeypatch):
-    import weather.weather as weather_module
 
-    monkeypatch.setattr(weather_module.requests, "get", _fake_get)
+    monkeypatch.setattr(requests, "get", _fake_get)
 
     response = client.get("/weather/Durban", headers=SECRET)
     assert response.status_code == 200
@@ -94,9 +94,8 @@ def test_weather_succeeds_with_correct_secret(client, monkeypatch):
 
 
 def test_weather_city_not_found_returns_404(client, monkeypatch):
-    import weather.weather as weather_module
 
-    monkeypatch.setattr(weather_module.requests, "get", lambda *a, **k: _FakeResponse({}, status_code=404))
+    monkeypatch.setattr(requests, "get", lambda *a, **k: _FakeResponse({}, status_code=404))
 
     response = client.get("/weather/Nowhereland", headers=SECRET)
     assert response.status_code == 404
@@ -124,7 +123,6 @@ def test_weather_missing_api_key_returns_503(monkeypatch):
 
 
 def test_second_request_is_served_from_cache(client, monkeypatch):
-    import weather.weather as weather_module
 
     calls = []
 
@@ -132,7 +130,7 @@ def test_second_request_is_served_from_cache(client, monkeypatch):
         calls.append(url)
         return _fake_get(url, params, timeout)
 
-    monkeypatch.setattr(weather_module.requests, "get", counted_get)
+    monkeypatch.setattr(requests, "get", counted_get)
 
     first = client.get("/weather/Durban", headers=SECRET).json()
     second = client.get("/weather/DURBAN", headers=SECRET).json()  # same key, different case
@@ -143,7 +141,7 @@ def test_second_request_is_served_from_cache(client, monkeypatch):
 def test_provider_failure_serves_the_cached_answer_as_stale(client, monkeypatch):
     import weather.weather as weather_module
 
-    monkeypatch.setattr(weather_module.requests, "get", _fake_get)
+    monkeypatch.setattr(requests, "get", _fake_get)
     fresh = client.get("/weather/Durban", headers=SECRET).json()
 
     # expire the entry, then make the provider fail
@@ -153,9 +151,9 @@ def test_provider_failure_serves_the_cached_answer_as_stale(client, monkeypatch)
     )
 
     def boom(*a, **k):
-        raise weather_module.requests.exceptions.ConnectionError("provider down")
+        raise requests.exceptions.ConnectionError("provider down")
 
-    monkeypatch.setattr(weather_module.requests, "get", boom)
+    monkeypatch.setattr(requests, "get", boom)
 
     response = client.get("/weather/Durban", headers=SECRET)
     assert response.status_code == 200
@@ -166,12 +164,11 @@ def test_provider_failure_serves_the_cached_answer_as_stale(client, monkeypatch)
 
 
 def test_provider_failure_without_a_cached_answer_returns_502(client, monkeypatch):
-    import weather.weather as weather_module
 
     def boom(*a, **k):
-        raise weather_module.requests.exceptions.ConnectionError("provider down")
+        raise requests.exceptions.ConnectionError("provider down")
 
-    monkeypatch.setattr(weather_module.requests, "get", boom)
+    monkeypatch.setattr(requests, "get", boom)
 
     response = client.get("/weather/Durban", headers=SECRET)
     assert response.status_code == 502
@@ -180,24 +177,22 @@ def test_provider_failure_without_a_cached_answer_returns_502(client, monkeypatc
 def test_provider_error_never_leaks_the_api_key(client, monkeypatch):
     """requests puts the full URL in its exception text, and the URL carries
     `appid=<key>`, so the message must not be passed through."""
-    import weather.weather as weather_module
 
     def boom(*a, **k):
-        raise weather_module.requests.exceptions.ConnectionError(
+        raise requests.exceptions.ConnectionError(
             f"Max retries exceeded with url: /data/2.5/weather?q=Durban&appid={API_KEY}"
         )
 
-    monkeypatch.setattr(weather_module.requests, "get", boom)
+    monkeypatch.setattr(requests, "get", boom)
 
     response = client.get("/weather/Durban", headers=SECRET)
     assert API_KEY not in response.text
 
 
 def test_http_error_from_the_provider_hides_the_status_detail(client, monkeypatch):
-    import weather.weather as weather_module
 
     monkeypatch.setattr(
-        weather_module.requests, "get", lambda *a, **k: _FakeResponse({}, status_code=401)
+        requests, "get", lambda *a, **k: _FakeResponse({}, status_code=401)
     )
 
     response = client.get("/weather/Durban", headers=SECRET)
@@ -206,11 +201,10 @@ def test_http_error_from_the_provider_hides_the_status_detail(client, monkeypatc
 
 
 def test_an_absurdly_long_city_is_rejected_before_the_provider(client, monkeypatch):
-    import weather.weather as weather_module
 
     def never(*a, **k):
         raise AssertionError("should not reach the weather provider")
 
-    monkeypatch.setattr(weather_module.requests, "get", never)
+    monkeypatch.setattr(requests, "get", never)
 
     assert client.get("/weather/" + "a" * 101, headers=SECRET).status_code == 422

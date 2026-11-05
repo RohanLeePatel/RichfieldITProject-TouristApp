@@ -1,8 +1,10 @@
-import os
 
 import requests
 
-DEEPL_API_KEY = os.environ.get("deepLAPIKey")
+import http_client
+from config import settings
+
+DEEPL_API_KEY = settings.get("deepLAPIKey")
 
 DEEPL_API_URL = (
     "https://api-free.deepl.com/v2/translate"
@@ -49,7 +51,7 @@ def _deepl(texts: list[str], target_lang: str, source_lang: str | None) -> list[
             data.append(("source_lang", source_lang))
 
         try:
-            response = requests.post(
+            response = http_client.post(
                 DEEPL_API_URL,
                 headers={"Authorization": f"DeepL-Auth-Key {DEEPL_API_KEY}"},
                 data=data,

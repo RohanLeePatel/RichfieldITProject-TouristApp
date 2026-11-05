@@ -11,16 +11,17 @@ Everything sent to Gemini and everything returned goes through chat.guard.
 from __future__ import annotations
 
 import logging
-import os
 
 import requests
 
+import http_client
 from chat.guard import REFUSAL, WITHHELD, is_probe, leaks_instructions, scrub
+from config import settings
 
 logger = logging.getLogger(__name__)
 
-GEMINI_API_KEY = os.environ.get("geminiAPIKey")
-GEMINI_MODEL = os.environ.get("geminiModel", "gemini-3.5-flash")
+GEMINI_API_KEY = settings.get("geminiAPIKey")
+GEMINI_MODEL = settings.get("geminiModel", "gemini-3.5-flash")
 BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 REQUEST_TIMEOUT_SECONDS = 25
 MAX_OUTPUT_TOKENS = 2048  # includes the model's own thinking tokens; 700 cut answers short
@@ -148,7 +149,7 @@ def reply(messages: list[dict], context: str, can_edit: bool = False) -> tuple[s
         **({"tools": [TOOLS]} if can_edit else {}),
     }
     try:
-        response = requests.post(
+        response = http_client.post(
             f"{BASE_URL}/{GEMINI_MODEL}:generateContent",
             headers={"x-goog-api-key": GEMINI_API_KEY},
             json=body,

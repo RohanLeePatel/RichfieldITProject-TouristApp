@@ -1,8 +1,10 @@
-import os
 
 import requests
 
-OCR_SPACE_API_KEY = os.environ.get("ocrSpaceAPIKey")
+import http_client
+from config import settings
+
+OCR_SPACE_API_KEY = settings.get("ocrSpaceAPIKey")
 OCR_SPACE_URL = "https://api.ocr.space/parse/image"
 
 
@@ -41,7 +43,7 @@ def run_ocr(image_bytes: bytes) -> tuple[str, list[dict]]:
         raise OcrError(500, "Text reading is not configured (ocrSpaceAPIKey missing).")
 
     try:
-        resp = requests.post(
+        resp = http_client.post(
             OCR_SPACE_URL,
             files={"file": ("capture.jpg", image_bytes, "image/jpeg")},
             data={

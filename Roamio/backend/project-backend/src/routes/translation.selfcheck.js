@@ -32,7 +32,7 @@ echo.listen(0, async () => {
   try {
     // signed in: the id comes from the token, and the new endpoint is used
     let got = await post({ authorization: token(7) });
-    assert.deepStrictEqual(got, { method: 'POST', path: '/api/translate/text', userId: '7' });
+    assert.deepStrictEqual(got, { method: 'POST', path: '/v1/api/translate/text', userId: '7' });
 
     // signed in with the accessToken cookie instead of a header
     got = await post({ cookie: `accessToken=${token(7).split(' ')[1]}` });
@@ -52,10 +52,10 @@ echo.listen(0, async () => {
     // history needs a real user
     assert.strictEqual((await fetch(`${base}/history`)).status, 401);
     got = await (await fetch(`${base}/history?limit=5&other=x`, { headers: { authorization: token(7) } })).json();
-    assert.deepStrictEqual(got, { method: 'GET', path: '/api/translate/history?limit=5', userId: '7' });
+    assert.deepStrictEqual(got, { method: 'GET', path: '/v1/api/translate/history?limit=5', userId: '7' });
 
     got = await (await fetch(`${base}/history/abc`, { method: 'DELETE', headers: { authorization: token(7) } })).json();
-    assert.deepStrictEqual(got, { method: 'DELETE', path: '/api/translate/history/abc', userId: '7' });
+    assert.deepStrictEqual(got, { method: 'DELETE', path: '/v1/api/translate/history/abc', userId: '7' });
 
     console.log('translation proxy selfcheck: all assertions passed');
   } finally {

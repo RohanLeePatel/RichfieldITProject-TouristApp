@@ -53,7 +53,7 @@ def test_returns_reply_and_sends_context_and_key_in_header(client, monkeypatch):
         seen.update(url=url, headers=headers, json=json)
         return _Response(_answer("Beach day."))
 
-    monkeypatch.setattr(gemini.requests, "post", fake_post)
+    monkeypatch.setattr(requests, "post", fake_post)
     response = client.post("/chat", json=BODY, headers=SECRET)
     assert response.status_code == 200
     assert response.json() == {"reply": "Beach day.", "action": None}
@@ -64,7 +64,7 @@ def test_returns_reply_and_sends_context_and_key_in_header(client, monkeypatch):
 
 def test_assistant_role_maps_to_model_and_empty_context_is_said(client, monkeypatch):
     seen = {}
-    monkeypatch.setattr(gemini.requests, "post", lambda url, headers, json, timeout: seen.update(json=json) or _Response(_answer("ok")))
+    monkeypatch.setattr(requests, "post", lambda url, headers, json, timeout: seen.update(json=json) or _Response(_answer("ok")))
     body = {"messages": [{"role": "user", "content": "hi"}, {"role": "assistant", "content": "hello"}, {"role": "user", "content": "and?"}]}
     assert client.post("/chat", json=body, headers=SECRET).status_code == 200
     assert [c["role"] for c in seen["json"]["contents"]] == ["user", "model", "user"]
@@ -82,7 +82,7 @@ def test_rejects_oversize_message(client):
 
 
 def test_provider_failure_is_502_without_provider_text(client, monkeypatch):
-    monkeypatch.setattr(gemini.requests, "post", lambda url, headers, json, timeout: _Response({}, fail=True))
+    monkeypatch.setattr(requests, "post", lambda url, headers, json, timeout: _Response({}, fail=True))
     response = client.post("/chat", json=BODY, headers=SECRET)
     assert response.status_code == 502
     assert "boom" not in response.text
@@ -90,7 +90,7 @@ def test_provider_failure_is_502_without_provider_text(client, monkeypatch):
 
 def test_empty_or_malformed_answer_is_502(client, monkeypatch):
     for payload in ({"candidates": []}, _answer("   ")):
-        monkeypatch.setattr(gemini.requests, "post", lambda url, headers, json, timeout, p=payload: _Response(p))
+        monkeypatch.setattr(requests, "post", lambda url, headers, json, timeout, p=payload: _Response(p))
         assert client.post("/chat", json=BODY, headers=SECRET).status_code == 502
 
 

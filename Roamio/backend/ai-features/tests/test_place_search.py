@@ -3,6 +3,7 @@
 import importlib
 
 import pytest
+import requests
 from fastapi.testclient import TestClient
 
 SECRET = {"node-secretkey": "test-secret"}
@@ -60,7 +61,7 @@ def _stub(monkeypatch, module, search_features, anchor=(-29.8587, 31.0218)):
             return _Response({"features": search_features})
         return _Response({"features": [{"geometry": {"coordinates": [anchor[1], anchor[0]]}}]})
 
-    monkeypatch.setattr(module.requests, "get", fake_get)
+    monkeypatch.setattr(requests, "get", fake_get)
     return seen
 
 
@@ -100,10 +101,10 @@ def test_not_found_when_nothing_is_nearby_or_the_match_is_weak_or_too_coarse(cli
 
 def test_failures_are_not_a_not_found(client, monkeypatch):
     http, module = client
-    monkeypatch.setattr(module.requests, "get", lambda url, params, timeout: _Response(fail=True))
+    monkeypatch.setattr(requests, "get", lambda url, params, timeout: _Response(fail=True))
     assert http.get(URL + "&lat=1&lon=1", headers=SECRET).status_code == 502
     module._geocode_cache.clear()
-    monkeypatch.setattr(module.requests, "get", lambda url, params, timeout: _Response({"features": []}))
+    monkeypatch.setattr(requests, "get", lambda url, params, timeout: _Response({"features": []}))
     assert http.get(URL, headers=SECRET).status_code == 502  # the city itself could not be located
     monkeypatch.setattr(module, "GEOAPIFY_API_KEY", None)
     assert http.get(URL, headers=SECRET).status_code == 503

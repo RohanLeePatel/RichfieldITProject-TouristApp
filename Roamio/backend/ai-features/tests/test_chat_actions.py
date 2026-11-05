@@ -3,6 +3,7 @@
 import importlib
 
 import pytest
+import requests
 from fastapi.testclient import TestClient
 
 import chat.gemini as gemini
@@ -42,7 +43,7 @@ def _call(name="add_itinerary_item", **args):
 def _spy(monkeypatch, payload):
     seen = {}
     monkeypatch.setattr(
-        gemini.requests, "post",
+        requests, "post",
         lambda url, headers, json, timeout: seen.update(json=json) or _Response(payload),
     )
     return seen

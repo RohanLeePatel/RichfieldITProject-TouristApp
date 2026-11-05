@@ -17,16 +17,15 @@ label instead of an error.
 from __future__ import annotations
 
 import logging
-import os
 from datetime import datetime, timezone
 
-import requests
-
+import http_client
 from cache_utils import ttl_cache_get, ttl_cache_set
+from config import settings
 
 logger = logging.getLogger(__name__)
 
-OPENWEATHER_API_KEY = os.environ.get("openWeatherAPIKey")
+OPENWEATHER_API_KEY = settings.get("openWeatherAPIKey")
 BASE_URL = "https://api.openweathermap.org/data/2.5"
 REQUEST_TIMEOUT_SECONDS = 10
 CACHE_TTL_SECONDS = 30 * 60
@@ -63,12 +62,12 @@ def get_weather(city: str, units: str = "metric") -> dict:
         return cached
 
     try:
-        current_resp = requests.get(
+        current_resp = http_client.get(
             f"{BASE_URL}/weather",
             params={"q": city, "units": units, "appid": OPENWEATHER_API_KEY},
             timeout=REQUEST_TIMEOUT_SECONDS,
         )
-        forecast_resp = requests.get(
+        forecast_resp = http_client.get(
             f"{BASE_URL}/forecast",
             params={"q": city, "units": units, "appid": OPENWEATHER_API_KEY},
             timeout=REQUEST_TIMEOUT_SECONDS,

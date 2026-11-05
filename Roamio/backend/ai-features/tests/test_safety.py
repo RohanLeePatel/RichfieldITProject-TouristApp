@@ -37,7 +37,7 @@ def test_levels_fetched_once_and_cached(monkeypatch):
         calls.append((url, params, headers))
         return _Response(LEVELS)
 
-    monkeypatch.setattr(safety.requests, "get", _get)
+    monkeypatch.setattr(requests, "get", _get)
     assert safety.advisory_levels() == {"indonesia": 2, "czechia": 1, "afghanistan": 4}
     safety.advisory_levels()
     assert len(calls) == 1
@@ -49,18 +49,18 @@ def test_no_key_or_failure_means_no_levels(monkeypatch):
     assert safety.advisory_levels() == {}
 
     monkeypatch.setattr(safety, "TRAVEL_RISK_API_KEY", "test-key")
-    monkeypatch.setattr(safety.requests, "get", lambda *a, **k: _Response({}, status=429))
+    monkeypatch.setattr(requests, "get", lambda *a, **k: _Response({}, status=429))
     assert safety.advisory_levels() == {}
 
 
 def test_failure_serves_the_last_levels(monkeypatch):
     monkeypatch.setattr(safety, "TRAVEL_RISK_API_KEY", "test-key")
-    monkeypatch.setattr(safety.requests, "get", lambda *a, **k: _Response(LEVELS))
+    monkeypatch.setattr(requests, "get", lambda *a, **k: _Response(LEVELS))
     safety.advisory_levels()
     # expire the entry, then fail
     levels, _ = safety._levels_cache["levels"]
     safety._levels_cache["levels"] = (levels, -safety.CACHE_TTL_SECONDS)
-    monkeypatch.setattr(safety.requests, "get", lambda *a, **k: _Response({}, status=500))
+    monkeypatch.setattr(requests, "get", lambda *a, **k: _Response({}, status=500))
     assert safety.advisory_levels()["indonesia"] == 2
 
 

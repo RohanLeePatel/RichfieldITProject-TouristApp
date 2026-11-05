@@ -4,7 +4,7 @@ from urllib.parse import quote_plus
 
 from engine.blend import blended_score
 from engine.explain import build_comparison, build_explanation
-from engine.gates import run_gates
+from engine.gates import run_gates, suggest_fix
 from engine.group import (
     aggregate_scores,
     detect_conflicts,
@@ -74,7 +74,13 @@ def score_candidates(
         reason = run_gates(prefs, candidate)
         if reason is not None:
             excluded.append(
-                ExcludedCandidate(id=candidate.id, name=candidate.name, country=candidate.country, reason=reason)
+                ExcludedCandidate(
+                    id=candidate.id,
+                    name=candidate.name,
+                    country=candidate.country,
+                    reason=reason,
+                    suggestion=suggest_fix(prefs, candidate),
+                )
             )
             continue
 
@@ -263,7 +269,7 @@ def score_candidates(
 def build_response(
     request: RecommendationRequest, candidates: list[Candidate] | None = None
 ) -> RecommendationResponse:
-    candidates = candidates if candidates is not None else request.candidates
+    candidates = candidates if candidates is not None else (request.candidates or [])
     members = [request.preferences, *request.member_preferences]
     # The merged set decides what the group jointly wants, which is what the
     # gates need; the members are carried through so each candidate can also

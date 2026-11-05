@@ -2,13 +2,11 @@ const express = require('express');
 const { verifyAccessToken } = require('../auth/tokenService');
 const authenticateToken = require('../middleware/authMiddleware');
 const { translateLimiter } = require('../middleware/rateLimiter');
+const { aiApiUrl } = require('../utils/aiService');
 
 const router = express.Router();
 
-const aiFeaturesUrl = (
-  process.env.AI_FEATURES_URL ||
-  'https://richfield-it-project-tourist-app.vercel.app'
-).replace(/\/$/, '');
+const aiFeaturesUrl = aiApiUrl();
 
 const MAX_IMAGE_BYTES = 1024 * 1024; // OCR.space's free tier limit; the frontend compresses to this
 const MAX_TEXT_CHARS = 2000;

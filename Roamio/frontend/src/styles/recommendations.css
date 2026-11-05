@@ -569,6 +569,8 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
 .excluded-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 12px; background: var(--surface-2); }
 .excluded-list li div { display: grid; }
 .excluded-list li span { color: var(--ink-soft); font-size: 0.8125rem; }
+.excluded-list li span.excluded-suggestion { color: var(--ink); font-weight: 600; }
+.degraded-note { border-left: 3px solid var(--orange, #d97706); }
 .excluded-list button { min-height: 36px; padding: 0 16px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font: 700 0.8125rem "DM Sans", sans-serif; cursor: pointer; }
 
 /* ---------- Landmark picker ---------- */
