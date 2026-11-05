@@ -31,6 +31,9 @@ jobs:
           BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
           set -euo pipefail
+          # The runner ships client 16 earlier on PATH; use 17 to match the server.
+          export PATH=/usr/lib/postgresql/17/bin:$PATH
+          pg_dump --version
           STAMP=$(date -u +%Y%m%dT%H%M%SZ)
           DUMP="roamio-$STAMP.dump"
           pg_dump "$DB_URL" --format=custom --no-owner --no-privileges --schema=public --file="$DUMP"
