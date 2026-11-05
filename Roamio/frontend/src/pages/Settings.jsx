@@ -1,3 +1,4 @@
+
 import {
   AlertTriangle,
   ArrowLeft,
@@ -39,14 +40,15 @@ const SECTIONS = [
 ];
 
 const prefersReducedMotion = () =>
-  typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  typeof window !== "undefined" &&
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 export default function Settings() {
   const storedUser = useAuthStore((state) => state.user) || {};
   const name = storedUser.name || storedUser.fullName || "";
   const email = storedUser.email || "";
 
-  // app-wide theme - changing it here updates every page
+  // App-wide theme
   const { theme, toggle: toggleTheme, setTheme } = useTheme();
 
   /* ---------------- toast ---------------- */
@@ -57,7 +59,10 @@ export default function Settings() {
   const notify = useCallback((message, tone = "success") => {
     clearTimeout(toastTimer.current);
     setToast({ message, tone, key: Date.now() });
-    toastTimer.current = setTimeout(() => setToast(null), tone === "error" ? 6000 : 3500);
+    toastTimer.current = setTimeout(
+      () => setToast(null),
+      tone === "error" ? 6000 : 3500
+    );
   }, []);
 
   useEffect(() => () => clearTimeout(toastTimer.current), []);
@@ -68,14 +73,23 @@ export default function Settings() {
   const navRef = useRef(null);
 
   useEffect(() => {
-    const elements = SECTIONS.map(({ id }) => document.getElementById(id)).filter(Boolean);
-    if (!elements.length || typeof IntersectionObserver === "undefined") return undefined;
+    const elements = SECTIONS.map(({ id }) =>
+      document.getElementById(id)
+    ).filter(Boolean);
+
+    if (!elements.length || typeof IntersectionObserver === "undefined") {
+      return undefined;
+    }
 
     const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries
           .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+          .sort(
+            (a, b) =>
+              a.boundingClientRect.top - b.boundingClientRect.top
+          );
+
         if (visible[0]) setActive(visible[0].target.id);
       },
       { rootMargin: "-20% 0px -65% 0px" }
@@ -85,62 +99,99 @@ export default function Settings() {
     return () => observer.disconnect();
   }, []);
 
-  // keep the active chip in view on the mobile nav bar
+  // Keep the active chip in view on the mobile nav bar
   useEffect(() => {
-    const chip = navRef.current?.querySelector(`[data-section="${active}"]`);
+    const chip = navRef.current?.querySelector(
+      `[data-section="${active}"]`
+    );
     const bar = navRef.current;
+
     if (!chip || !bar || bar.scrollWidth <= bar.clientWidth) return;
+
     bar.scrollTo({
-      left: chip.offsetLeft - bar.clientWidth / 2 + chip.clientWidth / 2,
+      left:
+        chip.offsetLeft -
+        bar.clientWidth / 2 +
+        chip.clientWidth / 2,
       behavior: prefersReducedMotion() ? "auto" : "smooth",
     });
   }, [active]);
 
   const goTo = (id) => (event) => {
     event.preventDefault();
+
     const element = document.getElementById(id);
     if (!element) return;
-    element.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
+
+    element.scrollIntoView({
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+      block: "start",
+    });
+
     window.history.replaceState(null, "", `#${id}`);
     setActive(id);
     element.querySelector("h2")?.focus({ preventScroll: true });
   };
 
-  // deep links such as /settings#notifications (e.g. from an email footer)
+  // Deep links such as /settings#notifications
   useEffect(() => {
     const id = window.location.hash.slice(1);
+
     if (SECTIONS.some((section) => section.id === id)) {
-      setTimeout(() => document.getElementById(id)?.scrollIntoView({ block: "start" }), 60);
+      setTimeout(
+        () =>
+          document.getElementById(id)?.scrollIntoView({
+            block: "start",
+          }),
+        60
+      );
     }
   }, []);
 
   return (
-    <div className="recommendations-page settings-page" data-theme={theme}>
+    <div
+      className="recommendations-page settings-page"
+      data-theme={theme}
+    >
       {/* ================= HERO / HEADER ================= */}
 
       <section className="settings-hero">
         <header className="recommendations-header">
-          <Link to="/dashboard" className="recommendations-back-link">
+
+          {/* LEFT: Back to dashboard */}
+          <Link
+            to="/dashboard"
+            className="recommendations-back-link"
+          >
             <ArrowLeft size={17} />
             Back to dashboard
           </Link>
 
-          <div className="recommendations-brand">
-            <span>
-              <Plane size={18} />
-            </span>
-            Roamio
-          </div>
-
+          {/* RIGHT: Theme toggle and Roamio branding */}
           <div className="rx-header-right">
+
             <button
               type="button"
               className="theme-toggle"
-              aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+              aria-label={`Switch to ${
+                theme === "light" ? "dark" : "light"
+              } mode`}
               onClick={toggleTheme}
             >
-              {theme === "light" ? <Moon size={17} /> : <Sun size={17} />}
+              {theme === "light" ? (
+                <Moon size={17} />
+              ) : (
+                <Sun size={17} />
+              )}
             </button>
+
+            <div className="recommendations-brand">
+              <span>
+                <Plane size={18} />
+              </span>
+              Roamio
+            </div>
+
           </div>
         </header>
 
@@ -149,8 +200,13 @@ export default function Settings() {
             <SettingsIcon size={14} />
             Account settings
           </p>
+
           <h1>Settings</h1>
-          <p>Your profile, notifications, security, travellers and privacy, all in one place.</p>
+
+          <p>
+            Your profile, notifications, security, travellers and
+            privacy, all in one place.
+          </p>
         </div>
       </section>
 
@@ -158,11 +214,23 @@ export default function Settings() {
 
       <main className="settings-content">
         <div className="st-layout">
-          <aside className="st-rail" aria-label="Settings sections">
+
+          <aside
+            className="st-rail"
+            aria-label="Settings sections"
+          >
             <div className="st-rail-profile">
-              <span className="st-rail-avatar" aria-hidden="true">
-                {storedUser.photo ? <img src={storedUser.photo} alt="" /> : initialsOf(name)}
+              <span
+                className="st-rail-avatar"
+                aria-hidden="true"
+              >
+                {storedUser.photo ? (
+                  <img src={storedUser.photo} alt="" />
+                ) : (
+                  initialsOf(name)
+                )}
               </span>
+
               <div>
                 <strong>{name || "Your name"}</strong>
                 <span>{email || "you@example.com"}</span>
@@ -176,7 +244,9 @@ export default function Settings() {
                   href={`#${id}`}
                   data-section={id}
                   className={active === id ? "is-active" : ""}
-                  aria-current={active === id ? "true" : undefined}
+                  aria-current={
+                    active === id ? "true" : undefined
+                  }
                   onClick={goTo(id)}
                 >
                   <Icon size={17} aria-hidden="true" />
@@ -187,9 +257,13 @@ export default function Settings() {
 
             <div className="st-rail-help">
               <LifeBuoy size={18} aria-hidden="true" />
+
               <p>
                 Need a hand?{" "}
-                <a href="#help" onClick={goTo("help")}>
+                <a
+                  href="#help"
+                  onClick={goTo("help")}
+                >
                   Visit help &amp; support
                 </a>
               </p>
@@ -197,24 +271,64 @@ export default function Settings() {
           </aside>
 
           <div className="st-sections">
-            <ProfileSection theme={theme} setTheme={setTheme} notify={notify} />
-            <NotificationsSection email={email} notify={notify} />
-            <SecuritySection email={email} notify={notify} />
-            <TravellersSection email={email} notify={notify} />
+            <ProfileSection
+              theme={theme}
+              setTheme={setTheme}
+              notify={notify}
+            />
+
+            <NotificationsSection
+              email={email}
+              notify={notify}
+            />
+
+            <SecuritySection
+              email={email}
+              notify={notify}
+            />
+
+            <TravellersSection
+              email={email}
+              notify={notify}
+            />
+
             <PrivacySection notify={notify} />
-            <HelpSection email={email} notify={notify} />
+
+            <HelpSection
+              email={email}
+              notify={notify}
+            />
           </div>
+
         </div>
       </main>
 
       {/* ================= TOAST ================= */}
 
-      <div className="st-toast-region" aria-live="polite" aria-atomic="true">
+      <div
+        className="st-toast-region"
+        aria-live="polite"
+        aria-atomic="true"
+      >
         {toast && (
-          <div key={toast.key} className={`st-toast st-toast--${toast.tone}`} role={toast.tone === "error" ? "alert" : "status"}>
-            {toast.tone === "error" ? <AlertTriangle size={17} /> : <CheckCircle2 size={17} />}
+          <div
+            key={toast.key}
+            className={`st-toast st-toast--${toast.tone}`}
+            role={toast.tone === "error" ? "alert" : "status"}
+          >
+            {toast.tone === "error" ? (
+              <AlertTriangle size={17} />
+            ) : (
+              <CheckCircle2 size={17} />
+            )}
+
             <span>{toast.message}</span>
-            <button type="button" aria-label="Dismiss" onClick={() => setToast(null)}>
+
+            <button
+              type="button"
+              aria-label="Dismiss"
+              onClick={() => setToast(null)}
+            >
               <X size={15} />
             </button>
           </div>
