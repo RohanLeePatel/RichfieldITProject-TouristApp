@@ -5,11 +5,10 @@ from typing import Optional
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
 
-import history_service
-import storage_service
 from config.auth import verify_secretKey
 from ocr.ocr import OcrError, run_ocr
 from routers.translation_router import MAX_IMAGE_BYTES, looks_like_image
+from services import history_service, storage_service
 from translation.live_translation import deepl_source, translate_lines, translate_text
 
 logger = logging.getLogger("roamio.history")

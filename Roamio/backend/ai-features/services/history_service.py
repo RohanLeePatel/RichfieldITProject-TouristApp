@@ -3,7 +3,7 @@ for the callers: save_* return None and log on failure."""
 
 import logging
 
-from storage_service import StorageError, get_client
+from services.storage_service import StorageError, get_client
 
 logger = logging.getLogger("roamio.history")
 

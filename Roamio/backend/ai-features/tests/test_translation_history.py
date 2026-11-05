@@ -6,8 +6,8 @@ from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
 
-import storage_service
-from storage_service import StorageError
+from services import storage_service
+from services.storage_service import StorageError
 
 H = {"node-secretkey": "test-secret", "x-user-id": "user-1"}
 JPEG = b"\xff\xd8\xff" + b"0" * 64
@@ -86,7 +86,7 @@ def test_camera_removes_photos_past_the_limit(app, monkeypatch):
 
 
 def test_prune_photos_keeps_the_newest(monkeypatch):
-    import history_service
+    from services import history_service
 
     calls = []
 
@@ -148,7 +148,7 @@ def test_delete_all_reports_unavailable_history(app, monkeypatch):
 
 
 def test_delete_all_only_touches_that_user(monkeypatch):
-    import history_service
+    from services import history_service
 
     calls = []
 

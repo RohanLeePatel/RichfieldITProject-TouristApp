@@ -2,7 +2,7 @@
 
 import time
 
-from cache_utils import MAX_ENTRIES, ttl_cache_get, ttl_cache_set
+from services.cache_utils import MAX_ENTRIES, ttl_cache_get, ttl_cache_set
 
 
 def test_a_fresh_value_reads_back():

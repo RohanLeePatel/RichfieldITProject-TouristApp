@@ -19,7 +19,6 @@ import translation.live_translation
 import weather.weather
 from config import settings
 from config.auth import verify_secretKey
-from rate_limit import check_rate_limit
 from routers.chat_router import router as chat_router
 from routers.destinations_router import router as destinations_router
 from routers.landmarks_router import router as landmarks_router
@@ -28,6 +27,7 @@ from routers.recommendations_router import router as recommendations_router
 from routers.translation_history_router import router as translation_history_router
 from routers.translation_router import router as translation_router
 from routers.weather_router import router as weather_router
+from services.rate_limit import check_rate_limit
 
 logging.basicConfig(
     level=logging.INFO,

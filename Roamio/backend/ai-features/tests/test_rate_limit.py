@@ -6,8 +6,8 @@ from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
 
-import rate_limit
-from rate_limit import check_rate_limit
+from services import rate_limit
+from services.rate_limit import check_rate_limit
 
 
 def fake_request(path="/weather/Durban", key=None, forwarded=None, host="1.2.3.4"):

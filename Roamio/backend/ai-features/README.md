@@ -82,7 +82,7 @@ FastAPI always sent and stays for older callers.
 | `config/settings.py` | Every environment variable, in one list. Add new ones here and in `.env.example`. |
 | `http_client.py` | The one way to call a provider: timeout, one retry, no keys in logs. |
 | `errors.py` | The one error shape. |
-| `rate_limit.py`, `cache_utils.py` | Per-caller limits and in-memory caches (per server instance). |
+| `services/` | Per-caller rate limits, in-memory caches and the translation-history storage helpers. Limits and caches are per server instance. |
 | `scripts/` | Offline tools for the fallback seed data. Not deployed. |
 
 Conventions worth keeping:

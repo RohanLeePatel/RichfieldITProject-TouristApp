@@ -18,9 +18,9 @@ import logging
 import requests
 
 import http_client
-from cache_utils import ttl_cache_get, ttl_cache_set
 from config import settings
 from schemas.recommendations import Candidate
+from services.cache_utils import ttl_cache_get, ttl_cache_set
 
 logger = logging.getLogger(__name__)
 
