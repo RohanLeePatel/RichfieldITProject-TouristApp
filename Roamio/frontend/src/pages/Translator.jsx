@@ -87,7 +87,6 @@ function Translator() {
   const { theme, toggle: toggleTheme } = useTheme();
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
-  // the trip assistant can link here with ?text=...&to=FR
   const [params] = useSearchParams();
   const linkedText = (params.get("text") || "").slice(0, MAX_TEXT_CHARS);
   const linkedLanguage = LANGUAGES.find((l) => l.code === (params.get("to") || "").toUpperCase())?.code;
@@ -427,22 +426,23 @@ function Translator() {
 
   return (
     <div className="translator-page" data-theme={theme}>
+      {/* HEADER MATCHING WEATHER PAGE LAYOUT */}
       <header className="translator-header">
-        <div className="translator-brand">
-          <div className="translator-logo">
-            <Plane size={19} />
-          </div>
-          <span>
-            Roam<span>io</span>
-          </span>
-        </div>
+        <Link to="/dashboard" className="back-dashboard">
+          <ArrowLeft size={17} />
+          Back to Dashboard
+        </Link>
 
-        <div className="translator-header-actions">
+        <div className="translator-header-right">
+          <div className="translator-brand">
+            <div className="translator-logo">
+              <Plane size={19} />
+            </div>
+            <span>
+              Roam<span>io</span>
+            </span>
+          </div>
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
-          <Link to="/dashboard" className="back-dashboard">
-            <ArrowLeft size={17} />
-            Back to Dashboard
-          </Link>
         </div>
       </header>
 

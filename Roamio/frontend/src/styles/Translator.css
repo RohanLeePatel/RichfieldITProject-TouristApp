@@ -32,7 +32,6 @@
 
   position: relative;
   transition: background-color 0.25s ease, color 0.25s ease;
-  /* same --ui-zoom as the PageShell pages and Settings */
   zoom: var(--ui-zoom);
   min-height: calc(100vh / var(--ui-zoom));
   overflow-x: hidden;
@@ -65,31 +64,36 @@
 
 
 /* =========================================================
-   HEADER
+   HEADER (MATCHES WEATHER PAGE LAYOUT)
 ========================================================= */
 
 .translator-header {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  height: 72px;
+  position: relative;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 5%;
-  background: var(--tr-glass);
-  border-bottom: 1px solid var(--tr-line);
-  backdrop-filter: saturate(160%) blur(16px);
-  -webkit-backdrop-filter: saturate(160%) blur(16px);
+  padding: 0 min(1200px, 5%);
+  margin: 0 auto;
+  background: transparent;
+  border-bottom: none;
+  z-index: 50;
+}
+
+.translator-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .translator-brand {
   display: flex;
   align-items: center;
-  gap: 11px;
-  font-size: 1.1875rem;
+  gap: 8px;
+  font-size: 1.1rem;
   font-weight: 800;
   letter-spacing: -0.5px;
+  color: var(--tr-ink);
 }
 
 .translator-brand > span > span {
@@ -97,35 +101,37 @@
 }
 
 .translator-logo {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: 10px;
   color: #fff;
-  background: linear-gradient(140deg, var(--teal-700, #16849a), var(--teal-500, #23a89e));
-  box-shadow: 0 8px 20px rgba(22, 132, 154, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  background: linear-gradient(140deg, var(--tr-fill-1), var(--tr-fill-2));
+  box-shadow: 0 4px 12px rgba(22, 132, 154, 0.25);
 }
 
+/* Back to Dashboard Button - High contrast for light & dark mode */
 .back-dashboard {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 9px 16px;
+  padding: 8px 16px;
   border: 1px solid var(--tr-line-strong);
   border-radius: 999px;
   background: var(--tr-surface);
-  color: var(--tr-ink-soft);
+  color: #142a42 !important;
   font-size: 0.8125rem;
-  font-weight: 700;
+  font-weight: 750;
   text-decoration: none;
-  box-shadow: var(--tr-shadow-sm);
-  transition: color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 2px 8px rgba(20, 42, 66, 0.08);
+  transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .back-dashboard:hover {
-  color: var(--tr-teal);
-  border-color: rgba(22, 132, 154, 0.35);
+  color: var(--tr-teal) !important;
+  border-color: var(--tr-teal);
+  background: var(--tr-subtle);
 }
 
 .back-dashboard:hover svg {
@@ -1222,8 +1228,19 @@
 }
 
 .translator-page[data-theme="dark"] .translator-header {
-  background: rgba(7, 34, 41, 0.7);
-  border-bottom-color: rgba(232, 242, 245, 0.08);
+  background: transparent;
+}
+
+.translator-page[data-theme="dark"] .back-dashboard {
+  background: rgba(13, 52, 64, 0.8);
+  color: #e8f2f5 !important;
+  border-color: rgba(232, 242, 245, 0.15);
+}
+
+.translator-page[data-theme="dark"] .back-dashboard:hover {
+  color: var(--tr-teal) !important;
+  border-color: var(--tr-teal);
+  background: rgba(13, 52, 64, 1);
 }
 
 .translator-page[data-theme="dark"] .mode-tabs button.active {
@@ -1244,7 +1261,7 @@
     var(--tr-surface);
 }
 
-/* Fix native HTML select dropdown options in dark and light modes */
+/* Fix native select dropdown options in dark and light modes */
 .translator-page select option {
   background-color: #0d3440 !important;
   color: #e8f2f5 !important;
