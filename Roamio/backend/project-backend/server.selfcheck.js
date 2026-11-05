@@ -52,8 +52,9 @@ express.application.listen = function (port, cb) {
       assert.equal((await req('/api/cron/safety-alerts')).status, 401);
       assert.equal((await req('/api/cron/safety-alerts', { headers: { authorization: 'Bearer wrong-secret' } })).status, 401);
       assert.equal((await req('/api/cron/safety-alerts', { headers: { authorization: 'Bearer cron-secret' } })).status, 200);
+      assert.equal((await req('/api/cron/destinations')).status, 401);
       // admin routes are mounted and guarded: no token = 401, never an HTML 404
-      for (const p of ['analytics/overview', 'config/tracking', 'health/services'])
+      for (const p of ['analytics/overview', 'config/tracking', 'health/services', 'destinations'])
         assert.equal((await req('/api/admin/' + p)).status, 401);
       // the Settings API is mounted and guarded: 401 without a token, never the catch-all 404
       for (const p of ['notification-preferences', 'sessions', 'login-activity', 'travellers', 'export'])

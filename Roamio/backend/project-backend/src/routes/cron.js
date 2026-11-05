@@ -2,6 +2,7 @@ const express = require('express');
 const { timingSafeEqual } = require('node:crypto');
 const safetySyncService = require('../services/safetySyncService');
 const tripReminderService = require('../services/tripReminderService');
+const catalogService = require('../services/catalogService');
 
 const router = express.Router();
 
@@ -32,6 +33,19 @@ router.get('/trip-reminders', async (req, res) => {
   } catch (error) {
     console.error('Trip reminders failed:', error.message);
     res.status(500).json({ message: 'Trip reminders failed.' });
+  }
+});
+
+// GET /api/cron/destinations - refresh the data of the destinations that have none, or whose
+// data is older than six months (a couple per run: each takes several seconds)
+router.get('/destinations', async (req, res) => {
+  if (!process.env.CRON_SECRET) return res.status(503).json({ message: 'Scheduled jobs are not configured.' });
+  if (!isCron(req)) return res.status(401).json({ message: 'Not allowed.' });
+  try {
+    res.json({ ok: true, ...(await catalogService.refreshStale()) });
+  } catch (error) {
+    console.error('Destination refresh failed:', error.message);
+    res.status(500).json({ message: 'Destination refresh failed.' });
   }
 });
 

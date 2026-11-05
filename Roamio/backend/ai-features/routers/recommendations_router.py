@@ -3,7 +3,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 
 from config.auth import verify_secretKey
-from engine.catalog import load_city_candidates, load_country_catalog
+from engine.catalog import load_city_candidates, load_country_catalog, raw_from_catalog
 from engine.pipeline import build_response
 from engine.safety import with_safety
 from schemas.recommendations import RecommendationRequest, RecommendationResponse
@@ -39,10 +39,11 @@ def recommendation_catalog() -> dict:
 def recommendations(request: RecommendationRequest) -> RecommendationResponse:
     candidates = request.candidates
     if not candidates:
+        managed = raw_from_catalog(request.catalog or [])
         if request.level == "country":
-            candidates = load_country_catalog()
+            candidates = load_country_catalog(managed)
         elif request.level == "city":
-            candidates = load_city_candidates(country_id=request.parent_id)
+            candidates = load_city_candidates(country_id=request.parent_id, raw=managed)
             if not candidates:
                 raise HTTPException(
                     status_code=404,

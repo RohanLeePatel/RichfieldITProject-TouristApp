@@ -8,6 +8,7 @@ const router = express.Router();
 router.use(isAdmin);
 router.use('/analytics', require('./adminAnalytics'));
 router.use('/config', require('./adminConfig'));
+router.use('/destinations', require('./adminDestinations'));
 router.use('/health', require('./adminHealth'));
 router.use('/users', require('./adminUsers'));
 

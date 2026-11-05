@@ -1,4 +1,5 @@
 const express = require('express');
+const catalogService = require('../services/catalogService');
 
 const router = express.Router();
 
@@ -6,6 +7,17 @@ const aiFeaturesUrl = (
   process.env.AI_FEATURES_URL ||
   'https://richfield-it-project-tourist-app.vercel.app'
 ).replace(/\/$/, '');
+
+// The managed destinations (admin dashboard), for the AI service to score. The seed
+// file in the AI service answers when there are none or the database is down.
+async function managedCatalog() {
+  try {
+    return await catalogService.loadCatalog();
+  } catch (error) {
+    console.error('Destination catalog unavailable, using the built-in list:', error.message);
+    return [];
+  }
+}
 
 router.post('/', async (req, res) => {
   const nodeSecretKey = process.env.superSecretKey;
@@ -17,13 +29,26 @@ router.post('/', async (req, res) => {
   }
 
   try {
+    const body = { ...req.body };
+    delete body.catalog; // only ever the database's list, never the browser's
+    if (!body.candidates && body.level !== 'place') {
+      const all = await managedCatalog();
+      // one country's cities are all a city-level request can use. A country the list no
+      // longer has still goes with the whole list, so the answer is "no cities" rather
+      // than the built-in list's.
+      const ofCountry = body.level === 'city' && body.parent_id
+        ? all.filter((c) => catalogService.countrySlug(c.country) === body.parent_id)
+        : all;
+      if (all.length) body.catalog = ofCountry.length ? ofCountry : all;
+    }
+
     const response = await fetch(`${aiFeaturesUrl}/recommendations`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'node-secretkey': nodeSecretKey,
       },
-      body: JSON.stringify(req.body),
+      body: JSON.stringify(body),
     });
 
     const data = await response.json().catch(() => null);
@@ -46,6 +71,9 @@ router.post('/', async (req, res) => {
 });
 
 router.get('/catalog', async (req, res) => {
+  const managed = await managedCatalog();
+  if (managed.length) return res.json({ countries: catalogService.countriesOf(managed) });
+
   const nodeSecretKey = process.env.superSecretKey;
 
   if (!nodeSecretKey) {

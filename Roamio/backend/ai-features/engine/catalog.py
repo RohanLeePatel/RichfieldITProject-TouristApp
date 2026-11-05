@@ -1,10 +1,14 @@
 """
-Fallback candidate list so someone can just send preferences without already
-knowing which countries/cities to score.
+Candidate list so someone can just send preferences without already knowing
+which countries/cities to score.
 
-All from data/destinations_seed.json (see scripts/enrich_destinations.py),
-nothing live here. There's no separate country-level dataset - country
-candidates get built on the fly by grouping the cities by their `country` field.
+The rows come from the managed catalog the Core API sends with the request
+(admin dashboard -> database), normalised by engine/enrich.py. When none is
+sent they come from data/destinations_seed.json, the committed fallback (see
+scripts/enrich_destinations.py). There's no separate country-level dataset -
+country candidates get built on the fly by grouping the cities by their
+`country` field, so one city added in the dashboard also moves its country's
+averages.
 """
 
 from __future__ import annotations
@@ -13,9 +17,17 @@ import json
 from functools import lru_cache
 from pathlib import Path
 
-from schemas.recommendations import Candidate
+from engine.enrich import normalize_entries
+from schemas.recommendations import Candidate, CatalogEntry
 
 SEED_PATH = Path(__file__).resolve().parent.parent / "data" / "destinations_seed.json"
+
+
+def raw_from_catalog(entries: list[CatalogEntry]) -> list[dict] | None:
+    """The managed catalog as seed-shaped rows, or None to use the seed file."""
+    if not entries:
+        return None
+    return normalize_entries([e.model_dump() for e in entries])
 
 
 def slugify_country(name: str) -> str:
@@ -27,15 +39,15 @@ def _load_raw_seed() -> list[dict]:
     return json.loads(SEED_PATH.read_text(encoding="utf-8"))
 
 
-def load_city_candidates(country_id: str | None = None) -> list[Candidate]:
-    raw = _load_raw_seed()
+def load_city_candidates(country_id: str | None = None, raw: list[dict] | None = None) -> list[Candidate]:
+    raw = _load_raw_seed() if raw is None else raw
     if country_id is not None:
         raw = [c for c in raw if slugify_country(c["country"]) == country_id]
     return [Candidate.model_validate(c) for c in raw]
 
 
-def load_country_catalog() -> list[Candidate]:
-    raw = _load_raw_seed()
+def load_country_catalog(raw: list[dict] | None = None) -> list[Candidate]:
+    raw = _load_raw_seed() if raw is None else raw
     by_country: dict[str, list[dict]] = {}
     for city in raw:
         by_country.setdefault(city["country"], []).append(city)

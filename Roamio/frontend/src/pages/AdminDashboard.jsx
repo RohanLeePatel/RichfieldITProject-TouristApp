@@ -3,6 +3,7 @@ import { ShieldCheck } from "lucide-react";
 import PageTopBar from "../components/PageTopBar.jsx";
 import useTheme from "../components/recommendations/useTheme.js";
 import AnalyticsOverview from "../components/admin/AnalyticsOverview.jsx";
+import DestinationsManager from "../components/admin/DestinationsManager.jsx";
 import ServiceHealthCard from "../components/admin/ServiceHealthCard.jsx";
 import TrackingConfigCard from "../components/admin/TrackingConfigCard.jsx";
 import UserProfilesList from "../components/admin/UserProfilesList.jsx";
@@ -28,7 +29,7 @@ export default function AdminDashboard() {
               Roamio at a
               <span> glance.</span>
             </h1>
-            <p>Visitor numbers from Google Analytics and the live status of the services the app runs on.</p>
+            <p>Visitor numbers from Google Analytics, the live status of the services the app runs on, and the destinations it can recommend.</p>
           </>
         }
       />
@@ -40,6 +41,8 @@ export default function AdminDashboard() {
           <ServiceHealthCard />
           <TrackingConfigCard />
         </div>
+
+        <DestinationsManager />
 
         <UserProfilesList />
       </main>

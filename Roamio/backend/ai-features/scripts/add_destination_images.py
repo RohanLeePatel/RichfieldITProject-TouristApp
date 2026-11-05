@@ -20,34 +20,12 @@ import json
 import sys
 import time
 from pathlib import Path
-from urllib.parse import quote
 
-import requests
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from engine.enrich import find_cover_image
 
 SEED_PATH = Path(__file__).resolve().parent.parent / "data" / "destinations_seed.json"
-SUMMARY_URL = "https://en.wikipedia.org/api/rest_v1/page/summary/"
-# identifies the caller, which Wikimedia asks for
-HEADERS = {"User-Agent": "Roamio/1.0 (university project; destination cover images)"}
 PAUSE_SECONDS = 0.12
-
-
-def fetch_thumbnail(title: str) -> str | None:
-    try:
-        response = requests.get(
-            f"{SUMMARY_URL}{quote(title.replace(' ', '_'))}", headers=HEADERS, timeout=15
-        )
-        if not response.ok:
-            return None
-        data = response.json()
-        # a disambiguation page has no single subject, so its thumbnail would
-        # be arbitrary
-        if data.get("type") == "disambiguation":
-            return None
-        # the 'thumbnail' is a few hundred pixels wide, which is what a card
-        # needs - originalimage can be several megabytes
-        return (data.get("thumbnail") or {}).get("source")
-    except requests.RequestException:
-        return None
 
 
 def main() -> None:
@@ -59,18 +37,12 @@ def main() -> None:
             skipped += 1
             continue
 
-        # try "Name, Country" first: the bare name can land on a different
-        # place entirely ("East London" is London's East End, not the South
-        # African city). Wikipedia redirects the qualified title when the bare
-        # one is the real article, so nothing is lost.
-        for title in (f"{city['name']}, {city['country']}", city["name"]):
-            url = fetch_thumbnail(title)
-            time.sleep(PAUSE_SECONDS)
-            if url:
-                city["image_url"] = url
-                added += 1
-                print(f"  {city['name']:<22} {url.rsplit('/', 1)[-1][:46]}", flush=True)
-                break
+        url = find_cover_image(city["name"], city["country"])
+        time.sleep(PAUSE_SECONDS)
+        if url:
+            city["image_url"] = url
+            added += 1
+            print(f"  {city['name']:<22} {url.rsplit('/', 1)[-1][:46]}", flush=True)
         else:
             missing += 1
             print(f"  {city['name']:<22} (no image found)", flush=True)

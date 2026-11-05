@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+# Raise this and add a line below whenever any value in this file changes, so a
+# difference in recommendations between two dates can be traced to a cause.
+#   2026-11-05  first numbered version: weights as shipped for Phase 4
+WEIGHTS_VERSION = "2026-11-05"
+
 # weights per level, need to add up to 1.0 for each level - test_weights.py checks this
 # so a typo here fails the test suite instead of quietly messing up scores
 #

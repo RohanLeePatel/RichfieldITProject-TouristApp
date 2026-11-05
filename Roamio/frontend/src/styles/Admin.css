@@ -804,3 +804,161 @@
 .admin-page[data-theme="dark"] .admin-button {
   color: #072229;
 }
+
+/* =========================================================
+   DESTINATIONS
+========================================================= */
+
+.admin-destinations {
+  margin-top: 24px;
+}
+
+.admin-notice {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+
+  margin-bottom: 14px;
+  padding: 10px 14px;
+
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.admin-notice.ok { color: var(--green); background: var(--green-soft); }
+.admin-notice.error { color: var(--red); background: var(--red-soft); }
+
+.admin-notice button {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.admin-dest-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+
+  margin-bottom: 18px;
+  padding: 16px;
+
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.admin-dest-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.admin-dest-form input:not([type="checkbox"]),
+.admin-dest-form select,
+.admin-dest-cost {
+  height: 34px;
+  padding: 0 10px;
+
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+}
+
+.admin-dest-form .admin-dest-check {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.admin-dest-form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.admin-link-button {
+  border: none;
+  background: transparent;
+  color: var(--brand);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.admin-dest-list {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.admin-dest {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(150px, 210px) auto;
+  align-items: center;
+  gap: 14px;
+
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+
+.admin-dest:first-child { border-top: none; }
+.admin-dest.hidden .admin-dest-name { opacity: 0.6; }
+
+.admin-dest-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.admin-dest-name strong { font-size: 0.9375rem; }
+
+.admin-dest-name span {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.admin-dest-name .admin-dest-error {
+  margin-top: 2px;
+  color: var(--red);
+  font-weight: 600;
+}
+
+.admin-dest-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.admin-icon-button.danger:hover:not(:disabled) {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.admin-dest-more {
+  margin-top: 12px;
+}
+
+@media (max-width: 720px) {
+  .admin-dest {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .admin-dest-cost,
+  .admin-dest-actions {
+    grid-column: 1 / -1;
+  }
+}

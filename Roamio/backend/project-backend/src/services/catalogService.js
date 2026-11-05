@@ -1,0 +1,267 @@
+const prisma = require('../config/prisma');
+const { httpError } = require('./tripAccessService');
+
+// The cities the recommendation engine can suggest. Rows live in the
+// CatalogDestination table and are managed from the admin dashboard; this file
+// validates them, fills in their provider data through the AI service, and
+// hands the active ones to the AI service with each recommendation request.
+
+const aiFeaturesUrl = (
+  process.env.AI_FEATURES_URL ||
+  'https://richfield-it-project-tourist-app.vercel.app'
+).replace(/\/$/, '');
+
+const STALE_AFTER_DAYS = 180; // climate and POI counts drift; refresh twice a year
+const ENRICH_TIMEOUT_MS = 50_000;
+const DAY = 24 * 60 * 60 * 1000;
+
+// Must match engine/catalog.py slugify_country: the browser sends this as parent_id
+const countrySlug = (name) => name.toLowerCase().replace(/ /g, '-');
+
+// "Kyoto" in "Japan" -> "japan-kyoto" (accents dropped, so "Zürich" -> "zurich")
+const slug = (text) => text.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const makeId = (country, name) => `${slug(country)}-${slug(name)}`;
+
+const text = (value, label) => {
+  const clean = typeof value === 'string' ? value.trim() : '';
+  if (!clean) throw httpError(400, `${label} is required.`);
+  if (clean.length > 120) throw httpError(400, `${label} must be 120 characters or fewer.`);
+  return clean;
+};
+const number = (value, label, min, max, { integer = false } = {}) => {
+  const n = typeof value === 'string' && value.trim() !== '' ? Number(value) : value;
+  if (typeof n !== 'number' || !Number.isFinite(n) || n < min || n > max || (integer && !Number.isInteger(n))) {
+    throw httpError(400, `${label} must be ${integer ? 'a whole number' : 'a number'} from ${min} to ${max}.`);
+  }
+  return n;
+};
+const imageUrl = (value) => {
+  if (value === null || value === undefined || value === '') return null;
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw httpError(400, 'Image must be a web address starting with https://.');
+  }
+  if (url.protocol !== 'https:' || String(value).length > 500) throw httpError(400, 'Image must be a web address starting with https://.');
+  return url.href;
+};
+
+// The fields an administrator can set. With partial, only the ones sent are
+// checked and returned (PATCH); otherwise name, country, lat and lon are required.
+function validate(body = {}, { partial = false } = {}) {
+  const rules = {
+    name: (v) => text(v, 'Name'),
+    country: (v) => text(v, 'Country'),
+    lat: (v) => number(v, 'Latitude', -90, 90),
+    lon: (v) => number(v, 'Longitude', -180, 180),
+    radiusM: (v) => number(v, 'Search radius', 1000, 30000, { integer: true }),
+    costIndex: (v) => number(v, 'Cost level', 1, 5, { integer: true }),
+    imageUrl,
+    active: (v) => {
+      if (typeof v !== 'boolean') throw httpError(400, 'Active must be true or false.');
+      return v;
+    },
+  };
+  const defaults = { radiusM: 12000, costIndex: 3, active: true, imageUrl: null };
+  const data = {};
+  for (const [field, check] of Object.entries(rules)) {
+    if (body[field] !== undefined) data[field] = check(body[field]);
+    else if (!partial) {
+      if (field in defaults) data[field] = defaults[field];
+      else data[field] = check(undefined);
+    }
+  }
+  return data;
+}
+
+const isStale = (row, now = new Date()) => !row.enrichedAt || now - new Date(row.enrichedAt) > STALE_AFTER_DAYS * DAY;
+
+const summary = (row, now) => ({
+  id: row.id,
+  name: row.name,
+  country: row.country,
+  lat: row.lat,
+  lon: row.lon,
+  radiusM: row.radiusM,
+  costIndex: row.costIndex,
+  imageUrl: row.imageUrl,
+  active: row.active,
+  enrichedAt: row.enrichedAt,
+  enrichError: row.enrichError,
+  stale: isStale(row, now),
+});
+
+// Everything, active or not, for the admin list
+async function listAll(now = new Date()) {
+  const rows = await prisma.catalogDestination.findMany({ orderBy: [{ country: 'asc' }, { name: 'asc' }] });
+  return (rows ?? []).map((row) => summary(row, now));
+}
+
+// A row in the shape the AI service's CatalogEntry expects
+const toEntry = (row) => ({
+  id: row.id,
+  name: row.name,
+  country: row.country,
+  image_url: row.imageUrl,
+  cost_index: row.costIndex,
+  ...(row.features ?? {}),
+});
+
+// The cities that can be suggested: active, and enriched at least once (a city
+// with no provider data would score as empty). [] when there are none, which
+// makes the AI service use its committed seed file instead.
+async function loadCatalog() {
+  const rows = await prisma.catalogDestination.findMany({
+    where: { active: true, enrichedAt: { not: null } },
+    orderBy: { name: 'asc' },
+  });
+  return (rows ?? []).map(toEntry);
+}
+
+// The country list the recommendation wizard offers, from the same entries
+const countriesOf = (entries) => {
+  const byCountry = new Map();
+  for (const e of entries) byCountry.set(e.country, (byCountry.get(e.country) || 0) + 1);
+  return [...byCountry]
+    .map(([name, cityCount]) => ({ id: countrySlug(name), name, city_count: cityCount }))
+    .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+};
+
+async function find(id) {
+  const row = await prisma.catalogDestination.findUnique({ where: { id } });
+  if (!row) throw httpError(404, 'Destination not found.');
+  return row;
+}
+
+// One call to the AI service. Returns the parsed body; a failure is an error with
+// a plain message (never the network error's own text, which can name internal hosts).
+async function callAi(route, payload) {
+  const secret = process.env.superSecretKey;
+  if (!secret) throw httpError(500, 'Recommendation service authentication is not configured.');
+  let response;
+  let data;
+  try {
+    response = await fetch(`${aiFeaturesUrl}${route}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'node-secretkey': secret },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(ENRICH_TIMEOUT_MS),
+    });
+    data = await response.json().catch(() => null);
+  } catch (error) {
+    console.error('Destination service call failed:', error.message);
+    throw httpError(502, 'The data service did not answer in time. Try again in a minute.');
+  }
+  if (!response.ok) {
+    const detail = typeof data?.detail === 'string' ? data.detail : 'The data service could not read this place.';
+    throw httpError([404, 503].includes(response.status) ? response.status : 502, detail);
+  }
+  return data;
+}
+
+// Asks the AI service for the provider numbers and cover photo, and stores them.
+// A failure is stored too (enrichError) so the dashboard can show it, then thrown.
+async function enrich(id) {
+  const row = await find(id);
+  let data;
+  try {
+    data = await callAi('/destinations/enrich', { name: row.name, country: row.country, lat: row.lat, lon: row.lon, radius_m: row.radiusM });
+  } catch (error) {
+    await prisma.catalogDestination.update({ where: { id }, data: { enrichError: error.message, updatedAt: new Date() } });
+    throw error;
+  }
+
+  const { image_url: image, ...features } = data;
+  const saved = await prisma.catalogDestination.update({
+    where: { id },
+    data: {
+      features,
+      enrichedAt: new Date(),
+      enrichError: null,
+      // a photo an administrator chose is never replaced
+      ...(!row.imageUrl && image ? { imageUrl: image } : {}),
+      updatedAt: new Date(),
+    },
+  });
+  return summary(saved);
+}
+
+// Adds a city and fills in its data. The row is kept even if enrichment fails,
+// so the administrator can retry it from the list.
+async function create(input) {
+  const body = { ...input };
+  const noPoint = (v) => v === undefined || v === null || v === '';
+  // coordinates are optional: without them the city is looked up by name
+  if (noPoint(body.lat) && noPoint(body.lon)) {
+    const { lat, lon } = await callAi('/destinations/geocode', { name: text(body.name, 'Name'), country: text(body.country, 'Country') });
+    Object.assign(body, { lat, lon });
+  }
+  const data = validate(body);
+  if (!slug(data.country) || !slug(data.name)) throw httpError(400, 'Use English letters or numbers in the name and country.');
+  const id = makeId(data.country, data.name);
+  if (await prisma.catalogDestination.findUnique({ where: { id } })) {
+    throw httpError(409, `${data.name}, ${data.country} is already in the list.`);
+  }
+  await prisma.catalogDestination.create({ data: { id, ...data } });
+  try {
+    return { destination: await enrich(id), enrichError: null };
+  } catch (error) {
+    return { destination: summary(await find(id)), enrichError: error.message };
+  }
+}
+
+async function update(id, body) {
+  await find(id);
+  const data = validate(body, { partial: true });
+  if (!Object.keys(data).length) throw httpError(400, 'Nothing to change.');
+  return summary(await prisma.catalogDestination.update({ where: { id }, data: { ...data, updatedAt: new Date() } }));
+}
+
+async function remove(id) {
+  await find(id);
+  await prisma.catalogDestination.delete({ where: { id } });
+}
+
+// The weekly cron: refreshes the oldest active rows that are missing data or
+// older than STALE_AFTER_DAYS. A few per run, because each takes several
+// seconds and the provider quota is shared.
+async function refreshStale({ limit = 2, now = new Date() } = {}) {
+  const rows = await prisma.catalogDestination.findMany({
+    where: {
+      active: true,
+      OR: [{ enrichedAt: null }, { enrichedAt: { lt: new Date(now - STALE_AFTER_DAYS * DAY) } }],
+    },
+    orderBy: { enrichedAt: { sort: 'asc', nulls: 'first' } },
+    take: limit,
+    select: { id: true },
+  });
+  const refreshed = [];
+  const failed = [];
+  for (const { id } of rows ?? []) {
+    try {
+      await enrich(id);
+      refreshed.push(id);
+    } catch (error) {
+      failed.push(id); // enrich() already stored why
+    }
+  }
+  return { refreshed, failed };
+}
+
+module.exports = {
+  STALE_AFTER_DAYS,
+  countrySlug,
+  countriesOf,
+  create,
+  enrich,
+  isStale,
+  listAll,
+  loadCatalog,
+  makeId,
+  refreshStale,
+  remove,
+  toEntry,
+  update,
+  validate,
+};

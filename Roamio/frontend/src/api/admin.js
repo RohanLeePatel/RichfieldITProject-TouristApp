@@ -40,3 +40,21 @@ export const adminUsersQuery = ({ page = 1, q = "" } = {}) => ({
 // a 403 (not an admin) or 503 (service not set up) won't change on retry;
 // anything else gets the usual couple of tries
 export const retryUnlessForbidden = (failures, error) => ![403, 503].includes(error?.status) && failures < 2;
+
+// { destinations: [{ id, name, country, lat, lon, radiusM, costIndex, imageUrl, active, enrichedAt, enrichError, stale }],
+//   staleAfterDays } - the cities the recommendation engine can suggest, hidden ones included
+export const adminDestinationsQuery = {
+  queryKey: ["admin", "destinations"],
+  queryFn: () => authedFetch("/api/admin/destinations"),
+  staleTime: 60_000,
+};
+
+const send = (path, method, body) =>
+  authedFetch(`/api/admin/destinations${path}`, { method, ...(body ? { body: JSON.stringify(body) } : {}) });
+
+// { name, country, costIndex? }, plus { lat, lon, radiusM? } to skip the lookup by name. Resolves
+// { destination, enrichError }: the city is saved even when fetching its data failed.
+export const createDestination = (fields) => send("", "POST", fields);
+export const updateDestination = (id, fields) => send(`/${encodeURIComponent(id)}`, "PATCH", fields);
+export const refreshDestination = (id) => send(`/${encodeURIComponent(id)}/enrich`, "POST");
+export const deleteDestination = (id) => send(`/${encodeURIComponent(id)}`, "DELETE");

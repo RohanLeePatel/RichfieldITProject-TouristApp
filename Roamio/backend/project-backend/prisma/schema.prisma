@@ -563,3 +563,27 @@ model SavedTraveller {
 
   @@index([userId, createdAt])
 }
+
+// The cities the recommendation engine can suggest, managed from the admin
+// dashboard. Added to the live DB by prisma/live-sql/011_catalog_destination.sql
+// (rows by 012_...seed.sql); mirrored here so the schema matches the database.
+// Not "Destination": that is a place inside a trip. features holds the provider
+// numbers (see the SQL header); densities are worked out on read, not stored.
+model CatalogDestination {
+  id          String    @id
+  name        String
+  country     String
+  lat         Float
+  lon         Float
+  radiusM     Int       @default(12000)
+  costIndex   Int       @default(3) @db.SmallInt
+  imageUrl    String?
+  active      Boolean   @default(true)
+  features    Json?
+  enrichedAt  DateTime? @db.Timestamptz(6)
+  enrichError String?
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([country])
+}

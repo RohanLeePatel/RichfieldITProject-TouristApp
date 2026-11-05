@@ -36,6 +36,7 @@ ROUTE_LIMITS: dict[str, int] = {
     "/landmarks": 120,      # Geoapify free tier: 3 000 requests a day
     "/weather": 300,        # OpenWeather free tier: 60 calls a minute
     "/recommendations": 300,
+    "/destinations": 20,    # each call is ~20 Geoapify requests; admin-only, so rarely used
     "/chat": 60,            # Gemini free tier: low per-minute and daily request quota
 }
 

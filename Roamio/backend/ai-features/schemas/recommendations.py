@@ -119,6 +119,27 @@ class Candidate(BaseModel):
     children: list["Candidate"] = Field(default_factory=list)
 
 
+class CatalogEntry(BaseModel):
+    """
+    One managed destination as the Core API stores it: the raw provider numbers,
+    not densities. The densities are worked out over the whole list on arrival
+    (engine/enrich.py normalize_entries), so adding a city never needs the other
+    rows rewritten.
+    """
+
+    id: str = Field(min_length=1, max_length=60)
+    name: str = Field(min_length=1, max_length=120)
+    country: str = Field(min_length=1, max_length=120)
+    image_url: Optional[str] = Field(default=None, max_length=500)
+    cost_index: int = Field(ge=1, le=5)
+    interest_counts: dict[str, int] = Field(default_factory=dict)
+    accessibility: AccessibilityState = "unknown"
+    accessible_ratio: Optional[float] = Field(default=None, ge=0, le=1)
+    tagged_total: int = Field(default=0, ge=0)
+    avg_temp_by_month: dict[str, float] = Field(default_factory=dict)
+    avg_rain_mm_by_month: dict[str, float] = Field(default_factory=dict)
+
+
 class RecommendationRequest(BaseModel):
     request_id: UUID
     session_id: UUID
@@ -135,6 +156,11 @@ class RecommendationRequest(BaseModel):
     # catalog (engine/catalog.py) based on level/preferences. pass it in if you
     # want to score your own specific set of candidates instead
     candidates: Optional[list[Candidate]] = None
+    # the destinations the administrators manage (Core API database). Used to
+    # build the built-in catalog when `candidates` is left out; absent or empty
+    # falls back to the committed seed file, so the service still answers with
+    # no database behind it.
+    catalog: Optional[list[CatalogEntry]] = Field(default=None, max_length=500)
     # destinations the user marked "not quite right" - dropped before scoring
     exclude_ids: list[str] = Field(default_factory=list, max_length=100)
 

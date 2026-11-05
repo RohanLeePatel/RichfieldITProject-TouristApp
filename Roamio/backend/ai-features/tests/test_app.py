@@ -38,6 +38,8 @@ def test_every_feature_route_is_mounted(client):
         "/",
         "/health",
         "/chat",
+        "/destinations/enrich",
+        "/destinations/geocode",
         "/landmarks",
         "/places/search",
         "/ocr",

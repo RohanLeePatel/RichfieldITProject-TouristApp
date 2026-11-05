@@ -19,6 +19,7 @@ import weather.weather
 from config.auth import verify_secretKey
 from rate_limit import check_rate_limit
 from routers.chat_router import router as chat_router
+from routers.destinations_router import router as destinations_router
 from routers.landmarks_router import router as landmarks_router
 from routers.rates_router import router as rates_router
 from routers.recommendations_router import router as recommendations_router
@@ -110,6 +111,7 @@ app.include_router(weather_router)
 app.include_router(landmarks_router)
 app.include_router(rates_router)
 app.include_router(chat_router)
+app.include_router(destinations_router)
 
 # which module holds each provider's key, so /health reports the values the
 # service is actually running with rather than re-reading the environment
