@@ -1,0 +1,52 @@
+# Daily logical backup of the Supabase Postgres database (public schema).
+# The dump is GPG-encrypted before upload and kept as a workflow artifact for 30 days.
+# Secrets: SUPABASE_DB_URL (session pooler, port 5432 - same as DIRECT_URL), BACKUP_PASSPHRASE.
+# Column-level data is encrypted with APP_ENCRYPTION_KEY - back that key up separately.
+name: supabase-backup
+
+on:
+  schedule:
+    - cron: "0 1 * * *" # daily, 03:00 SAST
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Dump and encrypt
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          # The runner ships client 16 earlier on PATH; use 17 to match the server.
+          export PATH=/usr/lib/postgresql/17/bin:$PATH
+          pg_dump --version
+          STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+          DUMP="roamio-$STAMP.dump"
+          pg_dump "$DB_URL" --format=custom --no-owner --no-privileges --schema=public --file="$DUMP"
+          test -s "$DUMP"
+          pg_restore --list "$DUMP" > /dev/null
+          gpg --batch --pinentry-mode loopback --passphrase-fd 3 \
+            --symmetric --cipher-algo AES256 "$DUMP" 3<<<"$BACKUP_PASSPHRASE"
+          rm "$DUMP"
+          echo "FILE=$DUMP.gpg" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: roamio-db-backup
+          path: ${{ env.FILE }}
+          retention-days: 30
+          if-no-files-found: error
