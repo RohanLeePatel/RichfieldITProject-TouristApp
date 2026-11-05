@@ -350,6 +350,10 @@ export default function Login() {
               <span>Remember me</span>
             </label>
 
+            <p style={{ margin: "0 0 10px", fontSize: "0.8rem" }}>
+              <Link to="/forgot-password">Forgot password?</Link>
+            </p>
+
             {/* ERROR */}
 
             {error && (
