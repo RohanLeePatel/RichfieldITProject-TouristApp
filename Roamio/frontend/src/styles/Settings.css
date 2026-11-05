@@ -5321,3 +5321,58 @@
   }
 
 }
+
+/* =========================================================
+   ROAMIO HEADER - LOGO MOVED TO TOP RIGHT
+   ========================================================= */
+
+.settings-page .recommendations-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+}
+
+.settings-page .rx-header-right {
+  position: static;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-left: auto;
+}
+
+.settings-page .recommendations-brand {
+  position: static;
+  left: auto;
+  right: auto;
+  top: auto;
+  transform: none;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.settings-page .theme-toggle {
+  flex-shrink: 0;
+}
+
+/* Mobile header */
+@media (max-width: 680px) {
+  .settings-page .recommendations-header {
+    gap: 10px;
+  }
+
+  .settings-page .rx-header-right {
+    gap: 8px;
+  }
+
+  .settings-page .recommendations-brand {
+    font-size: 16px;
+  }
+}
+
