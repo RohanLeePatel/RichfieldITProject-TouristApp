@@ -33,16 +33,29 @@ async function getOverview() {
   }
 
   // With several date ranges and no dimensions, GA adds a dateRange dimension to each row
-  const byRange = Object.fromEntries((response.rows || []).map((row) => [row.dimensionValues[0].value, row]));
-  const summarize = (name) => ({
-    activeUsers: metricValue(byRange[name], 0),
-    pageViews: metricValue(byRange[name], 1),
-    avgSessionDurationSeconds: Math.round(metricValue(byRange[name], 2) * 10) / 10,
-  });
+  const rows = response.rows || [];
+  const byRange = Object.fromEntries(rows.map((row) => [row.dimensionValues[0].value, row]));
+
+  // GA leaves out a date range that has no data at all. Report that as null rather
+  // than 0, so the dashboard can tell "no visitors" apart from "zero visitors".
+  const reported = (name) => byRange[name] !== undefined;
+  const summarize = (name) => {
+    if (!reported(name)) {
+      return { activeUsers: null, pageViews: null, avgSessionDurationSeconds: null };
+    }
+    return {
+      activeUsers: metricValue(byRange[name], 0),
+      pageViews: metricValue(byRange[name], 1),
+      avgSessionDurationSeconds: Math.round(metricValue(byRange[name], 2) * 10) / 10,
+    };
+  };
 
   return {
     propertyId: process.env.GA_PROPERTY_ID,
-    dailyActiveUsers: metricValue(byRange.yesterday, 0),
+    // false when GA returned no rows for any range: the tag isn't firing yet, or
+    // standard reports haven't processed the first visits (can take up to ~48h)
+    hasData: rows.length > 0,
+    dailyActiveUsers: reported('yesterday') ? metricValue(byRange.yesterday, 0) : null,
     last7Days: summarize('last7Days'),
     last30Days: summarize('last30Days'),
   };

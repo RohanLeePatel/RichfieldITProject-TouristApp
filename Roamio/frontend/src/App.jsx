@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -5,6 +6,8 @@ import {
   Navigate,
   useLocation,
 } from "react-router-dom";
+
+import { trackPageView } from "./analytics.js";
 
 import Landing from "./pages/Landing.jsx";
 import Login from "./pages/Login.jsx";
@@ -63,9 +66,19 @@ function ProtectedRoute({ children }) {
 // APP
 // =========================================================
 
+// Reports each route change to GA4 (the first load is reported here too)
+function RouteTracker() {
+  const { pathname, search } = useLocation();
+  useEffect(() => {
+    trackPageView(pathname, search);
+  }, [pathname, search]);
+  return null;
+}
+
 function App() {
   return (
     <BrowserRouter>
+      <RouteTracker />
       <Routes>
 
         {/* =================================================

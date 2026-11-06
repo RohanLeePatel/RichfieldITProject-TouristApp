@@ -9,10 +9,12 @@ const RANGES = [
   { key: "last30Days", label: "30 days" },
 ];
 
-const formatNumber = (value) => new Intl.NumberFormat().format(value ?? 0);
+// null means GA reported nothing for that figure yet, shown as a dash rather than 0
+const formatNumber = (value) => (value == null ? "—" : new Intl.NumberFormat().format(value));
 
 // 95.4 -> "1:35"
-function formatDuration(seconds = 0) {
+function formatDuration(seconds) {
+  if (seconds == null) return "—";
   const total = Math.round(seconds);
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
 }
@@ -67,6 +69,13 @@ export default function AnalyticsOverview() {
           </span>
         </div>
       ) : (
+        <>
+          {!isPending && data?.hasData === false && (
+            <p className="admin-note">
+              No visitor data has reached Google Analytics yet. Check that the GA4 tag is set on the site;
+              standard reports can take up to 48 hours to show new visits.
+            </p>
+          )}
         <div className="admin-stats">
           {stats.map(({ label, hint, value, icon: Icon, tone }) => (
             <article className="admin-stat" key={label}>
@@ -81,6 +90,7 @@ export default function AnalyticsOverview() {
             </article>
           ))}
         </div>
+        </>
       )}
     </section>
   );
