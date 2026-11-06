@@ -65,6 +65,8 @@ export default function AppSidebar({ open, onClose }) {
       });
   }, []);
 
+  // Opening the bell marks everything as read. Closing it does nothing, and nothing
+  // is sent when there are no unread items.
   const toggleInbox = () => {
     const opening = !inboxOpen;
     setInboxOpen(opening);

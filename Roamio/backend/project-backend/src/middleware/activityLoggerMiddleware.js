@@ -10,6 +10,8 @@ function describeChange(method, path, body = {}, responseBody = {}) {
     return tripId ? { tripId, action: 'TRIP_CREATED', entityType: 'TRIP', details: 'created the trip' } : null;
   }
 
+  // Two shapes are matched. Groups 1-3 cover /api/trips/:id/<section>[/:itemId], and
+  // groups 4-5 cover the budget category route. The trailing slash is optional.
   const match = path.match(/^\/api\/trips\/(\d+)\/(itinerary|expenses|budget|documents)(?:\/([^/]+))?\/?$|^\/api\/trips\/(\d+)\/budget\/categories\/([^/]+)\/?$/);
   if (!match) return null;
   if (match[4]) {
@@ -26,6 +28,7 @@ function describeChange(method, path, body = {}, responseBody = {}) {
   }
   if (section === 'itinerary' && method === 'DELETE' && itemId) return entry('STOP_REMOVED', 'ITINERARY', 'removed a stop');
   if (section === 'expenses' && method === 'POST' && !itemId) {
+    // Builds "(180 ZAR)". The replace drops the stray space that appears when there is no currency.
     const amount = body.amount ? ` (${body.amount} ${String(body.currency || '').toUpperCase()})`.replace(' )', ')') : '';
     return entry('EXPENSE_ADDED', 'EXPENSE', `recorded ${body.title || 'a purchase'}${amount}`);
   }

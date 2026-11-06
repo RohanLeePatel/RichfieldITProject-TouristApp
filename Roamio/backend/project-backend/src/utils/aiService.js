@@ -2,6 +2,8 @@
 // Every call to it goes through the versioned API (/v1), so a response shape
 // can change there without the Core API breaking mid-deploy.
 
+// AI_FEATURES_URL should always be set. The fallback is the deployed AI service, so
+// a missing variable points at production rather than failing outright.
 const base = () => (process.env.AI_FEATURES_URL || 'https://richfield-it-project-tourist-app.vercel.app').replace(/\/$/, '');
 
 // .../v1, for every feature route

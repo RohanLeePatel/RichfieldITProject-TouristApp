@@ -1,7 +1,18 @@
 const { Prisma } = require('../generated/prisma/index.js');
 const { encryptText, decryptText, encryptBytes, decryptBytes, blindIndex, getKey } = require('./fieldCrypto');
 
-// model -> { column: kind }. kind: 'text' | 'date' (a Date stored as 'YYYY-MM-DD' text) | 'bytes'
+// Prisma client extension that encrypts PII at the ORM boundary, so services and
+// repositories read and write plaintext and never see ciphertext. Every model listed
+// in FIELDS is transparently encrypted on write and decrypted on read.
+//
+// The hard part is queries. Ciphertext can't be compared, sorted, or searched with
+// LIKE, so this layer enforces one rule: encrypted columns support equality only,
+// and only where a blind index exists. Anything else throws instead of silently
+// returning zero rows, because an empty result would look like "no such user".
+
+// Which columns are encrypted, and how each is serialized before encryption.
+// 'date' values are stored as 'YYYY-MM-DD' text so that the day never shifts with
+// the server's timezone; 'bytes' is for binary blobs such as uploaded documents.
 const FIELDS = {
   TripDocument: { data: 'bytes' },
   PushSubscription: { p256dh: 'text', auth: 'text' },
@@ -16,14 +27,18 @@ const FIELDS = {
   Invitation: { email: 'text' },
 };
 
-// model -> { encrypted column: its blind-index column }. Equality filters on the left are
-// rewritten to the right (login, invites and the unique-account check all look emails up).
+// Blind indexes let us find a row by an encrypted value. Each one is a keyed hash of
+// the plaintext stored beside the ciphertext, so `where: { email }` can be rewritten
+// to `where: { emailHash }`. Login, invitations and the unique-account check depend
+// on this. Encryption itself is randomized, so it can't serve as a lookup key.
 const BLIND = {
   User: { email: 'emailHash' },
   Invitation: { email: 'emailHash' },
 };
 
-// model -> { relation field: model it holds }, from the generated schema
+// Relation fields per model, read from Prisma's generated schema (DMMF) instead of
+// being hand-maintained. The where- and orderBy-walkers need them to follow filters
+// and decryption into related models, such as `user: { email }` on a session.
 const RELATIONS = {};
 for (const model of Prisma.dmmf.datamodel.models) {
   RELATIONS[model.name] = Object.fromEntries(model.fields.filter((f) => f.kind === 'object').map((f) => [f.name, f.type]));
@@ -31,7 +46,11 @@ for (const model of Prisma.dmmf.datamodel.models) {
 
 const isBytes = (v) => v instanceof Uint8Array;
 const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Date) && !isBytes(v);
+// AAD (additional authenticated data) binds each ciphertext to its own column. A value
+// copied from one column into another then fails authentication on decrypt, so an
+// attacker with database write access can't swap encrypted values between fields.
 const aadFor = (model, field) => `${model}.${field}`;
+// Keeps only the calendar day, so a Date from any timezone encodes the same string.
 const isoDay = (v) => (v instanceof Date ? v.toISOString().slice(0, 10) : String(v));
 
 function encryptValue(model, field, kind, value) {
@@ -46,11 +65,14 @@ function decryptValue(model, field, kind, value) {
   const aad = aadFor(model, field);
   if (kind === 'bytes') return decryptBytes(value, aad);
   const plain = decryptText(value, aad);
+  // Rebuild the date at UTC midnight so it matches how the day was stored.
   return kind === 'date' ? new Date(`${plain}T00:00:00Z`) : plain;
 }
 
-// Accepts `{ field: value }` and `{ field: { set: value } }`; refuses other write operators.
-// A blind-indexed field also writes its index column, so the two can never disagree.
+// Encrypts the write payload for create, update, and upsert. Plain values and
+// `{ set: value }` are the only supported forms. Operators such as `increment` can't
+// run on ciphertext, so they are rejected. Writing the blind index in the same pass
+// keeps it in step with the encrypted value, so lookups never miss a row.
 function encryptData(model, data) {
   const fields = FIELDS[model];
   if (!fields || !isPlainObject(data)) return data;
@@ -68,8 +90,9 @@ function encryptData(model, data) {
   return out;
 }
 
-// Equality on a blind-indexed column becomes equality on its index. Anything else (contains,
-// startsWith, ordering) cannot work on ciphertext, so it fails loudly instead of matching nothing.
+// Turns an equality filter on an encrypted field into an equality filter on its blind
+// index. Prisma's `mode` option is ignored because the index is an exact-match hash.
+// Operators that need the plaintext (contains, startsWith, ordering) throw here.
 function blindFilter(model, field, indexColumn, value) {
   const unsupported = () => new Error(`${model}.${field} is encrypted: only equality (equals / in) filters are supported`);
   if (typeof value === 'string') return { [indexColumn]: blindIndex(value) };
@@ -83,8 +106,9 @@ function blindFilter(model, field, indexColumn, value) {
 
 const RELATION_OPERATORS = ['is', 'isNot', 'some', 'every', 'none'];
 
-// Rewrites a where clause (including filters through relations such as `user: { email }`)
-// for the encrypted schema.
+// Rewrites a where clause for the encrypted schema. It recurses through AND/OR/NOT
+// and into relation filters. A relation filter can be wrapped in a relation operator
+// (`is`, `some`, ...) or given directly, so both shapes are handled.
 function rewriteWhere(model, where) {
   if (Array.isArray(where)) return where.map((clause) => rewriteWhere(model, clause));
   if (!isPlainObject(where)) return where;
@@ -109,6 +133,8 @@ function rewriteWhere(model, where) {
   return out;
 }
 
+// Ciphertext has no meaningful sort order, so ordering by an encrypted field would
+// return rows in an arbitrary order. Fail loudly instead.
 function assertNotSorted(model, orderBy) {
   if (Array.isArray(orderBy)) return orderBy.forEach((entry) => assertNotSorted(model, entry));
   if (!isPlainObject(orderBy)) return;
@@ -118,7 +144,9 @@ function assertNotSorted(model, orderBy) {
   }
 }
 
-// Decrypts in place (Prisma hands back fresh objects), walking nested relations by the schema.
+// Decrypts results in place. Prisma returns freshly built objects, so mutating them
+// is safe. Nested relation payloads are walked too, so an included User comes back
+// with a readable email.
 function decryptResult(model, result) {
   if (Array.isArray(result)) {
     result.forEach((row) => decryptResult(model, row));
@@ -134,6 +162,9 @@ function decryptResult(model, result) {
   return result;
 }
 
+// The single query hook for every model. Each operation goes through the same steps:
+// rewrite filters, reject unsortable ordering, encrypt the payload, run the query, then
+// decrypt the result.
 async function handler({ model, args, query }) {
   const next = { ...args };
   if (next.where) next.where = rewriteWhere(model, next.where);
@@ -146,8 +177,15 @@ async function handler({ model, args, query }) {
   return decryptResult(model, await query(next));
 }
 
+/**
+ * Wraps a Prisma client so every query goes through column encryption.
+ * Call once at startup and use the returned client everywhere.
+ * @param {import('@prisma/client').PrismaClient} client
+ * @returns {import('@prisma/client').PrismaClient} the extended client
+ */
 function withColumnEncryption(client) {
-  // Production fails at boot on a missing/invalid key instead of on the first request.
+  // In production, a missing or malformed key stops the process at boot. The
+  // alternative is failing on the first user request, which is much harder to diagnose.
   if (process.env.NODE_ENV === 'production') getKey();
   return client.$extends({ name: 'column-encryption', query: { $allModels: { $allOperations: handler } } });
 }

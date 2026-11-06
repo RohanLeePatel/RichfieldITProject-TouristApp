@@ -12,9 +12,17 @@ const parseId = (value, label) => {
   return id;
 };
 
-// Resolves the caller's trip membership - a TripMember row, else membership of
-// the trip's travel group (same rule as GET /api/trips). Non-members get 404 so
-// trip existence isn't leaked; VIEWERs are rejected for write operations.
+/**
+ * The shared access gate for trip-scoped data, so the rule lives in one place rather
+ * than in each service. Membership comes from a
+ * direct TripMember row, or from membership of the trip's travel group (the same rule
+ * GET /api/trips uses). Non-members get a 404 rather than a 403, so the response doesn't
+ * reveal that a trip exists. VIEWER role gets a 403 on writes.
+ * @param {number} tripId
+ * @param {number} userId
+ * @param {{ write?: boolean, denied?: string }} [options]
+ * @returns {Promise<object>} the membership record
+ */
 const assertTripAccess = async (tripId, userId, { write = false, denied = 'Viewers cannot modify trip expenses or budget' } = {}) => {
   const membership = (await tripRepository.findActiveMembership(tripId, userId))
     || (await tripRepository.findGroupMembershipForTrip(tripId, userId));

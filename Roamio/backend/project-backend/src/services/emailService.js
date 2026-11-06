@@ -97,6 +97,7 @@ async function sendNewSignInEmail(email, { browser, os, location, ipAddress, at 
 // A problem report from Settings, sent to the support inbox. Replies go to the
 // traveller (replyTo). Same delivery rules as the codes: printed outside
 // production when SMTP isn't set, a 503 in production.
+// Overridable with SUPPORT_EMAIL. The fallback is the production inbox.
 const SUPPORT_EMAIL = () => process.env.SUPPORT_EMAIL || 'support.roamiio.live@gmail.com';
 
 async function sendSupportReport({ reference, category, subject, description, fromEmail, fromName, context }) {

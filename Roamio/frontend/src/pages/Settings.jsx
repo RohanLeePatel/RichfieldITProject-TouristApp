@@ -81,6 +81,8 @@ export default function Settings() {
       return undefined;
     }
 
+    // The active section is the topmost one visible in the band 20% to 35% down the
+    // viewport, a line that reads as "where the reader is". The rootMargin sets that band.
     const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries
@@ -128,6 +130,8 @@ export default function Settings() {
       block: "start",
     });
 
+    // Keeps the URL hash in step, so a reload or a shared link lands in the same
+    // place. Focus moves to the heading so keyboard and screen-reader users follow the jump.
     window.history.replaceState(null, "", `#${id}`);
     setActive(id);
     element.querySelector("h2")?.focus({ preventScroll: true });

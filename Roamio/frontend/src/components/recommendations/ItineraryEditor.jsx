@@ -4,6 +4,8 @@ import { DEFAULT_TRIP_DAYS } from "../../pages/recommendations/constants.js";
 import { isDayOverloaded, isLikelyClosed } from "../../utils/itineraryPlanner.js";
 import ItineraryMap, { dayColor } from "./ItineraryMap.jsx";
 
+// One stop in a day. Its "may be closed" badge comes from opening hours and the
+// start time (isLikelyClosed), so it is a hint, not a guarantee.
 function StopCard({ stop, onRemove, onDragStart, onDrop }) {
   const closed = isLikelyClosed(stop.landmark, stop.startTime);
   return (
@@ -34,6 +36,9 @@ function StopCard({ stop, onRemove, onDragStart, onDrop }) {
   );
 }
 
+// Presentational: the parent owns the plan and every change goes through its
+// callbacks. Undo, Save and the drag state therefore live with the parent, which
+// keeps this component easy to test.
 export default function ItineraryEditor({
   cityName, days, hasDates, canUndo, loading, error,
   undo, back, addDay, spreadStops, removeDay, removeStop, moveStop, dragStop, setDragStop, onSave,

@@ -6,13 +6,16 @@ from config import settings
 
 DEEPL_API_KEY = settings.get("deepLAPIKey")
 
+# DeepL keys from the free plan end in ":fx" and are meant for the free host, so the
+# suffix decides which host to call.
 DEEPL_API_URL = (
     "https://api-free.deepl.com/v2/translate"
     if DEEPL_API_KEY and DEEPL_API_KEY.endswith(":fx")
     else "https://api.deepl.com/v2/translate"
 )
 
-# what each DeepL failure means to the user
+# What each DeepL failure means to the user. 456 is DeepL's own status for "monthly
+# quota used up", which is why it has a message of its own.
 DEEPL_ERRORS = {
     400: "That language combination isn't supported.",
     403: "The translation service key is invalid.",

@@ -11,6 +11,7 @@ import { emailError, MAX_EMAIL, MAX_PASSWORD, passwordError } from "../utils/val
 export default function ResetPassword() {
   const navigate = useNavigate();
   const location = useLocation();
+  // The email can arrive from the forgot-password page (router state) or in the URL.
   const initialEmail = location.state?.email || new URLSearchParams(location.search).get("email") || "";
 
   const [email, setEmail] = useState(initialEmail);
@@ -49,6 +50,8 @@ export default function ResetPassword() {
     );
   };
 
+  // The notices say "If that account exists" on purpose. The server gives the same
+  // answer whether or not the email has an account, so this page must not hint otherwise.
   const handleResend = () => {
     const problem = emailError(email);
     if (problem) {

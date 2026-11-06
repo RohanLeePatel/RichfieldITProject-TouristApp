@@ -78,7 +78,8 @@ const travelGroupRepository = {
       throw error;
     }
 
-    // Add membership using upsert or create
+    // A plain create, not an upsert. Joining twice hits the (group, user) unique
+    // constraint, and the controller turns that into "already a member".
     return await prisma.travelGroupMember.create({
       data: {
         travelGroupId: group.id,

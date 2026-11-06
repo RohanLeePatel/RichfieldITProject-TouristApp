@@ -29,8 +29,15 @@ const issueOtp = async (userId, extra = {}) => {
 
 const toProfile = (user) => ({ id: user.id, email: user.email, fullName: user.fullName });
 
+/**
+ * Account lifecycle: registration, email verification, sign-in and token refresh,
+ * and password reset. Controllers call these methods and map thrown httpErrors to
+ * responses. Failure messages are kept deliberately generic where they would
+ * otherwise reveal whether an email has an account.
+ */
 class AuthService {
-  // '' when the name is fine, otherwise the sentence to show (register and PATCH /users/me)
+  // Returns '' when the name is fine, otherwise the sentence to show. Shared by
+  // registration and profile edits so both enforce the same rules.
   fullNameProblem(fullName) {
     const name = typeof fullName === 'string' ? fullName.trim() : '';
     if (name.length < 2 || name.length > MAX_NAME_LENGTH || !NAME_PATTERN.test(name)) {
@@ -87,7 +94,9 @@ class AuthService {
     return { email: normalizedEmail, otp };
   }
 
-  // req: the request, so the new session can say which device it is
+  // Completes registration. `req` is passed through so the new session records the
+  // device. Only the first successful code verifies the account, so a leaked code
+  // can't be replayed after it has been used.
   async verifyOtp({ email, otp } = {}, req) {
     const user = await userRepository.findByEmail(normalizeEmail(email));
     // One generic error for unknown user, no/expired/exhausted code, or wrong code
@@ -123,7 +132,9 @@ class AuthService {
     if (user) await sendOtpEmail(normalizedEmail, await issueOtp(user.id), 'verify').catch(() => {});
   }
 
-  // Always resolves without revealing whether the email exists; returns the code only for a real account
+  // Always resolves the same way whether or not the email exists. The plain code is
+  // returned only for a real account, and only so the non-production path can show
+  // it. Real delivery goes through email.
   async forgotPassword({ email } = {}) {
     const normalizedEmail = normalizeEmail(email);
     if (!EMAIL_PATTERN.test(normalizedEmail)) throw httpError(400, 'A valid email is required.');
@@ -138,8 +149,9 @@ class AuthService {
     return { otp };
   }
 
+  // Sets a new password after a valid reset code. Every session is revoked on success.
   async resetPassword({ email, otp, newPassword } = {}) {
-    // Checked first so a too-short password doesn't burn an attempt or the code
+    // Checked before the code, so a bad password doesn't use up one of the code's attempts.
     if (typeof newPassword !== 'string' || newPassword.length < MIN_PASSWORD_LENGTH) {
       throw httpError(400, `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
     }
@@ -186,6 +198,9 @@ class AuthService {
     };
   }
 
+  // Issues a fresh access and refresh token pair, provided the session is still live.
+  // Tokens minted before sessions existed have no `sid`. They are given one here so
+  // they appear in Settings and can be signed out like any other.
   async refreshTokens(refreshToken, req) {
     if (!refreshToken) throw httpError(401, 'Refresh token missing');
 

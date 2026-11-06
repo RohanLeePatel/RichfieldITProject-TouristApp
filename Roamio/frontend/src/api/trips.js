@@ -1,12 +1,9 @@
 import { authedFetch, isDevBypass } from "./client";
 
-// DEV-ONLY: no database is configured on the Node backend yet, so a real
-// POST /api/trips 500s and itinerary saves would too. When there's no real
-// token (i.e. the Login page's "Skip login" dev bypass was used) fall back
-// to a localStorage-backed fake store so the rest of the wizard - landmarks,
-// itinerary, the "trip created" screen - can still be exercised end to end.
-// Remove this fallback once DATABASE_URL is wired up; real sessions
-// (a real token present) always go through the real API untouched.
+// DEV-ONLY fallback. In a development build, when nobody is signed in (see
+// isDevBypass in client.js), trips are kept in a localStorage fake store, so the
+// wizard, landmarks and itinerary can be tried without a backend session. A real
+// signed-in session always uses the API. Production builds never take this path.
 const DEV_TRIPS_KEY = "roamio_dev_trips";
 
 function readDevTrips() {

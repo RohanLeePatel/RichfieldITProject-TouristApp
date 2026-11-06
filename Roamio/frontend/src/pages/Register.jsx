@@ -43,7 +43,9 @@ export default function Register() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
-  // Set once the account is created: the page then asks for the emailed code
+  // Set once the account is created: the page then asks for the emailed code.
+  // This is local state, so a page reload starts sign-up again. The account already
+  // exists but is unverified, and signing up again with the same email resumes it.
   const [pendingEmail, setPendingEmail] = useState("");
   const [code, setCode] = useState("");
   const [codeNotice, setCodeNotice] = useState(null); // { text, isError }
@@ -92,6 +94,9 @@ export default function Register() {
     );
   };
 
+  // Checks the form in the browser so most mistakes are caught before a request is
+  // sent. The server still re-checks everything, so these checks are a convenience,
+  // not a security boundary.
   const handleSubmit = (e) => {
     e.preventDefault();
 

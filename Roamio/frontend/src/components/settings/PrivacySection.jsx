@@ -133,6 +133,10 @@ export default function PrivacySection({ notify }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
 
+  // Builds the export file in the browser. Each part is fetched on its own, and a part
+  // that fails is left empty rather than failing the whole download. The profile
+  // photo and name also come from this browser's stored copy, so they are included
+  // even when the server can't be reached.
   const buildExport = async () => {
     const account = await fetchMe().catch(() => null);
 
@@ -167,6 +171,8 @@ export default function PrivacySection({ notify }) {
     }
   };
 
+  // The account is gone on the server, so clear this browser's session too. logout()
+  // also turns off push here and drops the refresh cookie.
   const handleDeleted = () => {
     setDeleteOpen(false);
     try {

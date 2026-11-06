@@ -1,8 +1,8 @@
 // Trip spend in the budget currency. Each expense keeps the amount it was paid
 // in; exchangeRate (null = 1) converts it. Postgres can't sum across rates in
 // one aggregate through Prisma, so totals are done here over the trip's rows -
-// a trip has tens of expenses, not thousands.
-// ponytail: in-memory sums; move to a SQL view if a trip ever has thousands.
+// a trip has tens of expenses, not thousands. If a trip ever grows to thousands of
+// rows, move these sums into a SQL view.
 const { decimalToCents } = require('./money');
 
 const rateOf = (expense) => (expense.exchangeRate == null ? 1 : Number(expense.exchangeRate.toString()));

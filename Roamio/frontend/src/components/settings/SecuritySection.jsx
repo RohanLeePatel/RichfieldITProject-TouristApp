@@ -37,6 +37,9 @@ const ACTIVITY_PREVIEW = 4;
 
 /* ======================= password ======================= */
 
+// Changing the password goes through the same code-based reset as "forgot password".
+// The server then signs out every session, this one included. This device keeps
+// its page until its next token refresh, which will then fail and sign it out.
 function PasswordCard({ email, notify }) {
   const [open, setOpen] = useState(false);
   const [resetCode, setResetCode] = useState("");
@@ -282,6 +285,8 @@ function SessionsCard({ notify }) {
     load();
   }, [load]);
 
+  // The server knows the real session list only when source is "server". Otherwise
+  // the page shows just this device, and Sign out buttons would act on nothing real.
   const canManage = source === "server";
   const others = sessions.filter((session) => !session.current);
 
@@ -312,6 +317,7 @@ function SessionsCard({ notify }) {
     }
   };
 
+  // The warning covers the last seven days of failed sign-ins.
   const failedRecently = activity.some(
     (item) => item.success === false && Date.now() - new Date(item.at).getTime() < 7 * 24 * 3600 * 1000
   );

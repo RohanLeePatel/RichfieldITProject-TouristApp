@@ -95,13 +95,13 @@ class AuthController {
 
   async refresh(req, res, next) {
     try {
-      // Assuming your refreshToken is unsigned in cookie-parser, otherwise use req.signedCookies
+      // The refresh cookie is set plain, but we accept a signed one too, so a cookie
+      // from either setup still works.
       const token = req.cookies.refreshToken || req.signedCookies.refreshToken;
       const { accessToken, refreshToken: newRefreshToken } = await authService.refreshTokens(token, req);
       
       tokenService.setRefreshTokenCookie(res, newRefreshToken);
-      
-      // Update the access token cookie too
+      // The access token cookie is refreshed alongside the refresh token
       res.cookie('accessToken', accessToken, {
         httpOnly: true,
         signed: true,
@@ -157,9 +157,9 @@ class AuthController {
   }
 }
 
-// PATCH /users/me used to write req.body straight into User, so a client
-// could set passwordHash, isVerified, email... Only these fields are editable;
-// email and password have their own verified flows.
+// Whitelist for PATCH /users/me. Anything not listed here is ignored, so a client
+// can't set fields like passwordHash or isVerified. Email and password have their
+// own verified flows and can't be changed here.
 const PREFERENCE_FIELDS = { currency: 'string', language: 'string', theme: 'string', emailAlerts: 'boolean', pushAlerts: 'boolean' };
 
 function profileUpdate(body = {}) {

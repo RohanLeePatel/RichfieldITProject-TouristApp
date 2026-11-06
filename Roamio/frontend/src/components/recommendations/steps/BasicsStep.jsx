@@ -27,6 +27,8 @@ export default function BasicsStep({ form, updateForm, countries, applyPreset, p
   const solo = !form.travelGroupId;
   // A preset only changes interests/pace (set on later steps), so show which
   // one is active and what it filled in - otherwise clicking looks like a no-op.
+  // A preset stays "active" only while interests, priority interests and pace still
+  // match it. Editing any of them on a later step clears the highlight.
   const active = TRIP_PRESETS.find(
     (preset) => preset.id === presetId && sameSet(preset.interests, form.interests) && sameSet(preset.priorityInterests, form.priorityInterests) && preset.pace === form.pace
   );

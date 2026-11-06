@@ -1,31 +1,30 @@
 const { verifyAccessToken } = require('../auth/tokenService');
 
+// Authenticates a request from its access token and sets req.user. The Bearer header
+// wins. Cookies are the fallback for browser sessions, and signed cookies are preferred
+// over plain ones.
 const requireAuth = (req, res, next) => {
   let token;
 
-  // 1. Check Authorization header (Bearer token)
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
     token = req.headers.authorization.split(' ')[1];
-  } 
-  // 2. Check signed cookies
+  }
   else if (req.signedCookies && req.signedCookies.accessToken) {
     token = req.signedCookies.accessToken;
   }
-  // 3. Fallback for unsigned cookies
   else if (req.cookies && req.cookies.accessToken) {
     token = req.cookies.accessToken;
   }
 
-  // Block if no token is found
   if (!token) {
     return res.status(401).json({ message: 'Access token required. Please log in.' });
   }
 
   try {
-    // Verify token using tokenService's encapsulated verification & secret
     const decoded = verifyAccessToken(token);
-    
-    // Extract and parse the ID to an integer for Prisma compatibility
+
+    // Our tokens carry `userId`. `id` and `sub` are accepted as fallbacks. The id
+    // is parsed to an Int because Prisma's User.id is an integer column.
     const rawId = decoded.userId ?? decoded.id ?? decoded.sub;
     const parsedId = parseInt(rawId, 10);
 
@@ -33,8 +32,8 @@ const requireAuth = (req, res, next) => {
       return res.status(401).json({ message: 'Invalid token payload: missing valid user ID.' });
     }
     
-    // Attach both .id and .userId normalized as integers
-    req.user = { 
+    // Both names are set because handlers use either one.
+    req.user = {
       ...decoded, 
       id: parsedId,
       userId: parsedId

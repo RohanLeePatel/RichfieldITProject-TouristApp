@@ -41,6 +41,9 @@ export default function Login() {
 
   const [fieldErrors, setFieldErrors] = useState({});
 
+  // The form is noValidate, so the checks here are the only validation. That keeps
+  // the wording consistent with the other auth pages. Problems are shown before any
+  // request goes out.
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -57,6 +60,9 @@ export default function Login() {
         password,
       },
       {
+        // Returns the user to the page they were sent from. The ?next= parameter comes
+        // from the 401 redirect in api/client.js or from an invite or join link.
+        // Without it, the default page is used.
         onSuccess: () => {
           navigate(nextPath(location.search));
         },
@@ -339,7 +345,9 @@ export default function Login() {
               <FieldError id="login-password-error" message={fieldErrors.password} />
             </div>
 
-            {/* REMEMBER ME */}
+            {/* REMEMBER ME
+                Display only: nothing reads this checkbox. Every sign-in gets the same
+                7-day refresh cookie, so the choice has no effect on how long a session lasts. */}
 
             <label className="remember-row">
               <input

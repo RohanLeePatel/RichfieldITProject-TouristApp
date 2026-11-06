@@ -26,6 +26,8 @@ function tripDateLabel(trip) {
     : format(trip.startDate);
 }
 
+// A trip counts as completed when it is marked so, or when its end date has passed.
+// An unset or unreadable end date never counts as completed.
 function isTripCompleted(trip) {
   if (String(trip.status || "").toLowerCase() === "completed") {
     return true;

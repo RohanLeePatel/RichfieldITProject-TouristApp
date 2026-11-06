@@ -14,8 +14,9 @@ const LEVEL_LABELS = {
 // Live advisories: the US State Department's public feed (no key). Every
 // country's entry, refreshed a few times a week.
 const STATE_DEPT_URL = 'https://cadataapi.state.gov/api/TravelAdvisories';
-// ponytail: one cached copy of the whole feed per warm serverless instance;
-// move it into the DB if cold starts make the 1-2 s fetch noticeable
+// The State Department feed is one large file, so we keep a single copy per warm
+// serverless instance. Each instance fetches it again after the TTL. If cold starts
+// make the 1-2 second fetch noticeable, move the cache into the database.
 const FEED_TTL_MS = 6 * 60 * 60 * 1000;
 let feed = { at: 0, list: null };
 const advisoryCache = new Map(); // alpha-3 -> { at, advisory }
@@ -87,8 +88,9 @@ class SafetySyncService {
     };
   }
 
-  // What the trip page shows, fetched on request (the cron above never runs
-  // on Vercel): TravelRiskAPI when its key is set, else the free State
+  // What the trip page shows, fetched on request. The scheduled sync
+  // (syncCountryAdvisories) doesn't run on Vercel, so the page can't rely on it:
+  // TravelRiskAPI when its key is set, else the free State
   // Department feed. Cached per country - TravelRiskAPI's free plan allows
   // 100 calls a day. null when neither source knows the country.
   async liveAdvisory(iso, name) {

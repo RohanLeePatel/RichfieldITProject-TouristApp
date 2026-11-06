@@ -10,6 +10,7 @@ import "../../styles/onboarding.css";
 // Terms and Privacy Policy now in force (accounts made before consent was
 // recorded, and everyone again after the wording changes). The server decides:
 // /users/me says which version the user agreed to and which is current.
+// The gate can't be skipped. The only choices are to agree or to sign out.
 export default function TermsGate() {
   const userId = useAuthStore((state) => state.user?.id);
   const logout = useAuthStore((state) => state.logout);

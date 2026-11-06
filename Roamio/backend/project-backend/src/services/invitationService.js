@@ -56,7 +56,9 @@ class InvitationService {
       token,
     });
 
-    // A mailer would send the token here; it is returned directly for now.
+    // No email is sent for this invite yet, so the token is returned to the inviter,
+    // who shares the link. Accepting still requires signing in with the invited
+    // address (see acceptInvite), so a leaked link alone is not enough.
     return { invitationToken: token, role: normalizedRole, expiresAt };
   }
 
@@ -78,6 +80,9 @@ class InvitationService {
     };
   }
 
+  // The token alone doesn't grant membership: the signed-in account's email must
+  // match the address the invitation was sent to. Expired invitations are marked
+  // EXPIRED here, the first time someone tries to use them.
   async acceptInvite(userId, token) {
     if (typeof token !== 'string' || !token) throw httpError(400, 'Invitation token is required.');
 

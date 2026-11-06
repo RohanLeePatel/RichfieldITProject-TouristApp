@@ -200,6 +200,8 @@ export default function ChatPanel({ showHistory = false, prefill = null }) {
     }
   };
 
+  // The message shows at once as an optimistic bubble. If the request fails, the
+  // bubble is removed and the text goes back into the box, so nothing typed is lost.
   const send = async (event) => {
     event.preventDefault();
 
@@ -229,6 +231,7 @@ export default function ChatPanel({ showHistory = false, prefill = null }) {
       });
 
       setConversationId(data.conversationId);
+      // Records that the assistant has been tried, for the Get started checklist.
       tips.mark("done:chat");
 
       setMessages((current) => [
@@ -252,6 +255,8 @@ export default function ChatPanel({ showHistory = false, prefill = null }) {
     }
   };
 
+  // Confirm runs the proposed change on the server. Cancel only updates this message
+  // locally, and nothing is sent, so the server never acts on a cancelled proposal.
   const decide = async (message, yes) => {
     const settle = (state) =>
       setMessages((current) =>

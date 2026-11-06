@@ -341,16 +341,15 @@ def score_safety(prefs: Preferences, candidate: Candidate, level: Level) -> Dime
     safety_index = candidate.features.safety_index
 
     if safety_index is None:
-        # No safety source is wired up yet, so nothing here is measured. Same
-        # rule as climate/accessibility above: an unmeasured dimension gets
-        # weight 0 rather than a neutral score at full weight.
+        # A candidate only gets a safety_index when a travel advisory level is known
+        # for its country (see engine/safety.py). Without one, the dimension is not
+        # measured, and it gets weight 0 instead of the same neutral score at full
+        # weight as everyone else.
         #
-        # Scoring it 0.5 at the full weight was worse than useless: since no
-        # seeded candidate has a safety_index, every one of them collected the
-        # identical contribution, which discriminated between nothing and
-        # squeezed the dimensions that do discriminate into a smaller share of
-        # the total - enough to tie candidates that budget and interests would
-        # otherwise have separated.
+        # A shared neutral score at full weight adds the same amount to every
+        # candidate. That doesn't tell them apart, and it shrinks the share of the
+        # dimensions that do discriminate, such as budget and interests, which can
+        # then tie candidates they would otherwise separate.
         return DimensionScore(
             dimension="safety",
             value=0.5,

@@ -34,9 +34,11 @@ at PLACES_LIMIT, so dense cities all came back with exactly that many and
 normalized to an identical 1.0. See estimated_poi_count() for how the clipped
 ones are extrapolated back out.
 
-Geoapify's free tier is 3000 credits/day for the whole account. The default
-6-city batch here uses maybe a few dozen requests, but keep an eye on the
-dashboard before scaling this up to way more cities.
+Geoapify's free tier is 3000 credits/day for the whole account. Each city makes
+about 17 Geoapify requests (one per interest category, plus the accessibility
+sample), so a full run of the city list in cities_seed.py is roughly 2,000
+requests. Plan a run for a day when the quota is free, and check the dashboard
+before adding many more cities.
 """
 
 from __future__ import annotations
@@ -74,7 +76,7 @@ def load_geoapify_key() -> str:
 
 
 def enrich_city(api_key: str, city: dict) -> dict:
-    # A full run is ~1800 Geoapify requests against a 3000/day free tier, and
+    # A full run is roughly 2,000 Geoapify requests against a 3,000/day free tier, and
     # the seed file is only written once every city has finished - so without
     # this, one failure near the end spends the day's quota and leaves nothing
     # to show for it. Cached cities cost no requests on a retry.

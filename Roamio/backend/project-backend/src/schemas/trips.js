@@ -1,6 +1,7 @@
 const { z } = require('zod');
 
-// Trip Schemas
+// Fields a trip can carry. Create and update both use them. Some fields are stored in
+// Trip.description rather than their own columns (see utils/tripFormat.js).
 const tripFields = z.object({
   title: z.string().min(1, 'Title is required').max(100, 'Title is too long'),
   destination: z.string().min(1, 'Destination is required'),

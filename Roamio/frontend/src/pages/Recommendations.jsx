@@ -325,6 +325,9 @@ function Planner({ draft }) {
     });
   };
 
+  // Returns the first problem with a step, as a sentence for the traveller, or "".
+  // These rules mirror what the server enforces, so most mistakes are caught before a
+  // request is sent. The server still checks everything it receives.
   const validateStep = (stepToCheck = step) => {
     if (stepToCheck === 0) {
       if (!Number.isFinite(Number(form.budget)) || Number(form.budget) <= 0) {
@@ -396,6 +399,9 @@ function Planner({ draft }) {
     return "";
   };
 
+  // Sends one search and shows its results. Each call takes a new request number, and
+  // an answer that arrives after a newer request has started is ignored. This keeps a
+  // slow earlier search from overwriting the results the user is now looking at.
   const submitRecommendations = async (level, parentId, country = null, excludeIds = dislikedIds) => {
     const requestId = ++requestIdRef.current;
     setLoading(true);
@@ -714,8 +720,8 @@ function Planner({ draft }) {
   };
 
   // Opt-in: share every picked stop evenly across the days, in current order.
-  // ponytail: even split, not a re-run of the geographic sweep - upgrade to
-  // re-clustering if it visibly mixes far-apart stops.
+  // This is a plain even split, not a fresh geographic grouping. If stops that are far
+  // apart end up on the same day, the next step is to re-cluster them by location.
   const spreadStops = () => {
     snapshotItinerary();
     setItineraryDays((current) => {

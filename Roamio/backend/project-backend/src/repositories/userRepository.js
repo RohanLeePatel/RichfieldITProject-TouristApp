@@ -46,7 +46,7 @@ class UserRepository {
         termsAcceptedAt: data.termsAcceptedAt,
         termsVersion: data.termsVersion,
         preferences: {
-          create: {}, // Auto-generates default ZAR currency / english / push alerts
+          create: {}, // column defaults apply: ZAR, English, system theme, alerts on
         },
       },
       select: {

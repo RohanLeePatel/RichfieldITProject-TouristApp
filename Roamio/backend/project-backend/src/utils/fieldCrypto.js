@@ -1,7 +1,11 @@
 const crypto = require('node:crypto');
 
+// Text values carry a version prefix, and binary values a magic header. Both let
+// reads tell encrypted data from legacy plaintext, and let a future format change
+// coexist with the current one.
 const TEXT_PREFIX = 'enc:v1:';
 const BYTES_MAGIC = Buffer.from('RMENC1');
+// AES-256-GCM with a 96-bit random nonce and a 128-bit auth tag.
 const IV_LEN = 12;
 const TAG_LEN = 16;
 
@@ -20,6 +24,8 @@ function getKey() {
 
 const toBuffer = (value) => (Buffer.isBuffer(value) ? value : Buffer.from(value.buffer, value.byteOffset, value.byteLength));
 
+// Output layout: iv | auth tag | ciphertext. A fresh random IV on every call means
+// equal plaintexts never produce equal ciphertexts, so the data reveals no repeats.
 function seal(plaintext, aad) {
   const iv = crypto.randomBytes(IV_LEN);
   const cipher = crypto.createCipheriv('aes-256-gcm', getKey(), iv);

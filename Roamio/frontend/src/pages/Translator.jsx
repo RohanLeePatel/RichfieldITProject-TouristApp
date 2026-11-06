@@ -48,6 +48,10 @@ const canSpeak =
 const API_BASE_URL =
   import.meta.env.VITE_BACKEND_API_URL || "http://127.0.0.1:3000";
 
+// One translated line, drawn over the photo where the original text was. The OCR box
+// gives the line's height, which sets its starting font size. If the translation is too
+// long for the box, the font is shrunk step by step, down to 45% of that size. Past that
+// it wraps instead. Sizes use container query units (cqw) so the overlay scales with the photo.
 function OverlayLine({ line, size }) {
   const ref = useRef(null);
   const base = (line.height / size.width) * 58;
@@ -102,6 +106,9 @@ function Translator() {
   const [listening, setListening] = useState(false);
   const [photoSize, setPhotoSize] = useState(null);
   const [showOverlay, setShowOverlay] = useState(true);
+  // Session-only: this list is lost on reload. The server keeps its own history
+  // (/api/translate/history), but this page never reads it and its requests send no
+  // credentials, so these translations are not saved to a signed-in user's history.
   const [history, setHistory] = useState([]);
 
   const recognitionRef = useRef(null);
@@ -109,6 +116,8 @@ function Translator() {
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
 
+  // Releases the camera and the photo's object URL when the page unmounts or the
+  // preview changes, so the camera light turns off and memory is freed.
   useEffect(() => {
     return () => {
       if (streamRef.current) {
@@ -135,6 +144,9 @@ function Translator() {
     return found ? found.name : code.toUpperCase();
   };
 
+  // The 10 MB limit here is the size we accept from the device. The photo is shrunk to
+  // the OCR provider's 1 MB limit (compressImage) before it is sent, so this check
+  // is not what keeps the upload small.
   const handleFile = (file) => {
     if (!file) return;
     setError("");
@@ -367,6 +379,9 @@ function Translator() {
     window.speechSynthesis.speak(utterance);
   };
 
+  // Speech input uses the browser's own recognition engine, so its availability and
+  // accuracy depend on the browser. Each result is appended to the text, not
+  // replacing it, so the traveller can speak in parts.
   const toggleListening = () => {
     if (listening) {
       recognitionRef.current?.stop();
@@ -404,6 +419,8 @@ function Translator() {
     swapFrom && SOURCE_LANGUAGES.some((l) => l.code === swapFrom) && targetForBase(swapFrom)
   );
 
+  // Swaps From and To. For a typed phrase, the translation becomes the new input, so
+  // the reverse translation is one click away.
   const swapLanguages = () => {
     if (!canSwap) return;
     const newTarget = targetForBase(swapFrom);

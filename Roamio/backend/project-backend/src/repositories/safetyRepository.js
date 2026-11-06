@@ -74,7 +74,10 @@ class SafetyRepository {
     return await prisma.safetyAlert.create({ data });
   }
 
-  // Marks active alerts that no longer apply (destination removed, or risk dropped) as resolved
+  // Marks active alerts that no longer apply as resolved. An alert no longer applies
+  // when its destination was removed or its risk level dropped. The keepers are the
+  // (destination, level) pairs still at or above the alert threshold. An empty list
+  // means nothing still applies, so every active alert on the trip is resolved.
   async resolveAlertsExcept(tripId, activeKeepers) {
     const result = await prisma.safetyAlert.updateMany({
       where: {

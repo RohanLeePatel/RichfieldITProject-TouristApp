@@ -2,7 +2,10 @@ const itineraryRepo = require('../repositories/itineraryRepository');
 const prisma = require('../config/prisma');
 const { accessibleTrips } = require('../utils/tripFormat');
 
-// Same reach as GET /api/trips: a trip member, or a member of the trip's group
+// Read access matches GET /api/trips: a trip member, or a member of the trip's group.
+// Note that updateItineraryItem and deleteItineraryItem check only TripMember rows, so
+// a group-only member can read the itinerary but can't change a stop here. The
+// newer trip API in routes/trips.js does not have this gap.
 const verifyTripAccess = async (tripId, userId) => {
   return await prisma.trip.findFirst({
     where: accessibleTrips(parseInt(userId, 10), { id: parseInt(tripId, 10) }),

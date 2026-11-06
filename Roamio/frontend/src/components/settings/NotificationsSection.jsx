@@ -191,7 +191,8 @@ export default function NotificationsSection({ email, notify }) {
     }
   };
 
-  // warn when someone would stop hearing about flight or stay changes
+  // A topic is unreachable when no channel that is switched on carries it. Then the
+  // user would never hear about a flight or stay change, so we warn them.
   const missingChanges = ["flightChanges", "accommodationChanges"].filter(
     (topic) => !CHANNELS.some(({ key }) => channelOn(key) && prefs.topics[topic][key])
   );

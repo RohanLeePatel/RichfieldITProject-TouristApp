@@ -17,6 +17,9 @@ export default function ItineraryMap({ itineraryDays }) {
 
   const days = itineraryDays.filter((day) => day.stops.some(hasCoords));
 
+  // The map exists only while there is something to plot. The dependency is the
+  // boolean "has days", so it is created or removed when that flips. It is not
+  // rebuilt on every edit, and the pins are drawn by the effect below.
   useEffect(() => {
     if (!containerRef.current) return undefined;
     const map = L.map(containerRef.current, { scrollWheelZoom: false });

@@ -163,12 +163,16 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 8. Schedule the Safety Sync Job
-// This cron expression ('0 */12 * * *') means "Run at minute 0 past every 12th hour." (Twice a day)
+// 8. Scheduled jobs
+// node-cron only fires while this process is running, so it covers local development
+// and any always-on host. On Vercel, vercel.json triggers the daily version of the
+// same work through /api/cron, which is why those routes exist as well.
 cron.schedule('0 */12 * * *', async () => {
   await safetySyncService.syncCountryAdvisories();
 });
 
+// In development, also run one sync shortly after boot, so local data appears
+// without waiting up to 12 hours for the first scheduled run.
 if (process.env.NODE_ENV === 'development') {
   setTimeout(() => {
     safetySyncService.syncCountryAdvisories();

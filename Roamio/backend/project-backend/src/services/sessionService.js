@@ -4,19 +4,28 @@ const { clientInfo } = require('../utils/clientInfo');
 const { notifyUser } = require('./pushService');
 const { sendNewSignInEmail } = require('./emailService');
 
-// A refresh token lasts 7 days from its last renewal, so a session nobody has
-// renewed for that long is over even if it was never revoked.
+// A session stays alive only while its refresh token keeps being renewed. Each renewal
+// moves `lastSeenAt` forward, so a session nobody has renewed for SESSION_DAYS is
+// dead even if nobody revoked it. This matches the refresh token's own expiry.
 const SESSION_DAYS = 7;
-const ACTIVITY_SHOWN_DAYS = 30; // what Settings lists
-const ACTIVITY_KEPT_DAYS = 90; // anything older is deleted on the next sign-in
+const ACTIVITY_SHOWN_DAYS = 30; // the window Settings displays
+const ACTIVITY_KEPT_DAYS = 90; // history older than this is pruned during sign-in
 const ACTIVITY_LIMIT = 100;
 const DAY = 24 * 60 * 60 * 1000;
 
 const sessionCutoff = () => new Date(Date.now() - SESSION_DAYS * DAY);
+// Every lookup goes through this filter, so a revoked or expired session is treated
+// the same as one that never existed.
 const live = (userId) => ({ userId, revokedAt: null, lastSeenAt: { gte: sessionCutoff() } });
 
-// A sign-in: records it in the history and opens a session. Returns the session
-// id, which goes into both tokens. `req` is the sign-in request.
+/**
+ * Opens a session at sign-in and records the attempt in the login history.
+ * @param {string} userId
+ * @param {import('express').Request} req - the sign-in request, used for device details
+ * @param {{ record?: boolean }} [options] - set `record: false` to skip history and
+ *   new-device alerts, for example on internal logins
+ * @returns {Promise<string>} the new session id, embedded in both access and refresh tokens
+ */
 async function start(userId, req, { record = true } = {}) {
   const info = clientInfo(req);
   const id = crypto.randomUUID();
@@ -30,20 +39,21 @@ async function start(userId, req, { record = true } = {}) {
   return id;
 }
 
-// A device is the browser, system and kind of device (the place changes too
-// easily on mobile networks to count). New means it is absent from the sign-in
-// history we keep, while the account has signed in before: a first sign-in
-// has nothing to compare with.
+// A "device" means browser + OS + device type. Location is left out on purpose: it
+// changes too often on mobile networks to be a useful signal. A device is new if it
+// isn't in the kept history. An account's very first sign-in is never flagged, since
+// there is nothing to compare it against.
 async function isNewDevice(userId, { browser, os, deviceType }) {
   const where = { userId, success: true };
   if (await prisma.loginEvent.findFirst({ where: { ...where, browser, os, deviceType }, select: { id: true } })) return false;
   return (await prisma.loginEvent.count({ where })) > 0;
 }
 
-// Tells the account's other signed-in browsers, and always emails the owner: not
-// every account has push on, and Settings promises security alerts by email.
-// Both are awaited, because serverless may freeze the work once the response is
-// sent; neither throws.
+// Warns the account owner about a sign-in from an unrecognized device. Push goes to
+// the account's other devices, and email always goes out because not every account
+// has push enabled, while Settings promises security alerts by email. Both calls are
+// awaited, since serverless runtimes can freeze work once the response is sent.
+// Neither call is allowed to fail the sign-in.
 async function alertNewDevice(userId, sessionId, info) {
   const { browser, os, location } = info;
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
@@ -60,13 +70,17 @@ async function alertNewDevice(userId, sessionId, info) {
   ]);
 }
 
-// A wrong password for a real account. Unknown emails have no one to show it to.
+// Logs a failed password attempt. This is only called for real accounts, because an
+// unknown email has no history to attach the event to.
 async function recordFailure(userId, req) {
   await prisma.loginEvent.create({ data: { userId, success: false, ...clientInfo(req) } });
 }
 
-// A token is being renewed: true (and the session is marked as used) while it
-// is still open, false once it was signed out or has gone unused too long.
+/**
+ * Called on every refresh-token renewal. Bumps `lastSeenAt` only if the session is
+ * still live, which keeps a revoked or idle session from being revived by a stale token.
+ * @returns {Promise<boolean>} false means the caller must reject the refresh
+ */
 async function touch(id, userId) {
   const { count } = await prisma.userSession.updateMany({
     where: { id, ...live(userId) },
@@ -75,6 +89,7 @@ async function touch(id, userId) {
   return count === 1;
 }
 
+/** Lists the account's live sessions for Settings, marking the caller's own session. */
 async function list(userId, currentId) {
   const rows = await prisma.userSession.findMany({ where: live(userId), orderBy: { lastSeenAt: 'desc' }, take: 50 });
   return rows.map((row) => ({
@@ -89,12 +104,16 @@ async function list(userId, currentId) {
   }));
 }
 
-// false when it isn't theirs or is already over
+// Signs out one device. Returns false when the session belongs to someone else or is
+// already over. The caller can't tell those two cases apart, which avoids confirming
+// that another user's session id exists.
 async function revoke(userId, id) {
   const { count } = await prisma.userSession.updateMany({ where: { id, ...live(userId) }, data: { revokedAt: new Date() } });
   return count === 1;
 }
 
+// Backs the "sign out other devices" button in Settings. The current session is kept,
+// so the user isn't logged out of the tab they're using.
 async function revokeOthers(userId, currentId) {
   await prisma.userSession.updateMany({
     where: { ...live(userId), ...(currentId ? { id: { not: currentId } } : {}) },
@@ -102,11 +121,13 @@ async function revokeOthers(userId, currentId) {
   });
 }
 
+// Signs out every device, including the current one. Called after a password reset,
+// because whoever knew the old password must not stay signed in.
 async function revokeAll(userId) {
   await prisma.userSession.updateMany({ where: live(userId), data: { revokedAt: new Date() } });
 }
 
-// newest first
+/** Recent sign-in attempts (successful and failed), newest first, capped at ACTIVITY_LIMIT. */
 async function activity(userId) {
   const rows = await prisma.loginEvent.findMany({
     where: { userId, at: { gte: new Date(Date.now() - ACTIVITY_SHOWN_DAYS * DAY) } },

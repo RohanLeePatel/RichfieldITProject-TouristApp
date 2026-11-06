@@ -40,7 +40,8 @@ def get_client():
 
 
 def _safe_segment(value: str | None) -> str:
-    # user ids come from a header; keep them from adding path segments
+    # The Core API sets the user id header from a verified token, but we still
+    # treat it as text. Anything that could add a path segment ("/", "..") is removed.
     cleaned = "".join(c for c in (value or "") if c.isalnum() or c in "-_")
     return cleaned or "anonymous"
 

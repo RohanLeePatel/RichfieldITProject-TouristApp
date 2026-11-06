@@ -104,6 +104,9 @@ function getInitials(name) {
   );
 }
 
+// Brings a saved companion into the shape this page edits. Older saves used the
+// relationship "Family member" and the old interest names, so both are mapped here.
+// Status is filled in with a default because companions never store one.
 function normalizeMember(member) {
   return {
     ...member,
@@ -184,6 +187,8 @@ function formatTripDates(startDate, endDate) {
   return start || end || "Dates not set";
 }
 
+// Completed once the end date has passed. Upcoming covers a trip that has started
+// but not ended as well as one that is still ahead, so "Upcoming" includes ongoing trips.
 function getTripStatus(trip) {
   const start = trip.startDate
     ? new Date(trip.startDate)
@@ -905,6 +910,8 @@ export default function Family() {
     closeModal();
   };
 
+  // The Organizer guard can't trigger today. Companions never carry a status, so no
+  // member on this page is ever "Organizer". The check is left in place as a safeguard.
   const handleDeleteMember = (member) => {
     if (
       member.status ===

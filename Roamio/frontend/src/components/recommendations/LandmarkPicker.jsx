@@ -15,6 +15,8 @@ export default function LandmarkPicker({
   // key -> { status: "loading" | "done" | "error" | "hidden", text, from, message }
   const [translations, setTranslations] = useState({});
 
+  // The first press fetches a translation for the place name. After that, the button
+  // only shows or hides the result, without another request.
   const translate = async (key, name, event) => {
     event.preventDefault(); // the row is a label: don't tick the place
     event.stopPropagation();

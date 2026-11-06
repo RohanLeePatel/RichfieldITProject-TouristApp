@@ -24,6 +24,9 @@ const COST_LEVELS = [
 
 const formatDate = (iso) => new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 
+// The status pill for a city. The checks run in order: hidden first, then no data
+// yet (shown as down), then data older than the staleness limit (shown as degraded).
+// A city that is visible and has fresh data is live.
 function status(d) {
   if (!d.active) return ["degraded", "Hidden"];
   if (!d.enrichedAt) return ["down", "Needs data"];

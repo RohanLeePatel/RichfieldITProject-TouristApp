@@ -14,7 +14,9 @@ export default function WizardView({ step, setStep, returnToReview, setReturnToR
     setError("");
     setStep(target);
   };
-  // "Edit" on the review step: change one thing, then come straight back
+  // "Edit" on the review step: change one thing, then come straight back. While
+  // returnToReview is set, Back is hidden and Continue reads "Save and review", so the
+  // user stays on the single change they came to make.
   const editFromReview = (target) => {
     setReturnToReview(true);
     goToStep(target);

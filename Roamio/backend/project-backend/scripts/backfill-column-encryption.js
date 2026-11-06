@@ -16,7 +16,8 @@ const DECRYPT = process.argv.includes('--decrypt');
 const HASHES_ONLY = process.argv.includes('--hashes-only');
 if (DECRYPT && HASHES_ONLY) throw new Error('--decrypt and --hashes-only cannot be combined');
 
-// every encrypted table has an "id" primary key
+// Every encrypted table has an "id" primary key, which the batches page on. A
+// TripDocument row holds up to 1 MB of data, so its batches are much smaller.
 const BATCH = { TripDocument: 20 };
 const DEFAULT_BATCH = 500;
 

@@ -11,6 +11,9 @@ const DEGRADED_NOTES = {
   currency: "Exchange rates are unavailable right now, so your budget couldn't be compared with typical costs.",
 };
 
+// The list for one search. "Not quite right" on a card re-runs the search without
+// that place. The exclusion is kept in the page's state for this visit only, and
+// nothing about it is stored, so the engine doesn't learn from it yet.
 export default function ResultsView({
   data, title, historyCount, loading, error, exploreCities, selectCity, selectExcluded,
   goBack, startOver, editPreferences, requirementExclusions, rankedOutCount, relaxSuggestions, travelMonth,

@@ -3,7 +3,7 @@ Every environment variable the service reads, in one place.
 
 Names are listed here once, with what they are for, so that:
   - a new developer can see what to set (`.env.example` is checked against this
-    list by tests/test_settings.py, so the two cannot drift apart)
+    list by tests/test_service_quality.py, so the two cannot drift apart)
   - a missing key is reported at startup, in the log, instead of as a confusing
     failure on the first request that needs it
   - the modules read through get(), so there is one way to read configuration
@@ -56,7 +56,9 @@ def get(name: str, default: str | None = None) -> str | None:
 
 
 def missing() -> list[Setting]:
-    """Registered settings that have no value and no default worth relying on."""
+    """Registered settings that have no value and no default worth relying on.
+    A setting counts as having a default when its purpose text contains
+    "(has a default)", so keep that exact wording on any setting with a default."""
     return [s for s in SETTINGS if not os.environ.get(s.name) and "(has a default)" not in s.purpose]
 
 

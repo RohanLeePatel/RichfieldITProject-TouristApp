@@ -1,8 +1,9 @@
 const requireAuth = require('./authMiddleware');
 
 // Admin ids come from ADMIN_USER_IDS (comma-separated). The User model has no
-// role column yet, so this is a mocked check: replace isAllowed() with a real
-// role lookup when one exists. It fails closed - no allowlist, no admins.
+// role column yet, so the allowlist is the real check. Once a role column exists,
+// add it to isAllowed(). The `user.role` check is already there, but nothing sets
+// it yet. The check fails closed: with no allowlist, there are no admins.
 const adminIds = () =>
   (process.env.ADMIN_USER_IDS || '')
     .split(',')

@@ -2,9 +2,9 @@
 // account deletion and support reports.
 //
 // Every call goes to the Core API (Express) first. If an endpoint isn't
-// there yet (404 / 405 / 501, or the dev server answering with index.html),
-// the read/write falls back to this browser so the page still works while
-// the backend catches up. Each result says where it came from
+// there (404 / 405 / 501, or the dev server answering with index.html), for
+// example on an older deployment, the read/write falls back to this browser so the
+// page still works. Each result says where it came from
 // ({ data, source: "server" | "device" }) so the UI can be honest about it.
 //
 // The endpoint contract is in SETTINGS_API.md.
@@ -294,7 +294,8 @@ export async function reportProblem(report) {
     if (!(error instanceof EndpointMissingError)) throw error;
   }
 
-  // no endpoint yet: hand the report to the user's email app instead
+  // The server doesn't have this endpoint (an older deployment, say): hand the report
+  // to the user's email app instead
   const lines = [report.description, ""];
   if (report.context) {
     lines.push("---", ...Object.entries(report.context).map(([key, value]) => `${key}: ${value}`));

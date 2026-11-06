@@ -23,9 +23,10 @@ def ttl_cache_get(cache: dict, key, ttl_seconds: float, allow_stale: bool = Fals
 
 
 # A cap so a long-running instance can't grow a cache without bound: one entry
-# per city, currency pair or place lookup, and nothing evicts on its own.
-# ponytail: O(n) scan to find the oldest entry, fine at this size; use an
-# OrderedDict if these ever hold thousands.
+# per city, currency pair or place lookup, and nothing evicts on its own. When the
+# cap is reached, the oldest entry is dropped. Finding it is a linear scan, which is
+# fine at this size. If the caches ever hold thousands of entries, switch to an
+# OrderedDict.
 MAX_ENTRIES = 512
 
 

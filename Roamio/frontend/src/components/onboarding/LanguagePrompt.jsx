@@ -30,6 +30,8 @@ export default function LanguagePrompt() {
     onError: (err) => setError(err.message || "We couldn't save that. Please try again."),
   });
 
+  // Saving English (British) would change nothing, since it is already the default,
+  // so Save stays disabled until a different language is picked.
   const saved = baseCode(me?.preferences?.language || "EN");
   if (!me || has("tip:language") || saved !== "EN") return null;
 

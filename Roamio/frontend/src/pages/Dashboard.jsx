@@ -269,6 +269,9 @@ function getGreeting() {
 // TRAVEL GROUP
 // =========================================================
 
+// The stand-in group shown when the user isn't in a travel group yet: just themselves.
+// The status "Organizer" here, and on the group member list below, is a display label
+// for the signed-in user. It does not grant any permission.
 function getDefaultGroupMembers(
   userName,
   initials

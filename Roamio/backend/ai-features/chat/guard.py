@@ -22,7 +22,15 @@ import re
 REFUSAL = "I can only help with your trip and travel questions."
 WITHHELD = "I can't share that. Ask me about your trip or travelling instead."
 
-# Order matters: long digit runs (cards) go before phone-like numbers.
+# What counts as personal data or a secret in text heading to, or coming back from,
+# the model. Each pattern replaces its match with a placeholder. Order matters:
+# card-length digit runs must be matched before the looser phone pattern, or a card
+# number would be caught as a phone number and the label would be wrong.
+#   email: local@domain.tld
+#   JWT: three base64url segments, starting "eyJ" (the encoding of '{"')
+#   secret: Google AIza keys, sk- keys, long hex and long base64-like strings
+#   card: 13 to 19 digits, optionally separated by spaces or hyphens
+#   phone: optional country code, then groups of digits separated by common punctuation
 _PATTERNS = [
     (re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+"), "[email removed]"),
     (re.compile(r"eyJ[\w-]{4,}\.[\w-]{4,}\.[\w-]{4,}"), "[secret removed]"),  # JWT

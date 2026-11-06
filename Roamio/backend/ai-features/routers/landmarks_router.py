@@ -18,6 +18,8 @@ def landmarks(
         raise HTTPException(status_code=422, detail="`interests` must contain at least one tag.")
 
     result = get_landmarks(destination, interest_list, radius_m)
+    # The landmarks module returns plain-text errors, so the status is chosen from the
+    # wording (see weather_router.py). Update the checks here if those messages change.
     error = result.get("error")
     if error and not result.get("groups"):
         if "not configured" in error:

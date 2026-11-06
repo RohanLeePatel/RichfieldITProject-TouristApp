@@ -57,6 +57,8 @@ const SAFETY_SOURCES = { US_STATE_DEPT: "US State Department travel advisory", T
 // Live weather now + the country advisory, side by side.
 export function TripSnapshot({ trip }) {
   const { city, country, info } = splitDestination(trip.destination);
+  // The advisory needs a country code. Without one, the request is skipped and the
+  // section shows "unavailable", rather than asking about the wrong country.
   const weather = useLoad(() => fetchWeather(city), [city]);
   const safety = useLoad(
     () => (info ? fetchCountrySafety(info.iso3, country) : Promise.reject(new Error("no-country"))),
@@ -217,6 +219,7 @@ export function TripPeople({ trip }) {
 }
 
 // FR-18: find a nearby place and drop it into a day, without leaving the trip.
+// A new stop is added at 10:00 on the chosen day, a time that's easy to change later.
 export function AddLandmark({ trip, onAdded }) {
   const dayCount = Math.max(1, ...(trip.itinerary || []).map((item) => item.dayNumber || 1));
   const [interest, setInterest] = useState(INTEREST_TAGS[0].id);
@@ -238,6 +241,8 @@ export function AddLandmark({ trip, onAdded }) {
     }
   };
 
+  // The same place twice on one day is almost always a mistake, so ask first. The
+  // user can still confirm and add it again.
   const add = async (landmark) => {
     const name = landmark.name.trim().toLowerCase();
     const repeat = (trip.itinerary || []).some((item) => item.dayNumber === day && item.title.trim().toLowerCase() === name);

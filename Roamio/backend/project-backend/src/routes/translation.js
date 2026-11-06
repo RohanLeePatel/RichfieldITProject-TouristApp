@@ -65,7 +65,8 @@ async function forward(res, path, init, userId = null) {
 // multer - express.json() leaves multipart bodies untouched, so req is a stream.
 // The size check trusts Content-Length (browsers always send it for FormData);
 // ai-features re-checks the real bytes and the file's magic number.
-// ponytail: Vercel caps request bodies at ~4.5MB; big photos need direct-to-storage upload.
+// Known limit: Vercel caps request bodies at about 4.5 MB. Larger photos would need a
+// direct-to-storage upload, which this route doesn't do.
 router.post('/ocr', (req, res) => {
   const type = req.headers['content-type'] || '';
   const length = Number(req.headers['content-length']);

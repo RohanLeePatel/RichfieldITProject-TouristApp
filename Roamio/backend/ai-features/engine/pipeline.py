@@ -30,7 +30,13 @@ from schemas.recommendations import (
 def score_candidate_own(
     prefs: Preferences, candidate: Candidate, level: Level
 ) -> tuple[float, list[EvidenceEntry]]:
+    """
+    Scores one candidate on its own features, without its children or any group.
 
+    Dimensions that carry no weight at this level are left out of the total, so
+    the weights that remain always sum to 1. Returns the score in 0..1 and one
+    EvidenceEntry per dimension, which is what the explanations are built from.
+    """
     dims = score_all_dimensions(prefs, candidate, level)
     total_weight = sum(d.weight for d in dims)
 
@@ -63,6 +69,17 @@ def score_candidates(
     candidates: list[Candidate],
     members: list[Preferences] | None = None,
 ) -> tuple[list[RecommendationResult], list[ExcludedCandidate], str | None]:
+    """
+    Gates, scores, ranks, and trims a candidate list for one request.
+
+    The order matters. Gates run first, so a candidate that can't be afforded or
+    reached is never scored. Then the survivors are ranked, a relevance floor drops
+    weak matches, and diversity picks the final set. Score alone decides the order
+    of what is shown. The chosen set is not reordered by diversity.
+
+    Returns the ranked results, every candidate that was left out with the reason,
+    and a comparison of the top two when there are at least two results.
+    """
     excluded: list[ExcludedCandidate] = []
     scored: list[tuple[Candidate, float, list[EvidenceEntry]]] = []
     # Per-member scores for each candidate that survives gating, keyed by id.

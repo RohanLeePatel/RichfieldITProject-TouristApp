@@ -46,7 +46,7 @@ const fakeUsers = {
 };
 require.cache[path.join(__dirname, '../repositories/userRepository.js')] = { exports: fakeUsers };
 
-// Sessions: an in-memory stand-in for sessionService (its own queries are checked in sessions.selfcheck.js)
+// Sessions: an in-memory stand-in for sessionService (its own queries are checked in services/sessionService.selfcheck.js)
 const sessions = new Map(); // id -> { userId, open, record, agent }
 const failures = [];
 const revokedAll = [];

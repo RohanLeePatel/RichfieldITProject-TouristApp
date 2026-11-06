@@ -164,6 +164,9 @@ function plural(count, word) {
 // DATA HELPERS
 // =========================================================
 
+// Personal calendar events exist only in this browser. The server never sees them.
+// If the saved data is unreadable, the sample events are shown instead, rather than
+// an empty calendar.
 function loadEvents() {
   try {
     const saved = localStorage.getItem(EVENTS_STORAGE_KEY);

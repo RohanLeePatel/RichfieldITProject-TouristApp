@@ -1,6 +1,10 @@
 // Money is handled as integer cents in JS and stored as Decimal(12,2) in Postgres.
+// Floats can't represent 0.10 + 0.20 exactly, so every sum and split is computed in
+// cents and converted back to a decimal only at the edges (input parsing and output).
 
-const MAX_CENTS = 9999999999; // Decimal(12,2) ceiling
+// Largest accepted amount, in cents (99,999,999.99). This is below what Decimal(12,2)
+// can store, so it acts as a stricter application-level cap.
+const MAX_CENTS = 9999999999;
 
 // Returns integer cents, or null if the value isn't a non-negative amount with <= 2 decimals
 const toCents = (value) => {

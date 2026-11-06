@@ -10,8 +10,9 @@ Geoapify and others carries the API key.
 Callers keep their own handling of the response (raise_for_status, fallbacks to
 cached data), so what a failure means stays with the feature that knows.
 
-ponytail: one retry after a short pause, no backoff or circuit breaker. Add them
-if a provider is down often enough that waiting on it hurts.
+Known limit: retries are a single attempt after a short pause, with no backoff and no
+circuit breaker. If a provider goes down often enough that waiting on it hurts,
+add those here, in one place.
 """
 
 from __future__ import annotations

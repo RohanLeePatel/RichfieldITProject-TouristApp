@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
+// The fallback secrets let local development run without setup. They are public
+// strings, so anyone could forge tokens with them. Production must set both variables.
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'access_secret_fallback';
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'refresh_secret_fallback';
 

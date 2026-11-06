@@ -37,14 +37,16 @@ const amountError = (value, label, { allowZero = false } = {}) => {
   return "";
 };
 
+// Moves an ISO date by whole days, in local time, so the date picker's limits don't drift.
 const shiftDays = (iso, days) => {
   const d = new Date(`${iso.slice(0, 10)}T00:00:00`);
   d.setDate(d.getDate() + days);
   return d.toLocaleDateString("en-CA");
 };
 
-// Durban tasks 7 and 8: record a purchase in whatever currency it was paid in,
-// and see what's left of the budget in the trip's currency.
+// Records a purchase in whatever currency it was paid in, and shows what is left of
+// the budget in the trip's currency. Every amount is stored with the exchange rate
+// the server used at the time, so later rate changes can't rewrite past totals.
 // embedded: shown inside the trip's Budget tab, so no page shell of its own.
 export default function TripBudget({ embedded = false }) {
   const { tripId } = useParams();
@@ -310,6 +312,7 @@ function ExpenseForm({ trip, budgetCurrency, busy, onAdd }) {
   const minDate = trip?.startDate ? shiftDays(trip.startDate, -365) : undefined;
   const maxDate = trip?.endDate ? shiftDays(trip.endDate, 0) : undefined;
 
+  // Follow the budget's currency when it changes, so a purchase defaults to it.
   useEffect(() => setCurrency(budgetCurrency), [budgetCurrency]);
 
   // "≈ R364.00" while typing a foreign amount; the saved rate is the server's

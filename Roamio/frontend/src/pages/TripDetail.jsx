@@ -58,6 +58,7 @@ export default function TripDetail() {
     setActiveTrip(tripId);
   }, [tripId, setActiveTrip]);
 
+  // Full load: shows the loading state. Use refresh() to update in place instead.
   const load = () => {
     setLoading(true);
     setError("");
@@ -71,6 +72,8 @@ export default function TripDetail() {
 
   useEffect(load, [tripId]);
 
+  // Quiet reload after a small change, such as a reordered stop. The page stays on
+  // screen, and a failed reload keeps the data already shown.
   const refresh = () => fetchTrip(tripId).then(setTrip).catch(() => {});
 
   const dayGroups = useMemo(() => groupItineraryByDay(trip?.itinerary), [trip]);
@@ -178,7 +181,8 @@ export default function TripDetail() {
     </>
   ) : null;
 
-  // the calendar date of day N, when the trip has dates: "Mon 16 Dec"
+  // The calendar date of day N, when the trip has dates: "Mon 16 Dec". It is formatted
+  // in UTC to match how the start date was stored, so a viewer's timezone can't shift it by a day.
   const dayDate = (dayNumber) =>
     trip?.startDate && dayNumber
       ? new Date(new Date(trip.startDate).getTime() + (dayNumber - 1) * DAY_MS)

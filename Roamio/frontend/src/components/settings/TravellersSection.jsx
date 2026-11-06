@@ -53,6 +53,8 @@ function toForm(traveller) {
   };
 }
 
+// Flags an expired document, or one that expires within six months, since many
+// countries require that much validity left on a passport.
 function documentStatus(traveller) {
   if (!traveller.documentExpiry) return null;
   const months = monthsUntil(traveller.documentExpiry);
@@ -109,6 +111,9 @@ function TravellerForm({ traveller, deviceOnly, onCancel, onSaved }) {
     return next;
   };
 
+  // A traveller's document number is sent only when the page can save one (not in
+  // device-only mode) and the user typed one. The server keeps the last four
+  // characters and drops the rest. A blank field keeps what was saved before.
   const handleSubmit = async (event) => {
     event.preventDefault();
     const found = validate();

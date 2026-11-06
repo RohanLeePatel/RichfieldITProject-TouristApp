@@ -46,16 +46,15 @@ BLEND_TOP_N_CHILDREN = 3
 MAX_RESULTS: dict[str, int] = {"country": 6, "city": 8, "place": 8}
 BASE_RELEVANCE_FLOOR = 0.40
 
-# hand-curated 1..5 cost_index -> rough daily cost band in ZAR, used by the
-# budget gate and score_budget. Went with ZAR here since that's what the sample
-# request and Node's Trip.budget model both use - not based on any real currency
-# spec, just what was already in use. If prefs.currency isn't ZAR, engine/currency.py
-# converts these bounds through the exchange-rate provider before comparing to budget_per_day.
+# Hand-set daily cost bands for cost_index 1..5, used by the budget gate and by
+# score_budget. The bounds are in ZAR, the currency the app's data was first
+# written in. When the traveller uses another currency, engine/currency.py converts
+# these bounds before they are compared with budget_per_day.
 #
-# gate checks against the floor of the band, not the ceiling - band 5 has no
-# ceiling (2500+) so gating on that would exclude everyone in band 5 no matter
-# their budget. checking the floor answers the actual question: can they even
-# afford the cheapest version of this place
+# The gate checks the floor of a band, not its ceiling. Band 5 has no ceiling, so
+# checking the ceiling would exclude everyone in that band whatever their budget.
+# The floor answers the question that matters: can the traveller afford the
+# cheapest version of this place?
 COST_BAND_ZAR_RANGE: dict[int, tuple[float, float]] = {
     1: (0.0, 500.0),
     2: (500.0, 900.0),

@@ -14,7 +14,7 @@ generator client {
 model User {
   id           Int       @id @default(autoincrement())
   // email and fullName are AES-GCM ciphertext (src/utils/columnEncryption.js). Email is
-  // looked up and kept unique through emailHash, a keyed hash of the lowercased address.
+  // looked up and kept unique through emailHash, a keyed hash of the trimmed, lowercased address.
   email        String
   emailHash    String?   @unique
   passwordHash String

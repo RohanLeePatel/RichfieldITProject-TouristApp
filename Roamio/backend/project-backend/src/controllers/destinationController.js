@@ -2,7 +2,9 @@ const destinationRepo = require('../repositories/destinationRepository');
 const prisma = require('../config/prisma');
 const { accessibleTrips } = require('../utils/tripFormat');
 
-// Same reach as GET /api/trips: a trip member, or a member of the trip's group
+// Read access matches GET /api/trips: a trip member, or a member of the trip's group.
+// The edit and remove handlers below check only TripMember rows, so they are stricter
+// than this helper (see the note in itineraryController.js).
 const verifyTripAccess = async (tripId, userId) => {
   return await prisma.trip.findFirst({
     where: accessibleTrips(parseInt(userId, 10), { id: parseInt(tripId, 10) }),

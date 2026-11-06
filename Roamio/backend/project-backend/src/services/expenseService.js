@@ -7,7 +7,10 @@ const { fetchRate } = require('./ratesService');
 const { toCents, decimalToCents, centsToDecimalInput, centsToAmount } = require('../utils/money');
 const { expenseTotals, crossedThresholds, warningFor } = require('../utils/expenseTotals');
 
+// Categories are the fixed set the budget's category limits can reference.
 const CATEGORIES = ['TRANSPORT', 'FOOD', 'ACCOMMODATION', 'ACTIVITY', 'MISC'];
+// EQUAL divides the cost evenly, EXACT takes each person's amount, and PERCENT takes
+// each person's share of the total.
 const SPLIT_TYPES = ['EQUAL', 'EXACT', 'PERCENT'];
 
 const serializeExpense = (expense) => ({
@@ -182,6 +185,8 @@ class ExpenseService {
     assertMember(memberIds, paidById, 'paidById');
 
     const reference = await referenceCurrency(tripId);
+    // With no currency in the request, fall back to the trip's reference currency and
+    // then to ZAR, the app's default.
     const currency = body.currency !== undefined ? parseCurrency(body.currency) : reference || 'ZAR';
     const data = {
       tripId,

@@ -1,24 +1,33 @@
 const rateLimit = require('express-rate-limit');
 
-// General API limiter: 300 requests per minute
+// Each limiter is keyed per client IP and applies its own window. Limits are set per
+// feature, not globally, because the costly features (AI, translation, email) use
+// external quotas that are shared by all users. One busy feature must not exhaust
+// another, and a flood on one shouldn't block the rest of the app.
+
+// Safety net for the whole API. Normal use should never reach it; it exists to stop
+// runaway clients and scripts.
 const generalLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
+  windowMs: 60 * 1000,
   max: 300,
   message: { message: 'Too many requests from this IP, please try again after a minute.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-// Stricter auth limiter: 10 requests per minute
+// Mounted on /api/auth in server.js, except for the paths in UNLIMITED_AUTH_PATHS.
+// Guards against credential stuffing and brute force. The limit is low because a real
+// user rarely needs more than a few auth attempts in a minute.
 const authLimiter = rateLimit({
-  windowMs: 60 * 1000, 
+  windowMs: 60 * 1000,
   max: 10,
   message: { message: 'Too many authentication attempts, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-// Translation limiter: 20 requests per minute (DeepL/OCR quota is shared by everyone)
+// DeepL and OCR quotas are shared across all users, so one heavy user can use up the
+// budget for everyone.
 const translateLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 20,
@@ -27,7 +36,7 @@ const translateLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Recommendations/landmarks limiter: 30 requests per minute (hits the AI service)
+// Each call reaches the AI service, which is the most expensive part of the backend.
 const recommendationsLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 30,
@@ -36,7 +45,7 @@ const recommendationsLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Weather limiter: 60 requests per minute (shared OpenWeather quota)
+// OpenWeather's quota is shared across all users.
 const weatherLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 60,
@@ -45,7 +54,7 @@ const weatherLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Chat limiter: 20 messages per minute (each one spends the free Gemini quota)
+// Every message spends the Gemini free-tier quota.
 const chatLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 20,
@@ -54,7 +63,8 @@ const chatLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Problem reports: 5 per 15 minutes (each one sends an email)
+// Uses a longer window than the others. Each report sends an email to the support
+// inbox, so this limit protects that inbox from spam.
 const supportLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
@@ -63,7 +73,8 @@ const supportLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Push subscribe / test: 10 per minute (a test sends a real notification)
+// Covers subscribe and the test-notification endpoint. A test sends a real push to the
+// user's devices, so it is rate-limited like any other outbound message.
 const pushLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 10,

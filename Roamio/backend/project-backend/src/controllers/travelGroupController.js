@@ -54,7 +54,8 @@ exports.joinGroup = async (req, res, next) => {
   }
 };
 
-// --- Group details & member management (errors use the { error } shape) ---
+// Group details and member management. These handlers are delegated to the
+// service layer, which owns the role rules. Errors use the { error } shape.
 const travelGroupService = require('../services/travelGroupService');
 const { parseId } = require('../services/tripAccessService');
 

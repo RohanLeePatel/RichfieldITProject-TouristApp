@@ -15,6 +15,9 @@ def weather(
     units: str = Query("metric", pattern="^(metric|imperial)$"),
 ):
     result = get_weather(city, units)
+    # The weather module returns plain-text errors, not codes, so the status is picked
+    # from the wording. If those messages change, update these checks too. A stale
+    # result is still returned, because it has `current` data and is not an error.
     error = result.get("error")
     if error and not result.get("current"):
         if "not configured" in error:

@@ -31,6 +31,8 @@ export default function GroupStep({ form, updateForm, togglePreciseStops, update
         </div>
       </section>
 
+      {/* Pace and Precise are alternatives. Choosing one turns the other off. When
+          Precise is on, the planner uses the per-day counts instead of pace. */}
       <section className="panel">
         <h3 className="panel-title"><Gauge size={15} /> Daily pace</h3>
         <div className="segmented four" role="radiogroup" aria-label="Daily pace">

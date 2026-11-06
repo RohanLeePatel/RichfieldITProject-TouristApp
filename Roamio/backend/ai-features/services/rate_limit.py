@@ -12,8 +12,10 @@ Requests with no key are grouped by client address instead, which is all the
 spam that never gets past verify_secretKey.
 
 Fixed window, in process - same shape as the Core API's limiter.
-ponytail: counts are per instance, so several instances multiply the effective
-limit. Move to a shared store (Redis/Upstash) if a strict global cap matters.
+
+Limits: counts live in this process, so each serverless instance keeps its own
+count and the effective limit grows with the number of instances. If a strict
+global cap ever matters, move the counts to a shared store such as Redis.
 """
 
 from __future__ import annotations
@@ -66,6 +68,9 @@ def _caller(request: Request) -> str:
         # the key identifies the calling application; hash it so the raw secret
         # is not held in a long-lived dictionary
         return "key:" + hashlib.sha256(key.encode()).hexdigest()[:12]
+    # X-Forwarded-For is set by the client, so a caller that reaches this service
+    # directly can change its apparent address. This grouping only deters casual
+    # spam. Real protection comes from the service key.
     forwarded = request.headers.get("x-forwarded-for", "")
     client_host = request.client.host if request.client else "unknown"
     return "ip:" + (forwarded.split(",")[0].strip() or client_host)

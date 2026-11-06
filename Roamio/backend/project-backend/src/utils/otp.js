@@ -3,9 +3,12 @@ const crypto = require('crypto');
 const OTP_TTL_MS = 10 * 60 * 1000;
 const MAX_OTP_ATTEMPTS = 5;
 
-// Cryptographically secure 6-digit numeric code
+// Six digits is short enough to type. The limit of MAX_OTP_ATTEMPTS and the short TTL
+// are what keep it from being guessed.
 const generateOtp = () => crypto.randomInt(100000, 1000000).toString();
 
+// Only the hash is stored, so a database leak doesn't expose live codes. The 6-digit
+// space is small enough to brute-force offline, so the TTL and attempt limit still matter.
 const hashOtp = (otp) => crypto.createHash('sha256').update(String(otp)).digest('hex');
 
 const otpExpiry = () => new Date(Date.now() + OTP_TTL_MS);

@@ -11,8 +11,8 @@ const MANAGERS = ["OWNER", "ADMIN"];
 
 // Real travel groups (accounts on the server): who's in them, their trips,
 // and invites. Trips planned "for" a group in the wizard land here and every
-// member can open them. Companions without an account stay in the local list
-// below this section.
+// member can open them. Companions without an account are saved on the group as
+// well, and the Family page manages them.
 // onGroups(list) runs after every load, so the page's companion list follows
 // groups created or joined here
 export default function TravelGroups({ onGroups }) {
