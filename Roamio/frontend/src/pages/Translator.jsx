@@ -35,6 +35,7 @@ import {
   speechLang,
   targetForBase,
 } from "../utils/translatorHelpers";
+import { fetchTranslationHistory, translateAuthHeaders } from "../api/translate";
 import "../styles/Translator.css";
 
 const MAX_TEXT_CHARS = 2000;
@@ -106,9 +107,9 @@ function Translator() {
   const [listening, setListening] = useState(false);
   const [photoSize, setPhotoSize] = useState(null);
   const [showOverlay, setShowOverlay] = useState(true);
-  // Session-only: this list is lost on reload. The server keeps its own history
-  // (/api/translate/history), but this page never reads it and its requests send no
-  // credentials, so these translations are not saved to a signed-in user's history.
+  // Recent translations. For a signed-in traveller the server saves each one (the
+  // requests carry their token) and this list is reloaded from it on mount. A guest's
+  // list lives only until reload. Favourites are not stored server side.
   const [history, setHistory] = useState([]);
 
   const recognitionRef = useRef(null);
@@ -143,6 +144,31 @@ function Translator() {
     );
     return found ? found.name : code.toUpperCase();
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchTranslationHistory(20).then((items) => {
+      if (cancelled || items.length === 0) return;
+      const saved = items.map((item) => ({
+        id: item.id,
+        original: item.source_text || "Photo translation",
+        translation: item.translated_text || "",
+        from: getLanguageName(
+          item.source_lang && item.source_lang !== "auto" ? item.source_lang : item.detected_lang
+        ),
+        to: getLanguageName(item.target_lang),
+        isFavorite: false,
+      }));
+      // keep anything translated while this was loading; the server copy of it has the same id
+      setHistory((prev) => {
+        const ids = new Set(prev.map((entry) => entry.id));
+        return [...prev, ...saved.filter((entry) => !ids.has(entry.id))].slice(0, 20);
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // The 10 MB limit here is the size we accept from the device. The photo is shrunk to
   // the OCR provider's 1 MB limit (compressImage) before it is sent, so this check
@@ -294,6 +320,7 @@ function Translator() {
     try {
       const base = API_BASE_URL.replace(/\/$/, "") + "/api/translate";
       const from = sourceLanguage === "auto" ? "" : sourceLanguage;
+      const authHeaders = await translateAuthHeaders();
       let request;
 
       if (isPhoto) {
@@ -304,11 +331,17 @@ function Translator() {
         formData.append("image", blob, "photo.jpg");
         formData.append("target_lang", targetLanguage);
         if (from) formData.append("source_lang", from);
-        request = fetch(`${base}/ocr`, { method: "POST", body: formData });
+        request = fetch(`${base}/ocr`, {
+          method: "POST",
+          headers: authHeaders,
+          credentials: "include",
+          body: formData,
+        });
       } else {
         request = fetch(`${base}/text`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...authHeaders },
+          credentials: "include",
           body: JSON.stringify({
             text: inputText,
             target_lang: targetLanguage,
@@ -336,7 +369,7 @@ function Translator() {
 
       if (data.translation) {
         const newEntry = {
-          id: Date.now(),
+          id: data.history_id || Date.now(),
           original: isPhoto ? data.text || "Photo translation" : inputText,
           translation: data.translation,
           from: getLanguageName(data.detected_lang || sourceLanguage),
