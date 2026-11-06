@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
-  ArrowLeft,
   ArrowLeftRight,
   ArrowRight,
   Camera,
@@ -22,10 +21,10 @@ import {
   Volume2,
   X,
 } from "lucide-react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 
 import Hint from "../components/onboarding/Hint.jsx";
-import ThemeToggle from "../components/recommendations/ThemeToggle.jsx";
+import PageTopBar from "../components/PageTopBar.jsx";
 import useTheme from "../components/recommendations/useTheme.js";
 import {
   LANGUAGES,
@@ -49,10 +48,6 @@ const canSpeak =
 const API_BASE_URL =
   import.meta.env.VITE_BACKEND_API_URL || "http://127.0.0.1:3000";
 
-// One translated line, drawn over the photo where the original text was. The OCR box
-// gives the line's height, which sets its starting font size. If the translation is too
-// long for the box, the font is shrunk step by step, down to 45% of that size. Past that
-// it wraps instead. Sizes use container query units (cqw) so the overlay scales with the photo.
 function OverlayLine({ line, size }) {
   const ref = useRef(null);
   const base = (line.height / size.width) * 58;
@@ -107,9 +102,6 @@ function Translator() {
   const [listening, setListening] = useState(false);
   const [photoSize, setPhotoSize] = useState(null);
   const [showOverlay, setShowOverlay] = useState(true);
-  // Recent translations. For a signed-in traveller the server saves each one (the
-  // requests carry their token) and this list is reloaded from it on mount. A guest's
-  // list lives only until reload. Favourites are not stored server side.
   const [history, setHistory] = useState([]);
 
   const recognitionRef = useRef(null);
@@ -117,8 +109,6 @@ function Translator() {
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Releases the camera and the photo's object URL when the page unmounts or the
-  // preview changes, so the camera light turns off and memory is freed.
   useEffect(() => {
     return () => {
       if (streamRef.current) {
@@ -159,7 +149,6 @@ function Translator() {
         to: getLanguageName(item.target_lang),
         isFavorite: false,
       }));
-      // keep anything translated while this was loading; the server copy of it has the same id
       setHistory((prev) => {
         const ids = new Set(prev.map((entry) => entry.id));
         return [...prev, ...saved.filter((entry) => !ids.has(entry.id))].slice(0, 20);
@@ -170,9 +159,6 @@ function Translator() {
     };
   }, []);
 
-  // The 10 MB limit here is the size we accept from the device. The photo is shrunk to
-  // the OCR provider's 1 MB limit (compressImage) before it is sent, so this check
-  // is not what keeps the upload small.
   const handleFile = (file) => {
     if (!file) return;
     setError("");
@@ -412,9 +398,6 @@ function Translator() {
     window.speechSynthesis.speak(utterance);
   };
 
-  // Speech input uses the browser's own recognition engine, so its availability and
-  // accuracy depend on the browser. Each result is appended to the text, not
-  // replacing it, so the traveller can speak in parts.
   const toggleListening = () => {
     if (listening) {
       recognitionRef.current?.stop();
@@ -452,8 +435,6 @@ function Translator() {
     swapFrom && SOURCE_LANGUAGES.some((l) => l.code === swapFrom) && targetForBase(swapFrom)
   );
 
-  // Swaps From and To. For a typed phrase, the translation becomes the new input, so
-  // the reverse translation is one click away.
   const swapLanguages = () => {
     if (!canSwap) return;
     const newTarget = targetForBase(swapFrom);
@@ -476,41 +457,28 @@ function Translator() {
 
   return (
     <div className="translator-page" data-theme={theme}>
-      {/* HEADER MATCHING WEATHER PAGE LAYOUT */}
-      <header className="translator-header">
-        <Link to="/dashboard" className="back-dashboard">
-          <ArrowLeft size={17} />
-          Back to Dashboard
-        </Link>
-
-        <div className="translator-header-right">
-          <div className="translator-brand">
-            <div className="translator-logo">
-              <Plane size={19} />
-            </div>
-            <span>
-              Roam<span>io</span>
-            </span>
-          </div>
-          <ThemeToggle theme={theme} onToggle={toggleTheme} />
-        </div>
-      </header>
+      {/* STANDARD HERO TOP BAR - MATCHES WEATHER, CALENDAR & CHAT */}
+      <PageTopBar
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        hero={
+          <>
+            <p className="page-topbar-eyebrow">
+              <Globe2 size={15} />
+              Smart travel tool
+            </p>
+            <h1>
+              Travel without
+              <span> language barriers.</span>
+            </h1>
+            <p className="page-topbar-lede">
+              Take a photo of a sign, menu or document, or type and speak phrases to translate instantly.
+            </p>
+          </>
+        }
+      />
 
       <main className="translator-content">
-        <section className="translator-intro">
-          <div className="translator-badge">
-            <Sparkles size={14} />
-            SMART TRAVEL TOOL
-          </div>
-          <h1>
-            Travel without
-            <span>language barriers.</span>
-          </h1>
-          <p>
-            Take a photo of a sign, menu or document, or type and speak phrases to translate instantly.
-          </p>
-        </section>
-
         <Hint id="translator">
           Photo mode reads the text in a picture of a sign or menu. Type or speak mode translates phrases. Choose the language you are travelling to first.
         </Hint>

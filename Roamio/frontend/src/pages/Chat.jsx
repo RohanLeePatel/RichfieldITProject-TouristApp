@@ -1,16 +1,9 @@
 import { useEffect, useState } from "react";
-import {
-  ArrowLeft,
-  MessageCircle,
-  Plane,
-  ShieldCheck,
-  Sparkles,
-} from "lucide-react";
-import { Link } from "react-router-dom";
+import { MessageCircle, MessageSquare, ShieldCheck, Sparkles } from "lucide-react";
 
 import ChatPanel from "../components/chat/ChatPanel.jsx";
 import Hint from "../components/onboarding/Hint.jsx";
-import ThemeToggle from "../components/recommendations/ThemeToggle.jsx";
+import PageTopBar from "../components/PageTopBar.jsx";
 import useTheme from "../components/recommendations/useTheme.js";
 import "../styles/chat.css";
 
@@ -19,42 +12,29 @@ export default function Chat() {
 
   return (
     <div className="chat-page-root" data-theme={theme}>
-      {/* STANDARD HEADER - MATCHES WEATHER & TRANSLATOR LAYOUT */}
-      <header className="chat-header">
-        <Link to="/dashboard" className="back-dashboard">
-          <ArrowLeft size={17} />
-          Back to dashboard
-        </Link>
+      {/* STANDARD HERO TOP BAR - MATCHES WEATHER & CALENDAR */}
+      <PageTopBar
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        hero={
+          <>
+            <p className="page-topbar-eyebrow">
+              <MessageSquare size={15} />
+              Your travel assistant
+            </p>
+            <h1>
+              Travel smarter.
+              <span> Ask anything.</span>
+            </h1>
+            <p className="page-topbar-lede">
+              Get answers about your itinerary, safety advisories, destinations, and everything in between.
+            </p>
+          </>
+        }
+      />
 
-        <div className="chat-header-right">
-          <div className="chat-brand">
-            <div className="chat-logo">
-              <Plane size={19} />
-            </div>
-            <span>
-              Roam<span>io</span>
-            </span>
-          </div>
-          <ThemeToggle theme={theme} onToggle={toggleTheme} />
-        </div>
-      </header>
-
-      {/* MAIN CONTENT CONTAINER (width: min(944px, calc(100% - 26px))) */}
+      {/* MAIN CONTENT CONTAINER */}
       <main className="chat-content">
-        <section className="chat-intro">
-          <div className="chat-badge">
-            <Sparkles size={14} />
-            YOUR TRAVEL ASSISTANT
-          </div>
-          <h1>
-            Travel smarter.
-            <span>Ask anything.</span>
-          </h1>
-          <p>
-            Get answers about your itinerary, safety advisories, destinations, and everything in between.
-          </p>
-        </section>
-
         <Hint id="trip-assistant">
           Ask your travel assistant anything about your upcoming trips, packing lists, weather condition advice, or local safety guidelines.
         </Hint>

@@ -1,58 +1,44 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap");
+
 /* =========================================================
-   TRANSLATOR PAGE
-   Palette matches auth.css (ink / teal / aqua / blue).
+   ROAMIO TRANSLATOR - UNIFIED WITH CALENDAR/WEATHER PALETTE
 ========================================================= */
 
 .translator-page {
   --tr-ink: #142a42;
-  --tr-ink-soft: #536579;
-  --tr-muted: #7a8a9c;
+  --tr-ink-soft: #5f7182;
+  --tr-muted: #71808e;
   --tr-teal: #16849a;
-  --tr-teal-2: #1d9daf;
+  --tr-teal-2: #23a89e;
   --tr-aqua: #3ddbc4;
   --tr-blue: #3b82f6;
-  --tr-bg: #f5f8fb;
+  --tr-bg: #f2f6f8;
   --tr-surface: #ffffff;
-  --tr-subtle: #f3f7fa;
-  --tr-line: rgba(20, 42, 66, 0.08);
-  --tr-line-strong: rgba(20, 42, 66, 0.13);
+  --tr-subtle: #f5f9fa;
+  --tr-line: #e4e9ed;
+  --tr-line-strong: #d0d9e0;
   --tr-teal-tint: rgba(61, 219, 196, 0.1);
   --tr-blue-tint: rgba(59, 130, 246, 0.08);
   --tr-ring: 0 0 0 4px rgba(22, 132, 154, 0.12);
-  --tr-shadow-sm: 0 2px 8px rgba(20, 42, 66, 0.06);
-  --tr-shadow: 0 18px 50px rgba(20, 42, 66, 0.08);
+  --tr-shadow-sm: 0 2px 8px rgba(20, 50, 70, 0.06);
+  --tr-shadow: 0 18px 45px rgba(18, 48, 70, 0.08);
   --tr-radius: 22px;
   --tr-fill-1: #16849a;
-  --tr-fill-2: #1d9daf;
+  --tr-fill-2: #23a89e;
   --tr-fill-mid: #2b93d0;
   --tr-fill-3: #3b82f6;
-  --tr-glass: rgba(255, 255, 255, 0.8);
-  --tr-dot: rgba(20, 42, 66, 0.07);
+  --tr-glass: rgba(255, 255, 255, 0.88);
   --tr-body: #344b62;
 
-  position: relative;
-  transition: background-color 0.25s ease, color 0.25s ease;
-  zoom: var(--ui-zoom);
-  min-height: calc(100vh / var(--ui-zoom));
-  overflow-x: hidden;
-  background:
-    radial-gradient(900px 500px at 0% -10%, rgba(61, 219, 196, 0.14), transparent 60%),
-    radial-gradient(800px 500px at 100% 0%, rgba(59, 130, 246, 0.1), transparent 60%),
-    var(--tr-bg);
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: clip;
+  background-color: var(--tr-bg);
+  background-image:
+    radial-gradient(circle at 85% 0%, rgba(61, 219, 196, 0.08), transparent 30%);
   color: var(--tr-ink);
-  font-family: "Plus Jakarta Sans", "DM Sans", sans-serif;
-}
-
-.translator-page::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 520px;
-  background-image: radial-gradient(var(--tr-dot) 1px, transparent 1px);
-  background-size: 22px 22px;
-  mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
-  pointer-events: none;
+  font-family: "DM Sans", "Plus Jakarta Sans", sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .translator-page button:focus-visible,
@@ -62,152 +48,17 @@
   box-shadow: var(--tr-ring);
 }
 
-
 /* =========================================================
-   HEADER (MATCHES WEATHER PAGE LAYOUT)
-========================================================= */
-
-.translator-header {
-  position: relative;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 min(1200px, 5%);
-  margin: 0 auto;
-  background: transparent;
-  border-bottom: none;
-  z-index: 50;
-}
-
-.translator-header-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.translator-brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 1.1rem;
-  font-weight: 800;
-  letter-spacing: -0.5px;
-  color: var(--tr-ink);
-}
-
-.translator-brand > span > span {
-  color: var(--tr-teal);
-}
-
-.translator-logo {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  border-radius: 10px;
-  color: #fff;
-  background: linear-gradient(140deg, var(--tr-fill-1), var(--tr-fill-2));
-  box-shadow: 0 4px 12px rgba(22, 132, 154, 0.25);
-}
-
-/* Back to Dashboard Button - High contrast for light & dark mode */
-.back-dashboard {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border: 1px solid var(--tr-line-strong);
-  border-radius: 999px;
-  background: var(--tr-surface);
-  color: #142a42 !important;
-  font-size: 0.8125rem;
-  font-weight: 750;
-  text-decoration: none;
-  box-shadow: 0 2px 8px rgba(20, 42, 66, 0.08);
-  transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
-}
-
-.back-dashboard:hover {
-  color: var(--tr-teal) !important;
-  border-color: var(--tr-teal);
-  background: var(--tr-subtle);
-}
-
-.back-dashboard:hover svg {
-  transform: translateX(-3px);
-}
-
-.back-dashboard svg {
-  transition: transform 0.2s ease;
-}
-
-
-/* =========================================================
-   MAIN CONTENT & INTRO
+   MAIN CONTAINER & RESPONSIVE ZOOM (MATCHES CALENDAR & WEATHER)
 ========================================================= */
 
 .translator-content {
-  position: relative;
+  zoom: calc(var(--ui-zoom) / 0.8);
   width: min(944px, calc(100% - 26px));
+  max-width: none;
   margin: 0 auto;
-  padding: 24px 0 72px;
+  padding: 24px 0 60px;
 }
-
-.translator-intro {
-  max-width: 720px;
-  margin: 0 auto 32px;
-  text-align: center;
-  animation: tr-rise 0.5s ease both;
-}
-
-.translator-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 14px 7px 10px;
-  border: 1px solid rgba(61, 219, 196, 0.3);
-  border-radius: 999px;
-  background: var(--tr-surface);
-  color: var(--tr-teal);
-  font-size: 0.6875rem;
-  font-weight: 800;
-  letter-spacing: 1.2px;
-  box-shadow: var(--tr-shadow-sm);
-}
-
-.translator-badge svg {
-  padding: 4px;
-  box-sizing: content-box;
-  border-radius: 50%;
-  background: var(--tr-teal-tint);
-}
-
-.translator-intro h1 {
-  margin: 18px 0 12px;
-  font-size: clamp(2.125rem, 4.8vw, 3.5rem);
-  line-height: 1.06;
-  letter-spacing: -2px;
-  color: var(--tr-ink);
-}
-
-.translator-intro h1 span {
-  display: block;
-  padding-bottom: 4px;
-  background: linear-gradient(100deg, var(--tr-teal) 10%, var(--tr-teal-2) 45%, var(--tr-blue) 95%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.translator-intro p {
-  max-width: 560px;
-  margin: 0 auto;
-  color: var(--tr-muted);
-  font-size: 0.9375rem;
-  line-height: 1.65;
-}
-
 
 /* =========================================================
    UNIFIED SINGLE WORKSPACE CARD
@@ -220,7 +71,6 @@
   background: var(--tr-surface);
   box-shadow: var(--tr-shadow);
   overflow: hidden;
-  animation: tr-rise 0.5s 0.08s ease both;
 }
 
 .translator-card-unified::before {
@@ -230,7 +80,6 @@
   height: 4px;
   background: linear-gradient(90deg, var(--tr-teal), var(--tr-aqua), var(--tr-blue));
 }
-
 
 /* =========================================================
    INTEGRATED TOP BAR
@@ -346,7 +195,6 @@
   cursor: not-allowed;
 }
 
-
 /* =========================================================
    WORKSPACE SPLIT PANE
 ========================================================= */
@@ -370,7 +218,6 @@
   padding: 24px;
   background: var(--tr-surface);
 }
-
 
 /* =========================================================
    INPUT COMPONENTS
@@ -454,7 +301,6 @@
   0% { box-shadow: 0 0 0 0 rgba(224, 82, 82, 0.45); }
   100% { box-shadow: 0 0 0 12px rgba(224, 82, 82, 0); }
 }
-
 
 /* UPLOAD AREA */
 
@@ -643,7 +489,6 @@
   background: var(--tr-teal-tint);
 }
 
-
 /* CAMERA */
 
 .camera-container {
@@ -741,7 +586,6 @@
   transform: scale(1.06);
 }
 
-
 /* TRANSLATE BUTTON */
 
 .translate-button {
@@ -775,7 +619,6 @@
   cursor: not-allowed;
   box-shadow: none;
 }
-
 
 /* =========================================================
    OUTPUT COMPONENTS
@@ -819,7 +662,6 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  animation: tr-rise 0.35s ease both;
 }
 
 .result-box {
@@ -915,7 +757,6 @@
   line-height: 1.1;
 }
 
-
 /* LOADING & ERROR */
 
 .translation-loading {
@@ -1004,7 +845,6 @@
   color: #b07a7a;
   cursor: pointer;
 }
-
 
 /* =========================================================
    INLINE COLLAPSIBLE HISTORY DRAWER
@@ -1108,7 +948,6 @@
   color: #f59e0b;
 }
 
-
 /* =========================================================
    HOW IT WORKS & FOOTER
 ========================================================= */
@@ -1118,7 +957,6 @@
   grid-template-columns: 1fr 40px 1fr 40px 1fr;
   align-items: stretch;
   margin-top: 36px;
-  animation: tr-rise 0.5s 0.16s ease both;
 }
 
 .info-item {
@@ -1129,7 +967,6 @@
   border: 1px solid var(--tr-line);
   border-radius: 16px;
   background: var(--tr-glass);
-  backdrop-filter: blur(8px);
 }
 
 .info-number {
@@ -1190,7 +1027,6 @@
   font-size: 0.8125rem;
 }
 
-
 /* =========================================================
    DARK MODE
 ========================================================= */
@@ -1199,10 +1035,10 @@
   --tr-ink: #e8f2f5;
   --tr-ink-soft: #a3c0ca;
   --tr-muted: #7fa0ac;
-  --tr-teal: #4ab3d3;
-  --tr-teal-2: #6cc6e2;
+  --tr-teal: #2b9fc0;
+  --tr-teal-2: #3fb3cf;
   --tr-aqua: #7fb08a;
-  --tr-blue: #6cc6e2;
+  --tr-blue: #7ab0ff;
   --tr-bg: #072229;
   --tr-surface: #0d3440;
   --tr-subtle: #0a2a33;
@@ -1217,30 +1053,13 @@
   --tr-fill-mid: #357f8f;
   --tr-fill-3: #3e7f86;
   --tr-glass: rgba(13, 52, 64, 0.82);
-  --tr-dot: rgba(232, 242, 245, 0.05);
   --tr-body: #c6dbe1;
 
   background:
-    linear-gradient(135deg, rgba(4, 85, 112, 0.55) 0%, rgba(77, 138, 140, 0.25) 100%) top / 100% 460px no-repeat,
-    radial-gradient(1000px 600px at 100% 100%, rgba(127, 176, 138, 0.1), transparent 70%),
+    radial-gradient(circle at 85% 0%, rgba(74, 179, 211, 0.1), transparent 30%),
+    radial-gradient(circle at 100% 100%, rgba(127, 176, 138, 0.08), transparent 40%),
     var(--tr-bg);
   color-scheme: dark;
-}
-
-.translator-page[data-theme="dark"] .translator-header {
-  background: transparent;
-}
-
-.translator-page[data-theme="dark"] .back-dashboard {
-  background: rgba(13, 52, 64, 0.8);
-  color: #e8f2f5 !important;
-  border-color: rgba(232, 242, 245, 0.15);
-}
-
-.translator-page[data-theme="dark"] .back-dashboard:hover {
-  color: var(--tr-teal) !important;
-  border-color: var(--tr-teal);
-  background: rgba(13, 52, 64, 1);
 }
 
 .translator-page[data-theme="dark"] .mode-tabs button.active {
@@ -1272,15 +1091,9 @@
   color: #142a42 !important;
 }
 
-
 /* =========================================================
-   ANIMATIONS & RESPONSIVE
+   RESPONSIVE
 ========================================================= */
-
-@keyframes tr-rise {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: none; }
-}
 
 @media (max-width: 960px) {
   .translator-top-bar {
@@ -1312,17 +1125,8 @@
 }
 
 @media (max-width: 600px) {
-  .translator-header {
-    height: 64px;
-    padding: 0 16px;
-  }
-
   .translator-content {
-    padding: 24px 14px 40px;
-  }
-
-  .translator-intro h1 {
-    font-size: 2rem;
+    padding: 16px 0 36px;
   }
 
   .language-row-compact {
