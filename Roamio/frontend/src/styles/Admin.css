@@ -95,6 +95,54 @@
   gap: 20px;
 }
 
+/* Tabs */
+.admin-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  font: 600 14px var(--font-body);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+.admin-tab:hover {
+  background: var(--surface-sunken);
+  color: var(--ink);
+}
+
+.admin-tab.active {
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+}
+
+.admin-tab:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.admin-tabpanel {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
 /* =========================================================
    HEADINGS
 ========================================================= */
