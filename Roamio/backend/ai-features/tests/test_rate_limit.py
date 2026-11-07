@@ -130,3 +130,9 @@ def test_a_throttled_request_gets_429_with_the_header(monkeypatch):
 def test_versioned_and_legacy_paths_share_one_budget():
     assert rate_limit._bucket("/v1/weather/Paris") == rate_limit._bucket("/weather/Paris") == "/weather"
     assert rate_limit._bucket("/v1/destinations/enrich") == "/destinations"
+
+
+def test_the_translation_routes_the_core_api_calls_get_the_tight_budget():
+    for path in ("/v1/api/translate/text", "/v1/api/translate/camera", "/api/translate/history"):
+        assert rate_limit._bucket(path) == "/api/translate"
+        assert rate_limit.ROUTE_LIMITS["/api/translate"] == 120
