@@ -27,6 +27,7 @@ const fakePrisma = {
   },
   itineraryItem: {
     create: async (args) => (calls.push(['itineraryItem.create', args]), { ...args.data }),
+    delete: async (args) => (calls.push(['itineraryItem.delete', args]), {}),
   },
   chatMessage: {
     findMany: async () => stored,
@@ -422,6 +423,19 @@ const server = app.listen(0, async () => {
     assert.equal((await call('/conversations/40', { method: 'DELETE' })).status, 204);
     assert.equal((await call('/conversations/41', { method: 'DELETE' })).status, 404);
     assert.deepEqual(last('chatConversation.deleteMany').where, { id: 41, userId: 7 });
+
+    // remove a stop: one clear match -> proposal with its id; confirm deletes only a stop of this trip
+    const { removeItineraryItem } = require('../services/chatActions');
+    const t = { id: 5, itineraries: [{ id: 'a', title: 'Beach walk', dayNumber: 1 }, { id: 'b', title: 'Beach bar', dayNumber: 2 }, { id: 'c', title: 'Museum', dayNumber: 2 }] };
+    assert.deepEqual((await removeItineraryItem({ userId: 7, trip: t, args: { title: 'museum' }, dryRun: true })).proposal.args, { id: 'c' });
+    assert.match((await removeItineraryItem({ userId: 7, trip: t, args: { title: 'beach' }, dryRun: true })).reply, /More than one stop matches/);
+    assert.match((await removeItineraryItem({ userId: 7, trip: t, args: { title: 'zoo' }, dryRun: true })).reply, /couldn't find/);
+    assert.match((await removeItineraryItem({ userId: 7, trip: t, args: { id: 'zzz' } })).reply, /isn't on this trip/);
+    assert.equal((await removeItineraryItem({ userId: 7, trip: t, args: { id: 'c' } })).removed, 'c');
+    assert.deepEqual(last('itineraryItem.delete').where, { id: 'c' });
+    accessError = Object.assign(new Error('no'), { statusCode: 403 });
+    assert.match((await removeItineraryItem({ userId: 7, trip: t, args: { id: 'c' } })).reply, /view-only/);
+    accessError = null;
 
     console.log('chat selfcheck: all assertions passed');
   } catch (error) {

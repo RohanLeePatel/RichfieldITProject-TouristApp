@@ -4,7 +4,7 @@ const requireAuth = require('../middleware/authMiddleware');
 const safetyService = require('../services/safetyService');
 const { accessibleTrips } = require('../utils/tripFormat');
 const { buildContext } = require('../services/chatContext');
-const { addItineraryItem, logExpense } = require('../services/chatActions');
+const { addItineraryItem, removeItineraryItem, logExpense } = require('../services/chatActions');
 const { aiApiUrl } = require('../utils/aiService');
 
 const router = express.Router();
@@ -117,10 +117,11 @@ async function tripContext(userId, tripId) {
 // -> { reply, item?, expense?, proposal? }
 async function runAction(name, args, { facts, userId, dryRun }) {
   if (name === 'add_itinerary_item') return addItineraryItem({ userId, trip: facts.trip, near: facts.near, args, searchPlace, dryRun });
+  if (name === 'remove_itinerary_item') return removeItineraryItem({ userId, trip: facts.trip, args, dryRun });
   if (name === 'log_expense') return logExpense({ userId, trip: facts.trip, args, dryRun });
   return { reply: "I can't do that." };
 }
-const ACTIONS = ['add_itinerary_item', 'log_expense'];
+const ACTIONS = ['add_itinerary_item', 'remove_itinerary_item', 'log_expense'];
 
 // POST /api/chat { message, conversationId?, tripId? } -> { conversationId, reply }
 router.post('/', async (req, res) => {

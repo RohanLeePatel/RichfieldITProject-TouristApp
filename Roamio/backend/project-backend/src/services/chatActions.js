@@ -4,8 +4,7 @@
 // traveller reads is written here from what actually happened - the model never
 // gets to claim a change.
 //
-// Two actions exist: add a stop to the itinerary and log an expense. Both are
-// additive (nothing here edits or deletes) and both run in two steps: a dry run
+// Three actions exist: add a stop, remove a stop and log an expense. All run in two steps: a dry run
 // that validates and describes the change (the traveller sees it and confirms),
 // then the real run when they do.
 const { randomUUID } = require('node:crypto');
@@ -165,4 +164,39 @@ async function logExpense({ userId, trip, args, dryRun = false }) {
   };
 }
 
-module.exports = { addItineraryItem, logExpense, resolveDay, resolveTime };
+// Removes one stop. The model names it (title, maybe a day); the dry run resolves that to ONE stop's id,
+// and the confirm step only accepts an id that belongs to this trip, so a forged id can't reach another trip.
+// -> { reply, removed } or, for a dry run, { proposal } / { reply }
+async function removeItineraryItem({ userId, trip, args, dryRun = false }) {
+  try {
+    await assertTripAccess(trip.id, userId, { write: true });
+  } catch (error) {
+    if (error.statusCode === 403) return { reply: "You have view-only access to this trip, so I can't change its itinerary.", removed: null };
+    throw error;
+  }
+  const stops = trip.itineraries;
+  let stop;
+  if (args.id) {
+    stop = stops.find((s) => s.id === String(args.id));
+    if (!stop) return { reply: "That stop isn't on this trip any more.", removed: null };
+  } else {
+    const title = text(args.title, 80).toLowerCase();
+    if (!title) return { reply: 'Which stop should I remove? Tell me its name.', removed: null };
+    const day = args.day == null || args.day === '' ? null : Number(args.day);
+    if (day != null && !Number.isInteger(day)) return { reply: `"${text(args.day, 20)}" isn't a day number. Use Day 1, Day 2...`, removed: null };
+    const hits = stops.filter((s) => (day == null || s.dayNumber === day) && s.title.toLowerCase().includes(title));
+    if (!hits.length) return { reply: `I couldn't find a stop called "${text(args.title, 80)}"${day ? ` on Day ${day}` : ''}. Check the name on your itinerary.`, removed: null };
+    const exact = hits.filter((s) => s.title.toLowerCase() === title);
+    if ((exact.length || hits.length) > 1) {
+      const list = (exact.length > 1 ? exact : hits).slice(0, 5).map((s) => `"${text(s.title, 60)}" (Day ${s.dayNumber})`).join(', ');
+      return { reply: `More than one stop matches: ${list}. Which one do you mean? Give me the day too.`, removed: null };
+    }
+    stop = exact[0] || hits[0];
+  }
+  const label = `"${text(stop.title, 80)}" from Day ${stop.dayNumber}`;
+  if (dryRun) return { proposal: { name: 'remove_itinerary_item', args: { id: stop.id }, summary: `Remove ${label}` } };
+  await prisma.itineraryItem.delete({ where: { id: stop.id } });
+  return { reply: `Removed ${label}.`, removed: stop.id };
+}
+
+module.exports = { addItineraryItem, removeItineraryItem, logExpense, resolveDay, resolveTime };
