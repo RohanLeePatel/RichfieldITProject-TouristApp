@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { MessageCircle, MessageSquare, ShieldCheck, Sparkles } from "lucide-react";
 
 import ChatPanel from "../components/chat/ChatPanel.jsx";
@@ -9,6 +9,7 @@ import "../styles/chat.css";
 
 export default function Chat() {
   const { theme, toggle: toggleTheme } = useTheme();
+  const prefill = useLocation().state?.prefill ?? null;
 
   return (
     <div className="chat-page-root" data-theme={theme}>
@@ -61,7 +62,7 @@ export default function Chat() {
               </div>
             </div>
 
-            <ChatPanel showHistory />
+            <ChatPanel showHistory prefill={prefill} />
           </div>
 
           <div className="chat-footer-note">

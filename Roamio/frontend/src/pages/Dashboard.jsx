@@ -40,7 +40,6 @@ import GetStarted from "../components/onboarding/GetStarted.jsx";
 import LanguagePrompt from "../components/onboarding/LanguagePrompt.jsx";
 import TermsGate from "../components/onboarding/TermsGate.jsx";
 import AppSidebar from "../components/layout/AppSidebar.jsx";
-import ChatWidget from "../components/chat/ChatWidget.jsx";
 import useActiveTrip from "../hooks/useActiveTrip.js";
 import useTheme from "../components/recommendations/useTheme.js";
 import "../styles/dashboard.css";
@@ -750,7 +749,6 @@ export default function Dashboard() {
       ===================================================== */}
 
       <AppSidebar open={mobileMenu} onClose={closeMobileMenu} />
-      <ChatWidget />
       <TermsGate />
 
       {/* =====================================================
