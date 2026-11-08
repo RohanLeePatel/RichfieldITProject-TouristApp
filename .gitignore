@@ -44,3 +44,4 @@ htmlcov/
 
 # Playwright MCP browser snapshots/screenshots (local test runs)
 .playwright-mcp/
+documentation/AI_SERVICE_OVERVIEW.html
