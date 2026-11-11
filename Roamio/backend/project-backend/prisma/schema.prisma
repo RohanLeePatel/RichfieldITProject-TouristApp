@@ -56,6 +56,8 @@ model User {
   sessions          UserSession[]
   loginEvents       LoginEvent[]
   savedTravellers   SavedTraveller[]
+  placeReviews      PlaceReview[]
+  placeReports      PlaceReport[]
 
   @@index([emailHash])
 }
@@ -586,4 +588,37 @@ model CatalogDestination {
   updatedAt   DateTime  @default(now()) @db.Timestamptz(6)
 
   @@index([country])
+}
+
+// Ratings and problem reports for a place (a trip's destination text, see
+// prisma/live-sql/013_place_feedback.sql; mirrored here by hand).
+model PlaceReview {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  placeKey  String   @db.VarChar(160)
+  placeName String   @db.VarChar(160)
+  tripId    Int?
+  rating    Int      @db.SmallInt
+  comment   String?  @db.VarChar(500)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([userId, placeKey])
+  @@index([placeKey])
+}
+
+model PlaceReport {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  placeKey  String   @db.VarChar(160)
+  placeName String   @db.VarChar(160)
+  reason    String   @db.VarChar(20)
+  note      String?  @db.VarChar(300)
+  status    String   @default("OPEN") @db.VarChar(20)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([userId, placeKey])
+  @@index([placeKey, status])
 }

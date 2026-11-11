@@ -8,7 +8,7 @@ const cron = require('node-cron');
 const safetySyncService = require('./src/services/safetySyncService');
 
 // 2. Custom Middleware Imports
-const { generalLimiter, authLimiter, recommendationsLimiter, weatherLimiter, chatLimiter, supportLimiter } = require('./src/middleware/rateLimiter');
+const { generalLimiter, authLimiter, recommendationsLimiter, weatherLimiter, chatLimiter, supportLimiter, feedbackLimiter } = require('./src/middleware/rateLimiter');
 const attachActivityLogger = require('./src/middleware/activityLoggerMiddleware');
 
 // 3. Route Imports
@@ -34,6 +34,7 @@ const adminRoutes = require('./src/routes/admin');
 const chatRoutes = require('./src/routes/chat');
 const meRoutes = require('./src/routes/me');
 const supportRoutes = require('./src/routes/support');
+const destinationFeedbackRoutes = require('./src/routes/destinationFeedback');
 const cronRoutes = require('./src/routes/cron');
 
 // 4. App Initialization
@@ -109,6 +110,7 @@ app.use('/api/chat', chatLimiter, chatRoutes);
 // go before the /api routers below that would 401 them.
 app.use('/api/users/me', meRoutes);
 app.use('/api/support', supportLimiter, supportRoutes);
+app.use('/api/places', feedbackLimiter, destinationFeedbackRoutes);
 
 // Vercel Cron (vercel.json). Guarded by CRON_SECRET, not by a login.
 app.use('/api/cron', cronRoutes);

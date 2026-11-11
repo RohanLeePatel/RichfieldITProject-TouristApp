@@ -676,3 +676,40 @@
 }
 .deleted-trips li div { display: grid; min-width: 0; }
 .deleted-trips small { color: var(--ink-soft); }
+
+/* rating and problem report for the trip's destination */
+.place-feedback-form {
+  display: grid;
+  gap: 10px;
+  max-width: 480px;
+  margin-bottom: 12px;
+}
+
+.place-feedback-form textarea,
+.place-feedback-form select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.place-feedback-form button[type="submit"] { justify-self: start; }
+
+.place-feedback-row { display: flex; gap: 8px; }
+
+.place-stars { display: flex; gap: 4px; }
+
+.place-stars button {
+  padding: 2px;
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.place-stars button.on { color: #e0a100; }
+
+.place-report-link { margin-top: 4px; }

@@ -30,10 +30,41 @@ export const analyticsOverviewQuery = {
 };
 
 // { users: [{ id, fullName, email, avatarUrl, isActive, isVerified, createdAt, lastLoginAt, lastDevice }], page, pageSize, total }
-export const adminUsersQuery = ({ page = 1, q = "" } = {}) => ({
-  queryKey: ["admin", "users", page, q],
-  queryFn: () => authedFetch(`/api/admin/users?page=${page}&pageSize=${USERS_PAGE_SIZE}&q=${encodeURIComponent(q)}`),
+// status: "" | "active" | "unverified" | "suspended"; sort: "newest" | "oldest"
+export const adminUsersQuery = ({ page = 1, q = "", status = "", sort = "newest" } = {}) => ({
+  queryKey: ["admin", "users", page, q, status, sort],
+  queryFn: () =>
+    authedFetch(`/api/admin/users?page=${page}&pageSize=${USERS_PAGE_SIZE}&q=${encodeURIComponent(q)}&status=${status}&sort=${sort}`),
   staleTime: 60_000,
+  placeholderData: keepPreviousData,
+});
+
+// { user: { ...list fields, isAdmin, counts: { trips, groups, chats, expenses, documents }, liveSessions,
+//   recentTrips: [{ id, title, status, role }], recentLogins: [{ at, browser, os, deviceType, success }] } }
+export const adminUserQuery = (id) => ({
+  queryKey: ["admin", "user", id],
+  queryFn: () => authedFetch(`/api/admin/users/${id}`),
+  staleTime: 15_000,
+});
+
+const userSend = (id, path, method, body) =>
+  authedFetch(`/api/admin/users/${id}${path}`, { method, ...(body ? { body: JSON.stringify(body) } : {}) });
+export const setUserActive = (id, isActive) => userSend(id, "", "PATCH", { isActive });
+export const signOutUser = (id) => userSend(id, "/sign-out", "POST");
+
+// the whole user list as CSV text
+export const exportUsersCsv = () => authedFetch("/api/admin/users/export.csv");
+
+// What people do in the app, worked out from our own tables. days: 7 | 30 | 90.
+// { days, kpis: { totalUsers|newUsers|activeUsers|trips: { value, previous, series: [{ date, value }] } },
+//   topDestinations: { places|cities|countries: [{ label, sub, count, previous }] },
+//   funnel: [{ key, label, count }], retention: { newUsers, returned, rate },
+//   features: [{ key, label, count, previous }],
+//   collaboration: { groups, invitesSent, invitesAccepted, acceptRate, avgGroupSize } }
+export const adminInsightsQuery = (days) => ({
+  queryKey: ["admin", "insights", days],
+  queryFn: () => authedFetch(`/api/admin/insights?days=${days}`),
+  staleTime: 2 * 60_000,
   placeholderData: keepPreviousData,
 });
 
@@ -41,7 +72,8 @@ export const adminUsersQuery = ({ page = 1, q = "" } = {}) => ({
 // anything else gets the usual couple of tries
 export const retryUnlessForbidden = (failures, error) => ![403, 503].includes(error?.status) && failures < 2;
 
-// { destinations: [{ id, name, country, lat, lon, radiusM, costIndex, imageUrl, active, enrichedAt, enrichError, stale }],
+// { destinations: [{ id, name, country, lat, lon, radiusM, costIndex, imageUrl, active, enrichedAt, enrichError, stale,
+//   issues: ["no_photo" | "no_data" | "old_data" | "fetch_failed"], tripCount }],
 //   staleAfterDays } - the cities the recommendation engine can suggest, hidden ones included
 export const adminDestinationsQuery = {
   queryKey: ["admin", "destinations"],
@@ -58,3 +90,6 @@ export const createDestination = (fields) => send("", "POST", fields);
 export const updateDestination = (id, fields) => send(`/${encodeURIComponent(id)}`, "PATCH", fields);
 export const refreshDestination = (id) => send(`/${encodeURIComponent(id)}/enrich`, "POST");
 export const deleteDestination = (id) => send(`/${encodeURIComponent(id)}`, "DELETE");
+
+// show or hide several cities at once; resolves { updated }
+export const bulkSetDestinations = (ids, active) => send("/bulk", "POST", { ids, active });

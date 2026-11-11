@@ -9,6 +9,7 @@ import AskButton from "../components/chat/AskButton.jsx";
 import ItineraryMap from "../components/recommendations/ItineraryMap.jsx";
 import Hint from "../components/onboarding/Hint.jsx";
 import PageShell from "../components/recommendations/PageShell.jsx";
+import PlaceFeedback from "../components/trips/PlaceFeedback.jsx";
 import TripDocuments from "../components/trips/TripDocuments.jsx";
 import TripEditForm from "../components/trips/TripEditForm.jsx";
 import TripBudget from "./TripBudget.jsx";
@@ -348,6 +349,7 @@ export default function TripDetail() {
             )}
 
             <AddLandmark trip={trip} onAdded={refresh} />
+            {trip.destination && <PlaceFeedback trip={trip} />}
             </>
             )}
 

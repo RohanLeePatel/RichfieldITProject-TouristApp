@@ -7,6 +7,7 @@ const { httpError } = require('./tripAccessService');
 const { verifyCaptcha } = require('./captchaService');
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SUSPENDED = 'This account has been suspended. Please contact support.';
 const INVALID_OTP = 'Invalid or expired OTP.';
 const INVALID_RESET_CODE = 'Invalid or expired reset code.';
 const MIN_PASSWORD_LENGTH = 8;
@@ -193,6 +194,7 @@ class AuthService {
       throw httpError(401, 'Invalid email or password');
     }
 
+    if (user.isActive === false) throw httpError(403, SUSPENDED);
     if (!user.isVerified) throw httpError(403, 'Account not verified. Please verify your email first.');
 
     const sid = await sessionService.start(user.id, req);
@@ -218,6 +220,7 @@ class AuthService {
 
     const user = await userRepository.findById(payload.userId);
     if (!user) throw httpError(404, 'User not found');
+    if (user.isActive === false) throw httpError(403, SUSPENDED);
     if (!user.isVerified) throw httpError(403, 'Account not verified. Please verify your email first.');
 
     let sid = payload.sid;

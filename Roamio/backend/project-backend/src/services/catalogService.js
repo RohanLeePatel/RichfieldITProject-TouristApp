@@ -75,6 +75,15 @@ function validate(body = {}, { partial = false } = {}) {
 
 const isStale = (row, now = new Date()) => !row.enrichedAt || now - new Date(row.enrichedAt) > STALE_AFTER_DAYS * DAY;
 
+// What an administrator should fix on a city, in plain keys the dashboard words
+const issuesOf = (row, now) =>
+  [
+    !row.imageUrl && 'no_photo',
+    !row.enrichedAt && 'no_data',
+    row.enrichedAt && isStale(row, now) && 'old_data',
+    row.enrichError && 'fetch_failed',
+  ].filter(Boolean);
+
 const summary = (row, now) => ({
   id: row.id,
   name: row.name,
@@ -88,6 +97,7 @@ const summary = (row, now) => ({
   enrichedAt: row.enrichedAt,
   enrichError: row.enrichError,
   stale: isStale(row, now),
+  issues: issuesOf(row, now),
 });
 
 // Everything, active or not, for the admin list
@@ -215,6 +225,35 @@ async function update(id, body) {
   return summary(await prisma.catalogDestination.update({ where: { id }, data: { ...data, updatedAt: new Date() } }));
 }
 
+// How many trips use each city, by catalog id. The trip tables and the catalog are
+// separate, so a city is matched by its country and name; ponytail: a name spelled
+// differently in the two (e.g. "USA") counts as no demand, so match on a code if that bites.
+async function tripCounts() {
+  const groups = await prisma.tripDestination.groupBy({ by: ['destinationId'], _count: { _all: true }, where: { trip: { deletedAt: null } } });
+  if (!groups.length) return {};
+  const places = await prisma.destination.findMany({
+    where: { id: { in: groups.map((g) => g.destinationId) } },
+    select: { id: true, city: { select: { name: true, country: { select: { name: true } } } } },
+  });
+  const cityOf = new Map(places.map((p) => [p.id, makeId(p.city.country.name, p.city.name)]));
+  const counts = {};
+  for (const g of groups) {
+    const id = cityOf.get(g.destinationId);
+    if (id) counts[id] = (counts[id] || 0) + g._count._all;
+  }
+  return counts;
+}
+
+// Show or hide many cities at once (the bulk buttons on the dashboard)
+async function setActiveMany(ids, active) {
+  if (!Array.isArray(ids) || !ids.length || ids.length > 200 || ids.some((id) => typeof id !== 'string')) {
+    throw httpError(400, 'Pick between 1 and 200 destinations.');
+  }
+  if (typeof active !== 'boolean') throw httpError(400, 'Active must be true or false.');
+  const { count } = await prisma.catalogDestination.updateMany({ where: { id: { in: ids } }, data: { active, updatedAt: new Date() } });
+  return { updated: count };
+}
+
 async function remove(id) {
   await find(id);
   await prisma.catalogDestination.delete({ where: { id } });
@@ -258,6 +297,8 @@ module.exports = {
   makeId,
   refreshStale,
   remove,
+  setActiveMany,
+  tripCounts,
   toEntry,
   update,
   validate,

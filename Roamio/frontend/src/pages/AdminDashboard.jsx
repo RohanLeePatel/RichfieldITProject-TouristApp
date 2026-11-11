@@ -1,27 +1,32 @@
 import { useState } from "react";
-import { BarChart3, HeartPulse, MapPin, ShieldCheck, Users } from "lucide-react";
+import { BarChart3, Flag, HeartPulse, LayoutDashboard, MapPin, ShieldCheck, Users } from "lucide-react";
 
 import PageTopBar from "../components/PageTopBar.jsx";
 import useTheme from "../components/recommendations/useTheme.js";
 import AnalyticsOverview from "../components/admin/AnalyticsOverview.jsx";
 import DestinationsManager from "../components/admin/DestinationsManager.jsx";
+import OverviewInsights from "../components/admin/OverviewInsights.jsx";
+import PlaceReports from "../components/admin/PlaceReports.jsx";
 import ServiceHealthCard from "../components/admin/ServiceHealthCard.jsx";
 import TrackingConfigCard from "../components/admin/TrackingConfigCard.jsx";
 import UserProfilesList from "../components/admin/UserProfilesList.jsx";
 import "../styles/Admin.css";
 
 // Admins only (AdminRoute). Each section fetches on its own, so one failing
-// source - e.g. GA not configured - leaves the others working.
+// source - e.g. GA not configured - leaves the others working. "Content" is the
+// destination catalogue.
 const TABS = [
-  { id: "analytics", label: "Analytics", icon: BarChart3 },
+  { id: "overview", label: "Overview", icon: LayoutDashboard },
+  { id: "analytics", label: "Visitors", icon: BarChart3 },
   { id: "health", label: "Service health", icon: HeartPulse },
-  { id: "destinations", label: "Destinations", icon: MapPin },
+  { id: "destinations", label: "Content", icon: MapPin },
+  { id: "reports", label: "Reports", icon: Flag },
   { id: "users", label: "Users", icon: Users },
 ];
 
 export default function AdminDashboard() {
   const { theme, toggle: toggleTheme } = useTheme();
-  const [tab, setTab] = useState("analytics");
+  const [tab, setTab] = useState("overview");
 
   return (
     <div className="admin-page" data-theme={theme}>
@@ -38,7 +43,7 @@ export default function AdminDashboard() {
               Roamio at a
               <span> glance.</span>
             </h1>
-            <p>Visitor numbers from Google Analytics, the live status of the services the app runs on, and the destinations it can recommend.</p>
+            <p>What travellers do in the app, visitor numbers from Google Analytics, the services it runs on, the destinations it can recommend and the people who use it.</p>
           </>
         }
       />
@@ -68,6 +73,7 @@ export default function AdminDashboard() {
           id={`admin-panel-${tab}`}
           aria-labelledby={`admin-tab-${tab}`}
         >
+          {tab === "overview" && <OverviewInsights />}
           {tab === "analytics" && <AnalyticsOverview />}
           {tab === "health" && (
             <div className="admin-grid">
@@ -76,6 +82,7 @@ export default function AdminDashboard() {
             </div>
           )}
           {tab === "destinations" && <DestinationsManager />}
+          {tab === "reports" && <PlaceReports />}
           {tab === "users" && <UserProfilesList />}
         </div>
       </main>

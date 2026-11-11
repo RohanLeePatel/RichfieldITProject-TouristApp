@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Eye, EyeOff, MapPin, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
+import { AlertTriangle, Eye, EyeOff, ImagePlus, MapPin, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 
 import {
   adminDestinationsQuery,
+  bulkSetDestinations,
   createDestination,
   deleteDestination,
   refreshDestination,
@@ -34,6 +35,23 @@ function status(d) {
   return ["online", "Live"];
 }
 
+const ISSUE_LABELS = {
+  no_photo: "No photo",
+  no_data: "No data yet",
+  old_data: "Data is old",
+  fetch_failed: "Last fetch failed",
+};
+
+// the views the owner can narrow the list to; "thin" is the one to work on first:
+// cities travellers already use that still have something missing
+const VIEWS = [
+  { id: "all", label: "All", test: () => true },
+  { id: "attention", label: "Needs attention", test: (d) => d.active && d.issues.length > 0 },
+  { id: "thin", label: "Popular but thin", test: (d) => d.tripCount > 0 && d.issues.length > 0 },
+  { id: "photo", label: "No photo", test: (d) => d.issues.includes("no_photo") },
+  { id: "hidden", label: "Hidden", test: (d) => !d.active },
+];
+
 const EMPTY_FORM = { name: "", country: "", costIndex: "3", lat: "", lon: "", radiusM: "12000" };
 
 // The cities the recommendation engine can suggest. Adding one looks it up on the
@@ -47,6 +65,9 @@ export default function DestinationsManager() {
   const [manual, setManual] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [notice, setNotice] = useState(null); // { tone: "error" | "ok", text }
+  const [view, setView] = useState("all");
+  const [sort, setSort] = useState("name");
+  const [selected, setSelected] = useState(() => new Set());
 
   const { data, isPending, error, refetch, isFetching } = useQuery({ ...adminDestinationsQuery, retry: retryUnlessForbidden });
   const refresh = () => queryClient.invalidateQueries({ queryKey: adminDestinationsQuery.queryKey });
@@ -83,11 +104,31 @@ export default function DestinationsManager() {
     },
   });
   const remove = useMutation({ mutationFn: deleteDestination, onSuccess: refresh, onError: fail });
+  const bulk = useMutation({
+    mutationFn: ({ active }) => bulkSetDestinations([...selected], active),
+    onSuccess: ({ updated }, { active }) => {
+      refresh();
+      setSelected(new Set());
+      setNotice({ tone: "ok", text: `${updated} ${updated === 1 ? "city" : "cities"} ${active ? "shown in" : "hidden from"} recommendations.` });
+    },
+    onError: fail,
+  });
 
   const all = data?.destinations || [];
   const needle = search.trim().toLowerCase();
-  const rows = needle ? all.filter((d) => `${d.name} ${d.country}`.toLowerCase().includes(needle)) : all;
+  const viewTest = VIEWS.find((v) => v.id === view).test;
+  const matching = all.filter((d) => viewTest(d) && (!needle || `${d.name} ${d.country}`.toLowerCase().includes(needle)));
+  // the API sends them by country and name; "popular" puts the most-used cities first
+  const rows = sort === "popular" ? [...matching].sort((a, b) => b.tripCount - a.tripCount) : matching;
   const attention = all.filter((d) => d.active && (!d.enrichedAt || d.stale)).length;
+  const toggleSelected = (id) =>
+    setSelected((current) => {
+      const next = new Set(current);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+  const shownRows = rows.slice(0, shown);
+  const allShownSelected = shownRows.length > 0 && shownRows.every((d) => selected.has(d.id));
   // the row a request is still working on, so its buttons wait
   const working = (id) =>
     (change.isPending && change.variables?.id === id) ||
@@ -202,6 +243,46 @@ export default function DestinationsManager() {
         </form>
       )}
 
+      {data && (
+        <div className="admin-dest-toolbar">
+          <div className="admin-chips" role="group" aria-label="Show destinations">
+            {VIEWS.map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                className={view === v.id ? "active" : ""}
+                aria-pressed={view === v.id}
+                onClick={() => {
+                  setView(v.id);
+                  setShown(PAGE);
+                }}
+              >
+                {v.label} <span>{all.filter(v.test).length}</span>
+              </button>
+            ))}
+          </div>
+          <select className="admin-select" value={sort} onChange={(event) => setSort(event.target.value)} aria-label="Sort destinations">
+            <option value="name">A to Z</option>
+            <option value="popular">Most used in trips</option>
+          </select>
+        </div>
+      )}
+
+      {selected.size > 0 && (
+        <div className="admin-bulk" role="status">
+          <strong>{selected.size} selected</strong>
+          <button type="button" className="admin-link-button" disabled={bulk.isPending} onClick={() => bulk.mutate({ active: true })}>
+            Show in recommendations
+          </button>
+          <button type="button" className="admin-link-button" disabled={bulk.isPending} onClick={() => bulk.mutate({ active: false })}>
+            Hide
+          </button>
+          <button type="button" className="admin-link-button" onClick={() => setSelected(new Set())}>
+            Clear
+          </button>
+        </div>
+      )}
+
       {error && !data ? (
         <div className="admin-error" role="alert">
           <AlertTriangle size={18} />
@@ -210,20 +291,41 @@ export default function DestinationsManager() {
       ) : isPending ? (
         <p className="admin-user-empty">Loading…</p>
       ) : rows.length === 0 ? (
-        <p className="admin-user-empty">{needle ? "No destinations match that search." : "No destinations yet. Add one above."}</p>
+        <p className="admin-user-empty">{needle || view !== "all" ? "No destinations match that." : "No destinations yet. Add one above."}</p>
       ) : (
         <ul className="admin-dest-list">
-          {rows.slice(0, shown).map((d) => {
+          <li className="admin-dest-selectall">
+            <label>
+              <input
+                type="checkbox"
+                checked={allShownSelected}
+                onChange={() => setSelected(allShownSelected ? new Set() : new Set(shownRows.map((d) => d.id)))}
+              />
+              Select all shown
+            </label>
+          </li>
+          {shownRows.map((d) => {
             const [tone, label] = status(d);
             const busy = working(d.id);
             return (
               <li className={`admin-dest ${d.active ? "" : "hidden"}`} key={d.id}>
+                <input
+                  type="checkbox"
+                  className="admin-dest-pick"
+                  checked={selected.has(d.id)}
+                  onChange={() => toggleSelected(d.id)}
+                  aria-label={`Select ${d.name}`}
+                />
                 <div className="admin-dest-name">
                   <strong>{d.name}</strong>
                   <span>
                     {d.country}
                     {d.enrichedAt ? ` · data from ${formatDate(d.enrichedAt)}` : " · no data yet"}
+                    {` · used in ${d.tripCount} ${d.tripCount === 1 ? "trip" : "trips"}`}
                   </span>
+                  {d.issues.length > 0 && (
+                    <span className="admin-dest-issues">{d.issues.map((issue) => ISSUE_LABELS[issue]).join(" · ")}</span>
+                  )}
                   {d.enrichError && <span className="admin-dest-error">{d.enrichError}</span>}
                 </div>
 
@@ -256,6 +358,19 @@ export default function DestinationsManager() {
                     title={d.active ? "Hide from recommendations" : "Show in recommendations"}
                   >
                     {d.active ? <Eye size={16} /> : <EyeOff size={16} />}
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-icon-button"
+                    disabled={busy}
+                    onClick={() => {
+                      const url = window.prompt(`Photo address for ${d.name} (https://…). Leave empty to remove it.`, d.imageUrl || "");
+                      if (url !== null) change.mutate({ id: d.id, fields: { imageUrl: url.trim() } });
+                    }}
+                    aria-label={`Set photo for ${d.name}`}
+                    title="Set photo"
+                  >
+                    <ImagePlus size={16} />
                   </button>
                   <button
                     type="button"

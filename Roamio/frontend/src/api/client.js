@@ -72,6 +72,9 @@ async function request(path, { auth = false, retried = false, headers, ...option
     throw Object.assign(new Error("We can't reach Roamio right now. Check your connection and try again."), { status: 0 });
   }
 
+  // a download (the admin CSV export) comes back as text, not JSON
+  if (response.ok && response.headers.get("content-type")?.startsWith("text/csv")) return response.text();
+
   let data = null;
   try {
     data = await response.json();

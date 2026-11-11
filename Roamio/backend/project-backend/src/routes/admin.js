@@ -10,6 +10,8 @@ router.use('/analytics', require('./adminAnalytics'));
 router.use('/config', require('./adminConfig'));
 router.use('/destinations', require('./adminDestinations'));
 router.use('/health', require('./adminHealth'));
+router.use('/insights', require('./adminInsights'));
+router.use('/reports', require('./adminReports'));
 router.use('/users', require('./adminUsers'));
 
 // Unknown admin path: JSON, not Express's HTML page

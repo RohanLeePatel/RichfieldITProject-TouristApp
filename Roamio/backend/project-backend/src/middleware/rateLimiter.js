@@ -83,7 +83,17 @@ const pushLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Ratings and place reports: a handful per client per window is plenty.
+const feedbackLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { message: 'You have posted a lot recently. Please wait a few minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 module.exports = {
+  feedbackLimiter,
   generalLimiter,
   authLimiter,
   translateLimiter,

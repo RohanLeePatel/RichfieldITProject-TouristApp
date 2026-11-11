@@ -5,9 +5,19 @@ const router = express.Router();
 
 // The cities the recommendation engine can suggest. Behind isAdmin (admin.js).
 
-// GET /api/admin/destinations - every city, active or not, with how fresh its data is
+// GET /api/admin/destinations - every city, active or not, with how fresh its data is,
+// what is missing (issues) and how many trips use it (tripCount)
 router.get('/', async (req, res) => {
-  res.json({ destinations: await catalogService.listAll(), staleAfterDays: catalogService.STALE_AFTER_DAYS });
+  const [rows, counts] = await Promise.all([catalogService.listAll(), catalogService.tripCounts()]);
+  res.json({
+    destinations: rows.map((row) => ({ ...row, tripCount: counts[row.id] || 0 })),
+    staleAfterDays: catalogService.STALE_AFTER_DAYS,
+  });
+});
+
+// POST /api/admin/destinations/bulk { ids, active } - show or hide several cities at once
+router.post('/bulk', async (req, res) => {
+  res.json(await catalogService.setActiveMany(req.body?.ids, req.body?.active));
 });
 
 // POST /api/admin/destinations { name, country, lat, lon, radiusM?, costIndex?, imageUrl? } - adds a
