@@ -66,8 +66,8 @@ function formatTripDates(startDate, endDate) {
   return start || end || "Dates not set";
 }
 
-// Completed once the end date has passed. Upcoming covers a trip that has started
-// but not ended as well as one that is still ahead, so "Upcoming" includes ongoing trips.
+// Completed once the end date has passed, Ongoing once it has started but not ended,
+// otherwise Planning (still ahead, so the only kind shown as upcoming).
 function getTripStatus(trip) {
   const start = trip.startDate
     ? new Date(trip.startDate)
@@ -92,7 +92,7 @@ function getTripStatus(trip) {
     !Number.isNaN(start.getTime()) &&
     now >= start
   ) {
-    return "Upcoming";
+    return "Ongoing";
   }
 
   return "Planning";
@@ -208,16 +208,23 @@ export default function Family() {
       normalizedTrips
         .filter(
           (trip) =>
-            trip.calculatedStatus !==
-            "Completed"
+            trip.calculatedStatus ===
+            "Planning"
         )
         .sort(byStartDate),
     [normalizedTrips]
   );
 
-  // every trip for the overview tabs: upcoming first, finished ones after
+  // every trip for the overview tabs: under way first, then upcoming, finished ones last
   const overviewTrips = useMemo(
     () => [
+      ...normalizedTrips
+        .filter(
+          (trip) =>
+            trip.calculatedStatus ===
+            "Ongoing"
+        )
+        .sort(byStartDate),
       ...upcomingTrips,
       ...normalizedTrips
         .filter(
