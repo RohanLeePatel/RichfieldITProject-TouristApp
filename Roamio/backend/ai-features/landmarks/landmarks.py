@@ -45,6 +45,8 @@ def _fix_mojibake(text: str | None) -> str | None:
     if the bytes aren't valid UTF-8."""
     if not text:
         return text
+    # OSM names can be bare numbers (a place literally called "42"); Geoapify returns them as ints
+    text = str(text)
     try:
         return text.encode("cp1252").decode("utf-8")
     except (UnicodeEncodeError, UnicodeDecodeError):

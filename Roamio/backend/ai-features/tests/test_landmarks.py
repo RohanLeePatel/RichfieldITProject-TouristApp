@@ -340,3 +340,9 @@ def test_unnamed_and_duplicate_places_are_dropped(monkeypatch):
     stops = landmarks_module.get_landmarks("Durban", ["parks"], 5000)["groups"][0]["landmarks"]
     assert [s["name"] for s in stops] == ["Albert Park"]
     assert stops[0]["address"] == "Congella, Durban"
+
+
+def test_fix_mojibake_accepts_numeric_names():
+    from landmarks.landmarks import _fix_mojibake
+
+    assert _fix_mojibake(42) == "42"
