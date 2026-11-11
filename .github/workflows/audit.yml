@@ -10,7 +10,7 @@ on:
     paths:
       - "Roamio/backend/project-backend/package*.json"
       - "Roamio/frontend/package*.json"
-      - "Roamio/backend/ai-features/requirements*.txt"
+      - "Roamio/backend/travel-intelligence/requirements*.txt"
       - ".github/workflows/audit.yml"
   schedule:
     - cron: "0 5 * * 1" # Mondays, 07:00 SAST
@@ -42,7 +42,7 @@ jobs:
         with:
           python-version: "3.14"
       - name: pip-audit
-        working-directory: Roamio/backend/ai-features
+        working-directory: Roamio/backend/travel-intelligence
         run: |
           pip install pip-audit
           pip-audit -r requirements.lock

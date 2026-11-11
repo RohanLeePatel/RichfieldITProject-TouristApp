@@ -24,7 +24,7 @@ The browser never calls the AI service, so provider keys and the shared secret n
 |---|---|---|
 | Frontend | [Roamio/frontend](Roamio/frontend) | React 19, Vite, React Router, TanStack Query, Zustand, Leaflet |
 | Core API | [Roamio/backend/project-backend](Roamio/backend/project-backend) | Express 5, Prisma 7, Zod, JWT, nodemailer, web-push |
-| AI service | [Roamio/backend/ai-features](Roamio/backend/ai-features) | FastAPI (Python), pytest, ruff, mypy |
+| Travel-intelligence service | [Roamio/backend/travel-intelligence](Roamio/backend/travel-intelligence) | FastAPI (Python), pytest, ruff, mypy |
 
 ## Features
 
@@ -35,6 +35,7 @@ The browser never calls the AI service, so provider keys and the shared secret n
 - Translator (text via DeepL, photos via OCR) with saved history
 - Weather, landmarks and safety advisories
 - Trip chat assistant that only *proposes* changes until you confirm
+- Installable, offline-friendly: a service worker caches the app shell and each signed-in page keeps its last data, so the app opens offline in read-only mode with an offline banner
 - Web-push and in-app notifications, settings with data export/delete
 - Admin dashboard (GA4, service health)
 
@@ -45,14 +46,14 @@ Prerequisites: Node 20+, Python 3.14 (as used in CI), a Supabase project.
 ### 1. AI service
 
 ```bash
-cd Roamio/backend/ai-features
+cd Roamio/backend/travel-intelligence
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
 cp .env.example .env                                # set superSecretKey at minimum
 uvicorn main:app --reload --port 8000
 ```
 
-Missing provider keys only switch off their own feature; the startup log lists them. See its [README](Roamio/backend/ai-features/README.md) and [MAINTAINING.md](Roamio/backend/ai-features/MAINTAINING.md).
+Missing provider keys only switch off their own feature; the startup log lists them. See its [README](Roamio/backend/travel-intelligence/README.md) and [MAINTAINING.md](Roamio/backend/travel-intelligence/MAINTAINING.md).
 
 ### 2. Core API
 
@@ -77,7 +78,7 @@ npm run dev
 
 ```bash
 # AI service (same as CI)
-cd Roamio/backend/ai-features
+cd Roamio/backend/travel-intelligence
 ruff check . && mypy && coverage run -m pytest -q && coverage report --fail-under=90
 
 # Core API self-checks
@@ -89,7 +90,7 @@ cd Roamio/frontend && npm run lint && npm run build
 
 ## Deployment
 
-Frontend and backends are deployed on Vercel (`vercel.json` in each). GitHub Actions run the AI-service checks, a dependency audit and a scheduled Supabase backup (`.github/workflows`).
+Frontend and backends are deployed on Vercel (`vercel.json` in each). GitHub Actions run the travel-intelligence checks, a dependency audit and a scheduled Supabase backup (`.github/workflows`).
 
 ## Documentation
 

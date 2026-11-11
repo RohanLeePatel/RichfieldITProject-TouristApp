@@ -5,16 +5,16 @@ name: ai-features
 on:
   push:
     paths:
-      - "Roamio/backend/ai-features/**"
+      - "Roamio/backend/travel-intelligence/**"
       - ".github/workflows/ai-features.yml"
   pull_request:
     paths:
-      - "Roamio/backend/ai-features/**"
+      - "Roamio/backend/travel-intelligence/**"
       - ".github/workflows/ai-features.yml"
 
 defaults:
   run:
-    working-directory: Roamio/backend/ai-features
+    working-directory: Roamio/backend/travel-intelligence
 
 permissions:
   contents: read
@@ -29,7 +29,7 @@ jobs:
         with:
           python-version: "3.14"
           cache: pip
-          cache-dependency-path: Roamio/backend/ai-features/requirements.lock
+          cache-dependency-path: Roamio/backend/travel-intelligence/requirements.lock
 
       - name: Install dependencies
         run: pip install -r requirements.lock -r requirements-dev.txt
