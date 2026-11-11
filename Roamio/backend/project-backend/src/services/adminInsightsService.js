@@ -145,6 +145,14 @@ async function getInsights({ days, now = Date.now() } = {}) {
     { key: 'invited', label: 'Invited someone', count: invited },
   ];
 
+  // The trip wizard: how many distinct people reached each step in this period
+  const stepRows = await prisma.wizardStepEvent.findMany({ where: { at: { gte: from } }, select: { step: true, userId: true }, distinct: ['step', 'userId'] });
+  const wizardFunnel = ['Trip basics', 'Interests', 'Accessibility & climate', 'Review', 'Ran a search'].map((label, step) => ({
+    key: `step${step}`,
+    label,
+    count: stepRows.filter((r) => r.step === step).length,
+  }));
+
   // Retention: of the new users, how many signed in again on a later day?
   const newIds = newUsers.map((u) => u.id);
   const later = newIds.length
@@ -187,7 +195,7 @@ async function getInsights({ days, now = Date.now() } = {}) {
     avgGroupSize: groupTotal ? Math.round((memberships / groupTotal) * 10) / 10 : null,
   };
 
-  return { days: range, generatedAt: new Date(now).toISOString(), kpis, topDestinations, funnel, retention, features, collaboration };
+  return { days: range, generatedAt: new Date(now).toISOString(), kpis, topDestinations, funnel, wizardFunnel, retention, features, collaboration };
 }
 
 module.exports = { getInsights };

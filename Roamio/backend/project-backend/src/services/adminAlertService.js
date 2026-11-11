@@ -6,9 +6,24 @@ const emailService = require('./emailService');
 // Emails the admins (ADMIN_USER_IDS) when a service goes down or places get flagged by
 // travellers. It only emails when that set of problems changes, so a service that
 // stays down is one email, not one every run.
-// ponytail: "last sent" lives in memory, so a restart (or a serverless cold start) can repeat
-// an email. Store it in the database if that gets noisy.
-let lastSent = '';
+// What was last emailed is kept in AdminAlertState, so restarts and serverless cold starts
+// don't repeat it. If the table isn't there yet (migration not run) it falls back to memory.
+let memory = '';
+const readSent = async () => {
+  try {
+    return (await prisma.adminAlertState.findUnique({ where: { id: 1 } }))?.signature ?? '';
+  } catch {
+    return memory;
+  }
+};
+const writeSent = async (signature) => {
+  memory = signature;
+  try {
+    await prisma.adminAlertState.upsert({ where: { id: 1 }, create: { id: 1, signature }, update: { signature } });
+  } catch {
+    /* memory copy is enough */
+  }
+};
 
 const adminIds = () =>
   (process.env.ADMIN_USER_IDS || '').split(',').map((id) => parseInt(id.trim(), 10)).filter((id) => !Number.isNaN(id));
@@ -28,8 +43,8 @@ async function check() {
   try {
     const { down, flagged } = await problems();
     const key = JSON.stringify([down.map((d) => d.split(':')[0]).sort(), flagged.map((f) => f.split(' (')[0]).sort()]);
-    if (key === lastSent) return { sent: false };
-    lastSent = key;
+    if (key === (await readSent())) return { sent: false };
+    await writeSent(key);
     if (!down.length && !flagged.length) return { sent: false };
     const users = adminIds().length ? await prisma.user.findMany({ where: { id: { in: adminIds() }, deletedAt: null }, select: { email: true } }) : [];
     const text = [
@@ -44,4 +59,4 @@ async function check() {
   }
 }
 
-module.exports = { check };
+module.exports = { check, isDown };

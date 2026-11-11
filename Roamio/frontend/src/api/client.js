@@ -59,6 +59,8 @@ let staleSince = null;
 export const getStaleSince = () => staleSince;
 
 export function clearApiCache() {
+  // saved document files (tripDocuments.js) are personal too
+  if ("caches" in window) caches.delete("roamio-docs").catch(() => {});
   try {
     for (const key of Object.keys(localStorage)) if (key.startsWith(CACHE_PREFIX)) localStorage.removeItem(key);
   } catch {

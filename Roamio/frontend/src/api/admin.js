@@ -62,7 +62,7 @@ export const exportUsersCsv = () => authedFetch("/api/admin/users/export.csv");
 // What people do in the app, worked out from our own tables. days: 7 | 30 | 90.
 // { days, kpis: { totalUsers|newUsers|activeUsers|trips: { value, previous, series: [{ date, value }] } },
 //   topDestinations: { places|cities|countries: [{ label, sub, count, previous }] },
-//   funnel: [{ key, label, count }], retention: { newUsers, returned, rate },
+//   funnel: [{ key, label, count }], wizardFunnel: [{ key, label, count }], retention: { newUsers, returned, rate },
 //   features: [{ key, label, count, previous }],
 //   collaboration: { groups, invitesSent, invitesAccepted, acceptRate, avgGroupSize } }
 export const adminInsightsQuery = (days) => ({

@@ -27,7 +27,7 @@ export default function OfflineBanner() {
       role="status"
       style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 9999, padding: "8px 16px", textAlign: "center", background: "#92400e", color: "#fff", fontSize: 14 }}
     >
-      You're offline. Showing your last saved data{since ? ` (saved ${ago(since)})` : ""}, read only.
+      You're offline. Showing what you last loaded{since ? ` (saved ${ago(since)})` : ""} — your active trip's itinerary is kept for offline use. Changes can't be saved until you're back online.
     </div>
   );
 }

@@ -1,5 +1,6 @@
 const express = require('express');
 const service = require('../services/adminUserService');
+const { log } = require('../services/adminAuditService');
 
 const router = express.Router();
 
@@ -10,6 +11,8 @@ router.get('/', async (req, res) => {
 
 // GET /api/admin/users/export.csv - every user, for a spreadsheet
 router.get('/export.csv', async (req, res) => {
+  // personal data leaves the dashboard here, so it is on the record
+  await log(req.user.id, 'ADMIN_USERS_EXPORT', { entityType: 'EXPORT', details: 'all users, CSV' });
   res.type('text/csv').set('Content-Disposition', 'attachment; filename="roamio-users.csv"').send(await service.exportCsv());
 });
 

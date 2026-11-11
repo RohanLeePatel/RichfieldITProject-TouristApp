@@ -42,7 +42,9 @@ router.patch('/:id', async (req, res) => {
 
 // POST /api/admin/destinations/:id/enrich - fetch the city's data again
 router.post('/:id/enrich', async (req, res) => {
-  res.json({ destination: await catalogService.enrich(req.params.id) });
+  const destination = await catalogService.enrich(req.params.id);
+  await record(req, 'ADMIN_DESTINATION_REFRESH', `${destination.name}, ${destination.country}`);
+  res.json({ destination });
 });
 
 // DELETE /api/admin/destinations/:id

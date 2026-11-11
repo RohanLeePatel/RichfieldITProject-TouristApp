@@ -1550,3 +1550,9 @@
   width: 16px;
   height: 16px;
 }
+
+.admin-ins-trend {
+  width: 100%;
+  height: auto;
+  color: var(--accent, #2563eb);
+}

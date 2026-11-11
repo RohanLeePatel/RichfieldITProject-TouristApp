@@ -13,6 +13,7 @@ import {
   USERS_PAGE_SIZE,
 } from "../../api/admin.js";
 import { downloadText } from "./adminFormat.js";
+import { confirmDialog } from "../../store/confirmStore.js";
 
 const SKELETON_ROWS = 5;
 
@@ -145,8 +146,8 @@ function UserDetail({ id, onChanged, onOpenAudit }) {
             type="button"
             className="admin-button danger"
             disabled={busy}
-            onClick={() =>
-              window.confirm("Suspend this account? They will be signed out and unable to sign in until you reactivate it.") && toggle.mutate(false)
+            onClick={async () =>
+              (await confirmDialog("Suspend this account? They will be signed out and unable to sign in until you reactivate it.", "Suspend")) && toggle.mutate(false)
             }
           >
             <ShieldAlert size={15} /> Suspend account
@@ -223,7 +224,7 @@ export default function UserProfilesList({ onOpenAudit, initialStatus = "" }) {
     },
     onError: (err) => setBulkMessage({ tone: "error", text: err.message }),
   });
-  const runBulk = (action, question) => window.confirm(`${question} ${picked.size} selected ${picked.size === 1 ? "user" : "users"}?`) && bulk.mutate({ action });
+  const runBulk = async (action, question) => (await confirmDialog(`${question} ${picked.size} selected ${picked.size === 1 ? "user" : "users"}?`, "Confirm")) && bulk.mutate({ action });
   const toggle = (id) =>
     setPicked((current) => {
       const next = new Set(current);

@@ -14,6 +14,7 @@ import useActiveTrip from "../../hooks/useActiveTrip.js";
 import useTips from "../../store/tipsStore.js";
 import ChatText from "./ChatText.jsx";
 import "../../styles/chat.css";
+import { confirmDialog } from "../../store/confirmStore.js";
 
 const DEFAULT_SUGGESTIONS = [
   "What is planned for day 2?",
@@ -169,8 +170,9 @@ export default function ChatPanel({ showHistory = false, prefill = null }) {
   const remove = async (event, id) => {
     event.stopPropagation();
 
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this conversation? This action cannot be undone."
+    const confirmed = await confirmDialog(
+      "Are you sure you want to delete this conversation? This action cannot be undone.",
+      "Delete"
     );
 
     if (!confirmed) return;

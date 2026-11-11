@@ -13,6 +13,7 @@ import { INTEREST_TAGS } from "../../pages/recommendations/constants.js";
 import { splitDestination } from "../../utils/countries.js";
 import { wholeSentences } from "../../utils/travelAdvice.js";
 import "../../styles/insights.css";
+import { confirmDialog } from "../../store/confirmStore.js";
 
 // The trip page's hub sections. Each one loads on its own and says plainly
 // when its data is missing - nothing here is ever filled with a guess.
@@ -261,7 +262,7 @@ export function AddLandmark({ trip, onAdded }) {
   const add = async (landmark) => {
     const name = landmark.name.trim().toLowerCase();
     const repeat = (trip.itinerary || []).some((item) => item.dayNumber === day && item.title.trim().toLowerCase() === name);
-    if (repeat && !window.confirm(`${landmark.name} is already on day ${day}. Add it again?`)) return;
+    if (repeat && !(await confirmDialog(`${landmark.name} is already on day ${day}. Add it again?`, "Add again"))) return;
     setBusy(true);
     setError("");
     try {

@@ -15,6 +15,9 @@ const ACTIONS = {
   ADMIN_DESTINATION_DELETE: "Deleted a destination",
   ADMIN_DESTINATIONS_SHOW: "Showed destinations in recommendations",
   ADMIN_DESTINATIONS_HIDE: "Hid destinations from recommendations",
+  ADMIN_DESTINATION_REFRESH: "Refreshed a destination's data",
+  ADMIN_PLACE_REPORTS_CLOSE: "Closed reports about a place",
+  ADMIN_USERS_EXPORT: "Downloaded the user list",
   ADMIN_SAFETY_SYNC: "Re-checked safety advisories",
 };
 

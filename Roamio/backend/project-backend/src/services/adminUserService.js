@@ -138,8 +138,8 @@ async function getUser(value, now = Date.now()) {
 const audit = (adminId, action, targetId) => auditLog.log(adminId, action, { entityType: 'USER', entityId: targetId });
 
 // Suspend or reactivate. A suspended account can't sign in or refresh a session, and
-// every device is signed out now. ponytail: an access token already issued works until
-// it expires (15 minutes) - add a per-request isActive check only if that is too long.
+// every device is signed out now. Revoking the sessions stops their access tokens at
+// once (authMiddleware checks the session on every request).
 async function setActive(adminId, value, active) {
   const id = userId(value);
   if (typeof active !== 'boolean') throw httpError(400, 'isActive must be true or false.');

@@ -42,6 +42,7 @@ import ChatWidget from "../components/chat/ChatWidget.jsx";
 import TermsGate from "../components/onboarding/TermsGate.jsx";
 import AppSidebar from "../components/layout/AppSidebar.jsx";
 import useActiveTrip from "../hooks/useActiveTrip.js";
+import NextStop from "../components/dashboard/NextStop.jsx";
 import useTheme from "../components/recommendations/useTheme.js";
 import "../styles/dashboard.css";
 
@@ -997,6 +998,8 @@ export default function Dashboard() {
 
           <LanguagePrompt />
           {!tripsLoading && !tripsError && <GetStarted trips={trips} groups={groups} />}
+
+          <NextStop trip={nextTrip} />
 
           <div className="dashboard-grid">
 

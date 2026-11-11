@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -12,29 +12,34 @@ import { trackPageView } from "./analytics.js";
 import Landing from "./pages/Landing.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
-import ForgotPassword from "./pages/ForgotPassword.jsx";
-import ResetPassword from "./pages/ResetPassword.jsx";
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword.jsx"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
 
-import Dashboard from "./pages/Dashboard.jsx";
-import Settings from "./pages/Settings.jsx";
-import Family from "./pages/Family.jsx";
+const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
+const Settings = lazy(() => import("./pages/Settings.jsx"));
+const Family = lazy(() => import("./pages/Family.jsx"));
 
-import Translator from "./pages/Translator.jsx";
-import Weather from "./pages/Weather.jsx";
-import Recommendations from "./pages/Recommendations.jsx";
+const Translator = lazy(() => import("./pages/Translator.jsx"));
+const Weather = lazy(() => import("./pages/Weather.jsx"));
+const Recommendations = lazy(() => import("./pages/Recommendations.jsx"));
 
-import TripsList from "./pages/TripsList.jsx";
-import TripDetail from "./pages/TripDetail.jsx";
-import TripBudget from "./pages/TripBudget.jsx";
-import Calendar from "./pages/Calendar.jsx";
-import Chat from "./pages/Chat.jsx";
-import Invite from "./pages/Invite.jsx";
-import Join from "./pages/Join.jsx";
-import AdminDashboard from "./pages/AdminDashboard.jsx";
-import Legal from "./pages/Legal.jsx";
-import NotFound from "./pages/NotFound.jsx";
+const TripsList = lazy(() => import("./pages/TripsList.jsx"));
+const TripDetail = lazy(() => import("./pages/TripDetail.jsx"));
+const TripBudget = lazy(() => import("./pages/TripBudget.jsx"));
+const Calendar = lazy(() => import("./pages/Calendar.jsx"));
+const Chat = lazy(() => import("./pages/Chat.jsx"));
+const Invite = lazy(() => import("./pages/Invite.jsx"));
+const Join = lazy(() => import("./pages/Join.jsx"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard.jsx"));
+const Legal = lazy(() => import("./pages/Legal.jsx"));
+const NotFound = lazy(() => import("./pages/NotFound.jsx"));
 
 import OfflineBanner from "./components/layout/OfflineBanner.jsx";
+import Toaster from "./components/layout/Toaster.jsx";
+import ConfirmHost from "./components/layout/ConfirmHost.jsx";
+import { fetchTrip } from "./api/trips.js";
+import { cacheDocument, fetchDocuments } from "./api/tripDocuments.js";
+import { useTripStore, defaultTrip } from "./store/tripStore.js";
 import AppShell from "./components/layout/AppShell.jsx";
 import AdminRoute from "./components/admin/AdminRoute.jsx";
 import { useAuthStore } from "./store/authStore.js";
@@ -76,11 +81,39 @@ function RouteTracker() {
   return null;
 }
 
+// While online and signed in, warm the offline copy of the active trip (itinerary
+// included) so it is there even if the user never opened it before losing signal.
+function OfflinePrefetch() {
+  const signedIn = useAuthStore((state) => state.isAuthenticated);
+  const trips = useTripStore((state) => state.trips);
+  const loaded = useTripStore((state) => state.loaded);
+  const activeId = useTripStore((state) => state.activeTripId);
+  useEffect(() => {
+    if (!signedIn) return;
+    useTripStore.getState().load();
+  }, [signedIn]);
+  useEffect(() => {
+    if (!signedIn || !loaded || !navigator.onLine) return;
+    const trip = trips.find((t) => String(t.id) === String(activeId)) || defaultTrip(trips);
+    if (!trip) return;
+    fetchTrip(trip.id).catch(() => {});
+    // the files too (1 MB max each): a booking should open at the airport with no signal
+    fetchDocuments(trip.id)
+      .then((docs) => Promise.all(docs.map((d) => cacheDocument(trip.id, d.id))))
+      .catch(() => {});
+  }, [signedIn, loaded, trips, activeId]);
+  return null;
+}
+
 function App() {
   return (
     <BrowserRouter>
       <RouteTracker />
       <OfflineBanner />
+      <OfflinePrefetch />
+      <Toaster />
+      <ConfirmHost />
+      <Suspense fallback={<p role="status" style={{ padding: 24 }}>Loading...</p>}>
       <Routes>
 
         {/* =================================================
@@ -178,6 +211,7 @@ function App() {
         <Route path="*" element={<NotFound />} />
 
       </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

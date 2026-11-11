@@ -33,6 +33,7 @@ const ratesRoutes = require('./src/routes/rates');
 const adminRoutes = require('./src/routes/admin');
 const chatRoutes = require('./src/routes/chat');
 const meRoutes = require('./src/routes/me');
+const wizardEventRoutes = require('./src/routes/wizardEvents');
 const supportRoutes = require('./src/routes/support');
 const destinationFeedbackRoutes = require('./src/routes/destinationFeedback');
 const cronRoutes = require('./src/routes/cron');
@@ -112,6 +113,7 @@ app.use('/api/chat', chatLimiter, chatRoutes);
 // deletion, problem reports. They guard themselves with requireAuth, so they
 // go before the /api routers below that would 401 them.
 app.use('/api/users/me', meRoutes);
+app.use('/api/wizard-events', wizardEventRoutes);
 app.use('/api/support', supportLimiter, supportRoutes);
 app.use('/api/places', feedbackLimiter, destinationFeedbackRoutes);
 

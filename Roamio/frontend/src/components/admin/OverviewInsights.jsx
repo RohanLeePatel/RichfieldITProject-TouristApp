@@ -36,6 +36,50 @@ function Sparkline({ series, label }) {
   );
 }
 
+// A larger line chart of one metric's daily values, with the previous-period total for context
+const TREND_METRICS = [
+  { key: "newUsers", label: "New users" },
+  { key: "activeUsers", label: "Active users" },
+  { key: "trips", label: "Trips planned" },
+];
+function TrendChart({ series, label }) {
+  const W = 600;
+  const H = 180;
+  const PAD = { l: 34, r: 8, t: 8, b: 22 };
+  const max = Math.max(1, ...series.map((p) => p.value));
+  const x = (i) => PAD.l + (series.length > 1 ? (i / (series.length - 1)) * (W - PAD.l - PAD.r) : 0);
+  const y = (v) => PAD.t + (1 - v / max) * (H - PAD.t - PAD.b);
+  const line = series.map((p, i) => `${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(" ");
+  const area = `${x(0)},${y(0)} ${line} ${x(series.length - 1)},${y(0)}`;
+  const short = (d) => new Date(`${d}T00:00:00Z`).toLocaleDateString(undefined, { day: "numeric", month: "short", timeZone: "UTC" });
+  return (
+    <svg className="admin-ins-trend" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${label}, one point per day`}>
+      {[0, 0.5, 1].map((f) => (
+        <g key={f}>
+          <line x1={PAD.l} x2={W - PAD.r} y1={y(max * f)} y2={y(max * f)} stroke="currentColor" opacity="0.12" />
+          <text x={PAD.l - 6} y={y(max * f) + 4} textAnchor="end" fontSize="11" fill="currentColor" opacity="0.6">
+            {Math.round(max * f)}
+          </text>
+        </g>
+      ))}
+      <polygon points={area} fill="currentColor" opacity="0.08" />
+      <polyline points={line} fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      {series.length <= 45 &&
+        series.map((p, i) => (
+          <circle key={p.date} cx={x(i)} cy={y(p.value)} r="3" fill="currentColor">
+            <title>{`${short(p.date)}: ${p.value}`}</title>
+          </circle>
+        ))}
+      <text x={PAD.l} y={H - 4} fontSize="11" fill="currentColor" opacity="0.6">
+        {short(series[0].date)}
+      </text>
+      <text x={W - PAD.r} y={H - 4} textAnchor="end" fontSize="11" fill="currentColor" opacity="0.6">
+        {short(series[series.length - 1].date)}
+      </text>
+    </svg>
+  );
+}
+
 function Kpi({ label, icon: Icon, tone, metric, loading }) {
   return (
     <article className="admin-stat admin-ins-kpi">
@@ -107,6 +151,7 @@ function Funnel({ steps }) {
 export default function OverviewInsights({ onOpenUsers }) {
   const [days, setDays] = useState(30);
   const [spot, setSpot] = useState("cities");
+  const [trend, setTrend] = useState("newUsers");
   const { data, isPending, error, isFetching, refetch } = useQuery({ ...adminInsightsQuery(days), retry: retryUnlessForbidden });
 
   const kpis = data?.kpis;
@@ -173,6 +218,23 @@ export default function OverviewInsights({ onOpenUsers }) {
             <Kpi label="Trips planned" icon={Route} tone="orange" metric={kpis?.trips} loading={loading} />
           </div>
 
+          <Panel
+            title="Trend"
+            icon={LayoutDashboard}
+            hint={`Per day, last ${days} days`}
+            actions={
+              <div className="admin-segmented" role="group" aria-label="Metric">
+                {TREND_METRICS.map(({ key, label }) => (
+                  <button key={key} type="button" className={trend === key ? "active" : ""} aria-pressed={trend === key} onClick={() => setTrend(key)}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            }
+          >
+            {loading || !kpis?.[trend]?.series.length ? <Empty>{loading ? "Loading…" : "No data yet."}</Empty> : <TrendChart series={kpis[trend].series} label={TREND_METRICS.find((m) => m.key === trend).label} />}
+          </Panel>
+
           <div className="admin-ins-grid">
             <Panel
               title="Where users are going"
@@ -189,6 +251,10 @@ export default function OverviewInsights({ onOpenUsers }) {
               }
             >
               {loading ? <Empty>Loading…</Empty> : <TopList items={data.topDestinations[spot]} />}
+            </Panel>
+
+            <Panel title="Trip wizard" icon={MapPin} hint="People who reached each step of planning a trip">
+              {loading ? <Empty>Loading…</Empty> : <Funnel steps={data.wizardFunnel || []} />}
             </Panel>
 
             <Panel title="Sign-up funnel" icon={MapPin} hint="How far this period's new users got">

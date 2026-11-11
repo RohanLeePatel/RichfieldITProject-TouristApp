@@ -10,6 +10,7 @@ import { useAuthStore } from "../store/authStore.js";
 import { formatMoney } from "../utils/format.js";
 import { CURRENCIES } from "./recommendations/constants.js";
 import "../styles/trips.css";
+import { showToast } from "../store/toastStore.js";
 
 const CATEGORIES = [
   { id: "FOOD", label: "Food & drink", example: "Bunny chow" },
@@ -81,6 +82,16 @@ export default function TripBudget({ embedded = false }) {
     if (me?.id) map.set(me.id, "You");
     return map;
   }, [trip, expenses, me]);
+
+  // deleted at once, with Undo: the expense is re-created from what the form records
+  const removeExpense = async (expense) => {
+    if (!(await run(() => deleteExpense(tripId, expense.id)))) return;
+    const { title, amount, currency, category, date } = expense;
+    showToast(`Deleted "${title}".`, {
+      label: "Undo",
+      run: () => run(() => createExpense(tripId, { title, amount, currency, category, date })),
+    });
+  };
 
   // quick: the action already put its result on screen, so refresh the totals
   // in the background instead of keeping the button busy
@@ -206,7 +217,7 @@ export default function TripBudget({ embedded = false }) {
                     className="secondary-button"
                     disabled={busy}
                     aria-label={`Delete ${expense.title}`}
-                    onClick={() => window.confirm(`Delete "${expense.title}"?`) && run(() => deleteExpense(tripId, expense.id))}
+                    onClick={() => removeExpense(expense)}
                   >
                     <Trash2 size={14} />
                   </button>
