@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { X } from "lucide-react";
 
 import { formatDimension } from "../../pages/recommendations/constants.js";
@@ -8,8 +9,20 @@ export default function CompareView({ items, onRemove, onClose }) {
   const dimensions = [...new Set(items.flatMap((item) => (item.breakdown || []).map((entry) => entry.dimension)))];
   const scoreOf = (item, dimension) => item.breakdown?.find((entry) => entry.dimension === dimension)?.value;
 
+  useEffect(() => {
+    const onKey = (event) => { if (event.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onClose]);
+
   return (
-    <section className="compare-view" aria-label="Compare destinations">
+    <div className="compare-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <section className="compare-view" role="dialog" aria-modal="true" aria-label="Compare destinations">
       <div className="compare-heading">
         <h3>Compare destinations</h3>
         <button type="button" className="secondary-button" onClick={onClose}>Close</button>
@@ -59,5 +72,6 @@ export default function CompareView({ items, onRemove, onClose }) {
         </table>
       </div>
     </section>
+    </div>
   );
 }
