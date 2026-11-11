@@ -137,6 +137,7 @@ export default function TripBudget({ embedded = false }) {
 
           <ExpenseForm
             trip={trip}
+            me={me}
             budgetCurrency={budgetCurrency}
             busy={busy}
             onAdd={(expense) =>
@@ -220,7 +221,7 @@ export default function TripBudget({ embedded = false }) {
               <div className="results-heading">
                 <div>
                   <h2>Who owes whom</h2>
-                  <p>Costs are split equally between everyone on the trip.</p>
+                  <p>Costs are split equally between everyone on the trip unless you set precise shares.</p>
                 </div>
               </div>
               <ul className="trip-hub-list">
@@ -297,7 +298,7 @@ function BudgetOverview({ summary, defaultCurrency, busy, onSave }) {
   );
 }
 
-function ExpenseForm({ trip, budgetCurrency, busy, onAdd }) {
+function ExpenseForm({ trip, me, budgetCurrency, busy, onAdd }) {
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState(budgetCurrency);
@@ -305,6 +306,17 @@ function ExpenseForm({ trip, budgetCurrency, busy, onAdd }) {
   const [date, setDate] = useState(today);
   const [preview, setPreview] = useState("");
   const [formError, setFormError] = useState("");
+  const [precise, setPrecise] = useState(false);
+  const [percents, setPercents] = useState({}); // userId -> percent string
+
+  const members = (trip?.members || []).filter((m) => m.user);
+  const used = members.reduce((sum, m) => sum + (Number(percents[m.user.id]) || 0), 0);
+  // cap each box so the total can never pass 100
+  const setPercent = (id, raw) => {
+    const others = used - (Number(percents[id]) || 0);
+    const value = Math.min(Math.max(Number(raw) || 0, 0), Math.max(0, 100 - others));
+    setPercents({ ...percents, [id]: raw === "" ? "" : String(Math.round(value * 100) / 100) });
+  };
 
   // allow bookings made up to a year ahead of the trip, nothing after it ends
   const minDate = trip?.startDate ? shiftDays(trip.startDate, -365) : undefined;
@@ -346,10 +358,14 @@ function ExpenseForm({ trip, budgetCurrency, busy, onAdd }) {
           if (!problem && !/^\d{4}-\d{2}-\d{2}$/.test(date)) problem = "Pick the date of the purchase.";
           else if (!problem && minDate && date < minDate) problem = "That date is more than a year before the trip.";
           else if (!problem && maxDate && date > maxDate) problem = "That date is after the trip ends.";
+          if (!problem && precise && Math.abs(used - 100) > 0.01) problem = `Shares must add up to 100% (now ${Math.round(used * 100) / 100}%).`;
           setFormError(problem);
           if (problem) return;
+          const split = precise
+            ? { splitType: "PERCENT", splits: members.map((m) => ({ userId: m.user.id, percent: Number(percents[m.user.id]) || 0 })) }
+            : {};
           // keep what was typed if the save fails
-          if (await onAdd({ title: title.trim(), amount: Number(amount).toFixed(2), currency, category, date })) {
+          if (await onAdd({ title: title.trim(), amount: Number(amount).toFixed(2), currency, category, date, ...split })) {
             setTitle("");
             setAmount("");
           }
@@ -379,6 +395,20 @@ function ExpenseForm({ trip, budgetCurrency, busy, onAdd }) {
           Date
           <input type="date" min={minDate} max={maxDate} value={date} onChange={(event) => setDate(event.target.value)} required />
         </label>
+        <label className="wizard-field">
+          Split
+          <span>
+            <input type="checkbox" checked={precise} onChange={(event) => setPrecise(event.target.checked)} /> Set precise shares
+            {!precise && " (splitting evenly)"}
+          </span>
+        </label>
+        {precise && members.map((m) => (
+          <label className="wizard-field" key={m.user.id}>
+            {m.user.id === me?.id ? "You" : m.user.fullName} (%)
+            <input type="number" min="0" max="100" step="0.01" inputMode="decimal" value={percents[m.user.id] ?? ""} placeholder="0" onChange={(event) => setPercent(m.user.id, event.target.value)} />
+          </label>
+        ))}
+        {precise && <p className="wizard-help">{Math.round(used * 100) / 100}% of 100% assigned</p>}
         <button type="submit" className="recommendations-submit" disabled={busy}>
           {busy && <LoaderCircle className="recommendations-spinner" size={15} />} {busy ? "Adding..." : "Add"}
         </button>
