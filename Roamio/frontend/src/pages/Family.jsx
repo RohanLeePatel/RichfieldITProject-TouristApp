@@ -1,143 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Baby,
-  BriefcaseBusiness,
   CalendarDays,
-  Check,
   ChevronRight,
-  Edit3,
-  Heart,
+  Baby,
   MapPin,
-  MoreHorizontal,
   Plus,
-  Search,
-  ShieldCheck,
   Sparkles,
-  Trash2,
   UserRound,
   Users,
-  X,
   Plane,
-  Compass,
-  Castle,
-  Coffee,
-  Droplets,
-  FerrisWheel,
-  Fish,
-  Landmark,
-  Sandwich,
-  Utensils,
-  Waves,
-  Mountain,
-  Trees,
 } from "lucide-react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import TravelGroups from "../components/groups/TravelGroups.jsx";
 import Hint from "../components/onboarding/Hint.jsx";
 import PageShell from "../components/recommendations/PageShell.jsx";
-import { saveCompanions } from "../api/groups.js";
 import { fetchTrips } from "../api/trips";
-import { INTEREST_TAGS } from "./recommendations/constants.js";
-import { emailError, MAX_EMAIL, nameError } from "../utils/validation.js";
-
-const MAX_NAME_CHARS = 60; // matches the companion schema in groupMeta.js
-
-// "" when the member form is ok, otherwise the message to show
-function memberFormError(form) {
-  const nameProblem = nameError(form.name, "the member's name", { max: MAX_NAME_CHARS });
-  if (nameProblem) return nameProblem;
-  if (form.type === "Child") {
-    const age = String(form.age ?? "").trim();
-    if (!/^\d{1,2}$/.test(age) || Number(age) > 17) return "Enter the child's age as a whole number from 0 to 17.";
-  }
-  const emailProblem = emailError(form.email, { required: false });
-  if (emailProblem) return `${emailProblem.replace(/\.$/, "")}, or leave it blank.`;
-  return "";
-}
 import "../styles/Family.css";
-
-
-// The wizard's own interest tags, so a member's picks can pre-fill the
-// wizard's group step as-is (one vocabulary across the app).
-const TAG_ICONS = {
-  parks: Trees, hiking: Mountain, beaches: Waves, waterparks: Droplets,
-  museums: Landmark, historic_sites: Castle,
-  restaurants: Utensils, cafes: Coffee, street_food: Sandwich,
-  theme_parks: FerrisWheel, zoos_aquariums: Fish, playgrounds: Baby,
-};
-
-const INTERESTS = INTEREST_TAGS.map((tag) => ({ id: tag.id, name: tag.label, icon: TAG_ICONS[tag.id] || Compass }));
-
-// picks saved under the old list, mapped to the closest wizard tag
-// ("Photography" has none and is dropped)
-const LEGACY_INTERESTS = { Beach: "Beaches", Adventure: "Hiking", Nature: "Parks", Culture: "Museums", Food: "Restaurants" };
-
-const COLOR_OPTIONS = [
-  "blue",
-  "teal",
-  "purple",
-  "orange",
-  "green",
-];
-
-const EMPTY_FORM = {
-  name: "",
-  relationship: "Group member",
-  type: "Adult",
-  // children only: the wizard's "children's ages" comes from these
-  age: "",
-  email: "",
-  interests: [],
-  color: "teal",
-};
-
-function getInitials(name) {
-  return (
-    name
-      .trim()
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((part) => part.charAt(0))
-      .join("")
-      .toUpperCase() || "RM"
-  );
-}
-
-// Brings a saved companion into the shape this page edits. Older saves used the
-// relationship "Family member" and the old interest names, so both are mapped here.
-// Status is filled in with a default because companions never store one.
-function normalizeMember(member) {
-  return {
-    ...member,
-    relationship:
-      member.relationship === "Family member"
-        ? "Group member"
-        : member.relationship || "Group member",
-    trips: Number(member.trips || 0),
-    interests: Array.isArray(member.interests)
-      ? [...new Set(member.interests.map((name) => LEGACY_INTERESTS[name] || name))]
-          .filter((name) => INTERESTS.some((interest) => interest.name === name))
-      : [],
-    initials:
-      member.initials || getInitials(member.name || ""),
-    color: member.color || "teal",
-    status: member.status || "Active",
-  };
-}
-
-// a member of this page as the server stores a group companion
-function toCompanion(member) {
-  return {
-    id: String(member.id),
-    name: member.name,
-    type: member.type === "Child" ? "Child" : "Adult",
-    age: member.type === "Child" && member.age !== "" && member.age != null ? Number(member.age) : null,
-    relationship: member.relationship || "Group member",
-    interests: member.interests || [],
-    color: member.color || "teal",
-  };
-}
 
 function normalizeTrip(trip) {
   return {
@@ -225,350 +104,29 @@ function getTripColor(index) {
   return colors[index % colors.length];
 }
 
-function MemberAvatar({ member, large = false }) {
-  return (
-    <div
-      className={`family-avatar family-avatar-${
-        member.color || "teal"
-      } ${large ? "family-avatar-large" : ""}`}
-      aria-hidden="true"
-    >
-      {member.initials || getInitials(member.name)}
-    </div>
-  );
-}
 
-function InterestIcon({ name, size = 14 }) {
-  const match = INTERESTS.find(
-    (interest) => interest.name === name
-  );
+// Who is travelling on a trip, from what the trip wizard saved:
+// { adults, childAges }. Older trips have none, so the numbers are unknown.
+function getTravellerStats(trip) {
+  const travellers = trip.travellers;
 
-  const Icon = match?.icon || Compass;
+  if (!travellers || typeof travellers !== "object") return null;
 
-  return <Icon size={size} />;
-}
+  const adults = Number(travellers.adults) || 0;
+  const childAges = Array.isArray(travellers.childAges)
+    ? travellers.childAges
+    : [];
 
-function MemberModal({
-  open,
-  mode,
-  form,
-  setForm,
-  error,
-  onClose,
-  onSave,
-}) {
-  if (!open) return null;
-
-  const toggleInterest = (interest) => {
-    setForm((current) => ({
-      ...current,
-      interests: current.interests.includes(interest)
-        ? current.interests.filter(
-            (item) => item !== interest
-          )
-        : [...current.interests, interest],
-    }));
+  return {
+    adults,
+    children: childAges.length,
+    childAges,
+    members: adults + childAges.length,
   };
-
-  return (
-    <div
-      className="family-modal-backdrop"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
-        }
-      }}
-    >
-      <div
-        className="family-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="family-modal-title"
-      >
-        <div className="family-modal-header">
-          <div>
-            <span className="family-modal-eyebrow">
-              <Users size={14} />
-              TRAVEL GROUP PROFILE
-            </span>
-
-            <h2 id="family-modal-title">
-              {mode === "edit"
-                ? "Edit group member"
-                : "Add group member"}
-            </h2>
-
-            <p>
-              Keep your travel group's details together
-              in Roamio.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            className="family-modal-close"
-            onClick={onClose}
-            aria-label="Close"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        <form onSubmit={onSave} noValidate>
-          <div className="family-form-grid">
-            <label className="family-form-field family-form-field-wide">
-              <span>Full name</span>
-
-              <div className="family-input-wrap">
-                <UserRound size={16} />
-
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(event) =>
-                    setForm({
-                      ...form,
-                      name: event.target.value,
-                    })
-                  }
-                  placeholder="e.g. Sarah Smith"
-                  maxLength={MAX_NAME_CHARS}
-                  required
-                  autoFocus
-                />
-              </div>
-            </label>
-
-            <label className="family-form-field">
-              <span>Relationship</span>
-
-              <select
-                value={form.relationship}
-                onChange={(event) =>
-                  setForm({
-                    ...form,
-                    relationship: event.target.value,
-                  })
-                }
-              >
-                <option>Group member</option>
-                <option>Parent</option>
-                <option>Partner</option>
-                <option>Sibling</option>
-                <option>Child</option>
-                <option>Grandparent</option>
-                <option>Friend</option>
-                <option>Colleague</option>
-                <option>Other</option>
-              </select>
-            </label>
-
-            <label className="family-form-field">
-              <span>Age group</span>
-
-              <select
-                value={form.type}
-                onChange={(event) =>
-                  setForm({
-                    ...form,
-                    type: event.target.value,
-                  })
-                }
-              >
-                <option>Adult</option>
-                <option>Child</option>
-              </select>
-            </label>
-
-            {form.type === "Child" && (
-              <label className="family-form-field">
-                <span>Age</span>
-
-                <input
-                  type="number"
-                  min="0"
-                  max="17"
-                  step="1"
-                  inputMode="numeric"
-                  value={form.age}
-                  onChange={(event) =>
-                    setForm({
-                      ...form,
-                      age: event.target.value,
-                    })
-                  }
-                  placeholder="e.g. 8"
-                  required
-                />
-              </label>
-            )}
-
-            <label className="family-form-field family-form-field-wide">
-              <span>
-                Email <small>Optional</small>
-              </span>
-
-              <div className="family-input-wrap">
-                <BriefcaseBusiness size={16} />
-
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(event) =>
-                    setForm({
-                      ...form,
-                      email: event.target.value,
-                    })
-                  }
-                  placeholder="member@example.com"
-                  maxLength={MAX_EMAIL}
-                />
-              </div>
-            </label>
-          </div>
-
-          <div className="family-form-section">
-            <div className="family-form-section-heading">
-              <div>
-                <strong>Travel interests</strong>
-
-                <span>
-                  Choose what they enjoy when travelling.
-                </span>
-              </div>
-            </div>
-
-            <div className="family-interest-picker">
-              {INTERESTS.map((interest) => {
-                const selected =
-                  form.interests.includes(interest.name);
-
-                const Icon = interest.icon;
-
-                return (
-                  <button
-                    type="button"
-                    key={interest.name}
-                    className={`family-interest-option ${
-                      selected ? "selected" : ""
-                    }`}
-                    onClick={() =>
-                      toggleInterest(interest.name)
-                    }
-                  >
-                    <Icon size={17} />
-
-                    <span>{interest.name}</span>
-
-                    {selected && <Check size={14} />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="family-form-section">
-            <div className="family-form-section-heading">
-              <div>
-                <strong>Profile colour</strong>
-
-                <span>
-                  Choose an avatar colour.
-                </span>
-              </div>
-            </div>
-
-            <div className="family-colour-picker">
-              {COLOR_OPTIONS.map((color) => (
-                <button
-                  type="button"
-                  key={color}
-                  className={`family-colour-option family-colour-${color} ${
-                    form.color === color
-                      ? "selected"
-                      : ""
-                  }`}
-                  onClick={() =>
-                    setForm({
-                      ...form,
-                      color,
-                    })
-                  }
-                  aria-label={`Use ${color} avatar`}
-                >
-                  {form.color === color && (
-                    <Check size={15} />
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {error && <p className="family-form-error" role="alert">{error}</p>}
-
-          <div className="family-modal-actions">
-            <button
-              type="button"
-              className="family-button family-button-secondary"
-              onClick={onClose}
-            >
-              Cancel
-            </button>
-
-            <button
-              type="submit"
-              className="family-button family-button-primary"
-            >
-              <Check size={16} />
-
-              {mode === "edit"
-                ? "Save changes"
-                : "Add member"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
 }
 
 export default function Family() {
   const navigate = useNavigate();
-
-  // Companions (people without an account) belong to a travel group and are
-  // saved on the server with it, so everyone in the group sees them and the
-  // trip wizard plans around them. ?group= picks the group (from a trip page).
-  const [params] = useSearchParams();
-  const [groups, setGroups] = useState([]);
-  const [groupId, setGroupId] = useState(() => Number(params.get("group")) || null);
-  const [members, setMembers] = useState([]);
-  const group = groups.find((item) => item.id === groupId) || null;
-
-  // TravelGroups loads the groups; keep the chosen one if it still exists
-  const handleGroups = (list) => {
-    setGroups(list);
-    setGroupId((current) => (list.some((item) => item.id === current) ? current : list[0]?.id ?? null));
-  };
-
-  useEffect(() => {
-    setMembers((group?.companions || []).map(normalizeMember));
-  }, [group]);
-
-  // every change saves the group's whole list; a failed save puts it back
-  const updateMembers = (change) => {
-    if (!group) return;
-    const previous = members;
-    const next = change(members);
-    setMembers(next);
-    saveCompanions(group.id, next.map(toCompanion))
-      .then((companions) =>
-        setGroups((current) => current.map((item) => (item.id === group.id ? { ...item, companions } : item)))
-      )
-      .catch((error) => {
-        setMembers(previous);
-        setToast(error?.message || "Could not save that change.");
-      });
-  };
 
   const [trips, setTrips] = useState([]);
 
@@ -578,32 +136,8 @@ export default function Family() {
   const [tripsError, setTripsError] =
     useState("");
 
-  const [search, setSearch] =
-    useState("");
-
-  const [filter, setFilter] =
-    useState("All");
-
-  const [modalOpen, setModalOpen] =
-    useState(false);
-
-  const [modalMode, setModalMode] =
-    useState("add");
-
-  const [selectedMember, setSelectedMember] =
+  const [activeTripId, setActiveTripId] =
     useState(null);
-
-  const [form, setForm] =
-    useState(EMPTY_FORM);
-
-  const [formError, setFormError] =
-    useState("");
-
-  const [menuOpen, setMenuOpen] =
-    useState(null);
-
-  const [toast, setToast] =
-    useState("");
 
   /*
    * Load real trips from the Roamio API.
@@ -648,20 +182,6 @@ export default function Family() {
     };
   }, []);
 
-  /*
-   * Toast timer.
-   */
-  useEffect(() => {
-    if (!toast) return undefined;
-
-    const timer = window.setTimeout(() => {
-      setToast("");
-    }, 2600);
-
-    return () =>
-      window.clearTimeout(timer);
-  }, [toast]);
-
   const normalizedTrips = useMemo(
     () =>
       trips.map((trip) => ({
@@ -671,6 +191,18 @@ export default function Family() {
     [trips]
   );
 
+  const byStartDate = (a, b) => {
+    const aDate = a.startDate
+      ? new Date(a.startDate).getTime()
+      : Number.MAX_SAFE_INTEGER;
+
+    const bDate = b.startDate
+      ? new Date(b.startDate).getTime()
+      : Number.MAX_SAFE_INTEGER;
+
+    return aDate - bDate;
+  };
+
   const upcomingTrips = useMemo(
     () =>
       normalizedTrips
@@ -679,273 +211,35 @@ export default function Family() {
             trip.calculatedStatus !==
             "Completed"
         )
-        .sort((a, b) => {
-          const aDate = a.startDate
-            ? new Date(a.startDate).getTime()
-            : Number.MAX_SAFE_INTEGER;
-
-          const bDate = b.startDate
-            ? new Date(b.startDate).getTime()
-            : Number.MAX_SAFE_INTEGER;
-
-          return aDate - bDate;
-        }),
+        .sort(byStartDate),
     [normalizedTrips]
   );
 
-  const adults = useMemo(
-    () =>
-      members.filter(
-        (member) => member.type === "Adult"
-      ),
-    [members]
-  );
-
-  const children = useMemo(
-    () =>
-      members.filter(
-        (member) => member.type === "Child"
-      ),
-    [members]
-  );
-
-  const totalMemberTrips = useMemo(
-    () =>
-      members.reduce(
-        (total, member) =>
-          total + Number(member.trips || 0),
-        0
-      ),
-    [members]
-  );
-
-  const groupInterests = useMemo(() => {
-    const counts = {};
-
-    members.forEach((member) => {
-      (member.interests || []).forEach(
-        (interest) => {
-          counts[interest] =
-            (counts[interest] || 0) + 1;
-        }
-      );
-    });
-
-    return INTERESTS.map((interest) => ({
-      ...interest,
-      count:
-        counts[interest.name] || 0,
-    }))
-      .filter((interest) => interest.count > 0)
-      .sort(
-        (a, b) =>
-          b.count - a.count
-      )
-      .slice(0, 5);
-  }, [members]);
-
-  const filteredMembers = useMemo(() => {
-    const query =
-      search.trim().toLowerCase();
-
-    return members.filter((member) => {
-      const matchesSearch =
-        !query ||
-        member.name
-          .toLowerCase()
-          .includes(query) ||
-        member.relationship
-          .toLowerCase()
-          .includes(query) ||
-        member.type
-          .toLowerCase()
-          .includes(query);
-
-      const matchesFilter =
-        filter === "All" ||
-        member.type === filter;
-
-      return (
-        matchesSearch &&
-        matchesFilter
-      );
-    });
-  }, [members, search, filter]);
-
-  const openAddModal = () => {
-    if (!group) {
-      setToast("Create or join a travel group first - companions are saved with it.");
-      return;
-    }
-    setModalMode("add");
-    setSelectedMember(null);
-
-    setForm({
-      ...EMPTY_FORM,
-      interests: [],
-    });
-
-    setFormError("");
-    setModalOpen(true);
-    setMenuOpen(null);
-  };
-
-  const openEditModal = (member) => {
-    setModalMode("edit");
-    setSelectedMember(member);
-
-    setForm({
-      name: member.name,
-      relationship:
-        member.relationship ===
-        "Family member"
-          ? "Group member"
-          : member.relationship ||
-            "Group member",
-      type: member.type || "Adult",
-      age: member.age ?? "",
-      email: member.email || "",
-      interests:
-        member.interests || [],
-      color:
-        member.color || "teal",
-    });
-
-    setFormError("");
-    setModalOpen(true);
-    setMenuOpen(null);
-  };
-
-  const closeModal = () => {
-    setModalOpen(false);
-    setSelectedMember(null);
-
-    setForm({
-      ...EMPTY_FORM,
-      interests: [],
-    });
-  };
-
-  const handleSaveMember = (event) => {
-    event.preventDefault();
-
-    const cleanName =
-      form.name.trim();
-
-    const problem = memberFormError(form);
-    setFormError(problem);
-    if (problem) return;
-
-    if (
-      modalMode === "edit" &&
-      selectedMember
-    ) {
-      updateMembers((current) =>
-        current.map((member) =>
-          member.id ===
-          selectedMember.id
-            ? {
-                ...member,
-                name: cleanName,
-                relationship:
-                  form.relationship ===
-                  "Family member"
-                    ? "Group member"
-                    : form.relationship,
-                type: form.type,
-                age: form.type === "Child" ? form.age : "",
-                email:
-                  form.email.trim(),
-                initials:
-                  getInitials(
-                    cleanName
-                  ),
-                color:
-                  form.color,
-                interests:
-                  form.interests,
-              }
-            : member
+  // every trip for the overview tabs: upcoming first, finished ones after
+  const overviewTrips = useMemo(
+    () => [
+      ...upcomingTrips,
+      ...normalizedTrips
+        .filter(
+          (trip) =>
+            trip.calculatedStatus ===
+            "Completed"
         )
-      );
+        .sort(byStartDate),
+    ],
+    [normalizedTrips, upcomingTrips]
+  );
 
-      setToast(
-        `${cleanName}'s profile was updated.`
-      );
-    } else {
-      const newMember = {
-        id: `member-${Date.now()}`,
-        name: cleanName,
-        relationship:
-          form.relationship ===
-          "Family member"
-            ? "Group member"
-            : form.relationship,
-        type: form.type,
-                age: form.type === "Child" ? form.age : "",
-        email:
-          form.email.trim(),
-        initials:
-          getInitials(
-            cleanName
-          ),
-        color:
-          form.color,
-        interests:
-          form.interests,
-        trips: 0,
-        status: "Active",
-      };
+  const activeTrip =
+    overviewTrips.find(
+      (trip) => trip.id === activeTripId
+    ) ||
+    overviewTrips[0] ||
+    null;
 
-      updateMembers((current) => [
-        ...current,
-        newMember,
-      ]);
-
-      setToast(
-        `${cleanName} was added to your travel group.`
-      );
-    }
-
-    closeModal();
-  };
-
-  // The Organizer guard can't trigger today. Companions never carry a status, so no
-  // member on this page is ever "Organizer". The check is left in place as a safeguard.
-  const handleDeleteMember = (member) => {
-    if (
-      member.status ===
-      "Organizer"
-    ) {
-      setToast(
-        "The trip organizer cannot be removed."
-      );
-
-      setMenuOpen(null);
-
-      return;
-    }
-
-    const confirmed =
-      window.confirm(
-        `Remove ${member.name} from your Roamio travel group?`
-      );
-
-    if (!confirmed) return;
-
-    updateMembers((current) =>
-      current.filter(
-        (item) =>
-          item.id !== member.id
-      )
-    );
-
-    setToast(
-      `${member.name} was removed from your travel group.`
-    );
-
-    setMenuOpen(null);
-  };
+  const activeStats = activeTrip
+    ? getTravellerStats(activeTrip)
+    : null;
 
   const hero = (
     <>
@@ -979,7 +273,7 @@ export default function Family() {
           A travel group is the people you plan with. Add them here, share trips with the group, and the trip suggestions will take everyone&apos;s preferences into account.
         </Hint>
 
-        {/* TRAVEL GROUP OVERVIEW */}
+        {/* TRAVEL GROUP OVERVIEW - one tab per trip */}
 
         <section className="family-overview">
           <div className="family-overview-heading">
@@ -994,656 +288,194 @@ export default function Family() {
               </h2>
 
               <p>
-                Everything you need to plan better
-                trips together.
+                Who is travelling on each of your
+                trips.
               </p>
             </div>
-
-            <button
-              type="button"
-              className="family-button family-button-primary family-add-top"
-              onClick={openAddModal}
-            >
-              <Plus size={17} />
-              Add group member
-            </button>
           </div>
 
-          <div className="family-stat-grid">
-
-            <div className="family-stat-card family-stat-primary">
-              <div className="family-stat-icon">
-                <Users size={20} />
+          {tripsLoading ? (
+            <div className="family-empty-state">
+              <div className="family-empty-icon">
+                <Users size={24} />
               </div>
 
-              <div>
-                <span>
-                  Group members
-                </span>
+              <h3>Loading your trips</h3>
 
-                {/* +1 for you - Dashboard counts you too */}
-                <strong>
-                  {members.length + 1}
-                </strong>
-
-                <small>
-                  Including you
-                </small>
-              </div>
-
-              <div className="family-stat-decoration">
-                <Users size={64} />
-              </div>
+              <p>
+                Your Roamio trips are being loaded.
+              </p>
             </div>
-
-            <div className="family-stat-card">
-              <div className="family-stat-icon family-stat-icon-teal">
-                <UserRound size={20} />
+          ) : overviewTrips.length === 0 ? (
+            <div className="family-empty-state">
+              <div className="family-empty-icon">
+                <Plane size={24} />
               </div>
 
-              <div>
-                <span>Adults</span>
+              <h3>No trips yet</h3>
 
-                <strong>
-                  {adults.length}
-                </strong>
+              <p>
+                Create a trip and the people
+                travelling on it will show up here.
+              </p>
 
-                <small>
-                  Travel companions
-                </small>
-              </div>
-            </div>
-
-            <div className="family-stat-card">
-              <div className="family-stat-icon family-stat-icon-purple">
-                <Baby size={20} />
-              </div>
-
-              <div>
-                <span>
-                  Children
-                </span>
-
-                <strong>
-                  {children.length}
-                </strong>
-
-                <small>
-                  Little explorers
-                </small>
-              </div>
-            </div>
-
-            <div className="family-stat-card">
-              <div className="family-stat-icon family-stat-icon-orange">
-                <Plane size={20} />
-              </div>
-
-              <div>
-                <span>
-                  Your trips
-                </span>
-
-                <strong>
-                  {trips.length}
-                </strong>
-
-                <small>
-                  {totalMemberTrips} member trips
-                </small>
-              </div>
-            </div>
-
-          </div>
-        </section>
-
-        {/* REAL GROUPS - accounts on the server, shared trips, invites */}
-        <TravelGroups onGroups={handleGroups} />
-
-        {/* MAIN TRAVEL GROUP GRID - the chosen group's companions */}
-
-        <div className="family-main-grid">
-
-          {/* GROUP MEMBERS */}
-
-          <section className="family-members-panel">
-
-            <div className="family-panel-header">
-              <div>
-                <span className="family-section-eyebrow">
-                  <Users size={14} />
-                  Your travel group
-                </span>
-
-                <h2>
-                  Companions
-                </h2>
-
-                <p>
-                  {group
-                    ? `People in ${group.name} who don't have a Roamio account. Everyone in the group sees them, and the trip wizard plans around their interests.`
-                    : "People who don't have a Roamio account. Create or join a travel group above first - companions are saved with it."}
-                </p>
-
-                {groups.length > 1 && (
-                  <label className="family-group-picker">
-                    Group
-                    <select value={groupId ?? ""} onChange={(event) => setGroupId(Number(event.target.value))}>
-                      {groups.map((item) => (
-                        <option key={item.id} value={item.id}>{item.name}</option>
-                      ))}
-                    </select>
-                  </label>
-                )}
-              </div>
-
-              <button
-                type="button"
-                className="family-mobile-add"
-                onClick={openAddModal}
-                aria-label="Add group member"
+              <Link
+                to="/trips"
+                className="family-button family-button-primary"
               >
-                <Plus size={18} />
-              </button>
+                <Plus size={16} />
+                Create a trip
+              </Link>
             </div>
-
-            {/* SEARCH + FILTER */}
-
-            <div className="family-member-toolbar">
-
-              <div className="family-search">
-                <Search size={16} />
-
-                <input
-                  type="search"
-                  value={search}
-                  onChange={(event) =>
-                    setSearch(
-                      event.target.value
-                    )
-                  }
-                  placeholder="Search group members..."
-                  maxLength={60}
-                  aria-label="Search group members"
-                />
-
-                {search && (
+          ) : (
+            <>
+              <div
+                className="family-trip-tabs"
+                role="tablist"
+                aria-label="Choose a trip"
+              >
+                {overviewTrips.map((trip) => (
                   <button
                     type="button"
-                    onClick={() =>
-                      setSearch("")
+                    role="tab"
+                    key={trip.id}
+                    id={`family-trip-tab-${trip.id}`}
+                    aria-selected={
+                      trip.id === activeTrip.id
                     }
-                    aria-label="Clear search"
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-
-              <div className="family-filter-tabs">
-                {[
-                  "All",
-                  "Adult",
-                  "Child",
-                ].map((item) => (
-                  <button
-                    type="button"
-                    key={item}
+                    aria-controls="family-trip-panel"
                     className={
-                      filter === item
+                      trip.id === activeTrip.id
                         ? "active"
                         : ""
                     }
                     onClick={() =>
-                      setFilter(item)
+                      setActiveTripId(trip.id)
                     }
                   >
-                    {item}
+                    {trip.title}
                   </button>
                 ))}
               </div>
-            </div>
 
-            {/* MEMBER LIST */}
-
-            {filteredMembers.length > 0 ? (
-              <div className="family-member-list">
-
-                {filteredMembers.map(
-                  (member) => (
-                    <article
-                      className="family-member-card"
-                      key={member.id}
-                    >
-
-                      <MemberAvatar
-                        member={member}
-                        large
-                      />
-
-                      <div className="family-member-main">
-
-                        <div className="family-member-name-row">
-
-                          <h3>
-                            {member.name}
-                          </h3>
-
-                          {member.status ===
-                          "Organizer" ? (
-                            <span className="family-organizer-badge">
-                              <ShieldCheck size={12} />
-                              Organizer
-                            </span>
-                          ) : (
-                            <span className="family-active-dot">
-                              <i />
-                              Active
-                            </span>
-                          )}
-
-                        </div>
-
-                        <p className="family-member-role">
-
-                          {member.relationship ===
-                          "Family member"
-                            ? "Group member"
-                            : member.relationship ||
-                              "Group member"}
-
-                          <span>
-                            •
-                          </span>
-
-                          {member.type}
-
-                        </p>
-
-                        <div className="family-member-meta">
-
-                          <span>
-                            <Plane size={13} />
-
-                            {member.trips || 0}{" "}
-                            {Number(
-                              member.trips || 0
-                            ) === 1
-                              ? "trip"
-                              : "trips"}
-                          </span>
-
-                          {member.email && (
-                            <span>
-                              <BriefcaseBusiness
-                                size={13}
-                              />
-
-                              {member.email}
-                            </span>
-                          )}
-
-                        </div>
-
-                        <div className="family-member-interests">
-
-                          {(member.interests ||
-                            []).length > 0 ? (
-                            member.interests.map(
-                              (
-                                interest
-                              ) => (
-                                <span
-                                  key={
-                                    interest
-                                  }
-                                >
-                                  <InterestIcon
-                                    name={
-                                      interest
-                                    }
-                                    size={
-                                      12
-                                    }
-                                  />
-
-                                  {
-                                    interest
-                                  }
-                                </span>
-                              )
-                            )
-                          ) : (
-                            <span className="family-no-interests">
-                              No travel interests
-                              added
-                            </span>
-                          )}
-
-                        </div>
-
-                      </div>
-
-                      {/* ACTIONS */}
-
-                      <div className="family-member-actions">
-
-                        <button
-                          type="button"
-                          className="family-icon-button"
-                          onClick={() =>
-                            openEditModal(
-                              member
-                            )
-                          }
-                          aria-label={`Edit ${member.name}`}
-                          title="Edit member"
-                        >
-                          <Edit3 size={16} />
-                        </button>
-
-                        <div className="family-more-wrap">
-
-                          <button
-                            type="button"
-                            className="family-icon-button"
-                            onClick={() =>
-                              setMenuOpen(
-                                menuOpen ===
-                                  member.id
-                                  ? null
-                                  : member.id
-                              )
-                            }
-                            aria-label={`More options for ${member.name}`}
-                          >
-                            <MoreHorizontal
-                              size={17}
-                            />
-                          </button>
-
-                          {menuOpen ===
-                            member.id && (
-                            <div className="family-member-menu">
-
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  openEditModal(
-                                    member
-                                  )
-                                }
-                              >
-                                <Edit3 size={14} />
-                                Edit profile
-                              </button>
-
-                              <button
-                                type="button"
-                                className="danger"
-                                onClick={() =>
-                                  handleDeleteMember(
-                                    member
-                                  )
-                                }
-                              >
-                                <Trash2 size={14} />
-                                Remove member
-                              </button>
-
-                            </div>
-                          )}
-
-                        </div>
-
-                      </div>
-
-                    </article>
-                  )
-                )}
-
-              </div>
-            ) : (
-              <div className="family-empty-state">
-
-                <div className="family-empty-icon">
-                  <Users size={24} />
-                </div>
-
-                <h3>
-                  {members.length === 0
-                    ? "It's just you so far"
-                    : "No group members found"}
-                </h3>
-
-                <p>
-                  {members.length === 0
-                    ? "Add the people you travel with to plan trips together."
-                    : "Try another search or clear the current filter."}
-                </p>
-
-                {members.length === 0 ? (
-                  <button
-                    type="button"
-                    className="family-button family-button-primary"
-                    onClick={openAddModal}
-                  >
-                    <Plus size={16} />
-                    Add group member
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="family-button family-button-secondary"
-                    onClick={() => {
-                      setSearch("");
-                      setFilter("All");
-                    }}
-                  >
-                    Clear filters
-                  </button>
-                )}
-
-              </div>
-            )}
-
-            <div className="family-list-footer">
-
-              <span>
-                Showing{" "}
-                {filteredMembers.length} of{" "}
-                {members.length} members
-              </span>
-
-              <button
-                type="button"
-                onClick={openAddModal}
+              <div
+                className="family-trip-panel"
+                role="tabpanel"
+                id="family-trip-panel"
+                aria-labelledby={`family-trip-tab-${activeTrip.id}`}
               >
-                <Plus size={14} />
-                Add another member
-              </button>
+                <div className="family-trip-panel-head">
+                  <div>
+                    <h3>{activeTrip.title}</h3>
 
-            </div>
+                    <p>
+                      <span>
+                        <MapPin size={14} />
+                        {activeTrip.destination}
+                      </span>
 
-          </section>
+                      <span>
+                        <CalendarDays size={14} />
+                        {formatTripDates(
+                          activeTrip.startDate,
+                          activeTrip.endDate
+                        )}
+                      </span>
 
-          {/* RIGHT SIDEBAR */}
-
-          <aside className="family-sidebar">
-
-            {/* GROUP INTERESTS */}
-
-            <section className="family-preferences-card">
-
-              <div className="family-card-heading">
-
-                <div>
-
-                  <span className="family-section-eyebrow">
-                    <Heart size={14} />
-                    TRAVEL DNA
-                  </span>
-
-                  <h2>
-                    Group interests & preferences
-                  </h2>
-
-                </div>
-
-                <Sparkles size={19} />
-
-              </div>
-
-              <p className="family-card-description">
-                Shared interests help Roamio create more
-                personal destination recommendations.
-              </p>
-
-              {groupInterests.length > 0 ? (
-                <div className="family-interest-bars">
-
-                  {groupInterests.map(
-                    (interest) => {
-                      const Icon =
-                        interest.icon;
-
-                      const percentage =
-                        members.length > 0
-                          ? Math.round(
-                              (interest.count /
-                                members.length) *
-                                100
-                            )
-                          : 0;
-
-                      return (
-                        <div
-                          className="family-interest-bar"
-                          key={
-                            interest.name
-                          }
-                        >
-
-                          <div className="family-interest-bar-top">
-
-                            <span>
-                              <Icon
-                                size={14}
-                              />
-
-                              {
-                                interest.name
-                              }
-                            </span>
-
-                            <strong>
-                              {
-                                interest.count
-                              }
-                            </strong>
-
-                          </div>
-
-                          <div className="family-interest-track">
-
-                            <span
-                              style={{
-                                width: `${percentage}%`,
-                              }}
-                            />
-
-                          </div>
-
-                        </div>
-                      );
-                    }
-                  )}
-
-                </div>
-              ) : (
-                <div className="family-empty-state">
-                  <div className="family-empty-icon">
-                    <Heart size={22} />
+                      <span className="family-trip-panel-status">
+                        {activeTrip.calculatedStatus}
+                      </span>
+                    </p>
                   </div>
 
-                  <h3>
-                    No group preferences yet
-                  </h3>
-
-                  <p>
-                    Add members and their travel
-                    interests to build your group's
-                    travel profile.
-                  </p>
-                </div>
-              )}
-
-              <Link
-                to="/recommendations"
-                className="family-card-link"
-              >
-                Explore group recommendations
-                <ChevronRight size={15} />
-              </Link>
-
-            </section>
-
-            {/* PLAN TOGETHER */}
-
-            <section className="family-together-card">
-
-              <div className="family-together-art">
-
-                <div className="family-together-circle circle-one" />
-
-                <div className="family-together-circle circle-two" />
-
-                <div className="family-together-plane">
-                  <Plane size={24} />
+                  <Link
+                    to="/trips"
+                    className="family-outline-link"
+                  >
+                    Open trip
+                    <ChevronRight size={15} />
+                  </Link>
                 </div>
 
-                <div className="family-mini-pin pin-one">
-                  <MapPin size={13} />
-                </div>
+                <div className="family-stat-grid family-stat-grid-3">
 
-                <div className="family-mini-pin pin-two">
-                  <MapPin size={13} />
-                </div>
+                  <div className="family-stat-card family-stat-primary">
+                    <div className="family-stat-icon">
+                      <Users size={20} />
+                    </div>
 
+                    <div>
+                      <span>Group members</span>
+
+                      <strong>
+                        {activeStats
+                          ? activeStats.members
+                          : "—"}
+                      </strong>
+
+                      <small>
+                        {activeStats
+                          ? "Everyone on this trip"
+                          : "Not recorded for this trip"}
+                      </small>
+                    </div>
+
+                    <div className="family-stat-decoration">
+                      <Users size={64} />
+                    </div>
+                  </div>
+
+                  <div className="family-stat-card">
+                    <div className="family-stat-icon family-stat-icon-teal">
+                      <UserRound size={20} />
+                    </div>
+
+                    <div>
+                      <span>Adults</span>
+
+                      <strong>
+                        {activeStats
+                          ? activeStats.adults
+                          : "—"}
+                      </strong>
+
+                      <small>
+                        Including you
+                      </small>
+                    </div>
+                  </div>
+
+                  <div className="family-stat-card">
+                    <div className="family-stat-icon family-stat-icon-purple">
+                      <Baby size={20} />
+                    </div>
+
+                    <div>
+                      <span>Children</span>
+
+                      <strong>
+                        {activeStats
+                          ? activeStats.children
+                          : "—"}
+                      </strong>
+
+                      <small>
+                        {activeStats &&
+                        activeStats.childAges.length > 0
+                          ? `Ages ${activeStats.childAges.join(", ")}`
+                          : "Little explorers"}
+                      </small>
+                    </div>
+                  </div>
+
+                </div>
               </div>
+            </>
+          )}
+        </section>
 
-              <div className="family-together-content">
-
-                <span className="family-section-eyebrow">
-                  <Compass size={14} />
-                  PLAN TOGETHER
-                </span>
-
-                <h2>
-                  One group. Many adventures.
-                </h2>
-
-                <p>
-                  Build trips around everyone's
-                  interests, and keep the plan in
-                  one place.
-                </p>
-
-                <Link
-                  to="/trips"
-                  className="family-button family-button-light"
-                >
-                  View group trips
-                  <ChevronRight size={15} />
-                </Link>
-
-              </div>
-
-            </section>
-
-          </aside>
-
-        </div>
+        {/* REAL GROUPS - accounts on the server, shared trips, invites */}
+        <TravelGroups />
 
         {/* REAL UPCOMING TRIPS */}
 
@@ -1827,33 +659,6 @@ export default function Family() {
         </section>
 
       </div>
-
-      {/* MEMBER MODAL */}
-
-      <MemberModal
-        open={modalOpen}
-        mode={modalMode}
-        form={form}
-        setForm={setForm}
-        error={formError}
-        onClose={closeModal}
-        onSave={handleSaveMember}
-      />
-
-      {/* TOAST */}
-
-      {toast && (
-        <div
-          className="family-toast"
-          role="status"
-        >
-          <div className="family-toast-icon">
-            <Check size={15} />
-          </div>
-
-          <span>{toast}</span>
-        </div>
-      )}
 
     </PageShell>
   );

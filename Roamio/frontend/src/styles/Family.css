@@ -1934,3 +1934,95 @@
   background: rgba(248, 113, 113, 0.14);
   color: #fca5a5;
 }
+
+/* =========================================================
+   Overview: one tab per trip
+   ========================================================= */
+
+.family-trip-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.family-trip-tabs button {
+  flex: 0 0 auto;
+  max-width: 220px;
+  height: 36px;
+  padding: 0 14px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.family-trip-tabs button:hover {
+  color: var(--ink);
+}
+
+.family-trip-tabs button.active {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 2px 7px rgba(4, 38, 46, .08);
+}
+
+.family-trip-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.family-trip-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.family-trip-panel-head h3 {
+  margin: 0 0 6px;
+  font-size: 1.125rem;
+}
+
+.family-trip-panel-head p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.8125rem;
+}
+
+.family-trip-panel-head p span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.family-trip-panel-status {
+  font-weight: 800;
+}
+
+.family-stat-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 720px) {
+  .family-trip-panel-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .family-stat-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
