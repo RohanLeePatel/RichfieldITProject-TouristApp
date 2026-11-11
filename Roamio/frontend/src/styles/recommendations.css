@@ -742,6 +742,8 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
 .trip-done-next { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: min(520px, 100%); margin: 18px 0 6px; padding: 0; list-style: none; }
 .trip-done-next a { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-tile); background: var(--surface); color: var(--ink); font-weight: 600; }
 .trip-done-next a:hover { border-color: var(--primary); }
+.trip-done-next a { justify-content: center; height: 100%; text-align: center; }
+.trip-done-next li:last-child:nth-child(odd) { grid-column: 1 / -1; }
 @media (max-width: 520px) { .trip-done-next { grid-template-columns: 1fr; } }
 .trip-done-invite { display: grid; gap: 4px; width: min(520px, 100%); margin: 6px 0 4px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-tile); background: var(--surface); text-align: left; }
 .trip-done-invite .wizard-help { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--ink); font-weight: 600; }

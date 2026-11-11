@@ -1,9 +1,20 @@
 const express = require('express');
 const reports = require('../services/adminReportsService');
+const feedback = require('../services/destinationFeedbackService');
 const safetySync = require('../services/safetySyncService');
 const { log } = require('../services/adminAuditService');
 
 const router = express.Router();
+
+// GET /api/admin/reports - places travellers reported, most-reported first (the Reports queue)
+router.get('/', async (req, res) => res.json({ flagAt: feedback.FLAG_AT, reports: await feedback.openReports() }));
+
+// PATCH /api/admin/reports { placeKey, status: RESOLVED|DISMISSED } - closes a place's open reports
+router.patch('/', async (req, res) => {
+  const result = await feedback.closeReports(req.body?.placeKey, req.body?.status);
+  await log(req.user.id, 'ADMIN_PLACE_REPORTS_CLOSE', { entityType: 'PLACE', details: `${req.body.placeKey} ${req.body.status}` });
+  res.json(result);
+});
 
 // GET /api/admin/reports/audience?days=7|30|90 - devices, browsers, systems, languages, currencies
 router.get('/audience', async (req, res) => res.json(await reports.audience({ days: req.query.days })));
