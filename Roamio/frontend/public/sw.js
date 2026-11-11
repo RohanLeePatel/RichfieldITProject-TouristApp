@@ -1,8 +1,52 @@
-// Roamio service worker: shows push notifications and opens the app when one is clicked.
-// No caching here; it exists for push only.
+// Roamio service worker: shows push notifications and opens the app when one is clicked,
+// and keeps the app shell so the site still opens with no connection (read only).
+// API calls are cross-origin and never touched here; see api/client.js for the data cache.
+
+const CACHE = "roamio-shell-v1"; // bump to drop old shells
 
 self.addEventListener("install", () => self.skipWaiting());
-self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+self.addEventListener("activate", (event) =>
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
+  )
+);
+
+self.addEventListener("fetch", (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+  if (request.method !== "GET" || url.origin !== self.location.origin) return;
+
+  if (request.mode === "navigate") {
+    // network first so a new deploy shows up; the cached shell only when offline
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE).then((c) => c.put("/index.html", copy));
+          return response;
+        })
+        .catch(() => caches.match("/index.html"))
+    );
+  } else if (url.pathname.startsWith("/assets/")) {
+    // hashed filenames never change, so cache first is safe
+    event.respondWith(
+      caches.match(request).then(
+        (hit) =>
+          hit ||
+          fetch(request).then((response) => {
+            if (response.ok) {
+              const copy = response.clone();
+              caches.open(CACHE).then((c) => c.put(request, copy));
+            }
+            return response;
+          })
+      )
+    );
+  }
+});
 
 self.addEventListener("push", (event) => {
   let data = {};

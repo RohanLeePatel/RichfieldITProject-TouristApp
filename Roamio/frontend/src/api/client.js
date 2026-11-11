@@ -49,13 +49,28 @@ export async function ensureToken() {
   return accessToken;
 }
 
+// Offline read-only: the last good response of each signed-in GET is kept so the
+// app can still show it with no connection. Dropped on every sign-out.
+const CACHE_PREFIX = "roamio_cache:";
+const cacheKey = (path) => CACHE_PREFIX + path;
+
+export function clearApiCache() {
+  try {
+    for (const key of Object.keys(localStorage)) if (key.startsWith(CACHE_PREFIX)) localStorage.removeItem(key);
+  } catch {
+    // blocked storage - nothing to clear
+  }
+}
+
 // Tells the API to drop the refresh cookie on sign-out; best effort.
 export function endSession() {
+  clearApiCache();
   fetch(apiUrl("/api/auth/logout"), { method: "POST", credentials: "include" }).catch(() => {});
 }
 
 async function request(path, { auth = false, retried = false, headers, ...options } = {}) {
   const requestHeaders = { "Content-Type": "application/json", ...headers };
+  const isRead = auth && (!options.method || options.method === "GET");
 
   if (auth) {
     const token = await ensureToken();
@@ -69,6 +84,14 @@ async function request(path, { auth = false, retried = false, headers, ...option
   try {
     response = await fetch(apiUrl(path), { ...options, headers: requestHeaders, credentials: "include" });
   } catch {
+    if (isRead) {
+      try {
+        const cached = localStorage.getItem(cacheKey(path));
+        if (cached) return JSON.parse(cached);
+      } catch {
+        // no usable cached copy - fall through to the error
+      }
+    }
     throw Object.assign(new Error("We can't reach Roamio right now. Check your connection and try again."), { status: 0 });
   }
 
@@ -90,6 +113,7 @@ async function request(path, { auth = false, retried = false, headers, ...option
       return request(path, { auth, retried: true, headers, ...options });
     }
     setToken(null);
+    clearApiCache();
     localStorage.removeItem("user");
     const here = window.location.pathname + window.location.search;
     window.location.assign(`/login?next=${encodeURIComponent(here)}`);
@@ -108,6 +132,14 @@ async function request(path, { auth = false, retried = false, headers, ...option
       ),
       { status: response.status, data }
     );
+  }
+
+  if (isRead && data !== null) {
+    try {
+      localStorage.setItem(cacheKey(path), JSON.stringify(data));
+    } catch {
+      // storage full or blocked - just no offline copy of this one
+    }
   }
 
   return data;

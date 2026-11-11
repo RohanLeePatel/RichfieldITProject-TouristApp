@@ -34,6 +34,7 @@ import AdminDashboard from "./pages/AdminDashboard.jsx";
 import Legal from "./pages/Legal.jsx";
 import NotFound from "./pages/NotFound.jsx";
 
+import OfflineBanner from "./components/layout/OfflineBanner.jsx";
 import AppShell from "./components/layout/AppShell.jsx";
 import AdminRoute from "./components/admin/AdminRoute.jsx";
 import { useAuthStore } from "./store/authStore.js";
@@ -79,6 +80,7 @@ function App() {
   return (
     <BrowserRouter>
       <RouteTracker />
+      <OfflineBanner />
       <Routes>
 
         {/* =================================================

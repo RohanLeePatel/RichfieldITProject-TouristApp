@@ -7,6 +7,11 @@ import "./index.css";
 
 initAnalytics();
 
+// the worker keeps the app shell for offline use (and handles push)
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js").catch(() => {});
+}
+
 const queryClient = new QueryClient();
 
 ReactDOM.createRoot(document.getElementById("root")).render(
