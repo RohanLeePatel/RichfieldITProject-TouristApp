@@ -379,7 +379,7 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
   cursor: pointer;
 }
 
-.wizard-field-checkbox input { width: 20px; height: 20px; accent-color: var(--primary); }
+.wizard-field-checkbox input { width: 20px; height: 20px; min-height: 0; padding: 0; flex: none; accent-color: var(--primary); }
 
 .wizard-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; margin-top: 18px; }
 
