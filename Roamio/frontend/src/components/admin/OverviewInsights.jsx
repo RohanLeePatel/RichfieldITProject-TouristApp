@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ArrowDownRight, ArrowUpRight, Globe2, LayoutDashboard, MapPin, Minus, Route, UserPlus, UserCheck, Users } from "lucide-react";
+import { AlertTriangle, Globe2, LayoutDashboard, MapPin, Route, UserPlus, UserCheck, Users } from "lucide-react";
 
 import { adminInsightsQuery, retryUnlessForbidden } from "../../api/admin.js";
+import { Delta, Empty, number, Panel } from "./adminParts.jsx";
 
 const RANGES = [7, 30, 90];
 const SPOTS = [
@@ -10,28 +11,6 @@ const SPOTS = [
   { key: "countries", label: "Countries" },
   { key: "places", label: "Places" },
 ];
-
-const number = (value) => (value == null ? "—" : new Intl.NumberFormat().format(value));
-
-// +12% / -8% against the period before; null when there was nothing before to compare with
-function change(value, previous) {
-  if (previous == null) return null;
-  if (previous === 0) return value === 0 ? { tone: "flat", text: "no change" } : { tone: "up", text: "new" };
-  const pct = Math.round(((value - previous) / previous) * 100);
-  return { tone: pct > 0 ? "up" : pct < 0 ? "down" : "flat", text: pct === 0 ? "no change" : `${pct > 0 ? "+" : ""}${pct}%` };
-}
-
-function Delta({ value, previous }) {
-  const d = change(value, previous);
-  if (!d) return null;
-  const Icon = d.tone === "up" ? ArrowUpRight : d.tone === "down" ? ArrowDownRight : Minus;
-  return (
-    <span className={`admin-ins-delta ${d.tone}`} title={`${number(previous)} in the period before`}>
-      <Icon size={13} aria-hidden="true" />
-      {d.text}
-    </span>
-  );
-}
 
 // A tiny line of the daily values; the numbers are in the label for screen readers
 function Sparkline({ series, label }) {
@@ -61,27 +40,6 @@ function Kpi({ label, icon: Icon, tone, metric, loading }) {
       {metric?.series.length > 0 && <Sparkline series={metric.series} label={`${label}, one point per day`} />}
     </article>
   );
-}
-
-function Panel({ title, icon: Icon, hint, actions, children }) {
-  return (
-    <section className="admin-card admin-ins-panel">
-      <div className="admin-card-heading">
-        <div>
-          <h3>
-            <Icon size={17} /> {title}
-          </h3>
-          {hint && <p>{hint}</p>}
-        </div>
-        {actions}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function Empty({ children }) {
-  return <p className="admin-user-empty">{children}</p>;
 }
 
 function TopList({ items }) {

@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const sessionService = require('./sessionService');
+const auditLog = require('./adminAuditService');
 const { httpError } = require('./tripAccessService');
 const { isAdminUser } = require('../middleware/isAdmin');
 
@@ -129,9 +130,7 @@ async function getUser(value, now = Date.now()) {
   };
 }
 
-// Admin actions are written to ActivityLog (no tripId, so no traveller's feed shows them)
-const audit = (adminId, action, targetId) =>
-  prisma.activityLog.create({ data: { userId: adminId, action, entityType: 'USER', entityId: targetId, details: 'admin dashboard' } });
+const audit = (adminId, action, targetId) => auditLog.log(adminId, action, { entityType: 'USER', entityId: targetId });
 
 // Suspend or reactivate. A suspended account can't sign in or refresh a session, and
 // every device is signed out now. ponytail: an access token already issued works until

@@ -93,3 +93,39 @@ export const deleteDestination = (id) => send(`/${encodeURIComponent(id)}`, "DEL
 
 // show or hide several cities at once; resolves { updated }
 export const bulkSetDestinations = (ids, active) => send("/bulk", "POST", { ids, active });
+
+// What admins did, newest first. { entries: [{ id, at, action, admin: { id, name },
+// target: { type, id, name }, details }], page, pageSize, total }
+export const adminAuditQuery = (page = 1) => ({
+  queryKey: ["admin", "audit", page],
+  queryFn: () => authedFetch(`/api/admin/audit?page=${page}`),
+  staleTime: 30_000,
+  placeholderData: keepPreviousData,
+});
+export const AUDIT_PAGE_SIZE = 25;
+
+const report = (name, days) => ({
+  queryKey: ["admin", "reports", name, days],
+  queryFn: () => authedFetch(`/api/admin/reports/${name}${days ? `?days=${days}` : ""}`),
+  staleTime: 2 * 60_000,
+  placeholderData: keepPreviousData,
+});
+
+// { activeUsers, devices|browsers|systems|languages|currencies|themes: [{ label, count }] }
+export const audienceQuery = (days) => report("audience", days);
+
+// { push: { users, devices, failingDevices }, preferences: { total, emailRate, pushRate },
+//   notifications: { sent, previous, read, readRate, byType: [{ label, count }] } }
+export const engagementQuery = (days) => report("engagement", days);
+
+// { expenses: { count, previous, perTrip }, totals: [{ currency, total, count }],
+//   categories: [{ label, count, share }], budgets: [{ currency, average, count }],
+//   settlement: { total, settled, rate } }
+export const spendingQuery = (days) => report("spending", days);
+
+// { staleAfterDays, usingMockData, advisories: [{ country, riskLevel, advisoryLevel, lastUpdated, source, stale }],
+//   missing: [country], openAlerts: [{ riskLevel, count }], tripsAtRisk: [{ id, title, status, startDate, country, riskLevel }] }
+export const safetyQuery = { ...report("safety"), refetchInterval: false };
+
+// starts a background re-check of every advisory
+export const startSafetySync = () => authedFetch("/api/admin/reports/safety/sync", { method: "POST" });

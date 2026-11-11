@@ -9,6 +9,7 @@ router.use(isAdmin);
 router.use('/analytics', require('./adminAnalytics'));
 router.use('/config', require('./adminConfig'));
 router.use('/destinations', require('./adminDestinations'));
+router.use('/audit', require('./adminAudit'));
 router.use('/health', require('./adminHealth'));
 router.use('/insights', require('./adminInsights'));
 router.use('/reports', require('./adminReports'));
