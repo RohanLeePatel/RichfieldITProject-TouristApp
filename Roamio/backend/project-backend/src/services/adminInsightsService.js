@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const { unpackMeta } = require('../utils/tripFormat');
 
 // Product analytics for the admin Overview tab, worked out from Roamio's own tables
 // (what people do in the app), as opposed to Google Analytics (who visits the site).
@@ -57,7 +58,10 @@ async function getInsights({ days, now = Date.now() } = {}) {
   const [signups, logins, trips, placeGroups, prevPlaceGroups] = await Promise.all([
     prisma.user.findMany({ where: { deletedAt: null, createdAt: { gte: prevFrom } }, select: { id: true, createdAt: true } }),
     prisma.loginEvent.findMany({ where: { success: true, at: { gte: prevFrom } }, select: { userId: true, at: true } }),
-    prisma.trip.findMany({ where: { deletedAt: null, createdAt: { gte: prevFrom } }, select: { createdAt: true } }),
+    prisma.trip.findMany({
+      where: { deletedAt: null, createdAt: { gte: prevFrom } },
+      select: { createdAt: true, description: true, _count: { select: { destinations: true } } },
+    }),
     prisma.tripDestination.groupBy({ by: ['destinationId'], _count: { _all: true }, where: { createdAt: { gte: from }, trip: { deletedAt: null } } }),
     prisma.tripDestination.groupBy({ by: ['destinationId'], _count: { _all: true }, where: { createdAt: { gte: prevFrom, lt: from }, trip: { deletedAt: null } } }),
   ]);
@@ -99,10 +103,29 @@ async function getInsights({ days, now = Date.now() } = {}) {
     groups.filter((g) => placeById.has(g.destinationId)).map((g) => ({ destination: placeById.get(g.destinationId), count: g._count._all }));
   const cur = withPlace(placeGroups);
   const prev = withPlace(prevPlaceGroups);
+  // Trips made through the app keep their destination as "City, Country" text in
+  // Trip.description and have no TripDestination rows (those are saved landmarks), so
+  // count that text too - only for trips with no rows, so none is counted twice.
+  const textual = (list) =>
+    list.flatMap((t) => {
+      if (t._count?.destinations) return [];
+      const text = unpackMeta(t.description).destination;
+      if (typeof text !== 'string' || !text.trim()) return [];
+      const parts = text.split(',').map((x) => x.trim()).filter(Boolean);
+      if (!parts.length) return [];
+      const country = parts.length > 1 ? parts[parts.length - 1] : '';
+      const city = parts.length > 1 ? parts.slice(0, -1).join(', ') : parts[0];
+      return [{ destination: { text: true, city: { name: city, country: { name: country } } }, count: 1 }];
+    });
+  const curAll = [...cur, ...textual(tripsNow)];
+  const prevAll = [...prev, ...textual(trips.filter((t) => !inCurrent(t.createdAt)))];
+  const norm = (s) => s.trim().toLowerCase();
+  const cityKey = (d) => ({ id: `${norm(d.city.name)}|${norm(d.city.country.name)}`, label: d.city.name, sub: d.city.country.name });
+  const countryKey = (d) => ({ id: norm(d.city.country.name), label: d.city.country.name, sub: '' });
   const topDestinations = {
     places: rollup(cur, prev, (d) => ({ id: d.id, label: d.name, sub: `${d.city.name}, ${d.city.country.name}` })),
-    cities: rollup(cur, prev, (d) => ({ id: d.city.id, label: d.city.name, sub: d.city.country.name })),
-    countries: rollup(cur, prev, (d) => ({ id: d.city.country.id, label: d.city.country.name, sub: '' })),
+    cities: rollup(curAll, prevAll, cityKey),
+    countries: rollup(curAll.filter((d) => d.destination.city.country.name), prevAll.filter((d) => d.destination.city.country.name), countryKey),
   };
 
   // Of the people who joined in this period: how far did they get?

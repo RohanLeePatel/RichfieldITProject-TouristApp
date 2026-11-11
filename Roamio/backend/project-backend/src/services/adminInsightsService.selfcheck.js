@@ -57,7 +57,11 @@ const prisma = {
             { userId: 12, at: ago(45) }, // previous period
           ],
   },
-  trip: { findMany: async () => [{ createdAt: ago(2) }, { createdAt: ago(2) }, { createdAt: ago(50) }], count: async ({ where }) => (where.createdAt.lt ? 2 : 5) },
+  trip: { findMany: async ({ where } = {}) => [
+    { createdAt: ago(2), description: JSON.stringify({ destination: ' Lisbon , Portugal' }), _count: { destinations: 0 } },
+    { createdAt: ago(2), description: JSON.stringify({ destination: 'Rome, Italy' }), _count: { destinations: 1 } }, // has landmark rows: not counted twice
+    { createdAt: ago(50), description: JSON.stringify({ destination: 'Paris, France' }), _count: { destinations: 0 } },
+  ].filter((t) => !where?.destinations?.none || !t._count.destinations), count: async ({ where }) => (where.createdAt.lt ? 2 : 5) },
   tripDestination: {
     groupBy: async ({ where }) =>
       where.createdAt?.lt ? [{ destinationId: 1, _count: { _all: 1 } }] : [{ destinationId: 1, _count: { _all: 4 } }, { destinationId: 2, _count: { _all: 2 } }],
@@ -122,8 +126,8 @@ const fails = async (promise, status, pattern) => {
   // where people are going
   const { places, cities, countries } = data.topDestinations;
   assert.deepEqual(places.map((p) => [p.label, p.count, p.previous]), [['Eiffel Tower', 4, 1], ['Louvre', 2, 0]]);
-  assert.deepEqual(cities.map((c) => [c.label, c.sub, c.count, c.previous]), [['Paris', 'France', 6, 1]]);
-  assert.deepEqual(countries.map((c) => [c.label, c.count]), [['France', 6]]);
+  assert.deepEqual(cities.map((c) => [c.label, c.sub, c.count, c.previous]), [['Paris', 'France', 6, 2], ['Lisbon', 'Portugal', 1, 0]]);
+  assert.deepEqual(countries.map((c) => [c.label, c.count]), [['France', 6], ['Portugal', 1]]);
 
   // funnel never grows as it goes down; retention only counts a return on a later day
   assert.deepEqual(data.funnel.map((f) => f.count), [3, 3, 2, 2, 1]);
@@ -162,7 +166,7 @@ const fails = async (promise, status, pattern) => {
     'peru-lima': ['no_data'],
     'italy-rome': [],
   });
-  assert.deepEqual(await catalog.tripCounts(), { 'france-paris': 6 });
+  assert.deepEqual(await catalog.tripCounts(), { 'france-paris': 7, 'portugal-lisbon': 1 });
   assert.deepEqual(await catalog.setActiveMany(['a', 'b'], false), { updated: 2 });
   await fails(catalog.setActiveMany([], true), 400);
   await fails(catalog.setActiveMany([1], true), 400);

@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const { httpError } = require('./tripAccessService');
 const { aiApiUrl, aiMessage } = require('../utils/aiService');
+const { unpackMeta } = require('../utils/tripFormat');
 
 // The cities the recommendation engine can suggest. Rows live in the
 // CatalogDestination table and are managed from the admin dashboard; this file
@@ -229,14 +230,25 @@ async function update(id, body) {
 // separate, so a city is matched by its country and name; ponytail: a name spelled
 // differently in the two (e.g. "USA") counts as no demand, so match on a code if that bites.
 async function tripCounts() {
-  const groups = await prisma.tripDestination.groupBy({ by: ['destinationId'], _count: { _all: true }, where: { trip: { deletedAt: null } } });
-  if (!groups.length) return {};
+  const [groups, textTrips] = await Promise.all([
+    prisma.tripDestination.groupBy({ by: ['destinationId'], _count: { _all: true }, where: { trip: { deletedAt: null } } }),
+    // trips made in the app keep "City, Country" as text in description and have no rows above
+    prisma.trip.findMany({ where: { deletedAt: null, destinations: { none: {} } }, select: { description: true } }),
+  ]);
+  const counts = {};
+  for (const { description } of textTrips) {
+    const text = unpackMeta(description).destination;
+    const parts = typeof text === 'string' ? text.split(',').map((x) => x.trim()).filter(Boolean) : [];
+    if (parts.length < 2) continue;
+    const id = makeId(parts[parts.length - 1], parts.slice(0, -1).join(', '));
+    counts[id] = (counts[id] || 0) + 1;
+  }
+  if (!groups.length) return counts;
   const places = await prisma.destination.findMany({
     where: { id: { in: groups.map((g) => g.destinationId) } },
     select: { id: true, city: { select: { name: true, country: { select: { name: true } } } } },
   });
   const cityOf = new Map(places.map((p) => [p.id, makeId(p.city.country.name, p.city.name)]));
-  const counts = {};
   for (const g of groups) {
     const id = cityOf.get(g.destinationId);
     if (id) counts[id] = (counts[id] || 0) + g._count._all;
