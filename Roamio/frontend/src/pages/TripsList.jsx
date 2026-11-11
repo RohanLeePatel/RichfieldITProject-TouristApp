@@ -85,11 +85,20 @@ export default function TripsList() {
   }, [reload]);
 
   const filteredTrips = useMemo(() => {
-    if (statusFilter !== "completed") {
-      return trips;
-    }
+    const list =
+      statusFilter === "completed" ? trips.filter(isTripCompleted) : trips;
 
-    return trips.filter(isTripCompleted);
+    // Earliest start date first; trips without dates go last.
+    const time = (t) => {
+      const v = t.startDate ? new Date(t.startDate).getTime() : NaN;
+      return Number.isNaN(v) ? Infinity : v;
+    };
+    return [...list].sort((a, b) => {
+      const ta = time(a);
+      const tb = time(b);
+      if (ta === tb) return 0;
+      return ta < tb ? -1 : 1;
+    });
   }, [trips, statusFilter]);
 
   const showingCompleted = statusFilter === "completed";
