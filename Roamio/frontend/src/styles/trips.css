@@ -159,6 +159,33 @@
   }
 }
 
+/* ---- Section headings on the trips list ----
+   "Recently deleted" and "Start from a shape of trip" only describe what
+   follows, so their headings are plain text with a divider, not a raised card
+   like the clickable trip cards. */
+
+.trip-templates .results-heading,
+.deleted-trips .results-heading {
+  padding: 0 0 12px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.trip-templates .results-heading h2,
+.deleted-trips .results-heading h2 {
+  margin-bottom: 4px;
+  font-size: 1.125rem;
+  letter-spacing: -.3px;
+}
+
+.trip-templates .results-heading p,
+.deleted-trips .results-heading p {
+  font-size: 0.875rem;
+}
+
 /* ---- Starting-point templates (TripTemplates.jsx) ---- */
 
 .trip-templates {
@@ -670,10 +697,11 @@
   justify-content: space-between;
   gap: 12px;
   padding: 10px 14px;
-  border: 1px solid var(--line);
+  border: 1px dashed var(--line);
   border-radius: 12px;
-  background: var(--surface);
+  background: var(--surface-2);
 }
+.deleted-trips li strong { color: var(--ink-soft); }
 .deleted-trips li div { display: grid; min-width: 0; }
 .deleted-trips small { color: var(--ink-soft); }
 
