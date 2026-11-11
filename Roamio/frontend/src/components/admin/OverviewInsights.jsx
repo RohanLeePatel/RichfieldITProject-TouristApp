@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Globe2, LayoutDashboard, MapPin, Route, UserPlus, UserCheck, Users } from "lucide-react";
 
 import { adminInsightsQuery, retryUnlessForbidden } from "../../api/admin.js";
-import { Delta, Empty, number, Panel } from "./adminParts.jsx";
+import { number } from "./adminFormat.js";
+import { Delta, Empty, Panel } from "./adminParts.jsx";
 
 const RANGES = [7, 30, 90];
 const SPOTS = [

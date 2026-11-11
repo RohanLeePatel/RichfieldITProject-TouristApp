@@ -4,10 +4,14 @@ import { BarChart3, Flag, HeartPulse, LayoutDashboard, MapPin, ShieldCheck, User
 import PageTopBar from "../components/PageTopBar.jsx";
 import useTheme from "../components/recommendations/useTheme.js";
 import AnalyticsOverview from "../components/admin/AnalyticsOverview.jsx";
+import AudienceReport from "../components/admin/AudienceReport.jsx";
+import AuditLog from "../components/admin/AuditLog.jsx";
 import DestinationsManager from "../components/admin/DestinationsManager.jsx";
 import OverviewInsights from "../components/admin/OverviewInsights.jsx";
 import PlaceReports from "../components/admin/PlaceReports.jsx";
+import SafetyReport from "../components/admin/SafetyReport.jsx";
 import ServiceHealthCard from "../components/admin/ServiceHealthCard.jsx";
+import SpendingReport from "../components/admin/SpendingReport.jsx";
 import TrackingConfigCard from "../components/admin/TrackingConfigCard.jsx";
 import UserProfilesList from "../components/admin/UserProfilesList.jsx";
 import "../styles/Admin.css";
@@ -75,6 +79,10 @@ export default function AdminDashboard() {
         >
           {tab === "overview" && <OverviewInsights />}
           {tab === "analytics" && <AnalyticsOverview />}
+          {tab === "audience" && <AudienceReport />}
+          {tab === "spending" && <SpendingReport />}
+          {tab === "safety" && <SafetyReport />}
+          {tab === "audit" && <AuditLog />}
           {tab === "health" && (
             <div className="admin-grid">
               <ServiceHealthCard />

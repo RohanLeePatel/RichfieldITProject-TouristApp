@@ -1404,3 +1404,78 @@
 }
 
 .place-reports ul li { padding: 2px 0; }
+
+/* --- Audience, safety and audit log --- */
+
+.admin-ins-bars.plain li {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.admin-ins-features small {
+  margin-left: 6px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.admin-safety-list,
+.admin-audit-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-safety-list li {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(0, 1.4fr) auto 110px;
+  align-items: center;
+  gap: 14px;
+
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+
+.admin-safety-list li:first-child,
+.admin-audit-list li:first-child {
+  border-top: none;
+}
+
+.admin-safety-list span { color: var(--muted); }
+.admin-safety-list small { color: var(--muted); text-align: right; }
+.admin-safety-list small.stale { color: var(--orange); font-weight: 700; }
+
+.admin-audit {
+  margin-top: 0;
+}
+
+.admin-audit-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 16px;
+
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+
+.admin-audit-what {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.admin-audit-what span,
+.admin-audit-who,
+.admin-audit-list time {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 720px) {
+  .admin-safety-list li { grid-template-columns: minmax(0, 1fr) auto; }
+  .admin-safety-list span,
+  .admin-safety-list small { grid-column: 1 / -1; text-align: left; }
+  .admin-audit-list li { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}
