@@ -169,3 +169,18 @@ def _no_retry_pause(monkeypatch):
     import http_client
 
     monkeypatch.setattr(http_client, "RETRY_PAUSE_SECONDS", 0)
+
+
+@pytest.fixture(autouse=True)
+def _forget_provider_failures():
+    """a failure remembered by one test must not short-circuit the provider call in the next"""
+    from engine import currency
+    from landmarks import landmarks
+    from weather import weather
+
+    caches = (currency._rate_failures, landmarks._geocode_failures, weather._weather_failures)
+    for cache in caches:
+        cache.clear()
+    yield
+    for cache in caches:
+        cache.clear()

@@ -88,6 +88,41 @@ class UserRepository {
     return user.otpAttempts;
   }
 
+  // Counts a wrong password, and locks the account once the limit is reached. Done in
+  // the database so every server instance sees the same count.
+  async recordFailedLogin(id, maxFailures, lockMs) {
+    const { failedLogins } = await prisma.user.update({
+      where: { id },
+      data: { failedLogins: { increment: 1 } },
+      select: { failedLogins: true },
+    });
+    if (failedLogins >= maxFailures) {
+      await prisma.user.update({ where: { id }, data: { failedLogins: 0, lockedUntil: new Date(Date.now() + lockMs) } });
+    }
+  }
+
+  async clearFailedLogins(id) {
+    await prisma.user.updateMany({ where: { id, OR: [{ failedLogins: { gt: 0 } }, { lockedUntil: { not: null } }] }, data: { failedLogins: 0, lockedUntil: null } });
+  }
+
+  // Spends one guess atomically, so parallel requests cannot exceed the limit
+  // (a check-then-increment lets them all through). false = no guesses left.
+  async claimOtpAttempt(id, maxAttempts) {
+    const result = await prisma.user.updateMany({
+      where: { id, otpAttempts: { lt: maxAttempts } },
+      data: { otpAttempts: { increment: 1 } },
+    });
+    return result.count === 1;
+  }
+
+  async claimResetAttempt(id, maxAttempts) {
+    const result = await prisma.user.updateMany({
+      where: { id, resetPasswordAttempts: { lt: maxAttempts } },
+      data: { resetPasswordAttempts: { increment: 1 } },
+    });
+    return result.count === 1;
+  }
+
   // Single-use: only succeeds if the stored hash is still the one that was just matched
   async markVerified(id, otpHash) {
     const result = await prisma.user.updateMany({
@@ -131,6 +166,8 @@ class UserRepository {
         resetPasswordOtpHash: null,
         resetPasswordExpiresAt: null,
         resetPasswordAttempts: 0,
+        failedLogins: 0,
+        lockedUntil: null, // a reset also lifts a sign-in lock
       },
     });
     return result.count === 1;

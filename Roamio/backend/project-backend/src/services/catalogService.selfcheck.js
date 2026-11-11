@@ -1,3 +1,4 @@
+process.env.AI_FEATURES_URL = 'https://richfield-it-project-tourist-app.vercel.app'; // the stubs below match this host
 // The destination catalog: input checks, ids, adding a city and filling in its
 // data through the AI service, which cities are offered, and the weekly refresh,
 // against an in-memory stand-in for Prisma and a stubbed fetch.

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from config.auth import verify_secretKey
+from config.user_assertion import signed_user_id
 from ocr.ocr import OcrError, run_ocr
 from routers.translation_router import MAX_IMAGE_BYTES, looks_like_image
 from services import history_service, storage_service
@@ -36,7 +37,7 @@ def _user(x_user_id: str | None) -> str | None:
 def _require_user(x_user_id: str | None) -> str:
     user = _user(x_user_id)
     if not user:
-        raise HTTPException(status_code=401, detail="x-user-id header is required.")
+        raise HTTPException(status_code=401, detail="A signed x-user-id is required.")
     return user
 
 
@@ -53,7 +54,7 @@ class TextBody(BaseModel):
 
 
 @router.post("/text")
-def translate_text_with_history(body: TextBody, x_user_id: str | None = Header(None)):
+def translate_text_with_history(body: TextBody, x_user_id: str | None = Depends(signed_user_id)):
     user_id = _user(x_user_id)
     result = translate_text(body.text, body.target_lang, body.source_lang)
     response = {**result, "text": body.text, "history_id": None}
@@ -81,14 +82,14 @@ def translate_camera_with_history(
     # text, not bool: some FastAPI versions read a missing bool form field as
     # False (unticked-checkbox rule), which silently turned history off
     save_history: str = Form("true"),
-    x_user_id: str | None = Header(None),
+    x_user_id: str | None = Depends(signed_user_id),
 ):
     user_id = _user(x_user_id)
     save_history = save_history.strip().lower() not in ("false", "0", "no", "off")
     try:
         image_bytes = image.file.read()
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Could not read upload: {e}")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Could not read the upload.")
 
     if len(image_bytes) > MAX_IMAGE_BYTES:
         raise HTTPException(
@@ -139,7 +140,7 @@ def translate_camera_with_history(
             "target_lang": (target_lang or "EN").upper(),
             "image_url": image_url,
         })
-        response["image_url"] = image_url
+        response["image_url"] = (storage_service.signed_image_url(image_url) or image_url) if image_url else None
         response["history_id"] = history_id
         response["history_saved"] = history_id is not None
         if history_id:
@@ -156,18 +157,22 @@ def get_history(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     type: Optional[str] = Query(None, pattern="^(TEXT|IMAGE_CAMERA)$"),
-    x_user_id: str | None = Header(None),
+    x_user_id: str | None = Depends(signed_user_id),
 ):
     user_id = _require_user(x_user_id)
     try:
-        return history_service.list_records(user_id, limit, offset, type)
+        page = history_service.list_records(user_id, limit, offset, type)
+        for item in page["items"]:
+            if item.get("image_url"):
+                item["image_url"] = storage_service.signed_image_url(item["image_url"])
+        return page
     except Exception:
         logger.exception("could not read translation history")
         raise HTTPException(status_code=503, detail="Translation history is unavailable right now.")
 
 
 @router.delete("/history")
-def delete_all_history(x_user_id: str | None = Header(None)):
+def delete_all_history(x_user_id: str | None = Depends(signed_user_id)):
     """Every saved translation and stored photograph of one traveller (they deleted their account)."""
     user_id = _require_user(x_user_id)
     try:
@@ -182,7 +187,7 @@ def delete_all_history(x_user_id: str | None = Header(None)):
 
 
 @router.delete("/history/{record_id}")
-def delete_history(record_id: str, x_user_id: str | None = Header(None)):
+def delete_history(record_id: str, x_user_id: str | None = Depends(signed_user_id)):
     user_id = _require_user(x_user_id)
     if not UUID_RE.match(record_id):
         raise HTTPException(status_code=404, detail="Not found.")

@@ -20,7 +20,7 @@ import math
 import http_client
 from config import settings
 from landmarks.interest_categories import INTEREST_CATEGORY_MAP
-from services.cache_utils import ttl_cache_get, ttl_cache_set
+from services.cache_utils import mark_failed, recently_failed, ttl_cache_get, ttl_cache_set
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +34,7 @@ PLACES_LIMIT_PER_TAG = 10
 # key -> (value, fetched_at_monotonic), same shape as currency.py's _rate_cache,
 # shared across requests on purpose
 _geocode_cache: dict[tuple[str, int], tuple[tuple[float, float], float]] = {}
+_geocode_failures: dict[tuple[str, int], tuple[bool, float]] = {}
 _places_cache: dict[tuple[str, str, int], tuple[list[dict], float]] = {}
 
 
@@ -68,6 +69,8 @@ def geocode_destination(destination: str, radius_m: int) -> tuple[float, float] 
     cached = ttl_cache_get(_geocode_cache, cache_key, CACHE_TTL_SECONDS)
     if cached is not None:
         return cached
+    if recently_failed(_geocode_failures, cache_key):
+        return None
 
     try:
         response = http_client.get(
@@ -81,9 +84,11 @@ def geocode_destination(destination: str, radius_m: int) -> tuple[float, float] 
         # the URL carries the API key, so log the exception type only. An expired
         # entry is better than no answer while the provider is down (NFR-13).
         logger.warning("Geoapify geocode failed: %s", type(e).__name__)
+        mark_failed(_geocode_failures, cache_key)
         return ttl_cache_get(_geocode_cache, cache_key, CACHE_TTL_SECONDS, allow_stale=True)
 
     if not features:
+        mark_failed(_geocode_failures, cache_key)
         return None
 
     lon, lat = features[0]["geometry"]["coordinates"]

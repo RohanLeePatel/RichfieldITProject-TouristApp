@@ -55,7 +55,7 @@ app.use(helmet({
 
 // Enable CORS for your React frontend. CLIENT_URL may list several origins,
 // comma-separated (e.g. the Vercel site and a preview URL).
-const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000')
+const allowedOrigins = (process.env.CLIENT_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000'))
   .split(',')
   .map((origin) => origin.trim().replace(/\/$/, ''))
   .filter(Boolean);
@@ -76,6 +76,9 @@ app.use((req, res, next) =>
 app.use(express.urlencoded({ extended: true }));
 
 // Parse cookies (using the secret from .env if you are using signed cookies)
+if (!process.env.COOKIE_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('COOKIE_SECRET must be set in production');
+}
 app.use(cookieParser(process.env.COOKIE_SECRET || 'roamio_secret'));
 
 // Health check endpoint
@@ -151,7 +154,8 @@ app.use((err, req, res, next) => {
   
   const statusCode = err.statusCode || 500;
   if (statusCode >= 500) console.error(err.stack); // the log only, never the response
-  let message = err.message || 'Internal Server Error';
+  // 5xx text can carry Prisma table or column names, so clients get a fixed sentence
+  let message = statusCode >= 500 ? 'Internal Server Error' : (err.message || 'Request failed');
   // body-parser's own wording is technical; say it plainly
   if (err.type === 'entity.too.large') message = 'That is too much to send at once. Try something smaller.';
   else if (err.type === 'entity.parse.failed') message = 'We could not read that request. Please try again.';

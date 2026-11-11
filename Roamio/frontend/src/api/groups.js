@@ -19,7 +19,7 @@ export function joinGroup(inviteCode) {
 // The invite isn't emailed yet - the server returns the token, and the page
 // turns it into a link to send yourself.
 export async function createInvite(groupId, email) {
-  const data = await authedFetch(`/api/groups/${groupId}/invites`, {
+  const data = await authedFetch(`/api/groups/${encodeURIComponent(groupId)}/invites`, {
     method: "POST",
     body: JSON.stringify({ email, role: "MEMBER" }),
   });
@@ -40,7 +40,7 @@ export function acceptInvite(token) {
 // Replaces a group's companions - people on its trips without an account.
 // [{ id, name, type: "Adult" | "Child", age, relationship, interests, color }]
 export async function saveCompanions(groupId, companions) {
-  const data = await authedFetch(`/api/groups/${groupId}/companions`, {
+  const data = await authedFetch(`/api/groups/${encodeURIComponent(groupId)}/companions`, {
     method: "PUT",
     body: JSON.stringify({ companions }),
   });

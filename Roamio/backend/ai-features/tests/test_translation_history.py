@@ -9,7 +9,16 @@ from fastapi.testclient import TestClient
 from services import storage_service
 from services.storage_service import StorageError
 
-H = {"node-secretkey": "test-secret", "x-user-id": "user-1"}
+def _signed(user_id="user-1"):
+    import time
+
+    from config.user_assertion import sign
+
+    ts = str(int(time.time()))
+    return {"node-secretkey": "test-secret", "x-user-id": user_id, "x-user-ts": ts, "x-user-sig": sign(user_id, ts)}
+
+
+H = {"node-secretkey": "test-secret", "x-user-id": "user-1"}  # unsigned: treated as anonymous
 JPEG = b"\xff\xd8\xff" + b"0" * 64
 TRANSLATED = {"detected_lang": "es", "translation": "Emergency exit", "message": None}
 
@@ -36,13 +45,13 @@ def app(monkeypatch):
 
 
 def test_text_is_saved_for_a_known_user(app):
-    r = app.client.post("/api/translate/text", json={"text": "Salida", "target_lang": "EN"}, headers=H)
+    r = app.client.post("/api/translate/text", json={"text": "Salida", "target_lang": "EN"}, headers=_signed())
     assert r.json()["history_id"] == "hid-1"
     assert app.saved[0]["translation_type"] == "TEXT" and app.saved[0]["user_id"] == "user-1"
 
 
 def test_text_not_saved_when_opted_out_or_guest(app):
-    app.client.post("/api/translate/text", json={"text": "Salida", "save_history": False}, headers=H)
+    app.client.post("/api/translate/text", json={"text": "Salida", "save_history": False}, headers=_signed())
     app.client.post("/api/translate/text", json={"text": "Salida"}, headers={"node-secretkey": "test-secret"})
     assert app.saved == []
 
@@ -62,7 +71,7 @@ def test_camera_survives_upload_failure(app, monkeypatch):
 
     monkeypatch.setattr(app.router.storage_service, "upload_translation_image", boom)
     r = app.client.post("/api/translate/camera", files={"image": ("s.jpg", JPEG, "image/jpeg")},
-                        data={"target_lang": "EN"}, headers=H)
+                        data={"target_lang": "EN"}, headers=_signed())
     body = r.json()
     assert r.status_code == 200 and body["translation"] == "Emergency exit"
     assert body["image_url"] is None and app.saved[0]["image_url"] is None
@@ -71,8 +80,8 @@ def test_camera_survives_upload_failure(app, monkeypatch):
 def test_camera_saves_unless_opted_out(app, monkeypatch):
     monkeypatch.setattr(app.router.storage_service, "upload_translation_image", lambda *a: None)
     photo = {"image": ("s.jpg", JPEG, "image/jpeg")}
-    app.client.post("/api/translate/camera", files=photo, headers=H)  # flag omitted, like the frontend
-    app.client.post("/api/translate/camera", files=photo, data={"save_history": "false"}, headers=H)
+    app.client.post("/api/translate/camera", files=photo, headers=_signed())  # flag omitted, like the frontend
+    app.client.post("/api/translate/camera", files=photo, data={"save_history": "false"}, headers=_signed())
     assert [r["translation_type"] for r in app.saved] == ["IMAGE_CAMERA"]
 
 
@@ -81,7 +90,7 @@ def test_camera_removes_photos_past_the_limit(app, monkeypatch):
     monkeypatch.setattr(app.router.storage_service, "upload_translation_image", lambda *a: "http://x/new.jpg")
     monkeypatch.setattr(app.router.history_service, "prune_photos", lambda user_id: [f"http://x/{user_id}-old.jpg"])
     monkeypatch.setattr(app.router.storage_service, "delete_translation_image", removed.append)
-    r = app.client.post("/api/translate/camera", files={"image": ("s.jpg", JPEG, "image/jpeg")}, headers=H)
+    r = app.client.post("/api/translate/camera", files={"image": ("s.jpg", JPEG, "image/jpeg")}, headers=_signed())
     assert r.json()["history_saved"] is True and removed == ["http://x/user-1-old.jpg"]
 
 
@@ -105,7 +114,7 @@ def test_prune_photos_keeps_the_newest(monkeypatch):
 def test_camera_survives_db_failure(app, monkeypatch):
     monkeypatch.setattr(app.router.storage_service, "upload_translation_image", lambda *a: "http://x/img.jpg")
     monkeypatch.setattr(app.router.history_service, "save_record", lambda r: None)
-    r = app.client.post("/api/translate/camera", files={"image": ("s.jpg", JPEG, "image/jpeg")}, headers=H)
+    r = app.client.post("/api/translate/camera", files={"image": ("s.jpg", JPEG, "image/jpeg")}, headers=_signed())
     assert r.status_code == 200 and r.json()["history_saved"] is False
 
 
@@ -113,9 +122,18 @@ def test_history_requires_user(app):
     assert app.client.get("/api/translate/history", headers={"node-secretkey": "test-secret"}).status_code == 401
 
 
+def test_unsigned_or_forged_user_id_is_not_trusted(app):
+    # holding the shared key is not enough: an unsigned x-user-id is anonymous
+    assert app.client.delete("/api/translate/history", headers=H).status_code == 401
+    forged = {**_signed("user-1"), "x-user-id": "user-2"}
+    assert app.client.delete("/api/translate/history", headers=forged).status_code == 401
+    stale = {**_signed("user-1"), "x-user-ts": "1"}
+    assert app.client.delete("/api/translate/history", headers=stale).status_code == 401
+
+
 def test_delete_other_users_record_is_404(app, monkeypatch):
     monkeypatch.setattr(app.router.history_service, "delete_record", lambda u, i: None)
-    r = app.client.delete("/api/translate/history/" + "0" * 8 + "-0000-0000-0000-" + "0" * 12, headers=H)
+    r = app.client.delete("/api/translate/history/" + "0" * 8 + "-0000-0000-0000-" + "0" * 12, headers=_signed())
     assert r.status_code == 404
 
 
@@ -123,7 +141,7 @@ def test_delete_removes_stored_image(app, monkeypatch):
     removed = []
     monkeypatch.setattr(app.router.history_service, "delete_record", lambda u, i: {"image_url": "http://x/img.jpg"})
     monkeypatch.setattr(app.router.storage_service, "delete_translation_image", removed.append)
-    r = app.client.delete("/api/translate/history/" + "0" * 8 + "-0000-0000-0000-" + "0" * 12, headers=H)
+    r = app.client.delete("/api/translate/history/" + "0" * 8 + "-0000-0000-0000-" + "0" * 12, headers=_signed())
     assert r.status_code == 200 and removed == ["http://x/img.jpg"]
 
 
@@ -131,7 +149,7 @@ def test_delete_all_removes_rows_and_stored_images(app, monkeypatch):
     removed = []
     monkeypatch.setattr(app.router.history_service, "delete_all", lambda u: [{"image_url": "http://x/a.jpg"}, {"image_url": None}])
     monkeypatch.setattr(app.router.storage_service, "delete_translation_image", removed.append)
-    r = app.client.delete("/api/translate/history", headers=H)
+    r = app.client.delete("/api/translate/history", headers=_signed())
     assert r.status_code == 200 and r.json() == {"deleted": 2} and removed == ["http://x/a.jpg"]
 
 
@@ -144,7 +162,7 @@ def test_delete_all_reports_unavailable_history(app, monkeypatch):
         raise RuntimeError("down")
 
     monkeypatch.setattr(app.router.history_service, "delete_all", boom)
-    assert app.client.delete("/api/translate/history", headers=H).status_code == 503
+    assert app.client.delete("/api/translate/history", headers=_signed()).status_code == 503
 
 
 def test_delete_all_only_touches_that_user(monkeypatch):

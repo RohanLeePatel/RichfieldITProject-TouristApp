@@ -14,6 +14,8 @@ const setSession = (res, accessToken, refreshToken) => {
   res.cookie('accessToken', accessToken, {
     httpOnly: true,
     signed: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // SPA is on another origin
     maxAge: 15 * 60 * 1000 // 15 minutes
   });
 };
@@ -27,7 +29,7 @@ class AuthController {
         message: 'Registration successful. Please verify the code sent to your email.',
         email,
         // Only exposed when explicitly enabled; never inferred from NODE_ENV
-        devOtp: process.env.ENABLE_DEV_OTP === 'true' ? otp : undefined
+        devOtp: process.env.ENABLE_DEV_OTP === 'true' && process.env.NODE_ENV !== 'production' ? otp : undefined
       });
     } catch (err) {
       fail(res, next, err);
@@ -60,7 +62,7 @@ class AuthController {
       res.status(200).json({
         message: 'If an account exists with that email, a reset code has been sent.',
         // Only exposed when explicitly enabled; never inferred from NODE_ENV
-        devOtp: otp && process.env.ENABLE_DEV_OTP === 'true' ? otp : undefined
+        devOtp: otp && process.env.ENABLE_DEV_OTP === 'true' && process.env.NODE_ENV !== 'production' ? otp : undefined
       });
     } catch (err) {
       fail(res, next, err);

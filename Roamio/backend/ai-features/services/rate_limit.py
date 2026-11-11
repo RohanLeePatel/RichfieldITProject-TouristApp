@@ -32,12 +32,13 @@ WINDOW_SECONDS = 60
 # spend shared provider quota get a tighter budget than the arithmetic ones.
 DEFAULT_LIMIT = 600
 ROUTE_LIMITS: dict[str, int] = {
-    "/ocr": 120,            # OCR.space free tier: 25 000 requests a month
-    "/text": 120,           # DeepL free tier: 500 000 characters a month
-    "/api/translate": 120,  # the routes the Core API really calls (text, camera, history): same DeepL/OCR quotas
-    "/places": 120,         # same Geoapify quota as /landmarks
-    "/landmarks": 120,      # Geoapify free tier: 3 000 requests a day
-    "/weather": 300,        # OpenWeather free tier: 60 calls a minute
+    "/ocr": 20,             # OCR.space free tier: 25 000 requests a month
+    "/text": 30,            # DeepL free tier: 500 000 characters a month
+    "/api/translate": 30,   # the routes the Core API really calls (text, camera, history): same DeepL/OCR quotas
+    "/places": 60,          # same Geoapify quota as /landmarks
+    "/landmarks": 60,       # Geoapify free tier: 3 000 requests a day
+    "/weather": 60,         # OpenWeather free tier: 60 calls a minute
+    "/rates": 60,           # FastForex: cached for a day, so real traffic is far below this
     "/recommendations": 300,
     "/destinations": 20,    # each call is ~20 Geoapify requests; admin-only, so rarely used
     "/chat": 60,            # Gemini free tier: low per-minute and daily request quota

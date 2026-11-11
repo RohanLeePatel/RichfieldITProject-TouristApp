@@ -94,6 +94,16 @@ export const useAuthStore = create((set, get) => ({
     endSession(); // drop the 7-day refresh cookie too: a signed-out browser keeps no session
     localStorage.removeItem(USER_KEY);
     clearAllDrafts();
+    // per-user data a shared device must not keep after sign-out
+    try {
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith("roamio-settings:") || key === "roamio_standalone_calendar_events" || key === "roamio_active_trip") {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch {
+      // blocked storage - nothing to clear
+    }
     setToken(null);
 
     set({

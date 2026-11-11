@@ -43,12 +43,12 @@ export const adminUsersQuery = ({ page = 1, q = "", status = "", sort = "newest"
 //   recentTrips: [{ id, title, status, role }], recentLogins: [{ at, browser, os, deviceType, success }] } }
 export const adminUserQuery = (id) => ({
   queryKey: ["admin", "user", id],
-  queryFn: () => authedFetch(`/api/admin/users/${id}`),
+  queryFn: () => authedFetch(`/api/admin/users/${encodeURIComponent(id)}`),
   staleTime: 15_000,
 });
 
 const userSend = (id, path, method, body) =>
-  authedFetch(`/api/admin/users/${id}${path}`, { method, ...(body ? { body: JSON.stringify(body) } : {}) });
+  authedFetch(`/api/admin/users/${encodeURIComponent(id)}${path}`, { method, ...(body ? { body: JSON.stringify(body) } : {}) });
 export const setUserActive = (id, isActive) => userSend(id, "", "PATCH", { isActive });
 export const signOutUser = (id) => userSend(id, "/sign-out", "POST");
 

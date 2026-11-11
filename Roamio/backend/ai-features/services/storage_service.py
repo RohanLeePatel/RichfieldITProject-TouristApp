@@ -75,6 +75,22 @@ def storage_path_from_url(image_url: str) -> str | None:
     return image_url.split(marker, 1)[1].split("?", 1)[0]
 
 
+SIGNED_URL_SECONDS = 3600
+
+
+def signed_image_url(image_url: str) -> str | None:
+    """A temporary link to a stored photo (the bucket is private). None if it can't be made."""
+    path = storage_path_from_url(image_url)
+    if not path:
+        return None
+    try:
+        signed = get_client().storage.from_(bucket_name()).create_signed_url(path, SIGNED_URL_SECONDS)
+        return signed.get("signedURL") or signed.get("signedUrl")
+    except Exception:
+        logger.exception("could not sign image link %s", path)
+        return None
+
+
 def delete_translation_image(image_url: str) -> None:
     """Best-effort removal; logs instead of raising."""
     path = storage_path_from_url(image_url)

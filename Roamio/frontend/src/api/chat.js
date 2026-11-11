@@ -23,9 +23,9 @@ export function listConversations() {
 
 // -> { conversation: { id, title, tripId, messages: [{ id, role, content }] } }
 export function getConversation(id) {
-  return authedFetch(`/api/chat/conversations/${id}`);
+  return authedFetch(`/api/chat/conversations/${encodeURIComponent(id)}`);
 }
 
 export function deleteConversation(id) {
-  return authedFetch(`/api/chat/conversations/${id}`, { method: "DELETE" });
+  return authedFetch(`/api/chat/conversations/${encodeURIComponent(id)}`, { method: "DELETE" });
 }

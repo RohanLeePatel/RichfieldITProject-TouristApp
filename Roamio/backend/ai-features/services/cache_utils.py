@@ -22,6 +22,19 @@ def ttl_cache_get(cache: dict, key, ttl_seconds: float, allow_stale: bool = Fals
     return value
 
 
+# A provider that just failed (or has no answer) is not asked again for this long, so a
+# bad currency, an unknown place or an outage can't turn every request into a paid call.
+FAILURE_TTL_SECONDS = 10 * 60
+
+
+def recently_failed(cache: dict, key) -> bool:
+    return ttl_cache_get(cache, key, FAILURE_TTL_SECONDS) is not None
+
+
+def mark_failed(cache: dict, key) -> None:
+    ttl_cache_set(cache, key, True)
+
+
 # A cap so a long-running instance can't grow a cache without bound: one entry
 # per city, currency pair or place lookup, and nothing evicts on its own. When the
 # cap is reached, the oldest entry is dropped. Finding it is a linear scan, which is

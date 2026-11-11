@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 
 import http_client
 from config import settings
-from services.cache_utils import ttl_cache_get, ttl_cache_set
+from services.cache_utils import mark_failed, recently_failed, ttl_cache_get, ttl_cache_set
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +32,7 @@ CACHE_TTL_SECONDS = 30 * 60
 
 # (city, units) -> (payload, fetched_at_monotonic), shared across requests on purpose
 _weather_cache: dict[tuple[str, str], tuple[dict, float]] = {}
+_weather_failures: dict[tuple[str, str], tuple[bool, float]] = {}
 
 
 def _precipitation_mm(entry: dict) -> float | None:
@@ -60,6 +61,8 @@ def get_weather(city: str, units: str = "metric") -> dict:
     cached = ttl_cache_get(_weather_cache, cache_key, CACHE_TTL_SECONDS)
     if cached is not None:
         return cached
+    if recently_failed(_weather_failures, cache_key):
+        return _stale_or_error(cache_key, "The weather service is unavailable right now.")
 
     try:
         current_resp = http_client.get(
@@ -75,14 +78,17 @@ def get_weather(city: str, units: str = "metric") -> dict:
     except Exception as e:
         # the exception text contains the signed request URL - log the type only
         logger.warning("OpenWeather request failed: %s", type(e).__name__)
+        mark_failed(_weather_failures, cache_key)
         return _stale_or_error(cache_key, "Could not reach the weather service.")
 
     if current_resp.status_code == 404 or forecast_resp.status_code == 404:
+        mark_failed(_weather_failures, cache_key)
         return {"error": f'No weather data found for "{city}".'}
     if not current_resp.ok or not forecast_resp.ok:
         logger.warning(
             "OpenWeather returned %s/%s", current_resp.status_code, forecast_resp.status_code
         )
+        mark_failed(_weather_failures, cache_key)
         return _stale_or_error(cache_key, "The weather service is unavailable right now.")
 
     current = current_resp.json()

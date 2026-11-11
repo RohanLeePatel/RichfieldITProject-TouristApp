@@ -1,4 +1,5 @@
 const express = require('express');
+const { userHeaders } = require('../utils/userAssertion');
 const { verifyAccessToken } = require('../auth/tokenService');
 const authenticateToken = require('../middleware/authMiddleware');
 const { translateLimiter } = require('../middleware/rateLimiter');
@@ -23,7 +24,7 @@ function verifiedUserId(req) {
   const header = req.headers.authorization;
   const token = header?.startsWith('Bearer ')
     ? header.split(' ')[1]
-    : req.signedCookies?.accessToken || req.cookies?.accessToken;
+    : req.signedCookies?.accessToken;
   if (!token) return null;
   try {
     const { userId } = verifyAccessToken(token);
@@ -50,7 +51,7 @@ async function forward(res, path, init, userId = null) {
       headers: {
         ...init.headers,
         'node-secretkey': nodeSecretKey,
-        ...(userId ? { 'x-user-id': userId } : {}),
+        ...(userId ? userHeaders(userId) : {}),
       },
     });
     const data = await response.json().catch(() => null);

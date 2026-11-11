@@ -4,6 +4,7 @@ const router = express.Router();
 const requireAuth = require('../middleware/authMiddleware');
 
 const prisma = require('../config/prisma');
+const { assertTripAccess } = require('../services/tripAccessService');
 const validate = require('../middleware/validate');
 const { createDocumentSchema } = require('../schemas/trips');
 const { accessibleTrips } = require('../utils/tripFormat');
@@ -98,6 +99,7 @@ router.post('/:tripId/documents', validate(createDocumentSchema), async (req, re
   try {
     const trip = await authorisedTrip(req, res);
     if (!trip) return undefined;
+    await assertTripAccess(trip.id, req.user.userId, { write: true, denied: 'Viewers cannot change trip documents' });
 
     const { filename, mimeType, kind, dataBase64 } = req.body;
 
@@ -139,6 +141,7 @@ router.post('/:tripId/documents', validate(createDocumentSchema), async (req, re
 
     return res.status(201).json({ message: 'Document attached.', document });
   } catch (error) {
+    if (error.statusCode && error.statusCode < 500) return res.status(error.statusCode).json({ message: error.message });
     console.error('Error attaching trip document:', error);
     return res.status(500).json({ message: 'Internal server error.' });
   }
@@ -179,6 +182,7 @@ router.delete('/:tripId/documents/:documentId', async (req, res) => {
   try {
     const trip = await authorisedTrip(req, res);
     if (!trip) return undefined;
+    await assertTripAccess(trip.id, req.user.userId, { write: true, denied: 'Viewers cannot change trip documents' });
 
     // scoped to this trip so one trip's id can't delete another trip's document
     const { count } = await prisma.tripDocument.deleteMany({
@@ -190,6 +194,7 @@ router.delete('/:tripId/documents/:documentId', async (req, res) => {
 
     return res.json({ message: 'Document removed.' });
   } catch (error) {
+    if (error.statusCode && error.statusCode < 500) return res.status(error.statusCode).json({ message: error.message });
     console.error('Error deleting trip document:', error);
     return res.status(500).json({ message: 'Internal server error.' });
   }

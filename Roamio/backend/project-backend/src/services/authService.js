@@ -1,7 +1,11 @@
+const crypto = require('node:crypto');
 const userRepository = require('../repositories/userRepository');
 const tokenService = require('../auth/tokenService');
 const sessionService = require('./sessionService');
-const { generateOtp, hashOtp, otpExpiry, otpMatches, MAX_OTP_ATTEMPTS } = require('../utils/otp');
+const { generateOtp, hashOtp, otpExpiry, otpMatches, issuedWithin, RESEND_COOLDOWN_MS, MAX_OTP_ATTEMPTS } = require('../utils/otp');
+
+const MAX_LOGIN_FAILURES = 5;
+const LOGIN_LOCK_MS = 15 * 60 * 1000;
 const { sendOtpEmail } = require('./emailService');
 const { httpError } = require('./tripAccessService');
 const { verifyCaptcha } = require('./captchaService');
@@ -82,8 +86,10 @@ class AuthService {
     let otp;
     if (existing) {
       if (existing.isVerified) throw httpError(409, 'Email already registered');
-      // An unverified registration can be retried (e.g. lost code); only the inbox owner can finish it
-      otp = await issueOtp(existing.id, { passwordHash, fullName: fullName.trim(), ...consent });
+      // An unverified registration can be retried (e.g. lost code); only the inbox owner can finish it.
+      // The stored password and name are kept: letting a second registration replace them would let
+      // anyone who typed the victim's email choose the password the victim then verifies.
+      otp = await issueOtp(existing.id, consent);
     } else {
       otp = generateOtp();
       await userRepository.create({
@@ -111,8 +117,8 @@ class AuthService {
       throw httpError(400, INVALID_OTP);
     }
 
-    if (!otpMatches(otp, user.otpHash)) {
-      await userRepository.recordFailedOtp(user.id, MAX_OTP_ATTEMPTS);
+    // the guess is spent before comparing, atomically, so parallel requests can't exceed the limit
+    if (!(await userRepository.claimOtpAttempt(user.id, MAX_OTP_ATTEMPTS)) || !otpMatches(otp, user.otpHash)) {
       throw httpError(400, INVALID_OTP);
     }
 
@@ -135,7 +141,10 @@ class AuthService {
 
     // Unknown emails get the same response so this endpoint can't be used to probe for accounts.
     // A failed send is logged, not returned, for the same reason.
-    if (user) await sendOtpEmail(normalizedEmail, await issueOtp(user.id), 'verify').catch(() => {});
+    // within the cooldown nothing is sent, and the answer is the same as for an unknown email
+    if (user && !issuedWithin(user.otpExpiresAt, RESEND_COOLDOWN_MS)) {
+      await sendOtpEmail(normalizedEmail, await issueOtp(user.id), 'verify').catch(() => {});
+    }
   }
 
   // Always resolves the same way whether or not the email exists. The plain code is
@@ -146,7 +155,7 @@ class AuthService {
     if (!EMAIL_PATTERN.test(normalizedEmail)) throw httpError(400, 'A valid email is required.');
 
     const user = await userRepository.findByEmail(normalizedEmail);
-    if (!user) return { otp: null };
+    if (!user || issuedWithin(user.resetPasswordExpiresAt, RESEND_COOLDOWN_MS)) return { otp: null };
 
     const otp = generateOtp();
     await userRepository.setResetPasswordOtp(user.id, hashOtp(otp), otpExpiry());
@@ -171,8 +180,7 @@ class AuthService {
       throw httpError(400, INVALID_RESET_CODE);
     }
 
-    if (!otpMatches(otp, user.resetPasswordOtpHash)) {
-      await userRepository.recordFailedResetAttempt(user.id, MAX_OTP_ATTEMPTS);
+    if (!(await userRepository.claimResetAttempt(user.id, MAX_OTP_ATTEMPTS)) || !otpMatches(otp, user.resetPasswordOtpHash)) {
       throw httpError(400, INVALID_RESET_CODE);
     }
 
@@ -187,13 +195,20 @@ class AuthService {
     const user = typeof password === 'string' ? await userRepository.findByEmail(normalizeEmail(email)) : null;
     if (!user) throw httpError(401, 'Invalid email or password');
 
+    // checked before the password, so a locked account refuses even the right one
+    if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
+      throw httpError(429, 'Too many failed sign-in attempts. Try again in a few minutes, or reset your password.');
+    }
+
     const valid = await tokenService.comparePassword(password, user.passwordHash);
     if (!valid) {
+      await userRepository.recordFailedLogin(user.id, MAX_LOGIN_FAILURES, LOGIN_LOCK_MS).catch((error) => console.error('Could not count a failed sign-in:', error.message));
       // shown to the account's owner under "Login activity"; never blocks the answer
       await sessionService.recordFailure(user.id, req).catch((error) => console.error('Could not record a failed sign-in:', error.message));
       throw httpError(401, 'Invalid email or password');
     }
 
+    if (user.failedLogins > 0) await userRepository.clearFailedLogins(user.id);
     if (user.isActive === false) throw httpError(403, SUSPENDED);
     if (!user.isVerified) throw httpError(403, 'Account not verified. Please verify your email first.');
 
@@ -224,9 +239,13 @@ class AuthService {
     if (!user.isVerified) throw httpError(403, 'Account not verified. Please verify your email first.');
 
     let sid = payload.sid;
+    const jti = crypto.randomUUID();
     if (sid) {
-      // signed out from Settings (or unused for a week): no new tokens
-      if (!(await sessionService.touch(sid, user.id))) throw httpError(401, 'This session was signed out. Please sign in again.');
+      // signed out from Settings (or unused for a week): no new tokens. A refresh token that
+      // was already used is refused too, and a replay from elsewhere ends the session.
+      const outcome = await sessionService.rotate(sid, user.id, payload.jti, jti);
+      if (outcome === 'replay') throw httpError(401, 'This refresh token was already used. Please sign in again.');
+      if (outcome !== 'ok') throw httpError(401, 'This session was signed out. Please sign in again.');
     } else {
       // a token from before sessions existed: give it one, so it shows up and can be signed out
       sid = await sessionService.start(user.id, req, { record: false });
@@ -234,7 +253,7 @@ class AuthService {
 
     return {
       accessToken: tokenService.generateAccessToken(user, sid),
-      refreshToken: tokenService.generateRefreshToken(user, sid),
+      refreshToken: tokenService.generateRefreshToken(user, sid, sid === payload.sid ? jti : undefined),
     };
   }
 

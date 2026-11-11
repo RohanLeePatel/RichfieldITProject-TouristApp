@@ -48,7 +48,7 @@ export async function fetchTrip(tripId) {
     return trip;
   }
 
-  const result = await authedFetch(`/api/trips/${tripId}`);
+  const result = await authedFetch(`/api/trips/${encodeURIComponent(tripId)}`);
   return result.trip;
 }
 
@@ -58,7 +58,7 @@ export async function deleteTrip(tripId) {
     return;
   }
 
-  await authedFetch(`/api/trips/${tripId}`, { method: "DELETE" });
+  await authedFetch(`/api/trips/${encodeURIComponent(tripId)}`, { method: "DELETE" });
 }
 
 export async function addItineraryItem(tripId, { title, location, dayNumber, startTime, lat, lon }) {
@@ -73,7 +73,7 @@ export async function addItineraryItem(tripId, { title, location, dayNumber, sta
     return item;
   }
 
-  const result = await authedFetch(`/api/trips/${tripId}/itinerary`, {
+  const result = await authedFetch(`/api/trips/${encodeURIComponent(tripId)}/itinerary`, {
     method: "POST",
     body: JSON.stringify({ title, location, dayNumber, startTime, lat, lon }),
   });
@@ -91,26 +91,26 @@ export async function removeItineraryItem(tripId, itemId) {
     return;
   }
 
-  await authedFetch(`/api/trips/${tripId}/itinerary/${itemId}`, { method: "DELETE" });
+  await authedFetch(`/api/trips/${encodeURIComponent(tripId)}/itinerary/${encodeURIComponent(itemId)}`, { method: "DELETE" });
 }
 
 // The join code for inviting people to this trip. A solo trip is moved into a
 // group of its own first (organizer only). { inviteCode, travelGroupId, groupName }
 export function shareTrip(tripId) {
-  return authedFetch(`/api/trips/${tripId}/share`, { method: "POST" });
+  return authedFetch(`/api/trips/${encodeURIComponent(tripId)}/share`, { method: "POST" });
 }
 
 // Edit a saved trip: any of title, destination, budget, notes, startDate and
 // endDate (the dates go together; null clears them). A 409 carries the stops
 // that fall outside the new dates in error.data.items.
 export async function updateTrip(tripId, changes) {
-  const result = await authedFetch(`/api/trips/${tripId}`, { method: "PATCH", body: JSON.stringify(changes) });
+  const result = await authedFetch(`/api/trips/${encodeURIComponent(tripId)}`, { method: "PATCH", body: JSON.stringify(changes) });
   return result.trip;
 }
 
 // days: [{ dayNumber, itemIds }] - each day's stops, top to bottom
 export function reorderItinerary(tripId, days) {
-  return authedFetch(`/api/trips/${tripId}/itinerary/order`, { method: "PUT", body: JSON.stringify({ days }) });
+  return authedFetch(`/api/trips/${encodeURIComponent(tripId)}/itinerary/order`, { method: "PUT", body: JSON.stringify({ days }) });
 }
 
 // Trips deleted in the last 30 days, and bringing one back
@@ -120,6 +120,6 @@ export async function fetchDeletedTrips() {
 }
 
 export async function restoreTrip(tripId) {
-  const result = await authedFetch(`/api/trips/${tripId}/restore`, { method: "POST" });
+  const result = await authedFetch(`/api/trips/${encodeURIComponent(tripId)}/restore`, { method: "POST" });
   return result.trip;
 }

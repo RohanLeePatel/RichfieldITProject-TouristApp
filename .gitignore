@@ -18,6 +18,16 @@ dist-ssr
 .env
 .env/
 *.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.dump
+*.gpg
+secrets.json
+service-account*.json
 cookies.txt
 
 # IDE & API tools

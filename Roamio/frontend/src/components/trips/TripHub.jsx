@@ -109,7 +109,7 @@ export function TripSnapshot({ trip }) {
                 ? "Sample advisory - no live advisory feed is configured."
                 : `${SAFETY_SOURCES[safety.data.source] || safety.data.source}, last revised ${timeAgo(safety.data.lastUpdated)}.`}
             </p>
-            {safety.data.link && (
+            {/^https?:\/\//i.test(safety.data.link || "") && (
               <a className="trip-hub-link" href={safety.data.link} target="_blank" rel="noreferrer">Full advisory</a>
             )}
           </>

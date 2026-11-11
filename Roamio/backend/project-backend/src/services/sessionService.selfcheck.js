@@ -20,11 +20,16 @@ require.cache[path.join(__dirname, '../config/prisma.js')] = {
       create: async ({ data }) => sessions.push({ revokedAt: null, lastSeenAt: new Date(), ...data }),
       updateMany: async ({ where, data }) => {
         const rows = sessions.filter(
-          (s) => s.id === where.id && s.userId === where.userId && s.revokedAt === where.revokedAt && s.lastSeenAt >= where.lastSeenAt.gte
+          (s) => s.id === where.id && s.userId === where.userId
+            && (!('revokedAt' in where) || s.revokedAt === where.revokedAt)
+            && (!where.lastSeenAt || s.lastSeenAt >= where.lastSeenAt.gte)
+            && (!('refreshJti' in where) || (s.refreshJti ?? null) === where.refreshJti)
         );
         rows.forEach((row) => Object.assign(row, data));
         return { count: rows.length };
       },
+      count: async ({ where }) => sessions.filter((s) => s.id === where.id && s.userId === where.userId && s.revokedAt === where.revokedAt && s.lastSeenAt >= where.lastSeenAt.gte).length,
+      findFirst: async ({ where }) => sessions.find((s) => s.id === where.id && s.userId === where.userId && s.revokedAt === where.revokedAt && s.lastSeenAt >= where.lastSeenAt.gte) || null,
     },
     loginEvent: {
       create: async ({ data }) => events.push(data),
@@ -110,6 +115,28 @@ const sessionService = require('./sessionService');
   sessions[0].lastSeenAt = new Date();
   assert.equal(await sessionService.revoke(7, id), true);
   assert.equal(await sessionService.touch(id, 7), false);
+
+  // a session is live until it is revoked or idle too long (this is what requireAuth asks on every request)
+  const live = await sessionService.start(9, { headers: {}, ip: '1.1.1.1' }, { record: false });
+  assert.equal(await sessionService.isLive(live, 9), true);
+  assert.equal(await sessionService.isLive(live, 10), false);
+  assert.equal(await sessionService.isLive('nope', 9), false);
+
+  // refresh-token rotation: each token works once
+  assert.equal(await sessionService.rotate(live, 9, undefined, 'jti-1'), 'ok'); // first renewal, from a token without a jti
+  assert.equal(await sessionService.rotate(live, 9, 'jti-1', 'jti-2'), 'ok');
+  const row = sessions.find((s) => s.id === live);
+  row.lastSeenAt = new Date(Date.now() - 60 * 1000); // not a tab racing: well past the grace window
+  assert.equal(await sessionService.rotate(live, 9, 'jti-1', 'jti-3'), 'replay'); // jti-1 was already used...
+  assert.notEqual(row.revokedAt, null); // ...so the session is over
+  assert.equal(await sessionService.isLive(live, 9), false);
+  assert.equal(await sessionService.rotate(live, 9, 'jti-2', 'jti-4'), 'dead'); // even the newest token is refused now
+
+  // a second refresh inside the grace window is a racing tab: refused, session kept
+  const racing = await sessionService.start(9, { headers: {}, ip: '1.1.1.1' }, { record: false });
+  assert.equal(await sessionService.rotate(racing, 9, undefined, 'a'), 'ok');
+  assert.equal(await sessionService.rotate(racing, 9, undefined, 'b'), 'replay');
+  assert.equal(await sessionService.isLive(racing, 9), true);
 
   console.log('session service selfcheck: all assertions passed');
 })().catch((error) => {

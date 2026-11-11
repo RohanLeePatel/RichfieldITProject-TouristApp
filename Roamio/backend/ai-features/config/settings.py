@@ -31,6 +31,7 @@ class Setting(NamedTuple):
 
 SETTINGS: tuple[Setting, ...] = (
     Setting("superSecretKey", "all", True, "Shared secret the Core API sends in the node-secretkey header."),
+    Setting("userSigningKey", "translation history", False, "Signs the x-user-id the Core API sends (has a default: superSecretKey)."),
     Setting("geoapifyAPIKey", "landmarks, destinations", False, "Geoapify: landmarks, place search, destination data."),
     Setting("openWeatherAPIKey", "weather", False, "OpenWeather: current weather and forecast."),
     Setting("deepLAPIKey", "translation", False, "DeepL: text translation."),

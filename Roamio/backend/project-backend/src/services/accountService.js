@@ -9,6 +9,8 @@ const { aiApiUrl } = require('../utils/aiService');
 // "Download my data" and "Delete my account" (POPIA: access and erasure).
 
 const aiFeaturesUrl = aiApiUrl;
+const { userHeaders } = require('../utils/userAssertion');
+
 const AI_TIMEOUT_MS = 15000;
 const HISTORY_PAGE = 100;
 const HISTORY_PAGES = 5; // up to 500 translations in the file
@@ -20,7 +22,7 @@ function expert(path, userId, init = {}) {
   if (!key) return null;
   return fetch(`${aiFeaturesUrl()}${path}`, {
     ...init,
-    headers: { 'node-secretkey': key, 'x-user-id': String(userId) },
+    headers: { 'node-secretkey': key, ...userHeaders(userId) },
     signal: AbortSignal.timeout(AI_TIMEOUT_MS),
   });
 }
@@ -135,12 +137,17 @@ async function deleteAccount(userId, { confirmation, password } = {}) {
       const others = await tx.travelGroupMember.findMany({
         where: { travelGroupId, userId: { not: userId } },
         orderBy: { joinedAt: 'asc' },
-        select: { id: true, role: true },
+        select: { id: true, userId: true, role: true },
       });
       if (others.length === 0) {
         await tx.travelGroup.delete({ where: { id: travelGroupId } }); // trips, itinerary, expenses, documents go with it
-      } else if (role === 'OWNER' && !others.some((member) => member.role === 'OWNER')) {
-        await tx.travelGroupMember.update({ where: { id: others[0].id }, data: { role: 'OWNER' } });
+      } else {
+        // expenses this person paid stay on the trip: the cascade would delete them and change
+        // everyone else's balances, so the next member is recorded as the payer instead
+        await tx.expense.updateMany({ where: { paidById: userId, trip: { travelGroupId } }, data: { paidById: others[0].userId } });
+        if (role === 'OWNER' && !others.some((member) => member.role === 'OWNER')) {
+          await tx.travelGroupMember.update({ where: { id: others[0].id }, data: { role: 'OWNER' } });
+        }
       }
     }
     // the one relation that doesn't cascade: documents this person put on trips that stay

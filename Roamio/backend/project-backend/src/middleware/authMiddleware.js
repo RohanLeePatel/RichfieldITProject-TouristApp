@@ -1,9 +1,10 @@
 const { verifyAccessToken } = require('../auth/tokenService');
+const sessionService = require('../services/sessionService');
 
 // Authenticates a request from its access token and sets req.user. The Bearer header
 // wins. Cookies are the fallback for browser sessions, and signed cookies are preferred
 // over plain ones.
-const requireAuth = (req, res, next) => {
+const requireAuth = async (req, res, next) => {
   let token;
 
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
@@ -11,9 +12,6 @@ const requireAuth = (req, res, next) => {
   }
   else if (req.signedCookies && req.signedCookies.accessToken) {
     token = req.signedCookies.accessToken;
-  }
-  else if (req.cookies && req.cookies.accessToken) {
-    token = req.cookies.accessToken;
   }
 
   if (!token) {
@@ -39,10 +37,21 @@ const requireAuth = (req, res, next) => {
       userId: parsedId
     }; 
     
-    next();
   } catch (error) {
     return res.status(401).json({ message: 'Invalid or expired token. Please log in again.' });
   }
+
+  // A signed token is only as good as its session: signing out, suspending the account
+  // or resetting the password revokes the session, which must stop the token working
+  // now rather than when it expires. Tokens from before sessions existed carry no sid.
+  try {
+    if (req.user.sid && !(await sessionService.isLive(req.user.sid, req.user.id))) {
+      return res.status(401).json({ message: 'This session was signed out. Please log in again.' });
+    }
+  } catch (error) {
+    return next(error);
+  }
+  return next();
 };
 
 // For public routes that say a little more to a signed-in visitor: sets req.user

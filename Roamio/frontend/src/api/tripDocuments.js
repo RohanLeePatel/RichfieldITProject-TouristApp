@@ -33,7 +33,7 @@ function readAsBase64(file) {
 
 export async function fetchDocuments(tripId) {
   if (isDevBypass()) return [];
-  const result = await authedFetch(`/api/trips/${tripId}/documents`);
+  const result = await authedFetch(`/api/trips/${encodeURIComponent(tripId)}/documents`);
   return result.documents;
 }
 
@@ -48,7 +48,7 @@ export async function uploadDocument(tripId, file, kind) {
     throw new Error("That file is too large (1 MB max).");
   }
 
-  const result = await authedFetch(`/api/trips/${tripId}/documents`, {
+  const result = await authedFetch(`/api/trips/${encodeURIComponent(tripId)}/documents`, {
     method: "POST",
     body: JSON.stringify({
       filename: file.name,
@@ -62,7 +62,7 @@ export async function uploadDocument(tripId, file, kind) {
 
 export async function deleteDocument(tripId, documentId) {
   if (isDevBypass()) return;
-  await authedFetch(`/api/trips/${tripId}/documents/${documentId}`, { method: "DELETE" });
+  await authedFetch(`/api/trips/${encodeURIComponent(tripId)}/documents/${encodeURIComponent(documentId)}`, { method: "DELETE" });
 }
 
 // Opens the file in a new tab. The endpoint needs the bearer token, so the

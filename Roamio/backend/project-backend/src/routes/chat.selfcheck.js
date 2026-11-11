@@ -1,3 +1,4 @@
+process.env.AI_FEATURES_URL = 'https://richfield-it-project-tourist-app.vercel.app'; // the stubs below match this host
 // The trip assistant API against a fake Prisma and a fake ai-features: auth,
 // ownership of conversations, trip access, what the model is told (and what it
 // is never told), the per-traveller limits, and that a failed answer saves

@@ -69,6 +69,7 @@ class SafetySyncService {
   }
 
   async fetchAdvisory(iso) {
+    if (!/^[A-Za-z]{2,3}$/.test(String(iso))) throw new Error('Invalid country code');
     if (this.useMock()) {
       const mock = MOCK_ADVISORIES[iso] || { level: 1, score: 1, alerts: 0, text: 'Exercise normal precautions.' };
       return this.buildAdvisoryData(iso, mock, 'MOCK');

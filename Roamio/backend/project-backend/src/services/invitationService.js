@@ -34,6 +34,10 @@ class InvitationService {
       throw httpError(403, 'Only group owners and admins can invite members.');
     }
 
+    if (normalizedRole === 'ADMIN' && membership.role !== 'OWNER') {
+      throw httpError(403, 'Only the group owner can invite admins.');
+    }
+
     const inviter = await invitationRepo.findUserById(inviterId);
     if (inviter.email.toLowerCase() === normalizedEmail) {
       throw httpError(400, 'You cannot invite yourself.');

@@ -16,7 +16,7 @@ const PROBLEMS = {
   WRONG_ACCOUNT: { title: "This invite is for a different account", text: "Sign in with the email address it was sent to, or ask the trip owner to invite this account." },
 };
 
-const openPath = ({ tripId, groupId } = {}) => (tripId ? `/trips/${tripId}` : groupId ? `/family?group=${groupId}` : "/family");
+const openPath = ({ tripId, groupId } = {}) => (tripId ? `/trips/${encodeURIComponent(tripId)}` : groupId ? `/family?group=${encodeURIComponent(groupId)}` : "/family");
 
 // Where an invite link lands (/invite/:token). Anyone can see what they're
 // joining; joining needs an account with the invited email, and signing in

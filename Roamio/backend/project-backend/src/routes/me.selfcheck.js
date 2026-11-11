@@ -79,6 +79,7 @@ const prisma = {
   userSession: {
     create: async ({ data }) => db.sessions.push({ createdAt: new Date(), lastSeenAt: new Date(), revokedAt: null, ...data }),
     findMany: async ({ where }) => select(db.sessions, where).sort((a, b) => b.lastSeenAt - a.lastSeenAt),
+    count: async ({ where }) => select(db.sessions, where).length,
     updateMany: async ({ where, data }) => {
       const rows = select(db.sessions, where);
       rows.forEach((row) => Object.assign(row, data));
@@ -104,6 +105,9 @@ const prisma = {
       return include ? rows.map((m) => ({ ...m, travelGroup: { id: m.travelGroupId, name: 'Trip crew', description: null, members: [], trips: [] } })) : rows;
     },
     update: async ({ where, data }) => Object.assign(db.members.find((m) => m.id === where.id), data),
+  },
+  expense: {
+    updateMany: async ({ where, data }) => { (db.reassigned ||= []).push({ where, data }); return { count: 0 }; },
   },
   travelGroup: {
     delete: async ({ where }) => { removeWhere(db.groups, { id: where.id }); removeWhere(db.members, { travelGroupId: where.id }); },
@@ -157,6 +161,12 @@ const server = app.listen(0, async () => {
   function tokenFor(id, sid) { return tokenService.generateAccessToken({ id, email: `u${id}@example.com` }, sid); }
 
   db.users[0].passwordHash = await tokenService.hashPassword('correct-horse');
+  // the tokens below carry these session ids, and requireAuth checks the session is live
+  const seeded = new Date();
+  db.sessions.push(
+    { id: 'sess-1', userId: 1, browser: 'Chrome', os: 'Windows', deviceType: 'desktop', location: 'Durban, South Africa', ipAddress: '102.65.12.4', createdAt: seeded, lastSeenAt: seeded, revokedAt: null },
+    { id: 's2', userId: 2, browser: 'Chrome', os: 'Windows', deviceType: 'desktop', location: '', ipAddress: '', createdAt: seeded, lastSeenAt: seeded, revokedAt: null },
+  );
   const realError = console.error;
   console.error = () => {};
 
@@ -184,8 +194,8 @@ const server = app.listen(0, async () => {
 
     /* ---- sessions and sign-in history ---- */
     const now = new Date();
+    Object.assign(db.sessions.find((s) => s.id === 'sess-1'), { createdAt: now, lastSeenAt: now });
     db.sessions.push(
-      { id: 'sess-1', userId: 1, browser: 'Chrome', os: 'Windows', deviceType: 'desktop', location: 'Durban, South Africa', ipAddress: '102.65.12.4', createdAt: now, lastSeenAt: now, revokedAt: null },
       { id: 'sess-2', userId: 1, browser: 'Safari', os: 'iOS', deviceType: 'mobile', location: '', ipAddress: '10.0.0.2', createdAt: now, lastSeenAt: new Date(now - 1000), revokedAt: null },
       { id: 'sess-old', userId: 1, browser: 'Firefox', os: 'Linux', deviceType: 'desktop', location: '', ipAddress: '', createdAt: now, lastSeenAt: new Date(now - 9 * day), revokedAt: null }, // unused for over a week
       { id: 'sess-3', userId: 2, browser: 'Edge', os: 'Windows', deviceType: 'desktop', location: '', ipAddress: '', createdAt: now, lastSeenAt: now, revokedAt: null }
@@ -198,6 +208,8 @@ const server = app.listen(0, async () => {
     assert.equal(db.sessions.find((s) => s.id === 'sess-3').revokedAt, null);
     db.sessions.push({ id: 'sess-4', userId: 1, browser: 'Chrome', os: 'Android', deviceType: 'mobile', location: '', ipAddress: '', createdAt: now, lastSeenAt: now, revokedAt: null });
     assert.equal((await call('DELETE', '/api/users/me/sessions/sess-4')).status, 204);
+    // a signed-out session's access token stops working at once, not when it expires
+    assert.equal((await call('GET', '/api/users/me/sessions', { token: tokenFor(1, 'sess-4') })).status, 401);
     assert.equal((await call('DELETE', '/api/users/me/sessions/sess-4')).status, 404);
     // "sign out everywhere else" keeps the one making the request
     assert.equal((await call('DELETE', '/api/users/me/sessions/others')).status, 204);
@@ -332,6 +344,7 @@ const server = app.listen(0, async () => {
 
     r = await call('DELETE', '/api/users/me', { body: { confirmation: 'DELETE', password: 'correct-horse' } });
     assert.equal(r.status, 204);
+    assert.deepEqual(db.reassigned?.map((x) => x.data.paidById), [2, 2]); // one per shared group // what they paid stays on the trip, now under the next member
     assert.equal(asked.init.method, 'DELETE');
     assert.equal(asked.init.headers['x-user-id'], '1');
     global.fetch = realFetch;

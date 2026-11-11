@@ -10,7 +10,9 @@ const jwt = require('jsonwebtoken');
 process.env.JWT_ACCESS_SECRET = 'selfcheck-secret';
 process.env.superSecretKey = 'selfcheck-service-key';
 
+let lastHeaders;
 const echo = http.createServer((req, res) => {
+  lastHeaders = req.headers;
   res.setHeader('content-type', 'application/json');
   res.end(JSON.stringify({ method: req.method, path: req.url, userId: req.headers['x-user-id'] ?? null }));
 });
@@ -34,9 +36,15 @@ echo.listen(0, async () => {
     let got = await post({ authorization: token(7) });
     assert.deepStrictEqual(got, { method: 'POST', path: '/v1/api/translate/text', userId: '7' });
 
-    // signed in with the accessToken cookie instead of a header
+    // the id travels with a signature that ai-features can check, and a replayed id is stale
+    const crypto = require('node:crypto');
+    const expected = crypto.createHmac('sha256', process.env.superSecretKey).update(`7.${lastHeaders['x-user-ts']}`).digest('hex');
+    assert.strictEqual(lastHeaders['x-user-sig'], expected);
+    assert.ok(Math.abs(Date.now() / 1000 - Number(lastHeaders['x-user-ts'])) < 60);
+
+    // an unsigned accessToken cookie is not trusted (only the signed one is)
     got = await post({ cookie: `accessToken=${token(7).split(' ')[1]}` });
-    assert.strictEqual(got.userId, '7');
+    assert.strictEqual(got.userId, null);
 
     // a browser claiming to be someone else is ignored
     got = await post({ authorization: token(7), 'x-user-id': '99' });

@@ -120,7 +120,7 @@ export default function ClimateInsights({ name, country, latitude, longitude, mo
           <div>
             <h3><BookOpen size={15} /> About this place</h3>
             <p>{about.extract}</p>
-            {about.url && <a href={about.url} target="_blank" rel="noreferrer">Read more on Wikipedia</a>}
+            {/^https?:\/\//i.test(about.url || "") && <a href={about.url} target="_blank" rel="noreferrer">Read more on Wikipedia</a>}
           </div>
         </section>
       )}

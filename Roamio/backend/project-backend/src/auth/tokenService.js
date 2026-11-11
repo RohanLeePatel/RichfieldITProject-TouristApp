@@ -3,8 +3,14 @@ const bcrypt = require('bcrypt');
 
 // The fallback secrets let local development run without setup. They are public
 // strings, so anyone could forge tokens with them. Production must set both variables.
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'access_secret_fallback';
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'refresh_secret_fallback';
+// In production a missing secret stops the server at boot instead of falling back.
+const secretFor = (name, fallback) => {
+  if (process.env[name]) return process.env[name];
+  if (process.env.NODE_ENV === 'production') throw new Error(`${name} must be set in production`);
+  return fallback;
+};
+const ACCESS_SECRET = secretFor('JWT_ACCESS_SECRET', 'access_secret_fallback');
+const REFRESH_SECRET = secretFor('JWT_REFRESH_SECRET', 'refresh_secret_fallback');
 
 const hashPassword = async (password) => {
   return await bcrypt.hash(password, 10);
@@ -24,9 +30,11 @@ const generateAccessToken = (user, sid) => {
   );
 };
 
-const generateRefreshToken = (user, sid) => {
+// jti: which refresh token this is. The session stores the latest one, so a token that has
+// already been used is recognised as a replay (see sessionService.rotate).
+const generateRefreshToken = (user, sid, jti) => {
   return jwt.sign(
-    { userId: user.id, ...(sid ? { sid } : {}) },
+    { userId: user.id, ...(sid ? { sid } : {}), ...(jti ? { jti } : {}) },
     REFRESH_SECRET,
     { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
   );

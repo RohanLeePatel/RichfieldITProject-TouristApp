@@ -210,7 +210,7 @@ def fetch_thumbnail(title: str) -> str | None:
     """A cover photo from the Wikipedia summary endpoint (free, no key), or None."""
     try:
         response = http_client.get(
-            f"{WIKIPEDIA_SUMMARY_URL}{quote(title.replace(' ', '_'))}", headers=WIKIPEDIA_HEADERS, timeout=15
+            f"{WIKIPEDIA_SUMMARY_URL}{quote(title.replace(' ', '_'), safe='')}", headers=WIKIPEDIA_HEADERS, timeout=15
         )
         if not response.ok:
             return None

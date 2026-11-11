@@ -3,7 +3,7 @@ const notificationRepo = require('../repositories/notificationRepository');
 exports.getMyNotifications = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const limit = req.query.limit ? parseInt(req.query.limit, 10) : 50;
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
 
     const notifications = await notificationRepo.getUserNotifications(userId, limit);
     const unreadCount = await notificationRepo.getUnreadCount(userId);

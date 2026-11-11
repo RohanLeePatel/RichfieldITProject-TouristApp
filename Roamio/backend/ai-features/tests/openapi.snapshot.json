@@ -100,6 +100,7 @@
             "items": {
               "$ref": "#/components/schemas/Candidate"
             },
+            "maxItems": 100,
             "title": "Children",
             "type": "array"
           },
@@ -124,6 +125,8 @@
           "image_url": {
             "anyOf": [
               {
+                "maxLength": 2048,
+                "pattern": "^https://",
                 "type": "string"
               },
               {
@@ -1192,6 +1195,7 @@
             "items": {
               "type": "string"
             },
+            "maxItems": 50,
             "title": "Avoid Interests",
             "type": "array"
           },
@@ -1205,8 +1209,7 @@
           },
           "currency": {
             "description": "ISO 4217, e.g. ZAR.",
-            "maxLength": 3,
-            "minLength": 3,
+            "pattern": "^[A-Za-z]{3}$",
             "title": "Currency",
             "type": "string"
           },
@@ -1214,6 +1217,7 @@
             "items": {
               "type": "string"
             },
+            "maxItems": 50,
             "title": "Interests",
             "type": "array"
           },
@@ -1243,6 +1247,7 @@
             "items": {
               "type": "string"
             },
+            "maxItems": 50,
             "title": "Priority Interests",
             "type": "array"
           },
@@ -1305,6 +1310,7 @@
                 "items": {
                   "$ref": "#/components/schemas/Candidate"
                 },
+                "maxItems": 300,
                 "type": "array"
               },
               {
@@ -1906,6 +1912,15 @@
         "parameters": [
           {
             "in": "header",
+            "name": "node-secretKey",
+            "required": true,
+            "schema": {
+              "title": "Node-Secretkey",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
             "name": "x-user-id",
             "required": false,
             "schema": {
@@ -1922,11 +1937,34 @@
           },
           {
             "in": "header",
-            "name": "node-secretKey",
-            "required": true,
+            "name": "x-user-ts",
+            "required": false,
             "schema": {
-              "title": "Node-Secretkey",
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Ts"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-sig",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Sig"
             }
           }
         ],
@@ -1970,6 +2008,15 @@
         "parameters": [
           {
             "in": "header",
+            "name": "node-secretKey",
+            "required": true,
+            "schema": {
+              "title": "Node-Secretkey",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
             "name": "x-user-id",
             "required": false,
             "schema": {
@@ -1986,11 +2033,34 @@
           },
           {
             "in": "header",
-            "name": "node-secretKey",
-            "required": true,
+            "name": "x-user-ts",
+            "required": false,
             "schema": {
-              "title": "Node-Secretkey",
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Ts"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-sig",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Sig"
             }
           }
         ],
@@ -2061,6 +2131,15 @@
           },
           {
             "in": "header",
+            "name": "node-secretKey",
+            "required": true,
+            "schema": {
+              "title": "Node-Secretkey",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
             "name": "x-user-id",
             "required": false,
             "schema": {
@@ -2077,11 +2156,34 @@
           },
           {
             "in": "header",
-            "name": "node-secretKey",
-            "required": true,
+            "name": "x-user-ts",
+            "required": false,
             "schema": {
-              "title": "Node-Secretkey",
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Ts"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-sig",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Sig"
             }
           }
         ],
@@ -2123,6 +2225,15 @@
           },
           {
             "in": "header",
+            "name": "node-secretKey",
+            "required": true,
+            "schema": {
+              "title": "Node-Secretkey",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
             "name": "x-user-id",
             "required": false,
             "schema": {
@@ -2139,11 +2250,34 @@
           },
           {
             "in": "header",
-            "name": "node-secretKey",
-            "required": true,
+            "name": "x-user-ts",
+            "required": false,
             "schema": {
-              "title": "Node-Secretkey",
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Ts"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-sig",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Sig"
             }
           }
         ],
@@ -2176,6 +2310,15 @@
         "parameters": [
           {
             "in": "header",
+            "name": "node-secretKey",
+            "required": true,
+            "schema": {
+              "title": "Node-Secretkey",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
             "name": "x-user-id",
             "required": false,
             "schema": {
@@ -2192,11 +2335,34 @@
           },
           {
             "in": "header",
-            "name": "node-secretKey",
-            "required": true,
+            "name": "x-user-ts",
+            "required": false,
             "schema": {
-              "title": "Node-Secretkey",
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Ts"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-user-sig",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Sig"
             }
           }
         ],

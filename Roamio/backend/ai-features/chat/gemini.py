@@ -239,7 +239,7 @@ def _facts_block(context: str) -> str:
     if not context:
         return "<trip_facts>none selected</trip_facts>"
     # the closing tag must not be forgeable from inside the facts
-    inner = scrub(context).replace("<trip_facts>", "").replace("</trip_facts>", "")
+    inner = re.sub(r"</?\s*trip_facts\s*>", "", scrub(context), flags=re.IGNORECASE)
     return f"<trip_facts>\n{inner}\n</trip_facts>"
 
 

@@ -4,7 +4,11 @@
 
 // AI_FEATURES_URL should always be set. The fallback is the deployed AI service, so
 // a missing variable points at production rather than failing outright.
-const base = () => (process.env.AI_FEATURES_URL || 'https://richfield-it-project-tourist-app.vercel.app').replace(/\/$/, '');
+const base = () => {
+  const url = process.env.AI_FEATURES_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:8000');
+  if (!url) throw new Error('AI_FEATURES_URL must be set in production');
+  return url.replace(/\/$/, '');
+};
 
 // .../v1, for every feature route
 const aiApiUrl = () => `${base()}/v1`;

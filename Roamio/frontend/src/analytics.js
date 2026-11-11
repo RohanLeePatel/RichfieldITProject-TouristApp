@@ -33,14 +33,17 @@ export function initAnalytics() {
 export function trackPageView(pathname, search = "") {
   if (!initialised || isAdminPath(pathname)) return;
 
-  const path = `${pathname}${search}`;
+  // Invite tokens and join codes are credentials, and query strings can carry emails,
+  // so neither goes to Google Analytics.
+  void search;
+  const path = pathname.replace(/^\/(invite|join)\/[^/]+/, "/$1/:token");
   // React StrictMode runs effects twice in development; don't count that as two views
   if (path === lastTrackedPath) return;
   lastTrackedPath = path;
 
   window.gtag("event", "page_view", {
     page_path: path,
-    page_location: window.location.href,
+    page_location: `${window.location.origin}${path}`,
     page_title: document.title,
   });
 }

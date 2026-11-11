@@ -40,6 +40,10 @@ model User {
   resetPasswordExpiresAt DateTime?
   resetPasswordAttempts  Int       @default(0)
 
+  // Wrong-password lockout. Added by hand: prisma/live-sql/015_sessions_lockout.sql
+  failedLogins Int       @default(0)
+  lockedUntil  DateTime? @db.Timestamptz(6)
+
   preferences       UserPreference?
   groupMemberships  TravelGroupMember[]
   sentInvitations   Invitation[]        @relation("SenderInvitations")
@@ -521,6 +525,9 @@ model UserSession {
   createdAt  DateTime  @default(now()) @db.Timestamptz(6)
   lastSeenAt DateTime  @default(now()) @db.Timestamptz(6)
   revokedAt  DateTime? @db.Timestamptz(6)
+  // The one refresh token the session accepts; each use replaces it (null = not rotated yet).
+  // Added by hand: prisma/live-sql/015_sessions_lockout.sql
+  refreshJti String?
 
   @@index([userId, lastSeenAt(sort: Desc)])
 }

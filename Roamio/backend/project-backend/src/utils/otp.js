@@ -11,6 +11,10 @@ const generateOtp = () => crypto.randomInt(100000, 1000000).toString();
 // space is small enough to brute-force offline, so the TTL and attempt limit still matter.
 const hashOtp = (otp) => crypto.createHash('sha256').update(String(otp)).digest('hex');
 
+// A code was issued less than `ms` ago, judged from its expiry (issue time = expiry - TTL).
+const issuedWithin = (expiresAt, ms) => Boolean(expiresAt) && new Date(expiresAt).getTime() - OTP_TTL_MS > Date.now() - ms;
+const RESEND_COOLDOWN_MS = 60 * 1000;
+
 const otpExpiry = () => new Date(Date.now() + OTP_TTL_MS);
 
 // Constant-time comparison of a submitted code against the stored hash
@@ -26,4 +30,4 @@ const logDevOtp = (email, otp, label = 'DEV OTP') => {
   if (process.env.NODE_ENV !== 'production') console.log(`[${label}] ${email}:${otp}`);
 };
 
-module.exports = { generateOtp, hashOtp, otpExpiry, otpMatches, logDevOtp, MAX_OTP_ATTEMPTS };
+module.exports = { issuedWithin, RESEND_COOLDOWN_MS, generateOtp, hashOtp, otpExpiry, otpMatches, logDevOtp, MAX_OTP_ATTEMPTS };

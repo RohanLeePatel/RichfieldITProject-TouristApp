@@ -34,8 +34,20 @@ const fakeUsers = {
     Object.assign([...users.values()].find((u) => u.id === id), { resetPasswordOtpHash: hash, resetPasswordExpiresAt: expiresAt, resetPasswordAttempts: 0 });
   },
   updatePasswordAndClearResetOtp: async () => true,
-  recordFailedOtp: async (id) => {
-    [...users.values()].find((u) => u.id === id).otpAttempts += 1;
+  claimOtpAttempt: async (id, max) => {
+    const row = [...users.values()].find((u) => u.id === id);
+    if (row.otpAttempts >= max) return false;
+    row.otpAttempts += 1;
+    return true;
+  },
+  claimResetAttempt: async () => true,
+  recordFailedLogin: async (id, max, lockMs) => {
+    const row = [...users.values()].find((u) => u.id === id);
+    row.failedLogins = (row.failedLogins || 0) + 1;
+    if (row.failedLogins >= max) Object.assign(row, { failedLogins: 0, lockedUntil: new Date(Date.now() + lockMs) });
+  },
+  clearFailedLogins: async (id) => {
+    Object.assign([...users.values()].find((u) => u.id === id), { failedLogins: 0, lockedUntil: null });
   },
   markVerified: async (id, otpHash) => {
     const row = [...users.values()].find((u) => u.id === id && u.otpHash === otpHash);
@@ -58,6 +70,14 @@ require.cache[path.join(__dirname, '../services/sessionService.js')] = {
       return id;
     },
     recordFailure: async (userId) => { failures.push(userId); },
+    isLive: async (id, userId) => Boolean(sessions.get(id)?.open && sessions.get(id).userId === userId),
+    rotate: async (id, userId, oldJti, newJti) => {
+      const session = sessions.get(id);
+      if (!session?.open || session.userId !== userId) return 'dead';
+      if ((session.jti ?? null) !== (oldJti ?? null)) return 'replay';
+      session.jti = newJti;
+      return 'ok';
+    },
     touch: async (id, userId) => Boolean(sessions.get(id)?.open && sessions.get(id).userId === userId),
     revoke: async (userId, id) => {
       const session = sessions.get(id);
@@ -140,6 +160,16 @@ const server = app.listen(0, async () => {
     assert.equal((await post('/login', { email: 'nobody@example.com', password: 'whatever1' })).status, 401);
     assert.deepEqual(failures, [1]);
 
+    // five wrong passwords lock the account: even the right password is refused until it expires
+    for (let i = 0; i < 4; i += 1) await post('/login', { ...account, password: 'not-the-password' });
+    r = await post('/login', account);
+    assert.equal(r.status, 429);
+    users.get('ada@example.com').lockedUntil = new Date(Date.now() - 1000); // the lock runs out
+    assert.equal((await post('/login', account)).status, 200);
+    assert.equal(users.get('ada@example.com').failedLogins, 0);
+    failures.length = 0;
+    failures.push(1);
+
     // every sign-in opens a session, and both tokens carry its id
     const jwt = require('jsonwebtoken');
     const loginAs = (headers = {}) =>
@@ -157,6 +187,11 @@ const server = app.listen(0, async () => {
     let renewed = await renew(cookieOne);
     assert.equal(renewed.status, 200);
     assert.equal(jwt.decode((await renewed.json()).accessToken).sid, sid);
+
+    // a refresh token works once: using the old one again is a replay and is refused
+    renewed = await renew(cookieOne);
+    assert.equal(renewed.status, 401);
+    assert.match((await renewed.json()).error, /already used/);
 
     // signed out from Settings: the next renewal is refused, so that device is out
     sessions.get(sid).open = false;

@@ -135,4 +135,4 @@ def test_versioned_and_legacy_paths_share_one_budget():
 def test_the_translation_routes_the_core_api_calls_get_the_tight_budget():
     for path in ("/v1/api/translate/text", "/v1/api/translate/camera", "/api/translate/history"):
         assert rate_limit._bucket(path) == "/api/translate"
-        assert rate_limit.ROUTE_LIMITS["/api/translate"] == 120
+        assert rate_limit.ROUTE_LIMITS["/api/translate"] == 30

@@ -76,6 +76,36 @@ async function recordFailure(userId, req) {
   await prisma.loginEvent.create({ data: { userId, success: false, ...clientInfo(req) } });
 }
 
+/** True while the session is neither revoked nor idle past SESSION_DAYS. */
+async function isLive(id, userId) {
+  return (await prisma.userSession.count({ where: { id, ...live(userId) } })) === 1;
+}
+
+// A second refresh with the same token inside this window is a tab racing the first,
+// not a replay, so it is refused without ending the session.
+const REPLAY_GRACE_MS = 10 * 1000;
+
+/**
+ * Refresh-token rotation. The refresh token carries a `jti`; only the one stored on the
+ * session is accepted, and each use replaces it. A token that was already used means a
+ * copy exists somewhere, so (outside the grace window) the whole session is ended.
+ * Sessions that predate rotation have no stored jti and accept a token without one.
+ * @returns {Promise<'ok'|'dead'|'replay'>}
+ */
+async function rotate(id, userId, oldJti, newJti) {
+  const { count } = await prisma.userSession.updateMany({
+    where: { id, ...live(userId), refreshJti: oldJti ?? null },
+    data: { lastSeenAt: new Date(), refreshJti: newJti },
+  });
+  if (count === 1) return 'ok';
+  const session = await prisma.userSession.findFirst({ where: { id, ...live(userId) }, select: { lastSeenAt: true } });
+  if (!session) return 'dead';
+  if (Date.now() - session.lastSeenAt.getTime() > REPLAY_GRACE_MS) {
+    await prisma.userSession.updateMany({ where: { id, userId }, data: { revokedAt: new Date() } });
+  }
+  return 'replay';
+}
+
 /**
  * Called on every refresh-token renewal. Bumps `lastSeenAt` only if the session is
  * still live, which keeps a revoked or idle session from being revived by a stale token.
@@ -146,4 +176,4 @@ async function activity(userId) {
   }));
 }
 
-module.exports = { start, recordFailure, touch, list, revoke, revokeOthers, revokeAll, activity, SESSION_DAYS };
+module.exports = { start, recordFailure, touch, isLive, rotate, list, revoke, revokeOthers, revokeAll, activity, SESSION_DAYS };

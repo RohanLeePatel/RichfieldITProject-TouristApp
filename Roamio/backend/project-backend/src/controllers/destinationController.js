@@ -1,6 +1,7 @@
 const destinationRepo = require('../repositories/destinationRepository');
 const prisma = require('../config/prisma');
 const { accessibleTrips } = require('../utils/tripFormat');
+const { assertTripAccess } = require('../services/tripAccessService');
 
 // Read access matches GET /api/trips: a trip member, or a member of the trip's group.
 // The edit and remove handlers below check only TripMember rows, so they are stricter
@@ -71,6 +72,7 @@ exports.addTripDestination = async (req, res, next) => {
 
     const trip = await verifyTripAccess(tripId, userId);
     if (!trip) return res.status(403).json({ error: 'Access denied.' });
+    await assertTripAccess(trip.id, userId, { write: true, denied: 'Viewers cannot change trip destinations' });
 
     const addedDestination = await destinationRepo.addTripDestination(tripId, destinationId, {
       orderIndex,
@@ -95,10 +97,13 @@ exports.updateTripDestination = async (req, res, next) => {
     const existingTarget = await destinationRepo.findTripDestinationById(tripDestId);
     if (!existingTarget) return res.status(404).json({ error: 'Trip destination not found.' });
 
-    const isMember = existingTarget.trip.members.some(m => m.userId === userId);
-    if (!isMember) return res.status(403).json({ error: 'Access denied.' });
+    await assertTripAccess(existingTarget.tripId, userId, { write: true, denied: 'Viewers cannot change trip destinations' });
 
-    const updated = await destinationRepo.updateTripDestination(tripDestId, req.body);
+    const updated = await destinationRepo.updateTripDestination(tripDestId, {
+      orderIndex: req.body.orderIndex,
+      scheduledDay: req.body.scheduledDay,
+      notes: req.body.notes,
+    });
     return res.status(200).json({
       message: 'Trip destination updated.',
       tripDestination: updated
@@ -116,8 +121,7 @@ exports.removeTripDestination = async (req, res, next) => {
     const existingTarget = await destinationRepo.findTripDestinationById(tripDestId);
     if (!existingTarget) return res.status(404).json({ error: 'Trip destination not found.' });
 
-    const isMember = existingTarget.trip.members.some(m => m.userId === userId);
-    if (!isMember) return res.status(403).json({ error: 'Access denied.' });
+    await assertTripAccess(existingTarget.tripId, userId, { write: true, denied: 'Viewers cannot change trip destinations' });
 
     await destinationRepo.removeTripDestination(tripDestId);
     return res.status(200).json({ message: 'Destination removed from trip.' });

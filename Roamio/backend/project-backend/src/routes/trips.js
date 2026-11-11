@@ -206,6 +206,13 @@ router.post('/:id/share', async (req, res) => {
       }));
     }
 
+    // the code lets anyone join as a MEMBER, so only group managers (or the organizer who
+    // just created the group) may see it, matching travelGroupService
+    const isManager = trip.members.length > 0 || (await prisma.travelGroupMember.findFirst({
+      where: { travelGroupId: group.id, userId, role: { in: ['OWNER', 'ADMIN'] } },
+    }));
+    if (!isManager) return res.status(403).json({ message: 'Only group owners and admins can share the invite code.' });
+
     res.json({ inviteCode: group.inviteCode, travelGroupId: group.id, groupName: group.name });
   } catch (error) {
     console.error('Error sharing trip:', error);

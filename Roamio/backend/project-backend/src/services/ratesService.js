@@ -8,6 +8,7 @@ const aiFeaturesUrl = aiApiUrl();
 // Throws 503 rather than guessing: an expense saved at a wrong rate would
 // quietly corrupt every total after it.
 async function fetchRate(base, target) {
+  if (![base, target].every((c) => /^[A-Za-z]{3}$/.test(String(c)))) throw httpError(400, 'currency must be a 3-letter ISO code');
   if (base === target) return { base, target, rate: 1, fetched_at: null, stale: false };
 
   const nodeSecretKey = process.env.superSecretKey;
@@ -15,7 +16,7 @@ async function fetchRate(base, target) {
 
   let response;
   try {
-    response = await fetch(`${aiFeaturesUrl}/rates/${base}/${target}`, { headers: { 'node-secretkey': nodeSecretKey } });
+    response = await fetch(`${aiFeaturesUrl}/rates/${encodeURIComponent(base)}/${encodeURIComponent(target)}`, { headers: { 'node-secretkey': nodeSecretKey }, signal: AbortSignal.timeout(8000) });
   } catch {
     throw httpError(503, 'Could not reach the exchange rate service.');
   }

@@ -43,19 +43,19 @@ MIN_INTERESTS = 3  # the wizard (Recommendations.jsx) enforces the same minimum
 
 class Preferences(BaseModel):
     budget_per_day: float = Field(gt=0)
-    currency: str = Field(min_length=3, max_length=3, description="ISO 4217, e.g. ZAR.")
+    currency: str = Field(pattern=r"^[A-Za-z]{3}$", description="ISO 4217, e.g. ZAR.")
     # Who this is, for group explanations ("too pricey for Ayanda"). Optional:
     # a solo request has nobody to name.
     label: Optional[str] = Field(default=None, max_length=60)
-    interests: list[str] = Field(default_factory=list)
+    interests: list[str] = Field(default_factory=list, max_length=50)
     # subset of `interests` the user flagged as must-have rather than nice-to-have;
     # not enforced to be a subset, just given extra weight where it overlaps
-    priority_interests: list[str] = Field(default_factory=list)
+    priority_interests: list[str] = Field(default_factory=list, max_length=50)
     # tags this traveller wants kept out. Until now dealbreakers were applied
     # in the browser and stripped before the request, so the engine never knew
     # about them and could not report that one member's must-have is another's
     # dealbreaker.
-    avoid_interests: list[str] = Field(default_factory=list)
+    avoid_interests: list[str] = Field(default_factory=list, max_length=50)
     travellers: Travellers
     accessibility: Accessibility = Field(default_factory=Accessibility)
     climate: ClimatePrefs = Field(default_factory=ClimatePrefs)
@@ -112,11 +112,11 @@ class Candidate(BaseModel):
     id: str
     name: str
     country: Optional[str] = None
-    image_url: Optional[str] = None
+    image_url: Optional[str] = Field(default=None, pattern=r"^https://", max_length=2048)
     features: CandidateFeatures
     # small set of representative children (e.g. a country's top few cities),
     # only used for the bottom-up blend
-    children: list["Candidate"] = Field(default_factory=list)
+    children: list["Candidate"] = Field(default_factory=list, max_length=100)
 
 
 class CatalogEntry(BaseModel):
@@ -155,7 +155,7 @@ class RecommendationRequest(BaseModel):
     # optional - leave this out and the service will just use its built-in
     # catalog (engine/catalog.py) based on level/preferences. pass it in if you
     # want to score your own specific set of candidates instead
-    candidates: Optional[list[Candidate]] = None
+    candidates: Optional[list[Candidate]] = Field(default=None, max_length=300)
     # the destinations the administrators manage (Core API database). Used to
     # build the built-in catalog when `candidates` is left out; absent or empty
     # falls back to the committed seed file, so the service still answers with
