@@ -341,10 +341,12 @@
   font: inherit;
 }
 
-.trip-hub-tools {
+.trip-hub-tools,
+.page-topbar-hero > p.trip-hub-tools {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  max-width: none;
   margin-top: 24px;
 }
 
