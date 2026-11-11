@@ -10,8 +10,8 @@ import {
 // session, so the caller moves on to the code step with the returned email.
 export function useRegister() {
   return useMutation({
-    mutationFn: ({ name, email, password, acceptedTerms }) =>
-      registerRequest({ fullName: name, email, password, acceptedTerms }),
+    mutationFn: ({ name, email, password, acceptedTerms, captchaToken }) =>
+      registerRequest({ fullName: name, email, password, acceptedTerms, captchaToken }),
   });
 }
 

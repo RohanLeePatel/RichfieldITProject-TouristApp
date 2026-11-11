@@ -743,6 +743,9 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
 .trip-done-next a { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-tile); background: var(--surface); color: var(--ink); font-weight: 600; }
 .trip-done-next a:hover { border-color: var(--primary); }
 @media (max-width: 520px) { .trip-done-next { grid-template-columns: 1fr; } }
+.trip-done-invite { display: grid; gap: 4px; width: min(520px, 100%); margin: 6px 0 4px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-tile); background: var(--surface); text-align: left; }
+.trip-done-invite .wizard-help { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--ink); font-weight: 600; }
+.trip-done-invite .trip-invite { margin: 6px 0 0; }
 
 /* ---------- Responsive ---------- */
 
@@ -985,13 +988,22 @@ path.map-route.day-6 { stroke: var(--day-6); }
 }
 .card-link-button:hover { background: var(--surface-2); }
 .recommendation-card-actions .card-link-button { background: var(--surface); color: var(--ink); }
-.card-insights { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.card-insights { min-width: 0; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
 .card-insights .insights-grid { grid-template-columns: 1fr; }
 .card-insights .insights-card { padding: 12px 14px; box-shadow: none; }
 .recommendation-list:has(.card-insights) { align-items: start; }
 
 /* why-matched label, per-card feedback buttons, shortlist bar, compare table */
 .recommendation-why { margin: 4px 0 -2px; font-size: 0.75rem; font-weight: 700; letter-spacing: .01em; color: var(--ink-soft); }
+summary.recommendation-why {
+  display: inline-flex; align-items: center; gap: 6px; margin: 4px 0 0; padding: 4px 0;
+  list-style: none; cursor: pointer; user-select: none;
+}
+summary.recommendation-why::-webkit-details-marker { display: none; }
+summary.recommendation-why:hover { color: var(--primary); }
+.recommendation-why-chevron { transition: transform .2s ease; }
+.recommendation-why-details[open] .recommendation-why-chevron { transform: rotate(180deg); }
+.recommendation-why-details[open] .recommendation-reasons { margin-top: 6px; }
 .recommendation-feedback { display: flex; flex-wrap: wrap; gap: 8px; }
 .recommendation-feedback .card-link-button.active { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); }
 .recommendation-feedback .card-link-button:disabled { opacity: .5; cursor: not-allowed; }

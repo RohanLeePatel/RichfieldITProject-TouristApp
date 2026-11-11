@@ -4,7 +4,7 @@ const invitationController = require('../controllers/invitationController');
 const requireAuth = require('../middleware/authMiddleware');
 
 // Public preview: lets an invitee see what they're joining before signing in; does not consume the token
-router.get('/invites/:token', invitationController.previewInvite);
+router.get('/invites/:token', requireAuth.optionalAuth, invitationController.previewInvite);
 
 // Everything below requires authentication
 router.use(requireAuth);

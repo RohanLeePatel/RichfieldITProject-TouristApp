@@ -45,4 +45,9 @@ const requireAuth = (req, res, next) => {
   }
 };
 
+// For public routes that say a little more to a signed-in visitor: sets req.user
+// when a valid token is present, and otherwise carries on anonymously (never 401s).
+const optionalAuth = (req, res, next) => requireAuth(req, { status: () => ({ json: () => next() }) }, next);
+
 module.exports = requireAuth;
+module.exports.optionalAuth = optionalAuth;

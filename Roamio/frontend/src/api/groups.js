@@ -26,9 +26,11 @@ export async function createInvite(groupId, email) {
   return data.invitationToken;
 }
 
-// public: { groupName, inviterName, role, expiresAt }
-export function previewInvite(token) {
-  return apiFetch(`/api/invites/${encodeURIComponent(token)}`);
+// public: { groupName, inviterName, role, expiresAt }. Signed in, the token is
+// sent too, so a link this account already accepted says so (error code
+// ALREADY_ACCEPTED). Errors carry data.code: INVALID, EXPIRED, USED, ...
+export function previewInvite(token, signedIn = false) {
+  return apiFetch(`/api/invites/${encodeURIComponent(token)}`, { auth: signedIn });
 }
 
 export function acceptInvite(token) {

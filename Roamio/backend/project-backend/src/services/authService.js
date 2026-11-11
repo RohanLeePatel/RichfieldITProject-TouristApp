@@ -4,6 +4,7 @@ const sessionService = require('./sessionService');
 const { generateOtp, hashOtp, otpExpiry, otpMatches, MAX_OTP_ATTEMPTS } = require('../utils/otp');
 const { sendOtpEmail } = require('./emailService');
 const { httpError } = require('./tripAccessService');
+const { verifyCaptcha } = require('./captchaService');
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const INVALID_OTP = 'Invalid or expired OTP.';
@@ -52,7 +53,7 @@ class AuthService {
     return await userRepository.acceptTerms(userId, TERMS_VERSION);
   }
 
-  async register({ email, password, fullName, acceptedTerms } = {}) {
+  async register({ email, password, fullName, acceptedTerms, captchaToken } = {}, { ip } = {}) {
     const normalizedEmail = normalizeEmail(email);
     if (!EMAIL_PATTERN.test(normalizedEmail) || normalizedEmail.length > MAX_EMAIL_LENGTH) {
       throw httpError(400, 'A valid email is required.');
@@ -68,6 +69,10 @@ class AuthService {
     if (nameProblem) throw httpError(400, nameProblem);
 
     if (acceptedTerms !== true) throw httpError(400, 'Please agree to the Terms and Privacy Policy to create an account.');
+
+    // after the cheap field checks (so a typo doesn't burn the single-use token
+    // for nothing) and before anything is stored or emailed
+    await verifyCaptcha(captchaToken, ip);
 
     const passwordHash = await tokenService.hashPassword(password);
     const consent = { termsAcceptedAt: new Date(), termsVersion: TERMS_VERSION };

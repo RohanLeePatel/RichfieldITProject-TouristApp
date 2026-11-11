@@ -5376,3 +5376,16 @@
   }
 }
 
+
+/* Fields draw their focus on the rounded wrapper (.st-input:focus-within) or on
+   the textarea's own rounded border. Keep the page-wide square outline from
+   recommendations.css (.recommendations-page *:focus-visible) off the inner
+   control, whatever order the stylesheets load in. */
+.settings-page .st-input :is(input, select, textarea):focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.settings-page .st-textarea:focus-visible {
+  outline: none;
+  box-shadow: var(--st-ring);
+}

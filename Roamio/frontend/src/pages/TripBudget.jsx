@@ -2,7 +2,6 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, LoaderCircle, Plus, Trash2, Wallet } from "lucide-react";
 import { useParams } from "react-router-dom";
 
-import AskButton from "../components/chat/AskButton.jsx";
 
 import { createExpense, deleteExpense, fetchBudgetSummary, fetchExpenses, fetchRate, saveBudget, saveCategoryLimit } from "../api/budget.js";
 import { fetchTrip } from "../api/trips.js";
@@ -202,7 +201,6 @@ export default function TripBudget({ embedded = false }) {
                     {new Date(expense.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                     {expense.exchangeRate && ` · at ${expense.exchangeRate} ${budgetCurrency}/${expense.currency}`}
                   </span>
-                  <AskButton prompt={`Am I still on budget after spending ${money(expense.amount, expense.currency)} on ${expense.title}?`} label={`Ask about ${expense.title}`} />
                   <button
                     type="button"
                     className="secondary-button"

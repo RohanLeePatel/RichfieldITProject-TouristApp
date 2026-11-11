@@ -59,9 +59,12 @@
 .insights-tips li { display: flex; gap: 10px; align-items: flex-start; }
 .insights-tips svg { flex-shrink: 0; margin-top: 2px; color: var(--i-primary); }
 
-.insights-months { display: grid; grid-template-columns: repeat(12, 1fr); gap: 6px; height: 120px; margin-top: 12px; }
+.insights-card { min-width: 0; overflow-wrap: anywhere; }
+.insights-best { container: insights / inline-size; }
+.insights-months { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 6px; height: 120px; margin-top: 12px; }
 .insights-months button {
   position: relative;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -80,6 +83,10 @@
 .insights-months button.selected { border-color: var(--i-primary); color: var(--i-ink); }
 .insights-months button:hover { background: var(--i-sage-bg); }
 .insights-months button span { padding-bottom: 5px; }
+/* narrow hosts (e.g. destination cards): two rows of six so every month and label fits */
+@container insights (max-width: 420px) {
+  .insights-months { grid-template-columns: repeat(6, minmax(0, 1fr)); height: 210px; }
+}
 
 .insights-about { display: flex; gap: 16px; align-items: flex-start; }
 .insights-about img { width: 120px; height: 120px; flex-shrink: 0; object-fit: cover; border-radius: 14px; }

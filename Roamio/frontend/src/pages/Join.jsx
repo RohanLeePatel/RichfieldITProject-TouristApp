@@ -38,7 +38,12 @@ export default function Join() {
       useTripStore.getState().load(true);
       navigate(destination);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Could not join this group.");
+      // joined already (e.g. in another tab): same as opening a link you've accepted
+      if (/already a member/i.test(requestError?.message || "")) {
+        setGroup((current) => ({ ...current, alreadyMember: true }));
+      } else {
+        setError(requestError instanceof Error ? requestError.message : "Could not join this group.");
+      }
       setBusy(false);
     }
   };
@@ -74,7 +79,7 @@ export default function Join() {
             {error && <p className="recommendations-error" role="alert">{error}</p>}
             {group && group.alreadyMember && (
               <div className="wizard-actions">
-                <p className="wizard-help">You&apos;re already in {group.name}.</p>
+                <p className="wizard-help" role="status">You&apos;ve already accepted this invite - you&apos;re in {group.name}.</p>
                 <Link to={destination} className="recommendations-submit">{tripId ? "Open the trip" : "Open your groups"}</Link>
               </div>
             )}

@@ -86,7 +86,11 @@ export function TripSnapshot({ trip }) {
       </section>
 
       <section className="insights-card">
-        <h3><ShieldAlert size={15} /> Safety{country ? ` in ${country}` : ""} <AskButton prompt="Explain the current safety advisory for my trip in plain words and what I should do about it." label="Ask about this advisory" /></h3>
+        {/* the Ask action sits beside the heading, not inside it, so it isn't read as part of the title */}
+        <div className="insights-card-head">
+          <h3><ShieldAlert size={15} /> Safety{country ? ` in ${country}` : ""}</h3>
+          <AskButton prompt="Explain the current safety advisory for my trip in plain words and what I should do about it." label="Ask about this advisory" />
+        </div>
         {safety.status === "loading" && <Loading label="Checking advisories..." />}
         {safety.status === "error" && <p className="wizard-help">Safety data unavailable for this destination.</p>}
         {safety.status === "ready" && (
@@ -115,29 +119,20 @@ export function TripSnapshot({ trip }) {
   );
 }
 
-// Who's on the trip (the group's members and its companions without an
-// account), an invite link for more, and what everyone has changed.
-export function TripPeople({ trip }) {
-  const activity = useLoad(() => fetchTripActivity(trip.id), [trip.id]);
-  // a solo trip moves into a group of its own when first shared
-  const [groupId, setGroupId] = useState(trip.travelGroupId);
-  const groups = useLoad(() => fetchMyGroups(), [groupId]);
-  const group = groups.data?.find((item) => item.id === groupId);
+// "Invite people" -> a /join/CODE?trip=ID link. Used by the trip's People tab and
+// the Plan a Trip completion screen, so both hand out the same working link:
+// shareTrip first moves a solo trip into a shareable group of its own, so whoever
+// joins with the code can open the trip.
+export function TripInviteLink({ tripId, onShared }) {
   const [invite, setInvite] = useState(null);
   const [inviteState, setInviteState] = useState({ busy: false, error: "", copied: false });
-
-  // in a shared group everyone in it can open the trip; a solo trip is just its own members
-  const people = group
-    ? group.members.map((member) => ({ key: `u${member.userId}`, name: member.user?.fullName || "Traveller", role: member.role }))
-    : (trip.members || []).map((member) => ({ key: `u${member.userId}`, name: member.user?.fullName || "Traveller", role: member.role }));
-  const companions = group?.companions || [];
 
   const createLink = async () => {
     setInviteState({ busy: true, error: "", copied: false });
     try {
-      const shared = await shareTrip(trip.id);
-      setInvite(inviteLink(shared.inviteCode, trip.id));
-      setGroupId(shared.travelGroupId);
+      const shared = await shareTrip(tripId);
+      setInvite(inviteLink(shared.inviteCode, tripId));
+      onShared?.(shared);
       setInviteState({ busy: false, error: "", copied: false });
     } catch (requestError) {
       setInviteState({ busy: false, error: requestError instanceof Error ? requestError.message : "Could not create an invite link.", copied: false });
@@ -149,6 +144,43 @@ export function TripPeople({ trip }) {
       ?.writeText(invite)
       .then(() => setInviteState((current) => ({ ...current, copied: true })))
       .catch(() => {});
+
+  return (
+    <div className="trip-invite">
+      {invite ? (
+        <>
+          <label className="trip-invite-link">
+            <span>Send this link - anyone who opens it can join after signing in:</span>
+            <input value={invite} readOnly onFocus={(event) => event.target.select()} />
+          </label>
+          <button type="button" className="secondary-button" onClick={copy}>
+            <Copy size={14} /> {inviteState.copied ? "Copied" : "Copy link"}
+          </button>
+        </>
+      ) : (
+        <button type="button" className="secondary-button" onClick={createLink} disabled={inviteState.busy}>
+          <UserPlus size={14} /> {inviteState.busy ? "Creating link..." : "Invite people"}
+        </button>
+      )}
+      {inviteState.error && <p className="recommendations-error">{inviteState.error}</p>}
+    </div>
+  );
+}
+
+// Who's on the trip (the group's members and its companions without an
+// account), an invite link for more, and what everyone has changed.
+export function TripPeople({ trip }) {
+  const activity = useLoad(() => fetchTripActivity(trip.id), [trip.id]);
+  // a solo trip moves into a group of its own when first shared
+  const [groupId, setGroupId] = useState(trip.travelGroupId);
+  const groups = useLoad(() => fetchMyGroups(), [groupId]);
+  const group = groups.data?.find((item) => item.id === groupId);
+
+  // in a shared group everyone in it can open the trip; a solo trip is just its own members
+  const people = group
+    ? group.members.map((member) => ({ key: `u${member.userId}`, name: member.user?.fullName || "Traveller", role: member.role }))
+    : (trip.members || []).map((member) => ({ key: `u${member.userId}`, name: member.user?.fullName || "Traveller", role: member.role }));
+  const companions = group?.companions || [];
 
   return (
     <div className="insights trip-hub-grid">
@@ -173,24 +205,7 @@ export function TripPeople({ trip }) {
           </ul>
         )}
 
-        <div className="trip-invite">
-          {invite ? (
-            <>
-              <label className="trip-invite-link">
-                <span>Send this link - anyone who opens it can join after signing in:</span>
-                <input value={invite} readOnly onFocus={(event) => event.target.select()} />
-              </label>
-              <button type="button" className="secondary-button" onClick={copy}>
-                <Copy size={14} /> {inviteState.copied ? "Copied" : "Copy link"}
-              </button>
-            </>
-          ) : (
-            <button type="button" className="secondary-button" onClick={createLink} disabled={inviteState.busy}>
-              <UserPlus size={14} /> {inviteState.busy ? "Creating link..." : "Invite people"}
-            </button>
-          )}
-          {inviteState.error && <p className="recommendations-error">{inviteState.error}</p>}
-        </div>
+        <TripInviteLink tripId={trip.id} onShared={(shared) => setGroupId(shared.travelGroupId)} />
         {group ? (
           <Link className="trip-hub-link" to={`/family?group=${group.id}`}>Add someone without the app</Link>
         ) : (

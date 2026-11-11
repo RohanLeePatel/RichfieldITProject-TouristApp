@@ -7,6 +7,17 @@ import PageShell from "../components/recommendations/PageShell.jsx";
 import { useAuthStore } from "../store/authStore.js";
 import { useTripStore } from "../store/tripStore.js";
 
+// What each state the API reports means for the visitor. The server's own
+// message is the fallback for anything else.
+const PROBLEMS = {
+  INVALID: { title: "This invite link isn't valid", text: "Check you copied the whole link, or ask the trip owner to send a new invite." },
+  EXPIRED: { title: "This invite has expired", text: "Invites last 7 days. Ask the trip owner to send you a new one." },
+  USED: { title: "This invite has already been used", text: "Each invite link works once. Ask the trip owner to send you a new invite." },
+  WRONG_ACCOUNT: { title: "This invite is for a different account", text: "Sign in with the email address it was sent to, or ask the trip owner to invite this account." },
+};
+
+const openPath = ({ tripId, groupId } = {}) => (tripId ? `/trips/${tripId}` : groupId ? `/family?group=${groupId}` : "/family");
+
 // Where an invite link lands (/invite/:token). Anyone can see what they're
 // joining; joining needs an account with the invited email, and signing in
 // or up from here comes straight back.
@@ -15,29 +26,38 @@ export default function Invite() {
   const navigate = useNavigate();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [invite, setInvite] = useState(null);
-  const [error, setError] = useState("");
+  const [problem, setProblem] = useState(null); // { code, message, tripId?, groupId? }
   const [busy, setBusy] = useState(false);
 
+  const toProblem = (requestError, fallback) => ({
+    code: requestError?.data?.code,
+    message: requestError instanceof Error ? requestError.message : fallback,
+    tripId: requestError?.data?.tripId,
+    groupId: requestError?.data?.groupId,
+  });
+
   useEffect(() => {
-    previewInvite(token)
+    previewInvite(token, isAuthenticated)
       .then(setInvite)
-      .catch((requestError) => setError(requestError instanceof Error ? requestError.message : "This invite can't be opened."));
-  }, [token]);
+      .catch((requestError) => setProblem(toProblem(requestError, "This invite can't be opened.")));
+  }, [token, isAuthenticated]);
 
   const join = async () => {
     setBusy(true);
-    setError("");
+    setProblem(null);
     try {
-      await acceptInvite(token);
+      const joined = await acceptInvite(token);
       useTripStore.getState().load(true);
-      navigate("/family");
+      navigate(openPath(joined));
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Could not join this group.");
+      setProblem(toProblem(requestError, "Could not join this group."));
       setBusy(false);
     }
   };
 
   const back = encodeURIComponent(`/invite/${token}`);
+  const known = PROBLEMS[problem?.code];
+  const accepted = problem?.code === "ALREADY_ACCEPTED";
 
   return (
     <PageShell
@@ -46,17 +66,38 @@ export default function Invite() {
       hero={
         <>
           <p className="recommendations-eyebrow"><Users size={15} /> Group invite</p>
-          <h1>{invite ? `Join ${invite.groupName}` : "You've been invited"}</h1>
+          <h1>{invite ? `Join ${invite.groupName}` : accepted ? "You're already in" : "You've been invited"}</h1>
           {invite && <p>{invite.inviterName} invited you to plan trips together on Roamio.</p>}
         </>
       }
     >
       <section className="recommendations-results trip-done">
-        {!invite && !error && (
+        {!invite && !problem && (
           <p className="wizard-help"><LoaderCircle className="recommendations-spinner" size={16} /> Opening your invite...</p>
         )}
-        {error && <p className="recommendations-error" role="alert">{error}</p>}
-        {invite && (
+
+        {accepted && (
+          <>
+            <p className="wizard-help" role="status">You&apos;ve already accepted this invite.</p>
+            <div className="wizard-actions">
+              <Link to={openPath(problem)} className="recommendations-submit">{problem.tripId ? "Open the trip" : "Open your group"}</Link>
+            </div>
+          </>
+        )}
+
+        {problem && !accepted && (
+          <div role="alert">
+            <h2>{known?.title || "This invite can't be used"}</h2>
+            <p className="wizard-help">{known?.text || problem.message}</p>
+            {!isAuthenticated && problem.code === "USED" && (
+              <p className="wizard-help">
+                Already accepted it? <Link to={`/login?next=${back}`}>Log in</Link> to open the trip.
+              </p>
+            )}
+          </div>
+        )}
+
+        {invite && !problem && (
           <>
             <p className="wizard-help">
               You&apos;ll join as a {invite.role.toLowerCase()}. The invite is valid until{" "}

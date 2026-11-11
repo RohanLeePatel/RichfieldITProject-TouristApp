@@ -24,6 +24,7 @@ import {
 } from "../hooks/useRegister";
 
 import FieldError from "../components/FieldError.jsx";
+import TurnstileWidget, { captchaEnabled } from "../components/TurnstileWidget.jsx";
 import { emailError, MAX_EMAIL, MAX_PASSWORD, nameError, passwordError } from "../utils/validation.js";
 
 import "../styles/auth.css";
@@ -42,6 +43,9 @@ export default function Register() {
 
   const [fieldErrors, setFieldErrors] = useState({});
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  // sign-up CAPTCHA (only when configured); resetKey asks the widget for a new token
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaReset, setCaptchaReset] = useState(0);
 
   // Set once the account is created: the page then asks for the emailed code.
   // This is local state, so a page reload starts sign-up again. The account already
@@ -113,6 +117,7 @@ export default function Register() {
     if (!confirmPassword) found.confirmPassword = "Type your password again to confirm it.";
     else if (password !== confirmPassword) found.confirmPassword = "Passwords do not match.";
     if (!acceptedTerms) found.terms = "Tick the box to agree to the Terms and Privacy Policy.";
+    if (captchaEnabled && !captchaToken) found.captcha = "Complete the verification check above.";
     setFieldErrors(found);
     if (Object.keys(found).length) return;
 
@@ -122,12 +127,17 @@ export default function Register() {
         email: trimmedEmail,
         password,
         acceptedTerms,
+        captchaToken,
       },
       {
         onSuccess: ({ email: registeredEmail, devOtp }) => {
           setPendingEmail(registeredEmail || trimmedEmail);
           // only sent by a backend running with ENABLE_DEV_OTP=true
           if (devOtp) setCode(devOtp);
+        },
+        // a token is single-use: any refusal needs a fresh challenge before retrying
+        onError: () => {
+          if (captchaEnabled) setCaptchaReset((n) => n + 1);
         },
       }
     );
@@ -576,6 +586,21 @@ export default function Register() {
               </label>
               <FieldError id="register-terms-error" message={fieldErrors.terms} />
             </div>
+
+            {/* CAPTCHA (only when VITE_TURNSTILE_SITE_KEY is set) */}
+
+            {captchaEnabled && (
+              <div className="input-group">
+                <TurnstileWidget
+                  resetKey={captchaReset}
+                  onToken={(token) => {
+                    setCaptchaToken(token);
+                    if (token) setFieldErrors((current) => ({ ...current, captcha: undefined }));
+                  }}
+                />
+                <FieldError id="register-captcha-error" message={fieldErrors.captcha} />
+              </div>
+            )}
 
             {/* REGISTER BUTTON */}
 

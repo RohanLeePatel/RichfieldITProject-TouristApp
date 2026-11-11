@@ -88,7 +88,7 @@ export default function ClimateInsights({ name, country, latitude, longitude, mo
         </section>
       </div>
 
-      <section className="insights-card">
+      <section className="insights-card insights-best">
         <h3><CalendarCheck size={15} /> Best time to visit</h3>
         <p className="insights-fine">
           Taller bar = milder, drier weather. Best months: <b>{[...best].sort((a, b) => a - b).map((m) => MONTH_NAMES[m - 1]).join(", ")}</b>. Click a month to see its details.

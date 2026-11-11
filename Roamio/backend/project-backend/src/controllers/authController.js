@@ -5,7 +5,7 @@ const { isAdminUser } = require('../middleware/isAdmin');
 
 // Expected errors (validation/auth) use the { error } shape; anything else goes to the global handler
 const fail = (res, next, err) => {
-  if (err.statusCode) return res.status(err.statusCode).json({ error: err.message });
+  if (err.statusCode) return res.status(err.statusCode).json({ error: err.message, ...(err.code && { code: err.code }) });
   return next(err);
 };
 
@@ -22,7 +22,7 @@ class AuthController {
   // No session is issued here: the account must verify its email first
   async register(req, res, next) {
     try {
-      const { email, otp } = await authService.register(req.body);
+      const { email, otp } = await authService.register(req.body, { ip: req.ip });
       res.status(201).json({
         message: 'Registration successful. Please verify the code sent to your email.',
         email,

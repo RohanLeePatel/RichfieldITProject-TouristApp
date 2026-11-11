@@ -877,3 +877,41 @@
 .chat-widget-window .chat-note { text-align: center; }
 @media (max-width: 700px) { .chat-widget { right: 12px; bottom: 12px; } }
 .chat-widget *, .chat-widget *::before, .chat-widget *::after { box-sizing: border-box; }
+
+/* =========================================================
+   ASK BUTTON (shared; used on pages outside the chat root,
+   so every token falls back to the host page's palette)
+========================================================= */
+
+.ask-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1.5px solid var(--chat-line, var(--line, #e4e9ed));
+  border-radius: 999px;
+  background: var(--chat-surface, var(--surface, #ffffff));
+  color: var(--chat-primary, var(--primary, #16849a));
+  font: 700 0.75rem "DM Sans", sans-serif;
+  letter-spacing: 0;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ask-button:hover {
+  border-color: var(--chat-primary, var(--primary, #16849a));
+  background: var(--chat-surface-2, var(--surface-2, #f5f9fa));
+}
+.ask-button:focus-visible {
+  outline: 2px solid var(--chat-primary, var(--primary, #16849a));
+  outline-offset: 2px;
+}
+/* .trip-stop button styles its icon buttons as bare 28px circles; undo that here */
+.trip-stop .ask-button {
+  display: inline-flex; width: auto; height: auto; min-height: 28px; padding: 0 10px;
+  border: 1.5px solid var(--line, #e4e9ed); border-radius: 999px;
+  background: var(--surface, #ffffff); color: var(--primary, #16849a);
+}
+.trip-stop .ask-button:hover { background: var(--surface-2, #f5f9fa); color: var(--primary, #16849a); }
+.insights-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.insights-card-head h3 { margin: 0; }

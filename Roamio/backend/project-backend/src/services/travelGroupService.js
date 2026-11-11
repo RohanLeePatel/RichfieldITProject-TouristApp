@@ -99,7 +99,7 @@ class TravelGroupService {
   // What a /join/:code link shows before joining
   async previewByCode(code, userId) {
     const group = await travelGroupRepository.findByInviteCode(code);
-    if (!group) throw httpError(404, 'This invite link is no longer valid.');
+    if (!group) throw httpError(404, "This invite link isn't valid. Check you copied the whole link, or ask the trip owner for a new invite.");
     return {
       id: group.id,
       name: group.name,

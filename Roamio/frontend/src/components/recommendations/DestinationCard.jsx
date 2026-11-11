@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, Bookmark, CalendarCheck, Check, ExternalLink, MapPin, Star, ThumbsDown } from "lucide-react";
+import { ArrowRight, Bookmark, CalendarCheck, Check, ChevronDown, ExternalLink, MapPin, Star, ThumbsDown } from "lucide-react";
 
 import ClimateInsights from "../insights/ClimateInsights.jsx";
 
@@ -87,8 +87,11 @@ export default function DestinationCard({
           </ul>
         )}
         {reasons.length > 0 && (
-          <>
-            <p className="recommendation-why">Why we picked it</p>
+          // closed by default; <details> gives keyboard toggling and the expanded state for free
+          <details className="recommendation-why-details">
+            <summary className="recommendation-why">
+              Why we picked it <ChevronDown size={14} aria-hidden="true" className="recommendation-why-chevron" />
+            </summary>
             <ul className="recommendation-reasons">
               {reasons.map((entry) => {
                 const [level, word] = strengthOf(entry.value);
@@ -113,7 +116,7 @@ export default function DestinationCard({
                 );
               })}
             </ul>
-          </>
+          </details>
         )}
         {(onToggleShortlist || onDislike) && (
           <div className="recommendation-feedback">

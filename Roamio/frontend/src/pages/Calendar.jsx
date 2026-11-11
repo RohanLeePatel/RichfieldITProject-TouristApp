@@ -463,19 +463,29 @@ export default function Calendar() {
     return (
       <span
         key={trip.id}
-        className={`cal-trip-bar tone-${trip.tone}${capStart ? " cap-start" : ""}${capEnd ? " cap-end" : ""}`}
+        className={`cal-trip-bar tone-${trip.tone}${capStart ? " cap-start" : ""}${capEnd ? " cap-end" : ""}${capStart ? "" : " continued"}`}
         title={`${trip.title} · ${trip.destination}`}
       >
-        {capStart && (
-          <>
-            {isStart && <PlaneTakeoff size={11} />}
-            <span className="cal-trip-bar-label">{trip.destination}</span>
-          </>
-        )}
+        {isStart && <PlaneTakeoff size={11} />}
+        {/* named on every day, so two trips sharing a date never rely on colour alone */}
+        <span className="cal-trip-bar-label">{trip.destination}</span>
+        <span className="cal-trip-bar-initial" aria-hidden="true">{trip.destination.charAt(0)}</span>
         {isEnd && !isStart && <PlaneLanding size={11} className="cal-trip-bar-end" />}
       </span>
     );
   };
+
+  // what a day button says to a screen reader: the date, then everything on it by name
+  const dayLabel = (date, key, dayTrips, holiday, dayEvents) =>
+    [
+      date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }),
+      key === todayKey && "today",
+      holiday && `public holiday: ${holiday.name}`,
+      ...dayTrips.map((trip) => `trip: ${trip.title} (${trip.destination})`),
+      dayEvents.length > 0 && `${dayEvents.length} event${dayEvents.length === 1 ? "" : "s"}`,
+    ]
+      .filter(Boolean)
+      .join(", ");
 
   const renderMonthGrid = () => {
     const firstWeekday = new Date(year, month, 1).getDay();
@@ -509,21 +519,28 @@ export default function Calendar() {
           className={classes}
           onClick={() => selectDate(date)}
           aria-pressed={key === selectedKey}
-          aria-label={date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
+          aria-label={dayLabel(date, key, dayTrips, holiday, dayEvents)}
         >
           <span className="cal-day-top">
             <span className="cal-day-number">{date.getDate()}</span>
+            {key === todayKey && <span className="cal-day-today">Today</span>}
             {holiday && <Flag size={12} className="cal-day-flag" />}
           </span>
 
           {dayTrips.length > 0 && (
             <span className="cal-day-trips">
               {dayTrips.slice(0, 2).map((trip) => renderTripBar(trip, key, weekday))}
-              {dayTrips.length > 2 && <span className="cal-day-more">+{dayTrips.length - 2} more</span>}
+              {dayTrips.length > 2 && (
+                <span className="cal-day-more">+{dayTrips.length - 2}<span className="cal-day-more-word"> more</span></span>
+              )}
             </span>
           )}
 
-          {holiday && <span className="cal-day-holiday">{holiday.name}</span>}
+          {holiday && (
+            <span className="cal-day-holiday" title={`Public holiday: ${holiday.name}`}>
+              <Flag size={10} /> <span>{holiday.name}</span>
+            </span>
+          )}
 
           {dayEvents.length > 0 && (
             <span className="cal-day-dots">
@@ -548,12 +565,13 @@ export default function Calendar() {
         <button
           type="button"
           key={key}
-          className={`cal-week-day${key === selectedKey ? " selected" : ""}${key === todayKey ? " today" : ""}`}
+          className={`cal-week-day${key === selectedKey ? " selected" : ""}${key === todayKey ? " today" : ""}${holiday ? " has-holiday" : ""}`}
           onClick={() => selectDate(date)}
           aria-pressed={key === selectedKey}
+          aria-label={dayLabel(date, key, dayTrips, holiday, dayEvents)}
         >
           <span className="cal-week-head">
-            <span>{WEEKDAYS[date.getDay()]}</span>
+            <span>{key === todayKey ? "Today" : WEEKDAYS[date.getDay()]}</span>
             <strong>{date.getDate()}</strong>
           </span>
 
@@ -566,7 +584,7 @@ export default function Calendar() {
             ))}
 
             {holiday && (
-              <span className="cal-pill tone-amber" title={holiday.name}>
+              <span className="cal-pill cal-pill-holiday tone-amber" title={`Public holiday: ${holiday.name}`}>
                 <Flag size={11} />
                 {holiday.name}
               </span>

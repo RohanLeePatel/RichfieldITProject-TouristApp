@@ -3,7 +3,9 @@ const { parseId } = require('../services/tripAccessService');
 
 // Errors with a statusCode are expected (validation/permission) and use the { error } shape
 const sendError = (res, next, error) => {
-  if (error.statusCode) return res.status(error.statusCode).json({ error: error.message });
+  if (error.statusCode) {
+    return res.status(error.statusCode).json({ error: error.message, ...(error.code && { code: error.code }), ...error.extra });
+  }
   return next(error);
 };
 
@@ -19,7 +21,7 @@ exports.createInvite = async (req, res, next) => {
 
 exports.previewInvite = async (req, res, next) => {
   try {
-    return res.status(200).json(await invitationService.previewInvite(req.params.token));
+    return res.status(200).json(await invitationService.previewInvite(req.params.token, req.user?.id ?? null));
   } catch (error) {
     return sendError(res, next, error);
   }
@@ -31,6 +33,7 @@ exports.acceptInvite = async (req, res, next) => {
     return res.status(200).json({
       message: `Successfully joined ${result.groupName}.`,
       groupId: result.groupId,
+      tripId: result.tripId,
       role: result.role,
     });
   } catch (error) {

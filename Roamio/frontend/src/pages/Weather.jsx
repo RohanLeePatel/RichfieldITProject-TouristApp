@@ -898,8 +898,8 @@ export default function Weather() {
               <div>
                 <span className="section-eyebrow">Know before you go</span>
                 <h2>Climate, best time &amp; advice for {weather.location.name}</h2>
-                <AskButton prompt={`What should I pack and plan for in ${weather.location.name} given this weather?`} label="Ask what to pack" />
               </div>
+              <AskButton prompt={`What should I pack and plan for in ${weather.location.name} given this weather?`} label="Ask what to pack">Ask what to pack</AskButton>
             </div>
             <ClimateInsights
               name={weather.location.name}

@@ -67,6 +67,16 @@ const invitationRepository = {
     });
   },
 
+  // Active trip ids in a group (so an invite can open "the trip" when there's one)
+  findGroupTripIds: async (travelGroupId) => {
+    const trips = await prisma.trip.findMany({
+      where: { travelGroupId: parseInt(travelGroupId, 10), deletedAt: null },
+      select: { id: true },
+      take: 2,
+    });
+    return trips.map((trip) => trip.id);
+  },
+
   checkGroupMembership: async (travelGroupId, userId) => {
     return await prisma.travelGroupMember.findUnique({
       where: {

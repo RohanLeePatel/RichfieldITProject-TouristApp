@@ -1827,4 +1827,7 @@ a.logo {
 .terms-check label { display: flex; align-items: flex-start; gap: 10px; font-size: 0.85rem; line-height: 1.45; cursor: pointer; }
 .terms-check input { flex: none; width: 18px; height: 18px; margin-top: 1px; accent-color: var(--teal-700, #0f766e); }
 .terms-check a, .legal-note a { color: var(--teal-700, #0f766e); font-weight: 600; }
+.captcha-check { display: grid; gap: 6px; min-height: 65px; }
+.captcha-message { margin: 0; color: #b42318; font-size: 0.8rem; line-height: 1.45; }
+.captcha-retry { padding: 0; border: 0; background: none; color: var(--teal-700, #0f766e); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
 .legal-note { margin: 12px 0 0; font-size: 0.78rem; line-height: 1.5; text-align: center; opacity: 0.85; }

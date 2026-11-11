@@ -7,6 +7,12 @@ const INVITE_ROLES = ['ADMIN', 'MEMBER', 'VIEWER'];
 const INVITE_VALID_DAYS = 7;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Invite errors carry a machine-readable code (and, for ALREADY_ACCEPTED, where
+// to go) so the page can say exactly what happened. They never say who used a link.
+const inviteError = (statusCode, code, message, extra) => Object.assign(httpError(statusCode, message), { code, extra });
+const invalid = () => inviteError(404, 'INVALID', "This invite link isn't valid. Check you copied the whole link, or ask the trip owner for a new one.");
+const expired = () => inviteError(410, 'EXPIRED', 'This invite link has expired. Ask the trip owner to send you a new one.');
+
 class InvitationService {
   async createInvite(groupId, inviterId, { email, role = 'MEMBER' }) {
     if (typeof email !== 'string' || !email.trim()) {
@@ -62,15 +68,36 @@ class InvitationService {
     return { invitationToken: token, role: normalizedRole, expiresAt };
   }
 
-  // Public, read-only: never consumes the token and never exposes the invitee's email
-  async previewInvite(token) {
-    const invitation = await invitationRepo.findInvitationByToken(token);
-    if (!invitation || invitation.travelGroup.deletedAt) throw httpError(404, 'Invalid invitation token.');
+  // Where an account that's already in the invite's group should go: the trip
+  // itself when the group has exactly one, else the group.
+  async alreadyAccepted(invitation) {
+    const tripIds = await invitationRepo.findGroupTripIds(invitation.travelGroupId);
+    return inviteError(409, 'ALREADY_ACCEPTED', "You've already accepted this invite.", {
+      groupId: invitation.travelGroupId,
+      tripId: tripIds.length === 1 ? tripIds[0] : null,
+    });
+  }
 
-    if (invitation.status !== 'PENDING') {
-      throw httpError(410, `This invitation is already ${invitation.status.toLowerCase()}.`);
+  // A link that's no longer pending. If this account is in the group, it's
+  // theirs (or they're in anyway); otherwise the link is spent. Who redeemed
+  // it is never revealed.
+  async notPending(invitation, userId) {
+    if (userId && (await invitationRepo.checkGroupMembership(invitation.travelGroupId, userId))) {
+      return this.alreadyAccepted(invitation);
     }
-    if (new Date() > invitation.expiresAt) throw httpError(410, 'This invitation has expired.');
+    if (invitation.status === 'EXPIRED') return expired();
+    return inviteError(410, 'USED', 'This invite link has already been used. Ask the trip owner to send you a new invite.');
+  }
+
+  // Public, read-only: never consumes the token and never exposes the invitee's
+  // email. userId is set when the visitor happens to be signed in, so a link
+  // they already accepted can say so.
+  async previewInvite(token, userId = null) {
+    const invitation = await invitationRepo.findInvitationByToken(token);
+    if (!invitation || invitation.travelGroup.deletedAt) throw invalid();
+
+    if (invitation.status !== 'PENDING') throw await this.notPending(invitation, userId);
+    if (new Date() > invitation.expiresAt) throw expired();
 
     return {
       groupName: invitation.travelGroup.name,
@@ -87,30 +114,36 @@ class InvitationService {
     if (typeof token !== 'string' || !token) throw httpError(400, 'Invitation token is required.');
 
     const invitation = await invitationRepo.findInvitationByToken(token);
-    if (!invitation) throw httpError(404, 'Invalid invitation token.');
+    if (!invitation || invitation.travelGroup.deletedAt) throw invalid();
+
+    // before the email check, so a spent link says so rather than "different email"
+    if (invitation.status !== 'PENDING') throw await this.notPending(invitation, userId);
 
     const user = await invitationRepo.findUserById(userId);
     if (user.email.toLowerCase() !== invitation.email.toLowerCase()) {
-      throw httpError(403, 'This invitation was sent to a different email address.');
+      throw inviteError(403, 'WRONG_ACCOUNT', 'This invitation was sent to a different email address. Sign in with that address, or ask the trip owner to invite this account.');
     }
 
-    if (invitation.status !== 'PENDING') {
-      throw httpError(400, `This invitation is already ${invitation.status.toLowerCase()}.`);
-    }
     if (new Date() > invitation.expiresAt) {
       await invitationRepo.updateInvitationStatus(invitation.id, 'EXPIRED');
-      throw httpError(400, 'This invitation has expired.');
+      throw expired();
     }
-    if (invitation.travelGroup.deletedAt) throw httpError(404, 'Travel group not found.');
 
     if (await invitationRepo.checkGroupMembership(invitation.travelGroupId, userId)) {
-      throw httpError(400, 'You are already a member of this travel group.');
+      throw await this.alreadyAccepted(invitation);
     }
 
     const membership = await invitationRepo.acceptInvitation(invitation, userId);
-    if (!membership) throw httpError(400, 'This invitation is no longer pending.');
+    // lost a race with another accept of the same link
+    if (!membership) throw await this.notPending({ ...invitation, status: 'ACCEPTED' }, userId);
 
-    return { groupName: invitation.travelGroup.name, groupId: invitation.travelGroupId, role: membership.role };
+    const tripIds = await invitationRepo.findGroupTripIds(invitation.travelGroupId);
+    return {
+      groupName: invitation.travelGroup.name,
+      groupId: invitation.travelGroupId,
+      tripId: tripIds.length === 1 ? tripIds[0] : null,
+      role: membership.role,
+    };
   }
 }
 

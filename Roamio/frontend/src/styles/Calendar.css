@@ -1944,3 +1944,89 @@
   padding-left: 0;
   padding-right: 0;
 }
+
+/* =========================================================
+   READABILITY
+   - the grid gets the full width whenever the side panels would squeeze
+     it (container query: the layout is zoomed and narrower than the viewport)
+   - today / selected / other-month each look different, not just tinted
+   - every trip bar is named; holidays get their own flagged chip
+========================================================= */
+
+.cal-layout { container: cal-layout / inline-size; }
+
+@container cal-layout (max-width: 1240px) {
+  .cal-body { grid-template-columns: minmax(0, 1fr); }
+  .cal-side { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+}
+@container cal-layout (max-width: 640px) {
+  .cal-side { display: flex; flex-direction: column; }
+}
+
+/* day number and states */
+.cal-day { min-height: 112px; }
+.cal-day-top { gap: 6px; justify-content: flex-start; }
+.cal-day-top .cal-day-flag { margin-left: auto; }
+.cal-day-number { width: 28px; height: 28px; font-size: 0.95rem; font-weight: 800; }
+.cal-day-today {
+  font-size: 0.6rem; font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase;
+  color: var(--cal-primary);
+}
+.cal-day.selected {
+  outline: 3px solid var(--cal-primary);
+  outline-offset: -3px;
+  background: color-mix(in srgb, var(--cal-primary) 9%, var(--cal-surface));
+}
+.cal-day.selected .cal-day-number { color: var(--cal-primary); }
+.cal-day.today.selected .cal-day-number { color: #fff; }
+.cal-day.outside {
+  background: repeating-linear-gradient(135deg, var(--cal-surface-2) 0 6px, var(--cal-surface) 6px 12px);
+}
+.cal-day.outside .cal-day-number { font-weight: 500; color: var(--cal-faint); opacity: 1; }
+.cal-day.outside.selected { background: color-mix(in srgb, var(--cal-primary) 9%, var(--cal-surface)); }
+
+/* trips: same tone on every date, named on every date */
+.cal-trip-bar.continued { padding-left: 8px; }
+.cal-trip-bar.continued .cal-trip-bar-label { opacity: 0.8; font-weight: 700; }
+.cal-trip-bar-initial { display: none; }
+
+/* holidays: their own marker and label, separate from trip bars */
+.cal-day-holiday {
+  display: flex; align-items: center; gap: 4px; min-width: 0;
+  padding: 1px 6px;
+  border: 1px dashed var(--tone-amber);
+  border-radius: 999px;
+  background: var(--tone-amber-soft);
+}
+.cal-day-holiday svg { flex-shrink: 0; }
+.cal-day-holiday span { overflow: hidden; text-overflow: ellipsis; }
+.cal-pill-holiday { border-left-style: dashed; outline: 1px dashed var(--tone-amber); outline-offset: -1px; }
+.cal-week-day.has-holiday .cal-week-head { border-bottom-color: var(--tone-amber); }
+.cal-week-day.selected { background: color-mix(in srgb, var(--cal-primary) 7%, var(--cal-surface)); box-shadow: inset 0 0 0 2px var(--cal-primary); }
+.cal-week-day.today .cal-week-head span { color: var(--cal-primary); }
+
+/* the selected-day itinerary always shows names in full */
+.cal-ticket-main strong,
+.cal-ticket-dest { overflow: visible; white-space: normal; text-overflow: clip; overflow-wrap: anywhere; }
+
+@media (max-width: 720px) {
+  .cal-day { min-height: 74px; }
+  .cal-day-number { width: 24px; height: 24px; font-size: 0.82rem; }
+  .cal-day-today { display: none; } /* the filled circle carries it; the label is in aria-label */
+  /* a flag marker instead of the name, and a lettered bar per trip, so a
+     shared date still reads "holiday + which trips" without colour */
+  .cal-day-flag { display: block; }
+  .cal-day-top .cal-day-flag { margin-left: auto; }
+  .cal-day-holiday { display: none; }
+  .cal-day-more { display: block; font-size: 0.55rem; line-height: 1; }
+  .cal-day-more-word { display: none; }
+  /* week: one row per day instead of a sideways-scrolling strip, so names fit */
+  .cal-week-grid { min-width: 0; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .cal-week-day { min-height: 0; flex-direction: row; align-items: flex-start; gap: 12px; }
+  .cal-week-head { flex: 0 0 44px; padding: 0 10px 0 0; border-bottom: 0; border-right: 1px dashed var(--cal-line); }
+  .cal-week-day.has-holiday .cal-week-head { border-right-color: var(--tone-amber); }
+  .cal-week-items { flex: 1; min-width: 0; }
+  .cal-trip-bar, .cal-trip-bar.continued { height: 13px; padding: 0 2px; font-size: 0.55rem; }
+  .cal-trip-bar-initial { display: inline; font-weight: 800; }
+  .cal-trip-bar.continued .cal-trip-bar-initial { opacity: 0.7; }
+}
