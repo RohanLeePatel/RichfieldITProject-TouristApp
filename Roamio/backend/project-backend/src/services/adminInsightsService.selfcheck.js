@@ -20,6 +20,7 @@ const users = new Map([
 
 // current-period rows are within 30 days, previous-period rows are 31-60 days back
 const prisma = {
+  wizardStepEvent: { findMany: async () => [{ step: 0, userId: 1 }, { step: 1, userId: 1 }, { step: 0, userId: 2 }] },
   user: {
     findMany: async (args) => {
       if (args.select?.fullName) {

@@ -11,3 +11,10 @@ export function change(value, previous) {
   const pct = Math.round(((value - previous) / previous) * 100);
   return { tone: pct > 0 ? "up" : pct < 0 ? "down" : "flat", text: pct === 0 ? "no change" : `${pct > 0 ? "+" : ""}${pct}%` };
 }
+
+// Saves text (e.g. CSV) as a file download
+export function downloadText(filename, text, type = "text/csv") {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  Object.assign(document.createElement("a"), { href: url, download: filename }).click();
+  URL.revokeObjectURL(url);
+}

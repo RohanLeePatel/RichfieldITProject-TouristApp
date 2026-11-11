@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, Download, LogOut, RefreshCw, Search, ShieldAlert, UserCheck, Users } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, ClipboardList, Download, LogOut, RefreshCw, Search, ShieldAlert, UserCheck, Users } from "lucide-react";
 
 import {
   adminUserQuery,
+  bulkUsers,
   adminUsersQuery,
   exportUsersCsv,
   retryUnlessForbidden,
@@ -11,6 +12,8 @@ import {
   signOutUser,
   USERS_PAGE_SIZE,
 } from "../../api/admin.js";
+import { downloadText } from "./adminFormat.js";
+import { confirmDialog } from "../../store/confirmStore.js";
 
 const SKELETON_ROWS = 5;
 
@@ -19,6 +22,8 @@ const STATUSES = [
   { value: "active", label: "Active" },
   { value: "unverified", label: "Unverified" },
   { value: "suspended", label: "Suspended" },
+  { value: "inactive", label: "Inactive 30+ days" },
+  { value: "no_trips", label: "Never made a trip" },
 ];
 
 const initials = (name = "") =>
@@ -40,7 +45,7 @@ function formatLastLogin(iso) {
 const deviceName = (d) => [d.browser, d.os].filter(Boolean).join(" on ") || d.deviceType;
 
 // A person in full, with the actions an owner needs: suspend or reactivate, and sign out every device.
-function UserDetail({ id, onChanged }) {
+function UserDetail({ id, onChanged, onOpenAudit }) {
   const queryClient = useQueryClient();
   const { data, isPending, error } = useQuery({ ...adminUserQuery(id), retry: retryUnlessForbidden });
   const [message, setMessage] = useState(null); // { tone: "ok" | "error", text }
@@ -141,8 +146,8 @@ function UserDetail({ id, onChanged }) {
             type="button"
             className="admin-button danger"
             disabled={busy}
-            onClick={() =>
-              window.confirm("Suspend this account? They will be signed out and unable to sign in until you reactivate it.") && toggle.mutate(false)
+            onClick={async () =>
+              (await confirmDialog("Suspend this account? They will be signed out and unable to sign in until you reactivate it.", "Suspend")) && toggle.mutate(false)
             }
           >
             <ShieldAlert size={15} /> Suspend account
@@ -154,6 +159,9 @@ function UserDetail({ id, onChanged }) {
         )}
         <button type="button" className="admin-link-button" disabled={busy || user.liveSessions === 0} onClick={() => signOut.mutate()}>
           <LogOut size={14} /> Sign out of all devices
+        </button>
+        <button type="button" className="admin-link-button" onClick={() => onOpenAudit(id)}>
+          <ClipboardList size={14} /> Admin history
         </button>
       </div>
     </div>
@@ -172,15 +180,17 @@ function UserStatus({ user }) {
 
 // Registered users with their most recent successful login (LoginEvent). Filter by
 // state, open a row to manage the account, or download everyone as a spreadsheet.
-export default function UserProfilesList() {
+export default function UserProfilesList({ onOpenAudit, initialStatus = "" }) {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [q, setQ] = useState("");
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState(initialStatus);
   const [sort, setSort] = useState("newest");
   const [openId, setOpenId] = useState(null);
   const [exportError, setExportError] = useState(null);
+  const [picked, setPicked] = useState(() => new Set()); // ids ticked for a bulk action
+  const [bulkMessage, setBulkMessage] = useState(null);
 
   // wait for a pause in typing before querying, and go back to page 1 for a new search
   useEffect(() => {
@@ -200,18 +210,34 @@ export default function UserProfilesList() {
     mutationFn: exportUsersCsv,
     onSuccess: (csv) => {
       setExportError(null);
-      const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-      Object.assign(document.createElement("a"), { href: url, download: "roamio-users.csv" }).click();
-      URL.revokeObjectURL(url);
+      downloadText("roamio-users.csv", csv);
     },
     onError: (err) => setExportError(err.message),
   });
+
+  const bulk = useMutation({
+    mutationFn: ({ action }) => bulkUsers([...picked], action),
+    onSuccess: ({ done, failed }) => {
+      setBulkMessage({ tone: failed.length ? "error" : "ok", text: `${done} updated${failed.length ? `, ${failed.length} skipped (${failed[0].message})` : ""}.` });
+      setPicked(new Set());
+      queryClient.invalidateQueries({ queryKey: ["admin"] });
+    },
+    onError: (err) => setBulkMessage({ tone: "error", text: err.message }),
+  });
+  const runBulk = async (action, question) => (await confirmDialog(`${question} ${picked.size} selected ${picked.size === 1 ? "user" : "users"}?`, "Confirm")) && bulk.mutate({ action });
+  const toggle = (id) =>
+    setPicked((current) => {
+      const next = new Set(current);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
 
   const reload = () => queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
   const filter = (setter) => (event) => {
     setter(event.target.value);
     setPage(1);
     setOpenId(null);
+    setPicked(new Set());
   };
 
   const users = data?.users || [];
@@ -279,6 +305,29 @@ export default function UserProfilesList() {
         </p>
       )}
 
+      {picked.size > 0 && (
+        <div className="admin-bulkbar" role="toolbar" aria-label="Bulk actions">
+          <strong>{picked.size} selected</strong>
+          <button type="button" className="admin-button danger" disabled={bulk.isPending} onClick={() => runBulk("suspend", "Suspend")}>
+            <ShieldAlert size={15} /> Suspend
+          </button>
+          <button type="button" className="admin-button" disabled={bulk.isPending} onClick={() => runBulk("reactivate", "Reactivate")}>
+            <UserCheck size={15} /> Reactivate
+          </button>
+          <button type="button" className="admin-link-button" disabled={bulk.isPending} onClick={() => runBulk("signOut", "Sign out of every device:")}>
+            <LogOut size={14} /> Sign out
+          </button>
+          <button type="button" className="admin-link-button" onClick={() => setPicked(new Set())}>
+            Clear
+          </button>
+        </div>
+      )}
+      {bulkMessage && (
+        <p className={`admin-notice ${bulkMessage.tone}`} role={bulkMessage.tone === "error" ? "alert" : "status"}>
+          <span>{bulkMessage.text}</span>
+        </p>
+      )}
+
       {error && !data ? (
         <div className="admin-error" role="alert">
           <AlertTriangle size={18} />
@@ -299,6 +348,13 @@ export default function UserProfilesList() {
         <ul className="admin-user-list">
           {users.map((user) => (
             <li className="admin-user" key={user.id}>
+              <input
+                type="checkbox"
+                className="admin-user-check"
+                checked={picked.has(user.id)}
+                onChange={() => toggle(user.id)}
+                aria-label={`Select ${user.fullName}`}
+              />
               <div className="admin-user-avatar">
                 {user.avatarUrl ? <img src={user.avatarUrl} alt="" loading="lazy" /> : initials(user.fullName)}
               </div>
@@ -329,7 +385,7 @@ export default function UserProfilesList() {
               >
                 <ChevronDown size={16} className={openId === user.id ? "admin-flip" : ""} />
               </button>
-              {openId === user.id && <UserDetail id={user.id} onChanged={reload} />}
+              {openId === user.id && <UserDetail id={user.id} onChanged={reload} onOpenAudit={onOpenAudit} />}
             </li>
           ))}
         </ul>

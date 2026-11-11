@@ -7,11 +7,12 @@ const { unpackMeta } = require('../utils/tripFormat');
 // dashboard can show "up/down vs. last period".
 
 const DAY = 86_400_000;
-const RANGES = [7, 30, 90];
+const MAX_DAYS = 365;
 const TOP = 8;
 
 const dayKey = (date) => new Date(date).toISOString().slice(0, 10);
-const pickDays = (value) => (RANGES.includes(Number(value)) ? Number(value) : 30);
+// any whole number of days from 1 to 365; anything else is 30
+const pickDays = (value) => (Number.isInteger(Number(value)) && Number(value) >= 1 && Number(value) <= MAX_DAYS ? Number(value) : 30);
 
 // The last `days` calendar days (UTC), oldest first, ending today
 function dayKeys(days, now) {
@@ -144,6 +145,14 @@ async function getInsights({ days, now = Date.now() } = {}) {
     { key: 'invited', label: 'Invited someone', count: invited },
   ];
 
+  // The trip wizard: how many distinct people reached each step in this period
+  const stepRows = await prisma.wizardStepEvent.findMany({ where: { at: { gte: from } }, select: { step: true, userId: true }, distinct: ['step', 'userId'] });
+  const wizardFunnel = ['Trip basics', 'Interests', 'Accessibility & climate', 'Review', 'Ran a search'].map((label, step) => ({
+    key: `step${step}`,
+    label,
+    count: stepRows.filter((r) => r.step === step).length,
+  }));
+
   // Retention: of the new users, how many signed in again on a later day?
   const newIds = newUsers.map((u) => u.id);
   const later = newIds.length
@@ -186,7 +195,7 @@ async function getInsights({ days, now = Date.now() } = {}) {
     avgGroupSize: groupTotal ? Math.round((memberships / groupTotal) * 10) / 10 : null,
   };
 
-  return { days: range, generatedAt: new Date(now).toISOString(), kpis, topDestinations, funnel, retention, features, collaboration };
+  return { days: range, generatedAt: new Date(now).toISOString(), kpis, topDestinations, funnel, wizardFunnel, retention, features, collaboration };
 }
 
-module.exports = { getInsights, RANGES };
+module.exports = { getInsights };

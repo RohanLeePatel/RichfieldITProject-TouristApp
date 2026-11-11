@@ -14,10 +14,15 @@ const positiveInt = (value, fallback) => {
 };
 
 // Account state as the dashboard filters it
+const INACTIVE_DAYS = 30;
 const STATUS_FILTERS = {
-  active: { isActive: true, isVerified: true },
-  unverified: { isActive: true, isVerified: false },
-  suspended: { isActive: false },
+  active: () => ({ isActive: true, isVerified: true }),
+  unverified: () => ({ isActive: true, isVerified: false }),
+  suspended: () => ({ isActive: false }),
+  // no successful sign-in for 30 days (or ever)
+  inactive: () => ({ isActive: true, loginEvents: { none: { success: true, at: { gte: new Date(Date.now() - INACTIVE_DAYS * DAY) } } } }),
+  // verified, but never joined or made a trip
+  no_trips: () => ({ isActive: true, isVerified: true, tripMemberships: { none: {} } }),
 };
 
 const LIST_FIELDS = {
@@ -55,7 +60,7 @@ async function listUsers({ page, pageSize, q, status, sort } = {}) {
   // address (through its blind index) or a user id. No partial or by-name search.
   const where = {
     deletedAt: null,
-    ...(STATUS_FILTERS[status] ?? {}),
+    ...(STATUS_FILTERS[status]?.() ?? {}),
     ...(search && {
       OR: [{ email: search }, ...(/^\d{1,9}$/.test(search) ? [{ id: Number(search) }] : [])],
     }),
@@ -133,8 +138,8 @@ async function getUser(value, now = Date.now()) {
 const audit = (adminId, action, targetId) => auditLog.log(adminId, action, { entityType: 'USER', entityId: targetId });
 
 // Suspend or reactivate. A suspended account can't sign in or refresh a session, and
-// every device is signed out now. ponytail: an access token already issued works until
-// it expires (15 minutes) - add a per-request isActive check only if that is too long.
+// every device is signed out now. Revoking the sessions stops their access tokens at
+// once (authMiddleware checks the session on every request).
 async function setActive(adminId, value, active) {
   const id = userId(value);
   if (typeof active !== 'boolean') throw httpError(400, 'isActive must be true or false.');
@@ -153,6 +158,29 @@ async function signOutEverywhere(adminId, value) {
   await findUser(id);
   await sessionService.revokeAll(id);
   await audit(adminId, 'ADMIN_SIGN_OUT_USER', id);
+}
+
+// Suspend / reactivate / sign out up to 100 users at once. One bad id doesn't stop the rest.
+const BULK_ACTIONS = {
+  suspend: (adminId, id) => setActive(adminId, id, false),
+  reactivate: (adminId, id) => setActive(adminId, id, true),
+  signOut: (adminId, id) => signOutEverywhere(adminId, id),
+};
+async function bulk(adminId, { ids, action } = {}) {
+  const run = BULK_ACTIONS[action];
+  if (!run) throw httpError(400, 'action must be suspend, reactivate or signOut.');
+  if (!Array.isArray(ids) || ids.length === 0 || ids.length > 100) throw httpError(400, 'Pick between 1 and 100 users.');
+  const failed = [];
+  let done = 0;
+  for (const id of ids) {
+    try {
+      await run(adminId, id);
+      done += 1;
+    } catch (error) {
+      failed.push({ id, message: error.message });
+    }
+  }
+  return { done, failed };
 }
 
 // A spreadsheet runs a cell that starts with = + - @ as a formula, and names are typed by
@@ -187,4 +215,4 @@ async function exportCsv() {
   return `${lines.join('\r\n')}\r\n`;
 }
 
-module.exports = { listUsers, getUser, setActive, signOutEverywhere, exportCsv, csvCell };
+module.exports = { listUsers, getUser, setActive, signOutEverywhere, bulk, exportCsv, csvCell };

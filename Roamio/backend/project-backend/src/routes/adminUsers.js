@@ -1,16 +1,24 @@
 const express = require('express');
 const service = require('../services/adminUserService');
+const { log } = require('../services/adminAuditService');
 
 const router = express.Router();
 
-// GET /api/admin/users?page=1&pageSize=20&q=&status=active|unverified|suspended&sort=newest|oldest
+// GET /api/admin/users?page=1&pageSize=20&q=&status=active|unverified|suspended|inactive|no_trips&sort=newest|oldest
 router.get('/', async (req, res) => {
   res.json(await service.listUsers(req.query));
 });
 
 // GET /api/admin/users/export.csv - every user, for a spreadsheet
 router.get('/export.csv', async (req, res) => {
+  // personal data leaves the dashboard here, so it is on the record
+  await log(req.user.id, 'ADMIN_USERS_EXPORT', { entityType: 'EXPORT', details: 'all users, CSV' });
   res.type('text/csv').set('Content-Disposition', 'attachment; filename="roamio-users.csv"').send(await service.exportCsv());
+});
+
+// POST /api/admin/users/bulk { ids, action: suspend|reactivate|signOut } -> { done, failed }
+router.post('/bulk', async (req, res) => {
+  res.json(await service.bulk(req.user.id, req.body));
 });
 
 // GET /api/admin/users/:id - one user with their counts, trips and recent sign-ins

@@ -3,6 +3,7 @@ const { timingSafeEqual } = require('node:crypto');
 const safetySyncService = require('../services/safetySyncService');
 const tripReminderService = require('../services/tripReminderService');
 const catalogService = require('../services/catalogService');
+const adminAlertService = require('../services/adminAlertService');
 
 const router = express.Router();
 
@@ -47,6 +48,13 @@ router.get('/destinations', async (req, res) => {
     console.error('Destination refresh failed:', error.message);
     res.status(500).json({ message: 'Destination refresh failed.' });
   }
+});
+
+// GET /api/cron/admin-alerts - email the admins when a service is down or places get flagged
+router.get('/admin-alerts', async (req, res) => {
+  if (!process.env.CRON_SECRET) return res.status(503).json({ message: 'Scheduled jobs are not configured.' });
+  if (!isCron(req)) return res.status(401).json({ message: 'Not allowed.' });
+  res.json({ ok: true, ...(await adminAlertService.check()) });
 });
 
 module.exports = router;

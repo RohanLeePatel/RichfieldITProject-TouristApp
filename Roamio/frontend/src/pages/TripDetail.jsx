@@ -1,3 +1,4 @@
+import { showToast } from "../store/toastStore.js";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDown, ArrowUp, CalendarDays, CloudSun, FileText, Languages, ListOrdered, LoaderCircle, MapPin, Pencil, Printer, ShieldCheck, Sparkles, Trash2, Users, Wallet, X,
@@ -16,7 +17,7 @@ import TripBudget from "./TripBudget.jsx";
 import { AddLandmark, TripPeople, TripSnapshot } from "../components/trips/TripHub.jsx";
 import useActiveTrip from "../hooks/useActiveTrip.js";
 
-import { fetchTrip, deleteTrip, removeItineraryItem, reorderItinerary } from "../api/trips.js";
+import { fetchTrip, addItineraryItem, deleteTrip, restoreTrip, removeItineraryItem, reorderItinerary } from "../api/trips.js";
 import { groupItineraryByDay } from "../utils/itineraryPlanner.js";
 import { formatDate } from "../utils/format.js";
 import { useTripStore } from "../store/tripStore.js";
@@ -100,10 +101,20 @@ export default function TripDetail() {
   );
 
   const handleDeleteItem = async (itemId, title) => {
-    if (!window.confirm(`Remove ${title} from this trip?`)) return;
+    const stop = trip.itinerary.find((item) => item.id === itemId);
     setBusy(true);
     try {
       await removeItineraryItem(tripId, itemId);
+      if (stop) {
+        const { location, dayNumber, startTime, lat, lon } = stop;
+        showToast(`Removed ${title}.`, {
+          label: "Undo",
+          run: () =>
+            addItineraryItem(tripId, { title, location, dayNumber, startTime, lat, lon })
+              .then(refresh)
+              .catch((e) => showToast(e.message || "Could not restore that stop.")),
+        });
+      }
       load();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Could not remove that stop.");
@@ -147,11 +158,20 @@ export default function TripDetail() {
   };
 
   const handleDeleteTrip = async () => {
-    if (!window.confirm(`Delete ${trip.title}? Its itinerary and documents go with it.`)) return;
     setBusy(true);
     try {
       await deleteTrip(tripId);
       useTripStore.getState().load(true);
+      // deleted trips stay restorable for 30 days, so undo beats a confirm dialog
+      const { title, id } = trip;
+      showToast(`Deleted ${title}.`, {
+        label: "Undo",
+        run: () =>
+          restoreTrip(id)
+            .then(() => useTripStore.getState().load(true))
+            .then(() => showToast(`Restored ${title}.`))
+            .catch((e) => showToast(e.message || "Could not restore that trip.")),
+      });
       navigate("/trips");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Could not delete this trip.");

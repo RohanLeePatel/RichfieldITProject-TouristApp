@@ -33,6 +33,7 @@ const ratesRoutes = require('./src/routes/rates');
 const adminRoutes = require('./src/routes/admin');
 const chatRoutes = require('./src/routes/chat');
 const meRoutes = require('./src/routes/me');
+const wizardEventRoutes = require('./src/routes/wizardEvents');
 const supportRoutes = require('./src/routes/support');
 const destinationFeedbackRoutes = require('./src/routes/destinationFeedback');
 const cronRoutes = require('./src/routes/cron');
@@ -112,6 +113,7 @@ app.use('/api/chat', chatLimiter, chatRoutes);
 // deletion, problem reports. They guard themselves with requireAuth, so they
 // go before the /api routers below that would 401 them.
 app.use('/api/users/me', meRoutes);
+app.use('/api/wizard-events', wizardEventRoutes);
 app.use('/api/support', supportLimiter, supportRoutes);
 app.use('/api/places', feedbackLimiter, destinationFeedbackRoutes);
 
@@ -176,6 +178,9 @@ app.use((err, req, res, next) => {
 cron.schedule('0 */12 * * *', async () => {
   await safetySyncService.syncCountryAdvisories();
 });
+
+// Tell the admins when a service is down or places get flagged (only emails when something changes)
+cron.schedule('0 * * * *', () => require('./src/services/adminAlertService').check());
 
 // In development, also run one sync shortly after boot, so local data appears
 // without waiting up to 12 hours for the first scheduled run.

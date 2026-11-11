@@ -36,6 +36,8 @@ import {
   TRIP_TEMPLATES,
   tripLengthDays,
 } from "./recommendations/constants.js";
+import { confirmDialog } from "../store/confirmStore.js";
+import { trackWizardStep } from "../api/wizardEvents.js";
 
 const MAX_SHORTLIST = 3;
 // sanity ceilings for the basics step - well past any real trip
@@ -76,6 +78,7 @@ function Planner({ draft }) {
   // draft: the unfinished plan from earlier (tab closed, another device), or {}
   const [stage, setStage] = useState(draft.stage || "wizard");
   const [step, setStep] = useState(draft.step ?? 0);
+  useEffect(() => trackWizardStep(step), [step]);
   // set by an "Edit" link on the review step: Continue then goes straight
   // back to the review instead of through every step in between
   const [returnToReview, setReturnToReview] = useState(draft.returnToReview ?? false);
@@ -462,6 +465,7 @@ function Planner({ draft }) {
     }
     // A fresh search from the wizard starts a new drill-down, not a
     // continuation of whatever was explored before.
+    trackWizardStep(4);
     setResultsHistory([]);
     setDislikedIds([]);
     setShortlist([]);
@@ -593,13 +597,13 @@ function Planner({ draft }) {
   };
   const sameName = (a, b) => a?.name?.trim().toLowerCase() === b?.name?.trim().toLowerCase();
 
-  const toggleLandmark = (key) => {
+  const toggleLandmark = async (key) => {
     // one place often matches two interests (a park that's also a historic site)
     const landmark = landmarkAt(key);
     if (
       !selectedLandmarks.has(key) &&
       [...selectedLandmarks].some((other) => sameName(landmarkAt(other), landmark)) &&
-      !window.confirm(`${landmark.name} is already in your plan. Add it again?`)
+      !(await confirmDialog(`${landmark.name} is already in your plan. Add it again?`, "Add again"))
     ) {
       return;
     }
@@ -826,8 +830,8 @@ function Planner({ draft }) {
 
   // Clears every answer and goes back to the first step. The home currency
   // from Settings and the catalog's country stay - they're defaults, not choices.
-  const resetWizard = () => {
-    if (!window.confirm("Start over? This clears all your answers.")) return;
+  const resetWizard = async () => {
+    if (!(await confirmDialog("Start over? This clears all your answers.", "Start over"))) return;
     setForm((current) => ({ ...initialForm, currency: current.currency, country: countries.some((c) => c.name === initialForm.country) ? initialForm.country : countries[0]?.name || initialForm.country }));
     setPresetId(null);
     setReturnToReview(false);

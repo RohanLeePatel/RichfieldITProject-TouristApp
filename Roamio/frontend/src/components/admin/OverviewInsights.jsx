@@ -1,12 +1,23 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Globe2, LayoutDashboard, MapPin, Route, UserPlus, UserCheck, Users } from "lucide-react";
+import { AlertTriangle, Download, Globe2, LayoutDashboard, MapPin, RefreshCw, Route, UserPlus, UserCheck, Users } from "lucide-react";
 
 import { adminInsightsQuery, retryUnlessForbidden } from "../../api/admin.js";
-import { number } from "./adminFormat.js";
+import { downloadText, number } from "./adminFormat.js";
 import { Delta, Empty, Panel } from "./adminParts.jsx";
 
 const RANGES = [7, 30, 90];
+// the tiles' daily series and the top lists, as one CSV: section,label,value,previous
+function toCsv(data) {
+  const cell = (v) => (/[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v ?? ""));
+  const rows = [["section", "label", "value", "previous"]];
+  Object.entries(data.kpis).forEach(([key, m]) => rows.push(["kpi", key, m.value, m.previous]));
+  Object.entries(data.topDestinations).forEach(([group, items]) => items.forEach((i) => rows.push([`top ${group}`, i.sub ? `${i.label}, ${i.sub}` : i.label, i.count, i.previous])));
+  data.funnel.forEach((f) => rows.push(["funnel", f.label, f.count, ""]));
+  data.features.forEach((f) => rows.push(["feature", f.label, f.count, f.previous]));
+  return `${rows.map((r) => r.map(cell).join(",")).join("\r\n")}\r\n`;
+}
+
 const SPOTS = [
   { key: "cities", label: "Cities" },
   { key: "countries", label: "Countries" },
@@ -21,6 +32,50 @@ function Sparkline({ series, label }) {
   return (
     <svg className="admin-ins-spark" viewBox="0 0 120 32" preserveAspectRatio="none" role="img" aria-label={label}>
       <polyline points={points} fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+}
+
+// A larger line chart of one metric's daily values, with the previous-period total for context
+const TREND_METRICS = [
+  { key: "newUsers", label: "New users" },
+  { key: "activeUsers", label: "Active users" },
+  { key: "trips", label: "Trips planned" },
+];
+function TrendChart({ series, label }) {
+  const W = 600;
+  const H = 180;
+  const PAD = { l: 34, r: 8, t: 8, b: 22 };
+  const max = Math.max(1, ...series.map((p) => p.value));
+  const x = (i) => PAD.l + (series.length > 1 ? (i / (series.length - 1)) * (W - PAD.l - PAD.r) : 0);
+  const y = (v) => PAD.t + (1 - v / max) * (H - PAD.t - PAD.b);
+  const line = series.map((p, i) => `${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(" ");
+  const area = `${x(0)},${y(0)} ${line} ${x(series.length - 1)},${y(0)}`;
+  const short = (d) => new Date(`${d}T00:00:00Z`).toLocaleDateString(undefined, { day: "numeric", month: "short", timeZone: "UTC" });
+  return (
+    <svg className="admin-ins-trend" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${label}, one point per day`}>
+      {[0, 0.5, 1].map((f) => (
+        <g key={f}>
+          <line x1={PAD.l} x2={W - PAD.r} y1={y(max * f)} y2={y(max * f)} stroke="currentColor" opacity="0.12" />
+          <text x={PAD.l - 6} y={y(max * f) + 4} textAnchor="end" fontSize="11" fill="currentColor" opacity="0.6">
+            {Math.round(max * f)}
+          </text>
+        </g>
+      ))}
+      <polygon points={area} fill="currentColor" opacity="0.08" />
+      <polyline points={line} fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      {series.length <= 45 &&
+        series.map((p, i) => (
+          <circle key={p.date} cx={x(i)} cy={y(p.value)} r="3" fill="currentColor">
+            <title>{`${short(p.date)}: ${p.value}`}</title>
+          </circle>
+        ))}
+      <text x={PAD.l} y={H - 4} fontSize="11" fill="currentColor" opacity="0.6">
+        {short(series[0].date)}
+      </text>
+      <text x={W - PAD.r} y={H - 4} textAnchor="end" fontSize="11" fill="currentColor" opacity="0.6">
+        {short(series[series.length - 1].date)}
+      </text>
     </svg>
   );
 }
@@ -93,10 +148,11 @@ function Funnel({ steps }) {
 
 // What people do in the app, from Roamio's own tables (Google Analytics only sees page views).
 // The date range at the top applies to everything on this tab.
-export default function OverviewInsights() {
+export default function OverviewInsights({ onOpenUsers }) {
   const [days, setDays] = useState(30);
   const [spot, setSpot] = useState("cities");
-  const { data, isPending, error, isFetching } = useQuery({ ...adminInsightsQuery(days), retry: retryUnlessForbidden });
+  const [trend, setTrend] = useState("newUsers");
+  const { data, isPending, error, isFetching, refetch } = useQuery({ ...adminInsightsQuery(days), retry: retryUnlessForbidden });
 
   const kpis = data?.kpis;
   const loading = isPending;
@@ -108,15 +164,43 @@ export default function OverviewInsights() {
           <h2 id="admin-insights-title">
             <LayoutDashboard size={18} /> Overview
           </h2>
-          <p>What people do in Roamio, compared with the {days} days before</p>
+          <p>
+            What people do in Roamio, compared with the {days} days before
+            {data?.generatedAt && <> · updated {new Date(data.generatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</>}
+          </p>
         </div>
 
-        <div className="admin-segmented" role="group" aria-label="Date range">
-          {RANGES.map((range) => (
-            <button key={range} type="button" className={days === range ? "active" : ""} aria-pressed={days === range} onClick={() => setDays(range)}>
-              {range} days
-            </button>
-          ))}
+        <div className="admin-card-actions">
+          <div className="admin-segmented" role="group" aria-label="Date range">
+            {RANGES.map((range) => (
+              <button key={range} type="button" className={days === range ? "active" : ""} aria-pressed={days === range} onClick={() => setDays(range)}>
+                {range} days
+              </button>
+            ))}
+          </div>
+          <label className="admin-filter-date">
+            Custom
+            <input
+              className="admin-select"
+              type="number"
+              min="1"
+              max="365"
+              value={RANGES.includes(days) ? "" : days}
+              placeholder="days"
+              aria-label="Custom number of days, 1 to 365"
+              onChange={(event) => {
+                const n = Number.parseInt(event.target.value, 10);
+                if (n >= 1 && n <= 365) setDays(n);
+              }}
+              style={{ width: 80 }}
+            />
+          </label>
+          <button type="button" className="admin-icon-button" onClick={() => refetch()} disabled={isFetching} aria-label="Refresh overview" title="Refresh">
+            <RefreshCw size={16} className={isFetching ? "admin-spin" : ""} />
+          </button>
+          <button type="button" className="admin-icon-button" onClick={() => downloadText(`roamio-overview-${days}d.csv`, toCsv(data))} disabled={!data} aria-label="Download overview as a spreadsheet" title="Download (CSV)">
+            <Download size={16} />
+          </button>
         </div>
       </div>
 
@@ -133,6 +217,23 @@ export default function OverviewInsights() {
             <Kpi label="Active users" icon={UserCheck} tone="purple" metric={kpis?.activeUsers} loading={loading} />
             <Kpi label="Trips planned" icon={Route} tone="orange" metric={kpis?.trips} loading={loading} />
           </div>
+
+          <Panel
+            title="Trend"
+            icon={LayoutDashboard}
+            hint={`Per day, last ${days} days`}
+            actions={
+              <div className="admin-segmented" role="group" aria-label="Metric">
+                {TREND_METRICS.map(({ key, label }) => (
+                  <button key={key} type="button" className={trend === key ? "active" : ""} aria-pressed={trend === key} onClick={() => setTrend(key)}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            }
+          >
+            {loading || !kpis?.[trend]?.series.length ? <Empty>{loading ? "Loading…" : "No data yet."}</Empty> : <TrendChart series={kpis[trend].series} label={TREND_METRICS.find((m) => m.key === trend).label} />}
+          </Panel>
 
           <div className="admin-ins-grid">
             <Panel
@@ -152,8 +253,22 @@ export default function OverviewInsights() {
               {loading ? <Empty>Loading…</Empty> : <TopList items={data.topDestinations[spot]} />}
             </Panel>
 
+            <Panel title="Trip wizard" icon={MapPin} hint="People who reached each step of planning a trip">
+              {loading ? <Empty>Loading…</Empty> : <Funnel steps={data.wizardFunnel || []} />}
+            </Panel>
+
             <Panel title="Sign-up funnel" icon={MapPin} hint="How far this period's new users got">
               {loading ? <Empty>Loading…</Empty> : <Funnel steps={data.funnel} />}
+              {data && onOpenUsers && (
+                <p className="admin-ins-foot">
+                  <button type="button" className="admin-link-button" onClick={() => onOpenUsers("no_trips")}>
+                    See verified users who never made a trip
+                  </button>{" "}
+                  <button type="button" className="admin-link-button" onClick={() => onOpenUsers("unverified")}>
+                    See users who haven&apos;t verified
+                  </button>
+                </p>
+              )}
               {data && (
                 <p className="admin-ins-foot">
                   {data.retention.rate == null

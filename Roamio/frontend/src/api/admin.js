@@ -30,7 +30,7 @@ export const analyticsOverviewQuery = {
 };
 
 // { users: [{ id, fullName, email, avatarUrl, isActive, isVerified, createdAt, lastLoginAt, lastDevice }], page, pageSize, total }
-// status: "" | "active" | "unverified" | "suspended"; sort: "newest" | "oldest"
+// status: "" | "active" | "unverified" | "suspended" | "inactive" (no sign-in for 30 days) | "no_trips"; sort: "newest" | "oldest"
 export const adminUsersQuery = ({ page = 1, q = "", status = "", sort = "newest" } = {}) => ({
   queryKey: ["admin", "users", page, q, status, sort],
   queryFn: () =>
@@ -52,13 +52,17 @@ const userSend = (id, path, method, body) =>
 export const setUserActive = (id, isActive) => userSend(id, "", "PATCH", { isActive });
 export const signOutUser = (id) => userSend(id, "/sign-out", "POST");
 
+// action: "suspend" | "reactivate" | "signOut"; resolves { done, failed: [{ id, message }] }
+export const bulkUsers = (ids, action) =>
+  authedFetch("/api/admin/users/bulk", { method: "POST", body: JSON.stringify({ ids, action }) });
+
 // the whole user list as CSV text
 export const exportUsersCsv = () => authedFetch("/api/admin/users/export.csv");
 
 // What people do in the app, worked out from our own tables. days: 7 | 30 | 90.
 // { days, kpis: { totalUsers|newUsers|activeUsers|trips: { value, previous, series: [{ date, value }] } },
 //   topDestinations: { places|cities|countries: [{ label, sub, count, previous }] },
-//   funnel: [{ key, label, count }], retention: { newUsers, returned, rate },
+//   funnel: [{ key, label, count }], wizardFunnel: [{ key, label, count }], retention: { newUsers, returned, rate },
 //   features: [{ key, label, count, previous }],
 //   collaboration: { groups, invitesSent, invitesAccepted, acceptRate, avgGroupSize } }
 export const adminInsightsQuery = (days) => ({
@@ -96,13 +100,26 @@ export const bulkSetDestinations = (ids, active) => send("/bulk", "POST", { ids,
 
 // What admins did, newest first. { entries: [{ id, at, action, admin: { id, name },
 // target: { type, id, name }, details }], page, pageSize, total }
-export const adminAuditQuery = (page = 1) => ({
-  queryKey: ["admin", "audit", page],
-  queryFn: () => authedFetch(`/api/admin/audit?page=${page}`),
+// filters: { action, adminId, targetId, from, to } (dates as YYYY-MM-DD), all optional
+const auditParams = (filters = {}) => {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => value && params.set(key, value));
+  return params;
+};
+export const adminAuditQuery = (page = 1, filters = {}) => ({
+  queryKey: ["admin", "audit", page, filters],
+  queryFn: () => authedFetch(`/api/admin/audit?${auditParams({ ...filters, page })}`),
   staleTime: 30_000,
   placeholderData: keepPreviousData,
 });
 export const AUDIT_PAGE_SIZE = 25;
+export const exportAuditCsv = (filters) => authedFetch(`/api/admin/audit/export.csv?${auditParams(filters)}`);
+// { actions: ["ADMIN_..."] }
+export const adminAuditActionsQuery = {
+  queryKey: ["admin", "audit", "actions"],
+  queryFn: () => authedFetch("/api/admin/audit/actions"),
+  staleTime: 5 * 60_000,
+};
 
 const report = (name, days) => ({
   queryKey: ["admin", "reports", name, days],

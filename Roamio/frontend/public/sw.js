@@ -3,13 +3,15 @@
 // API calls are cross-origin and never touched here; see api/client.js for the data cache.
 
 const CACHE = "roamio-shell-v1"; // bump to drop old shells
+const TILES = "roamio-tiles-v1"; // map tiles the user has looked at
+const MAX_TILES = 400;
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) =>
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE && k !== TILES).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   )
 );
@@ -17,7 +19,28 @@ self.addEventListener("activate", (event) =>
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
-  if (request.method !== "GET" || url.origin !== self.location.origin) return;
+  if (request.method !== "GET") return;
+
+  // map tiles: cache first, so a map you have seen still draws with no signal.
+  // Only tiles actually viewed are kept (no bulk download of OpenStreetMap).
+  if (url.hostname === "tile.openstreetmap.org") {
+    event.respondWith(
+      caches.open(TILES).then(async (cache) => {
+        const hit = await cache.match(request);
+        if (hit) return hit;
+        const response = await fetch(request);
+        if (response.ok || response.type === "opaque") {
+          cache.put(request, response.clone());
+          // oldest first; the cache lists keys in insertion order
+          cache.keys().then((keys) => keys.slice(0, Math.max(0, keys.length - MAX_TILES)).forEach((k) => cache.delete(k)));
+        }
+        return response;
+      })
+    );
+    return;
+  }
+
+  if (url.origin !== self.location.origin) return;
 
   if (request.mode === "navigate") {
     // network first so a new deploy shows up; the cached shell only when offline

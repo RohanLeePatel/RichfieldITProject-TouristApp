@@ -68,17 +68,43 @@ export async function deleteDocument(tripId, documentId) {
 // Opens the file in a new tab. The endpoint needs the bearer token, so the
 // bytes are fetched here and handed to the browser as a blob URL rather than
 // pointing a link straight at the URL.
-export async function openDocument(tripId, documentId) {
-  const token = await ensureToken();
-  const response = await fetch(
-    `${API_BASE_URL.replace(/\/$/, "")}/api/trips/${tripId}/documents/${documentId}`,
-    { headers: token ? { Authorization: `Bearer ${token}` } : {} }
-  );
-  if (!response.ok) throw new Error("Could not open that document.");
+// Bytes of a document, kept in the Cache API so it still opens with no signal.
+// Passports and tickets are sensitive: clearApiCache (every sign-out) drops this too.
+const DOCS_CACHE = "roamio-docs";
+const docUrl = (tripId, documentId) => `${API_BASE_URL.replace(/\/$/, "")}/api/trips/${tripId}/documents/${documentId}`;
 
-  const url = URL.createObjectURL(await response.blob());
-  window.open(url, "_blank", "noopener");
+export async function cacheDocument(tripId, documentId) {
+  if (!("caches" in window)) return;
+  const url = docUrl(tripId, documentId);
+  const cache = await caches.open(DOCS_CACHE);
+  if (await cache.match(url)) return;
+  const token = await ensureToken();
+  const response = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (response.ok) await cache.put(url, response);
+}
+
+// Opens the file in a new tab. The endpoint needs the bearer token, so the
+// bytes are fetched here and handed to the browser as a blob URL rather than
+// pointing a link straight at the URL.
+export async function openDocument(tripId, documentId) {
+  const url = docUrl(tripId, documentId);
+  let blob;
+  try {
+    const token = await ensureToken();
+    const response = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    if (!response.ok) throw new Error("Could not open that document.");
+    if ("caches" in window) caches.open(DOCS_CACHE).then((c) => c.put(url, response.clone())).catch(() => {});
+    blob = await response.blob();
+  } catch (error) {
+    // offline: the copy saved while online, if there is one
+    const saved = "caches" in window ? await (await caches.open(DOCS_CACHE)).match(url) : null;
+    if (!saved) throw error;
+    blob = await saved.blob();
+  }
+
+  const blobUrl = URL.createObjectURL(blob);
+  window.open(blobUrl, "_blank", "noopener");
   // the tab holds its own reference once open; this just stops the blob
   // leaking for the rest of the session
-  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
 }

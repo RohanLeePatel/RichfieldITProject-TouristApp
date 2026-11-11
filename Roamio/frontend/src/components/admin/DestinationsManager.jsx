@@ -11,6 +11,7 @@ import {
   retryUnlessForbidden,
   updateDestination,
 } from "../../api/admin.js";
+import { confirmDialog } from "../../store/confirmStore.js";
 
 const PAGE = 30;
 
@@ -386,7 +387,7 @@ export default function DestinationsManager() {
                     type="button"
                     className="admin-icon-button danger"
                     disabled={busy}
-                    onClick={() => window.confirm(`Delete ${d.name}? Hiding it instead keeps its data.`) && remove.mutate(d.id)}
+                    onClick={async () => (await confirmDialog(`Delete ${d.name}? Hiding it instead keeps its data.`, "Delete")) && remove.mutate(d.id)}
                     aria-label={`Delete ${d.name}`}
                     title="Delete"
                   >
