@@ -226,6 +226,17 @@ export default function Family() {
     [normalizedTrips]
   );
 
+  const completedTrips = useMemo(
+    () =>
+      normalizedTrips
+        .filter(
+          (trip) =>
+            trip.calculatedStatus === "Completed"
+        )
+        .sort(byStartDate),
+    [normalizedTrips]
+  );
+
   // every trip for the overview tabs: under way first, then upcoming, finished ones last
   const overviewTrips = useMemo(
     () => [
@@ -703,6 +714,16 @@ export default function Family() {
           emptyText:
             "Create a trip to start planning your next adventure.",
         })}
+
+        {/* REAL COMPLETED TRIPS - only shown once a trip has finished */}
+        {!tripsLoading &&
+          !tripsError &&
+          completedTrips.length > 0 &&
+          renderTripsSection({
+            sectionTrips: completedTrips,
+            title: "Your completed trips",
+            subtitle: "Trips you've already taken.",
+          })}
 
       </div>
 
