@@ -144,6 +144,7 @@ model Trip {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   deletedAt     DateTime?
+  splitShares   Json? // { userId: percent } for new expenses; null or {} = split evenly
 
   members      TripMember[]
   destinations TripDestination[]

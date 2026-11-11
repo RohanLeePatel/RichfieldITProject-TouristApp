@@ -104,6 +104,18 @@ const tripRepository = {
   findTripMeta: async (tripId) => {
     const trip = await prisma.trip.findUnique({ where: { id: tripId }, select: { title: true, description: true } });
     return { title: trip?.title || null, currency: unpackMeta(trip?.description).currency || null };
+  },
+
+  // The trip's saved split of new expenses, { userId: percent }, or null for an even split
+  findSplitShares: async (tripId) => {
+    const trip = await prisma.trip.findUnique({ where: { id: tripId }, select: { splitShares: true } });
+    const shares = trip?.splitShares;
+    return shares && Object.keys(shares).length ? shares : null;
+  },
+
+  // {} clears it (back to an even split)
+  setSplitShares: async (tripId, shares) => {
+    await prisma.trip.update({ where: { id: tripId }, data: { splitShares: shares } });
   }
 };
 

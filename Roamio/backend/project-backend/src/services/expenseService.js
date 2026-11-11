@@ -180,7 +180,12 @@ class ExpenseService {
 
     const amountCents = parseAmountCents(body.amount);
     const category = parseCategory(body.category);
-    const splitType = body.splitType === undefined ? 'EQUAL' : parseSplitType(body.splitType);
+    // No split in the request: use the trip's saved percentages, if they still cover exactly today's members
+    const saved = body.splitType === undefined && body.splits === undefined ? await tripRepository.findSplitShares(tripId) : null;
+    const savedIds = saved ? Object.keys(saved).map(Number) : [];
+    const useSaved = savedIds.length === memberIds.length && memberIds.every((id) => savedIds.includes(id));
+    const splitType = useSaved ? 'PERCENT' : body.splitType === undefined ? 'EQUAL' : parseSplitType(body.splitType);
+    const rawSplits = useSaved ? savedIds.map((userId) => ({ userId, percent: saved[userId] })) : body.splits;
     const paidById = body.paidById === undefined ? userId : Number(body.paidById);
     assertMember(memberIds, paidById, 'paidById');
 
@@ -199,7 +204,7 @@ class ExpenseService {
       paidById,
       ...(body.date !== undefined && { date: parseDate(body.date) })
     };
-    const splits = computeSplits(amountCents, splitType, body.splits, memberIds);
+    const splits = computeSplits(amountCents, splitType, rawSplits, memberIds);
 
     const before = expenseTotals(await expenseRepository.findForTotals(tripId));
     const expense = await expenseRepository.createWithSplits(data, splits);

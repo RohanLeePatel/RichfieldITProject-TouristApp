@@ -11,6 +11,11 @@ export async function fetchBudgetSummary(tripId) {
   return data.summary;
 }
 
+// shares: { userId: percent } for every member adding up to 100, or null for an even split
+export function saveSplit(tripId, shares) {
+  return authedFetch(`/api/trips/${encodeURIComponent(tripId)}/budget/split`, { method: "PUT", body: JSON.stringify({ shares }) });
+}
+
 export async function saveBudget(tripId, { totalAmount, currency }) {
   const data = await authedFetch(`/api/trips/${encodeURIComponent(tripId)}/budget`, {
     method: "PUT",

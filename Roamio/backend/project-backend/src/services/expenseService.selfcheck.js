@@ -10,6 +10,7 @@ const rows = []; // stored expenses
 const notifications = [];
 let rateCalls = 0;
 let rateDown = false;
+let savedShares = null; // the trip's saved split
 
 const stub = (file, exports) => { require.cache[path.join(__dirname, file)] = { exports }; };
 stub('./tripAccessService.js', {
@@ -19,6 +20,7 @@ stub('./tripAccessService.js', {
 stub('../repositories/tripRepository.js', {
   findMemberUserIds: async () => [7, 8], // 8 is in via the trip's group
   findTripMeta: async () => ({ title: 'Durban Trip', currency: 'ZAR' }),
+  findSplitShares: async () => savedShares,
 });
 stub('../repositories/budgetRepository.js', {
   findByTripId: async () => ({ currency: 'ZAR', totalAmount: decimal('1000.00'), categoryLimits: [] }),
@@ -64,6 +66,17 @@ const expenseService = require('./expenseService');
   r = await expenseService.createExpense(1, 7, { title: 'Coffee', amount: 50, category: 'FOOD' });
   assert.equal(notifications.length, 2);
   assert.equal(r.warnings.length, 1);
+
+  // a saved 70/30 split is used when the request names none; a stale one (wrong members) is ignored
+  savedShares = { 7: 70, 8: 30 };
+  r = await expenseService.createExpense(1, 7, { title: 'Dinner', amount: 100, category: 'FOOD' });
+  assert.deepEqual(r.expense.splits.map((s) => [s.userId, Number(s.shareAmount)]), [[7, 70], [8, 30]]);
+  assert.equal(r.expense.splitType, 'PERCENT');
+  savedShares = { 7: 50, 9: 50 };
+  r = await expenseService.createExpense(1, 7, { title: 'Snacks', amount: 10, category: 'FOOD' });
+  assert.equal(r.expense.splitType, 'EQUAL');
+  savedShares = null;
+  rows.length -= 2;
 
   // the rate service down: refuse, rather than store a wrong total
   rateDown = true;

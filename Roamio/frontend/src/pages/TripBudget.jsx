@@ -3,7 +3,7 @@ import { AlertTriangle, LoaderCircle, Plus, Trash2, Wallet } from "lucide-react"
 import { useParams } from "react-router-dom";
 
 
-import { createExpense, deleteExpense, fetchBudgetSummary, fetchExpenses, fetchRate, saveBudget, saveCategoryLimit } from "../api/budget.js";
+import { createExpense, deleteExpense, fetchBudgetSummary, fetchExpenses, fetchRate, saveBudget, saveCategoryLimit, saveSplit } from "../api/budget.js";
 import { fetchTrip } from "../api/trips.js";
 import PageShell from "../components/recommendations/PageShell.jsx";
 import { useAuthStore } from "../store/authStore.js";
@@ -102,25 +102,6 @@ export default function TripBudget({ embedded = false }) {
 
   const budgetCurrency = summary?.currency || trip?.currency || "ZAR";
 
-  // How the next purchase is split: evenly (default) or by percent per member.
-  // Lives here so the controls can sit by "Who owes whom" while the form reads it.
-  const [precise, setPrecise] = useState(false);
-  const [percents, setPercents] = useState({}); // userId -> percent string
-  const members = (trip?.members || []).filter((m) => m.user);
-  const used = Math.round(members.reduce((sum, m) => sum + (Number(percents[m.user.id]) || 0), 0) * 100) / 100;
-  // cap each box so the total can never pass 100
-  const setPercent = (id, raw) => {
-    const others = used - (Number(percents[id]) || 0);
-    const value = Math.min(Math.max(Number(raw) || 0, 0), Math.max(0, 100 - others));
-    setPercents({ ...percents, [id]: raw === "" ? "" : String(Math.round(value * 100) / 100) });
-  };
-  const split = {
-    error: precise && Math.abs(used - 100) > 0.01 ? `Shares must add up to 100% (now ${used}%). Adjust them under "Who owes whom".` : "",
-    payload: precise
-      ? { splitType: "PERCENT", splits: members.map((m) => ({ userId: m.user.id, percent: Number(percents[m.user.id]) || 0 })) }
-      : {},
-  };
-
   const hero = trip ? (
     <>
       <p className="recommendations-eyebrow"><Wallet size={15} /> Budget</p>
@@ -156,7 +137,6 @@ export default function TripBudget({ embedded = false }) {
 
           <ExpenseForm
             trip={trip}
-            split={split}
             budgetCurrency={budgetCurrency}
             busy={busy}
             onAdd={(expense) =>
@@ -239,7 +219,7 @@ export default function TripBudget({ embedded = false }) {
             <div className="results-heading">
               <div>
                 <h2>Who owes whom</h2>
-                <p>Costs are split equally between everyone on the trip unless you set precise shares.</p>
+                <p>Costs are split equally between everyone on the trip unless you set each person&apos;s share below.</p>
               </div>
             </div>
             {summary.balances.some((b) => b.paid > 0 || b.owed > 0) && (
@@ -256,38 +236,83 @@ export default function TripBudget({ embedded = false }) {
               </ul>
             )}
 
-            <label className="wizard-field wizard-field-checkbox">
-              <input type="checkbox" checked={precise} onChange={(event) => setPrecise(event.target.checked)} />
-              Set precise shares for the next purchase
-            </label>
-            {precise ? (
-              <>
-                <div className="field-grid">
-                  {members.map((m) => (
-                    <label className="wizard-field" key={m.user.id}>
-                      {m.user.id === me?.id ? "You" : m.user.fullName} (%)
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.01"
-                        inputMode="decimal"
-                        placeholder="0"
-                        value={percents[m.user.id] ?? ""}
-                        onChange={(event) => setPercent(m.user.id, event.target.value)}
-                      />
-                    </label>
-                  ))}
-                </div>
-                <p className={`wizard-help ${used === 100 ? "" : "recommendations-error"}`}>{used}% of 100% assigned</p>
-              </>
-            ) : (
-              <p className="wizard-help">Splitting evenly.</p>
-            )}
+            <SplitShares
+              key={JSON.stringify(summary.splitShares)}
+              saved={summary.splitShares}
+              memberIds={summary.splitMembers}
+              names={names}
+              busy={busy}
+              onSave={(shares) => run(() => saveSplit(tripId, shares))}
+            />
           </section>
         </>
       )}
     </Wrapper>
+  );
+}
+
+// Set once for the whole trip: every new expense is divided by these percentages
+// (the server applies them). Off = split evenly, the default. Past expenses keep their split.
+function SplitShares({ saved, memberIds, names, busy, onSave }) {
+  const [precise, setPrecise] = useState(Boolean(saved));
+  const [percents, setPercents] = useState(() => Object.fromEntries(memberIds.map((id) => [id, saved?.[id] != null ? String(saved[id]) : ""])));
+  const used = Math.round(memberIds.reduce((sum, id) => sum + (Number(percents[id]) || 0), 0) * 100) / 100;
+  const full = Math.abs(used - 100) <= 0.01;
+  // cap each box so the total can never pass 100
+  const setPercent = (id, raw) => {
+    const others = used - (Number(percents[id]) || 0);
+    const value = Math.min(Math.max(Number(raw) || 0, 0), Math.max(0, 100 - others));
+    setPercents({ ...percents, [id]: raw === "" ? "" : String(Math.round(value * 100) / 100) });
+  };
+
+  return (
+    <>
+      <label className="wizard-field wizard-field-checkbox">
+        <input
+          type="checkbox"
+          checked={precise}
+          disabled={busy}
+          onChange={(event) => {
+            setPrecise(event.target.checked);
+            if (!event.target.checked && saved) onSave(null); // back to an even split
+          }}
+        />
+        Set each person&apos;s share
+      </label>
+      {precise ? (
+        <>
+          <p className="wizard-help">Applies to every new expense. Expenses already recorded keep the split they had.</p>
+          <div className="field-grid">
+            {memberIds.map((id) => (
+              <label className="wizard-field" key={id}>
+                {names.get(id) || "Member"} (%)
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  inputMode="decimal"
+                  placeholder="0"
+                  value={percents[id] ?? ""}
+                  onChange={(event) => setPercent(id, event.target.value)}
+                />
+              </label>
+            ))}
+          </div>
+          <p className={`wizard-help ${full ? "" : "recommendations-error"}`}>{used}% of 100% assigned</p>
+          <button
+            type="button"
+            className="recommendations-submit"
+            disabled={busy || !full}
+            onClick={() => onSave(Object.fromEntries(memberIds.map((id) => [id, Number(percents[id]) || 0])))}
+          >
+            {busy && <LoaderCircle className="recommendations-spinner" size={15} />} Save split
+          </button>
+        </>
+      ) : (
+        <p className="wizard-help">Splitting evenly.</p>
+      )}
+    </>
   );
 }
 
@@ -346,7 +371,7 @@ function BudgetOverview({ summary, defaultCurrency, busy, onSave }) {
   );
 }
 
-function ExpenseForm({ trip, split, budgetCurrency, busy, onAdd }) {
+function ExpenseForm({ trip, budgetCurrency, busy, onAdd }) {
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState(budgetCurrency);
@@ -395,11 +420,10 @@ function ExpenseForm({ trip, split, budgetCurrency, busy, onAdd }) {
           if (!problem && !/^\d{4}-\d{2}-\d{2}$/.test(date)) problem = "Pick the date of the purchase.";
           else if (!problem && minDate && date < minDate) problem = "That date is more than a year before the trip.";
           else if (!problem && maxDate && date > maxDate) problem = "That date is after the trip ends.";
-          if (!problem && split.error) problem = split.error;
           setFormError(problem);
           if (problem) return;
           // keep what was typed if the save fails
-          if (await onAdd({ title: title.trim(), amount: Number(amount).toFixed(2), currency, category, date, ...split.payload })) {
+          if (await onAdd({ title: title.trim(), amount: Number(amount).toFixed(2), currency, category, date })) {
             setTitle("");
             setAmount("");
           }

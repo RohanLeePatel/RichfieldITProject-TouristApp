@@ -108,9 +108,10 @@ class BudgetService {
   async getSummary(tripId, userId) {
     await assertTripAccess(tripId, userId);
 
-    const [budget, totals] = await Promise.all([
+    const [budget, totals, splitShares] = await Promise.all([
       budgetRepository.findByTripId(tripId),
-      expenseRepository.findForTotals(tripId).then(expenseTotals)
+      expenseRepository.findForTotals(tripId).then(expenseTotals),
+      tripRepository.findSplitShares(tripId)
     ]);
     const balances = await computeBalances(tripId, totals);
 
@@ -150,8 +151,35 @@ class BudgetService {
         : [],
       expenseCount: totals.count,
       categories,
-      balances
+      balances,
+      splitShares, // { userId: percent } or null = even
+      splitMembers: await tripRepository.findMemberUserIds(tripId) // who the percentages must cover
     };
+  }
+
+  // Saves how new expenses are split: shares = { userId: percent } for every member
+  // adding up to 100, or null to go back to an even split.
+  async setSplit(tripId, userId, { shares } = {}) {
+    await assertTripAccess(tripId, userId, { write: true });
+    if (shares === null || shares === undefined) {
+      await tripRepository.setSplitShares(tripId, {});
+      return null;
+    }
+    if (typeof shares !== 'object' || Array.isArray(shares)) throw httpError(400, 'shares must be an object of userId to percent');
+    const memberIds = await tripRepository.findMemberUserIds(tripId);
+    const ids = Object.keys(shares).map(Number);
+    if (ids.length !== memberIds.length || !memberIds.every((id) => ids.includes(id))) {
+      throw httpError(400, 'shares must include every trip member');
+    }
+    const clean = {};
+    for (const id of memberIds) {
+      const percent = Number(shares[id]);
+      if (shares[id] === '' || !Number.isFinite(percent) || percent < 0 || percent > 100) throw httpError(400, 'Each share must be a percent from 0 to 100');
+      clean[id] = Math.round(percent * 100) / 100;
+    }
+    if (Math.abs(Object.values(clean).reduce((a, b) => a + b, 0) - 100) > 0.01) throw httpError(400, 'Shares must add up to 100%');
+    await tripRepository.setSplitShares(tripId, clean);
+    return clean;
   }
 
   async getBalances(tripId, userId) {
