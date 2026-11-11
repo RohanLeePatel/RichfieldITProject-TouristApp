@@ -215,6 +215,17 @@ export default function Family() {
     [normalizedTrips]
   );
 
+  const activeTrips = useMemo(
+    () =>
+      normalizedTrips
+        .filter(
+          (trip) =>
+            trip.calculatedStatus === "Ongoing"
+        )
+        .sort(byStartDate),
+    [normalizedTrips]
+  );
+
   // every trip for the overview tabs: under way first, then upcoming, finished ones last
   const overviewTrips = useMemo(
     () => [
@@ -247,6 +258,191 @@ export default function Family() {
   const activeStats = activeTrip
     ? getTravellerStats(activeTrip)
     : null;
+
+  const renderTripsSection = ({
+    sectionTrips,
+    title,
+    subtitle,
+    emptyTitle,
+    emptyText,
+  }) => (
+        <section className="family-trips-section" key={title}>
+
+          <div className="family-section-heading-row">
+
+            <div>
+
+              <span className="family-section-eyebrow">
+                <CalendarDays size={14} />
+                SHARED ADVENTURES
+              </span>
+
+              <h2>
+                {title}
+              </h2>
+
+              <p>
+                {subtitle}
+              </p>
+
+            </div>
+
+            <Link
+              to="/trips"
+              className="family-outline-link"
+            >
+              View all trips
+              <ChevronRight size={15} />
+            </Link>
+
+          </div>
+
+          {tripsLoading ? (
+            <div className="family-empty-state">
+              <div className="family-empty-icon">
+                <CalendarDays size={24} />
+              </div>
+
+              <h3>
+                Loading your trips
+              </h3>
+
+              <p>
+                Your Roamio trips are being loaded.
+              </p>
+            </div>
+          ) : tripsError ? (
+            <div className="family-empty-state">
+              <div className="family-empty-icon">
+                <CalendarDays size={24} />
+              </div>
+
+              <h3>
+                Unable to load trips
+              </h3>
+
+              <p>
+                {tripsError}
+              </p>
+
+              <Link
+                to="/trips"
+                className="family-button family-button-secondary"
+              >
+                Open My Trips
+              </Link>
+            </div>
+          ) : sectionTrips.length === 0 ? (
+            <div className="family-empty-state">
+              <div className="family-empty-icon">
+                <Plane size={24} />
+              </div>
+
+              <h3>
+                {emptyTitle}
+              </h3>
+
+              <p>
+                {emptyText}
+              </p>
+
+              <Link
+                to="/trips"
+                className="family-button family-button-primary"
+              >
+                <Plus size={16} />
+                Create a trip
+              </Link>
+            </div>
+          ) : (
+            <div className="family-trip-grid">
+
+              {sectionTrips.map(
+                (trip, index) => {
+                  const color =
+                    getTripColor(index);
+
+                  return (
+                    <Link
+                      to="/trips"
+                      className={`family-trip-card family-trip-${color}`}
+                      key={trip.id}
+                    >
+
+                      <div className="family-trip-cover">
+
+                        <div className="family-trip-cover-glow" />
+
+                        <div className="family-trip-icon">
+                          <Plane size={22} />
+                        </div>
+
+                        <span className="family-trip-status">
+                          {
+                            trip.calculatedStatus
+                          }
+                        </span>
+
+                      </div>
+
+                      <div className="family-trip-body">
+
+                        <h3>
+                          {trip.title}
+                        </h3>
+
+                        <p>
+                          <MapPin size={14} />
+                          {
+                            trip.destination
+                          }
+                        </p>
+
+                        <div className="family-trip-details">
+
+                          <span>
+                            <CalendarDays
+                              size={14}
+                            />
+
+                            {formatTripDates(
+                              trip.startDate,
+                              trip.endDate
+                            )}
+                          </span>
+
+                          {trip.members && (
+                            <span>
+                              <Users
+                                size={14}
+                              />
+
+                              {
+                                trip.members
+                              }{" "}
+                              members
+                            </span>
+                          )}
+
+                        </div>
+
+                        <div className="family-trip-link">
+                          Open trip
+                          <ChevronRight size={15} />
+                        </div>
+
+                      </div>
+
+                    </Link>
+                  );
+                }
+              )}
+
+            </div>
+          )}
+
+        </section>
+  );
 
   const hero = (
     <>
@@ -486,184 +682,27 @@ export default function Family() {
 
         {/* REAL UPCOMING TRIPS */}
 
-        <section className="family-trips-section">
+        {/* REAL ACTIVE TRIPS - only shown once a trip has begun */}
+        {!tripsLoading &&
+          !tripsError &&
+          activeTrips.length > 0 &&
+          renderTripsSection({
+            sectionTrips: activeTrips,
+            title: "Your active trips",
+            subtitle:
+              "Trips that have already begun and are under way.",
+          })}
 
-          <div className="family-section-heading-row">
-
-            <div>
-
-              <span className="family-section-eyebrow">
-                <CalendarDays size={14} />
-                SHARED ADVENTURES
-              </span>
-
-              <h2>
-                Your upcoming trips
-              </h2>
-
-              <p>
-                Trips you&apos;re planning, solo or
-                with your group.
-              </p>
-
-            </div>
-
-            <Link
-              to="/trips"
-              className="family-outline-link"
-            >
-              View all trips
-              <ChevronRight size={15} />
-            </Link>
-
-          </div>
-
-          {tripsLoading ? (
-            <div className="family-empty-state">
-              <div className="family-empty-icon">
-                <CalendarDays size={24} />
-              </div>
-
-              <h3>
-                Loading your trips
-              </h3>
-
-              <p>
-                Your Roamio trips are being loaded.
-              </p>
-            </div>
-          ) : tripsError ? (
-            <div className="family-empty-state">
-              <div className="family-empty-icon">
-                <CalendarDays size={24} />
-              </div>
-
-              <h3>
-                Unable to load trips
-              </h3>
-
-              <p>
-                {tripsError}
-              </p>
-
-              <Link
-                to="/trips"
-                className="family-button family-button-secondary"
-              >
-                Open My Trips
-              </Link>
-            </div>
-          ) : upcomingTrips.length === 0 ? (
-            <div className="family-empty-state">
-              <div className="family-empty-icon">
-                <Plane size={24} />
-              </div>
-
-              <h3>
-                No upcoming trips
-              </h3>
-
-              <p>
-                Create a trip to start planning your
-                next adventure.
-              </p>
-
-              <Link
-                to="/trips"
-                className="family-button family-button-primary"
-              >
-                <Plus size={16} />
-                Create a trip
-              </Link>
-            </div>
-          ) : (
-            <div className="family-trip-grid">
-
-              {upcomingTrips.map(
-                (trip, index) => {
-                  const color =
-                    getTripColor(index);
-
-                  return (
-                    <Link
-                      to="/trips"
-                      className={`family-trip-card family-trip-${color}`}
-                      key={trip.id}
-                    >
-
-                      <div className="family-trip-cover">
-
-                        <div className="family-trip-cover-glow" />
-
-                        <div className="family-trip-icon">
-                          <Plane size={22} />
-                        </div>
-
-                        <span className="family-trip-status">
-                          {
-                            trip.calculatedStatus
-                          }
-                        </span>
-
-                      </div>
-
-                      <div className="family-trip-body">
-
-                        <h3>
-                          {trip.title}
-                        </h3>
-
-                        <p>
-                          <MapPin size={14} />
-                          {
-                            trip.destination
-                          }
-                        </p>
-
-                        <div className="family-trip-details">
-
-                          <span>
-                            <CalendarDays
-                              size={14}
-                            />
-
-                            {formatTripDates(
-                              trip.startDate,
-                              trip.endDate
-                            )}
-                          </span>
-
-                          {trip.members && (
-                            <span>
-                              <Users
-                                size={14}
-                              />
-
-                              {
-                                trip.members
-                              }{" "}
-                              members
-                            </span>
-                          )}
-
-                        </div>
-
-                        <div className="family-trip-link">
-                          Open trip
-                          <ChevronRight size={15} />
-                        </div>
-
-                      </div>
-
-                    </Link>
-                  );
-                }
-              )}
-
-            </div>
-          )}
-
-        </section>
+        {/* REAL UPCOMING TRIPS */}
+        {renderTripsSection({
+          sectionTrips: upcomingTrips,
+          title: "Your upcoming trips",
+          subtitle:
+            "Trips you're planning, solo or with your group.",
+          emptyTitle: "No upcoming trips",
+          emptyText:
+            "Create a trip to start planning your next adventure.",
+        })}
 
       </div>
 
