@@ -12,7 +12,14 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
   navigator.serviceWorker.register("/sw.js").catch(() => {});
 }
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  // "always": react-query would otherwise pause every request while offline;
+  // we want them to run so the API client can answer from its saved copy (or fail fast).
+  defaultOptions: {
+    queries: { networkMode: "always", retry: (count) => navigator.onLine && count < 3 },
+    mutations: { networkMode: "always" },
+  },
+});
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

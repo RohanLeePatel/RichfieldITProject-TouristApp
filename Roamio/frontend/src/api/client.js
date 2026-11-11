@@ -54,6 +54,10 @@ export async function ensureToken() {
 const CACHE_PREFIX = "roamio_cache:";
 const cacheKey = (path) => CACHE_PREFIX + path;
 
+// When the oldest copy shown from the cache was saved; the offline banner reads it.
+let staleSince = null;
+export const getStaleSince = () => staleSince;
+
 export function clearApiCache() {
   try {
     for (const key of Object.keys(localStorage)) if (key.startsWith(CACHE_PREFIX)) localStorage.removeItem(key);
@@ -87,7 +91,12 @@ async function request(path, { auth = false, retried = false, headers, ...option
     if (isRead) {
       try {
         const cached = localStorage.getItem(cacheKey(path));
-        if (cached) return JSON.parse(cached);
+        if (cached) {
+          const { t, d } = JSON.parse(cached);
+          staleSince = staleSince ? Math.min(staleSince, t) : t;
+          window.dispatchEvent(new Event("roamio:stale"));
+          return d;
+        }
       } catch {
         // no usable cached copy - fall through to the error
       }
@@ -136,7 +145,7 @@ async function request(path, { auth = false, retried = false, headers, ...option
 
   if (isRead && data !== null) {
     try {
-      localStorage.setItem(cacheKey(path), JSON.stringify(data));
+      localStorage.setItem(cacheKey(path), JSON.stringify({ t: Date.now(), d: data }));
     } catch {
       // storage full or blocked - just no offline copy of this one
     }
