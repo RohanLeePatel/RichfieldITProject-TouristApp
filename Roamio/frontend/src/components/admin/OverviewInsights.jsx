@@ -1,12 +1,23 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Globe2, LayoutDashboard, MapPin, Route, UserPlus, UserCheck, Users } from "lucide-react";
+import { AlertTriangle, Download, Globe2, LayoutDashboard, MapPin, RefreshCw, Route, UserPlus, UserCheck, Users } from "lucide-react";
 
 import { adminInsightsQuery, retryUnlessForbidden } from "../../api/admin.js";
-import { number } from "./adminFormat.js";
+import { downloadText, number } from "./adminFormat.js";
 import { Delta, Empty, Panel } from "./adminParts.jsx";
 
 const RANGES = [7, 30, 90];
+// the tiles' daily series and the top lists, as one CSV: section,label,value,previous
+function toCsv(data) {
+  const cell = (v) => (/[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v ?? ""));
+  const rows = [["section", "label", "value", "previous"]];
+  Object.entries(data.kpis).forEach(([key, m]) => rows.push(["kpi", key, m.value, m.previous]));
+  Object.entries(data.topDestinations).forEach(([group, items]) => items.forEach((i) => rows.push([`top ${group}`, i.sub ? `${i.label}, ${i.sub}` : i.label, i.count, i.previous])));
+  data.funnel.forEach((f) => rows.push(["funnel", f.label, f.count, ""]));
+  data.features.forEach((f) => rows.push(["feature", f.label, f.count, f.previous]));
+  return `${rows.map((r) => r.map(cell).join(",")).join("\r\n")}\r\n`;
+}
+
 const SPOTS = [
   { key: "cities", label: "Cities" },
   { key: "countries", label: "Countries" },
@@ -93,10 +104,10 @@ function Funnel({ steps }) {
 
 // What people do in the app, from Roamio's own tables (Google Analytics only sees page views).
 // The date range at the top applies to everything on this tab.
-export default function OverviewInsights() {
+export default function OverviewInsights({ onOpenUsers }) {
   const [days, setDays] = useState(30);
   const [spot, setSpot] = useState("cities");
-  const { data, isPending, error, isFetching } = useQuery({ ...adminInsightsQuery(days), retry: retryUnlessForbidden });
+  const { data, isPending, error, isFetching, refetch } = useQuery({ ...adminInsightsQuery(days), retry: retryUnlessForbidden });
 
   const kpis = data?.kpis;
   const loading = isPending;
@@ -108,15 +119,43 @@ export default function OverviewInsights() {
           <h2 id="admin-insights-title">
             <LayoutDashboard size={18} /> Overview
           </h2>
-          <p>What people do in Roamio, compared with the {days} days before</p>
+          <p>
+            What people do in Roamio, compared with the {days} days before
+            {data?.generatedAt && <> · updated {new Date(data.generatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</>}
+          </p>
         </div>
 
-        <div className="admin-segmented" role="group" aria-label="Date range">
-          {RANGES.map((range) => (
-            <button key={range} type="button" className={days === range ? "active" : ""} aria-pressed={days === range} onClick={() => setDays(range)}>
-              {range} days
-            </button>
-          ))}
+        <div className="admin-card-actions">
+          <div className="admin-segmented" role="group" aria-label="Date range">
+            {RANGES.map((range) => (
+              <button key={range} type="button" className={days === range ? "active" : ""} aria-pressed={days === range} onClick={() => setDays(range)}>
+                {range} days
+              </button>
+            ))}
+          </div>
+          <label className="admin-filter-date">
+            Custom
+            <input
+              className="admin-select"
+              type="number"
+              min="1"
+              max="365"
+              value={RANGES.includes(days) ? "" : days}
+              placeholder="days"
+              aria-label="Custom number of days, 1 to 365"
+              onChange={(event) => {
+                const n = Number.parseInt(event.target.value, 10);
+                if (n >= 1 && n <= 365) setDays(n);
+              }}
+              style={{ width: 80 }}
+            />
+          </label>
+          <button type="button" className="admin-icon-button" onClick={() => refetch()} disabled={isFetching} aria-label="Refresh overview" title="Refresh">
+            <RefreshCw size={16} className={isFetching ? "admin-spin" : ""} />
+          </button>
+          <button type="button" className="admin-icon-button" onClick={() => downloadText(`roamio-overview-${days}d.csv`, toCsv(data))} disabled={!data} aria-label="Download overview as a spreadsheet" title="Download (CSV)">
+            <Download size={16} />
+          </button>
         </div>
       </div>
 
@@ -154,6 +193,16 @@ export default function OverviewInsights() {
 
             <Panel title="Sign-up funnel" icon={MapPin} hint="How far this period's new users got">
               {loading ? <Empty>Loading…</Empty> : <Funnel steps={data.funnel} />}
+              {data && onOpenUsers && (
+                <p className="admin-ins-foot">
+                  <button type="button" className="admin-link-button" onClick={() => onOpenUsers("no_trips")}>
+                    See verified users who never made a trip
+                  </button>{" "}
+                  <button type="button" className="admin-link-button" onClick={() => onOpenUsers("unverified")}>
+                    See users who haven&apos;t verified
+                  </button>
+                </p>
+              )}
               {data && (
                 <p className="admin-ins-foot">
                   {data.retention.rate == null

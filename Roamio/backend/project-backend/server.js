@@ -177,6 +177,9 @@ cron.schedule('0 */12 * * *', async () => {
   await safetySyncService.syncCountryAdvisories();
 });
 
+// Tell the admins when a service is down or places get flagged (only emails when something changes)
+cron.schedule('0 * * * *', () => require('./src/services/adminAlertService').check());
+
 // In development, also run one sync shortly after boot, so local data appears
 // without waiting up to 12 hours for the first scheduled run.
 if (process.env.NODE_ENV === 'development') {

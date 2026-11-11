@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BarChart3, Flag, HeartPulse, LayoutDashboard, MapPin, ShieldCheck, Users } from "lucide-react";
+import { BarChart3, ClipboardList, Flag, HeartPulse, LayoutDashboard, MapPin, PieChart, ShieldAlert, ShieldCheck, Users, Wallet } from "lucide-react";
 
 import PageTopBar from "../components/PageTopBar.jsx";
 import useTheme from "../components/recommendations/useTheme.js";
@@ -7,6 +7,7 @@ import AnalyticsOverview from "../components/admin/AnalyticsOverview.jsx";
 import AudienceReport from "../components/admin/AudienceReport.jsx";
 import AuditLog from "../components/admin/AuditLog.jsx";
 import DestinationsManager from "../components/admin/DestinationsManager.jsx";
+import NeedsAttention, { useAttention } from "../components/admin/NeedsAttention.jsx";
 import OverviewInsights from "../components/admin/OverviewInsights.jsx";
 import PlaceReports from "../components/admin/PlaceReports.jsx";
 import SafetyReport from "../components/admin/SafetyReport.jsx";
@@ -26,11 +27,22 @@ const TABS = [
   { id: "destinations", label: "Content", icon: MapPin },
   { id: "reports", label: "Reports", icon: Flag },
   { id: "users", label: "Users", icon: Users },
+  { id: "audience", label: "Audience", icon: PieChart },
+  { id: "spending", label: "Spending", icon: Wallet },
+  { id: "safety", label: "Safety", icon: ShieldAlert },
+  { id: "audit", label: "Audit log", icon: ClipboardList },
 ];
 
 export default function AdminDashboard() {
   const { theme, toggle: toggleTheme } = useTheme();
   const [tab, setTab] = useState("overview");
+  const [auditFilters, setAuditFilters] = useState({}); // set from a user row: "see what admins did to this person"
+  const [usersStatus, setUsersStatus] = useState(""); // pre-set filter when jumping to Users from the funnel
+  const attention = useAttention();
+  const openAudit = (filters) => {
+    setAuditFilters(filters);
+    setTab("audit");
+  };
 
   return (
     <div className="admin-page" data-theme={theme}>
@@ -63,10 +75,14 @@ export default function AdminDashboard() {
               aria-selected={tab === id}
               aria-controls={`admin-panel-${id}`}
               className={`admin-tab${tab === id ? " active" : ""}`}
-              onClick={() => setTab(id)}
+              onClick={() => {
+                if (id === "audit") setAuditFilters({});
+                setTab(id);
+              }}
             >
               <Icon size={16} />
               {label}
+              {attention.byTab[id] > 0 && <span className="admin-tab-badge" aria-label={`${attention.byTab[id]} need attention`}>{attention.byTab[id]}</span>}
             </button>
           ))}
         </div>
@@ -77,12 +93,22 @@ export default function AdminDashboard() {
           id={`admin-panel-${tab}`}
           aria-labelledby={`admin-tab-${tab}`}
         >
-          {tab === "overview" && <OverviewInsights />}
+          {tab === "overview" && (
+            <>
+              <NeedsAttention attention={attention} onOpenTab={setTab} />
+              <OverviewInsights
+                onOpenUsers={(status) => {
+                  setUsersStatus(status);
+                  setTab("users");
+                }}
+              />
+            </>
+          )}
           {tab === "analytics" && <AnalyticsOverview />}
           {tab === "audience" && <AudienceReport />}
           {tab === "spending" && <SpendingReport />}
           {tab === "safety" && <SafetyReport />}
-          {tab === "audit" && <AuditLog />}
+          {tab === "audit" && <AuditLog key={JSON.stringify(auditFilters)} initialFilters={auditFilters} />}
           {tab === "health" && (
             <div className="admin-grid">
               <ServiceHealthCard />
@@ -91,7 +117,7 @@ export default function AdminDashboard() {
           )}
           {tab === "destinations" && <DestinationsManager />}
           {tab === "reports" && <PlaceReports onOpenContent={() => setTab("destinations")} />}
-          {tab === "users" && <UserProfilesList />}
+          {tab === "users" && <UserProfilesList key={usersStatus} initialStatus={usersStatus} onOpenAudit={(id) => openAudit({ targetId: String(id) })} />}
         </div>
       </main>
     </div>

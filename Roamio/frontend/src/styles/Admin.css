@@ -1479,3 +1479,74 @@
   .admin-safety-list small { grid-column: 1 / -1; text-align: left; }
   .admin-audit-list li { grid-template-columns: minmax(0, 1fr); gap: 2px; }
 }
+
+/* needs-attention strip, tab badges, filters, bulk bar */
+.admin-attention {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+.admin-attention.ok {
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted, inherit);
+}
+.admin-attention-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+.admin-attention-chip.bad {
+  color: #b42318;
+  border-color: currentColor;
+}
+.admin-attention-chip.warn {
+  color: #b54708;
+  border-color: currentColor;
+}
+.admin-tab-badge {
+  min-width: 18px;
+  padding: 0 5px;
+  font-size: 0.7rem;
+  line-height: 18px;
+  text-align: center;
+  color: #fff;
+  background: #b42318;
+  border-radius: 999px;
+}
+.admin-filters {
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.admin-filter-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+}
+.admin-bulkbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+.admin-user-check {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}

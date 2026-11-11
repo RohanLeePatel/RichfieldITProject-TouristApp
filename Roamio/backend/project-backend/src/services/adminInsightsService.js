@@ -7,11 +7,12 @@ const { unpackMeta } = require('../utils/tripFormat');
 // dashboard can show "up/down vs. last period".
 
 const DAY = 86_400_000;
-const RANGES = [7, 30, 90];
+const MAX_DAYS = 365;
 const TOP = 8;
 
 const dayKey = (date) => new Date(date).toISOString().slice(0, 10);
-const pickDays = (value) => (RANGES.includes(Number(value)) ? Number(value) : 30);
+// any whole number of days from 1 to 365; anything else is 30
+const pickDays = (value) => (Number.isInteger(Number(value)) && Number(value) >= 1 && Number(value) <= MAX_DAYS ? Number(value) : 30);
 
 // The last `days` calendar days (UTC), oldest first, ending today
 function dayKeys(days, now) {
@@ -189,4 +190,4 @@ async function getInsights({ days, now = Date.now() } = {}) {
   return { days: range, generatedAt: new Date(now).toISOString(), kpis, topDestinations, funnel, retention, features, collaboration };
 }
 
-module.exports = { getInsights, RANGES };
+module.exports = { getInsights };

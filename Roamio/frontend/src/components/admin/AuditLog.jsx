@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ChevronLeft, ChevronRight, ClipboardList, RefreshCw } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronRight, ClipboardList, Download, RefreshCw } from "lucide-react";
 
-import { adminAuditQuery, AUDIT_PAGE_SIZE, retryUnlessForbidden } from "../../api/admin.js";
+import { adminAuditActionsQuery, adminAuditQuery, AUDIT_PAGE_SIZE, exportAuditCsv, retryUnlessForbidden } from "../../api/admin.js";
+import { downloadText } from "./adminFormat.js";
 
 // what each logged action reads as; anything new falls back to its code in lower case
 const ACTIONS = {
@@ -25,10 +26,25 @@ function subject({ target, details }) {
   return details && details !== "admin dashboard" ? details : "";
 }
 
-// Everything admins changed from this dashboard, newest first. Read-only.
-export default function AuditLog() {
+// Everything admins changed from this dashboard, newest first. Read-only; filter it or download it as CSV.
+export default function AuditLog({ initialFilters = {} }) {
   const [page, setPage] = useState(1);
-  const { data, isPending, error, refetch, isFetching } = useQuery({ ...adminAuditQuery(page), retry: retryUnlessForbidden });
+  const [filters, setFilters] = useState(initialFilters); // { action, targetId, from, to }
+  const [exportError, setExportError] = useState(null);
+  const { data, isPending, error, refetch, isFetching } = useQuery({ ...adminAuditQuery(page, filters), retry: retryUnlessForbidden });
+  const { data: known } = useQuery({ ...adminAuditActionsQuery, retry: retryUnlessForbidden });
+  const set = (key) => (event) => {
+    setFilters((f) => ({ ...f, [key]: event.target.value }));
+    setPage(1);
+  };
+  const download = async () => {
+    try {
+      setExportError(null);
+      downloadText("roamio-audit-log.csv", await exportAuditCsv(filters));
+    } catch (err) {
+      setExportError(err.message);
+    }
+  };
   const total = data?.total ?? 0;
   const pageCount = Math.max(1, Math.ceil(total / AUDIT_PAGE_SIZE));
 
@@ -41,10 +57,38 @@ export default function AuditLog() {
           </h2>
           <p>{data ? `${total} admin ${total === 1 ? "action" : "actions"} recorded` : "Loading…"}</p>
         </div>
-        <button type="button" className="admin-icon-button" onClick={() => refetch()} disabled={isFetching} aria-label="Refresh audit log" title="Refresh">
-          <RefreshCw size={16} className={isFetching ? "admin-spin" : ""} />
-        </button>
+        <div className="admin-card-actions">
+          <button type="button" className="admin-icon-button" onClick={() => refetch()} disabled={isFetching} aria-label="Refresh audit log" title="Refresh">
+            <RefreshCw size={16} className={isFetching ? "admin-spin" : ""} />
+          </button>
+          <button type="button" className="admin-icon-button" onClick={download} aria-label="Download the audit log as a spreadsheet" title="Download (CSV)">
+            <Download size={16} />
+          </button>
+        </div>
       </div>
+
+      <div className="admin-card-actions admin-filters">
+        <select className="admin-select" value={filters.action ?? ""} onChange={set("action")} aria-label="Filter by action">
+          <option value="">All actions</option>
+          {(known?.actions ?? []).map((a) => (
+            <option key={a} value={a}>
+              {label(a)}
+            </option>
+          ))}
+        </select>
+        <input className="admin-select" type="text" inputMode="numeric" placeholder="User ID" value={filters.targetId ?? ""} onChange={set("targetId")} aria-label="Done to user ID" size={8} />
+        <label className="admin-filter-date">
+          From <input className="admin-select" type="date" value={filters.from ?? ""} onChange={set("from")} />
+        </label>
+        <label className="admin-filter-date">
+          To <input className="admin-select" type="date" value={filters.to ?? ""} onChange={set("to")} />
+        </label>
+      </div>
+      {exportError && (
+        <p className="admin-notice error" role="alert">
+          <span>{exportError}</span>
+        </p>
+      )}
 
       {error && !data ? (
         <div className="admin-error" role="alert">
@@ -54,7 +98,7 @@ export default function AuditLog() {
       ) : isPending ? (
         <p className="admin-user-empty">Loading…</p>
       ) : data.entries.length === 0 ? (
-        <p className="admin-user-empty">Nothing has been changed from the admin dashboard yet.</p>
+        <p className="admin-user-empty">{Object.values(filters).some(Boolean) ? "No actions match those filters." : "Nothing has been changed from the admin dashboard yet."}</p>
       ) : (
         <ul className="admin-audit-list">
           {data.entries.map((entry) => (

@@ -165,7 +165,23 @@ async function sendSupportReport({ reference, category, subject, description, fr
   }
 }
 
+// A plain alert to the admins (service down, places flagged). Never throws: it runs from a scheduled job.
+async function sendAdminAlert(emails, subject, text) {
+  if (!emails.length) return false;
+  if (!isConfigured()) {
+    if (process.env.NODE_ENV !== 'production') console.log(`[DEV ADMIN ALERT] ${subject} -> ${emails.join(', ')}`);
+    return false;
+  }
+  try {
+    await getTransporter().sendMail({ from: process.env.SMTP_FROM || process.env.SMTP_USER, to: emails, subject: `[Roamio admin] ${subject}`, text });
+    return true;
+  } catch (error) {
+    console.error('Failed to send admin alert:', error.message);
+    return false;
+  }
+}
+
 // Connects and authenticates against the SMTP server without sending anything
 const verifyConnection = () => getTransporter().verify();
 
-module.exports = { sendOtpEmail, sendNewSignInEmail, sendPlaceReportThanks, sendSupportReport, isConfigured, verifyConnection };
+module.exports = { sendOtpEmail, sendNewSignInEmail, sendPlaceReportThanks, sendSupportReport, sendAdminAlert, isConfigured, verifyConnection };
