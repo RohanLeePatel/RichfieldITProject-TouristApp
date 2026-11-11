@@ -1064,6 +1064,9 @@ summary.recommendation-why:hover { color: var(--primary); }
     padding-bottom: 24px;
   }
 
+  /* the desktop overlap (-44px) would cover the shortened header on mobile */
+  .rx-hero + .recommendations-content .wizard-card { margin-top: 16px; }
+
   .rx-hero-body h1 {
     margin: 0 0 6px;
     font-size: 1.5rem;
