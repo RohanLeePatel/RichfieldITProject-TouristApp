@@ -10,8 +10,6 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Pause,
-  Play,
   CloudSun,
   Languages,
   FileText,
@@ -234,7 +232,7 @@ function usePrefersReducedMotion() {
 
 // Auto-advances one card at a time and rewinds to the start at the end, so
 // every destination appears once (a looping marquee needs duplicates).
-// Pauses on hover, keyboard focus, touch, when off-screen, or via the button.
+// Pauses on hover, keyboard focus, touch, or when off-screen.
 function DestinationCarousel({ items }) {
   const wrapRef = useRef(null);
   const trackRef = useRef(null);
@@ -242,14 +240,12 @@ function DestinationCarousel({ items }) {
 
   const reduceMotion = usePrefersReducedMotion();
 
-  const [userPaused, setUserPaused] = useState(false);
   const [hovering, setHovering] = useState(false);
   const [focused, setFocused] = useState(false);
   const [inView, setInView] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  const playing =
-    !userPaused && !hovering && !focused && inView && !reduceMotion;
+  const playing = !hovering && !focused && inView && !reduceMotion;
 
   const step = useCallback(
     (direction) => {
@@ -341,16 +337,6 @@ function DestinationCarousel({ items }) {
         </div>
 
         <div className="landing-carousel-controls">
-          <button
-            type="button"
-            onClick={() => setUserPaused((paused) => !paused)}
-            aria-label={userPaused ? "Play slideshow" : "Pause slideshow"}
-            title={userPaused ? "Play" : "Pause"}
-            hidden={reduceMotion}
-          >
-            {userPaused ? <Play size={18} /> : <Pause size={18} />}
-          </button>
-
           <button
             type="button"
             onClick={() => goTo(-1)}
