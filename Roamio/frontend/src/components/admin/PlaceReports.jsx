@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Flag } from "lucide-react";
 
-import { retryUnlessForbidden } from "../../api/admin.js";
+import { adminDestinationsQuery, bulkSetDestinations, retryUnlessForbidden } from "../../api/admin.js";
 import { REPORT_REASONS, adminReportsQuery, closePlaceReports } from "../../api/places.js";
 import { formatDate } from "../../utils/format.js";
 
@@ -11,7 +11,7 @@ const reasonLabel = (id) => REPORT_REASONS.find((r) => r.id === id)?.label || id
 // Places travellers have reported, most-reported first. "Flagged" means 3+ different
 // travellers. Closing a place clears its open reports; hiding a recommended city is
 // done under Content.
-export default function PlaceReports() {
+export default function PlaceReports({ onOpenContent }) {
   const queryClient = useQueryClient();
   const [actionError, setActionError] = useState("");
   const { data, error, isLoading } = useQuery({ ...adminReportsQuery, retry: retryUnlessForbidden });
@@ -24,6 +24,23 @@ export default function PlaceReports() {
   });
 
   const reports = data?.reports || [];
+
+  // the catalog city a report is about, if it is one we recommend (keys are "name, country" lowercased)
+  const { data: catalog } = useQuery({ ...adminDestinationsQuery, retry: retryUnlessForbidden });
+  const cityOf = (place) => catalog?.destinations?.find((d) => `${d.name}, ${d.country}`.toLowerCase() === place.placeKey);
+
+  const hide = useMutation({
+    mutationFn: async (place) => {
+      await bulkSetDestinations([cityOf(place).id], false);
+      await closePlaceReports(place.placeKey, "RESOLVED");
+    },
+    onMutate: () => setActionError(""),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminReportsQuery.queryKey });
+      queryClient.invalidateQueries({ queryKey: adminDestinationsQuery.queryKey });
+    },
+    onError: (err) => setActionError(err.message),
+  });
 
   return (
     <section className="admin-card" aria-labelledby="admin-reports-title">
@@ -62,6 +79,18 @@ export default function PlaceReports() {
                 ))}
               </ul>
               <div className="admin-card-actions">
+                {cityOf(place) && (
+                  <>
+                    {cityOf(place).active && (
+                      <button type="button" className="admin-button" disabled={hide.isPending || close.isPending} onClick={() => hide.mutate(place)}>
+                        Hide city and resolve
+                      </button>
+                    )}
+                    <button type="button" className="admin-button" onClick={onOpenContent}>
+                      Open in Content
+                    </button>
+                  </>
+                )}
                 <button type="button" className="admin-button" disabled={close.isPending} onClick={() => close.mutate({ placeKey: place.placeKey, status: "RESOLVED" })}>
                   Mark resolved
                 </button>

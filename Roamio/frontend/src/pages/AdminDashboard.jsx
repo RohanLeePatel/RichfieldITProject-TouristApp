@@ -90,7 +90,7 @@ export default function AdminDashboard() {
             </div>
           )}
           {tab === "destinations" && <DestinationsManager />}
-          {tab === "reports" && <PlaceReports />}
+          {tab === "reports" && <PlaceReports onOpenContent={() => setTab("destinations")} />}
           {tab === "users" && <UserProfilesList />}
         </div>
       </main>

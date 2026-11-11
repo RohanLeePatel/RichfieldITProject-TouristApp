@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const { httpError } = require('./tripAccessService');
 const { unpackMeta } = require('../utils/tripFormat');
+const { sendPlaceReportThanks } = require('./emailService');
 
 const REASONS = ['CLOSED', 'UNSAFE', 'WRONG_INFO', 'SCAM', 'OTHER'];
 // distinct travellers who must report a place before it shows as flagged to admins
@@ -18,9 +19,10 @@ function parsePlace(raw) {
 
 // Signed-in, verified, active accounts only; one gate for both writes.
 async function assertCanPost(userId) {
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { isVerified: true, isActive: true, deletedAt: true } });
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, isVerified: true, isActive: true, deletedAt: true } });
   if (!user || !user.isActive || user.deletedAt) throw httpError(403, 'This account cannot post.');
   if (!user.isVerified) throw httpError(403, 'Verify your email before posting.');
+  return user;
 }
 
 // The user's trip to this place (direct TripMember rows only), or null.
@@ -66,7 +68,7 @@ async function report(userId, body) {
   const note = text(body?.note);
   if (note.length > 300) throw httpError(400, 'Keep the note under 300 characters.');
 
-  await assertCanPost(userId);
+  const user = await assertCanPost(userId);
   if (!(await tripToPlace(userId, place.placeKey, false))) throw httpError(403, 'You can report places on your own trips.');
   try {
     await prisma.placeReport.create({ data: { userId, ...place, reason, note: note || null } });
@@ -74,6 +76,7 @@ async function report(userId, body) {
     if (err.code === 'P2002') throw httpError(409, 'You already reported this place.');
     throw err;
   }
+  if (user.email) sendPlaceReportThanks(user.email, place.placeName); // not awaited: never fails the report
   return { reported: true };
 }
 

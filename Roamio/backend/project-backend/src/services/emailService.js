@@ -94,6 +94,36 @@ async function sendNewSignInEmail(email, { browser, os, location, ipAddress, at 
   }
 }
 
+// Thanks a traveller for reporting a place. Best effort: it never throws, so it can't
+// fail the report that was already saved.
+async function sendPlaceReportThanks(email, placeName) {
+  const message = {
+    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    to: email,
+    subject: `We're sorry about your experience in ${placeName}`,
+    text: [
+      `We're sorry you had a bad experience in ${placeName}.`,
+      '',
+      'Thank you for taking the time to report it. Our team will look into it, and if enough travellers report the same problem we may remove the place from our recommendations.',
+      '',
+      'Your report helps keep Roamio useful and safe for everyone who travels after you.',
+      '',
+      'The Roamio team',
+    ].join('\n'),
+  };
+  if (!isConfigured()) {
+    if (process.env.NODE_ENV !== 'production') console.log(`[DEV EMAIL] ${message.subject} -> ${email}`);
+    return false;
+  }
+  try {
+    await getTransporter().sendMail(message);
+    return true;
+  } catch (error) {
+    console.error('Failed to send place report email:', error.message);
+    return false;
+  }
+}
+
 // A problem report from Settings, sent to the support inbox. Replies go to the
 // traveller (replyTo). Same delivery rules as the codes: printed outside
 // production when SMTP isn't set, a 503 in production.
@@ -138,4 +168,4 @@ async function sendSupportReport({ reference, category, subject, description, fr
 // Connects and authenticates against the SMTP server without sending anything
 const verifyConnection = () => getTransporter().verify();
 
-module.exports = { sendOtpEmail, sendNewSignInEmail, sendSupportReport, isConfigured, verifyConnection };
+module.exports = { sendOtpEmail, sendNewSignInEmail, sendPlaceReportThanks, sendSupportReport, isConfigured, verifyConnection };
