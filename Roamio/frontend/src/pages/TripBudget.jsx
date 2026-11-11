@@ -12,11 +12,11 @@ import { CURRENCIES } from "./recommendations/constants.js";
 import "../styles/trips.css";
 
 const CATEGORIES = [
-  { id: "FOOD", label: "Food & drink" },
-  { id: "TRANSPORT", label: "Transport" },
-  { id: "ACCOMMODATION", label: "Accommodation" },
-  { id: "ACTIVITY", label: "Activities" },
-  { id: "MISC", label: "Other" },
+  { id: "FOOD", label: "Food & drink", example: "Bunny chow" },
+  { id: "TRANSPORT", label: "Transport", example: "Uber to the airport" },
+  { id: "ACCOMMODATION", label: "Accommodation", example: "Hotel, 2 nights" },
+  { id: "ACTIVITY", label: "Activities", example: "Table Mountain cable car" },
+  { id: "MISC", label: "Other", example: "Sunscreen" },
 ];
 const categoryLabel = (id) => CATEGORIES.find((c) => c.id === id)?.label || id;
 
@@ -357,7 +357,7 @@ function ExpenseForm({ trip, budgetCurrency, busy, onAdd }) {
       >
         <label className="wizard-field">
           What
-          <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Bunny chow" required maxLength={100} />
+          <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder={`e.g. ${CATEGORIES.find((c) => c.id === category)?.example}`} required maxLength={100} />
         </label>
         <label className="wizard-field">
           Amount
