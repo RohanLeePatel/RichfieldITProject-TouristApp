@@ -237,11 +237,11 @@ export default function TripBudget({ embedded = false }) {
             )}
 
             <SplitShares
-              key={JSON.stringify(summary.splitShares)}
               saved={summary.splitShares}
               memberIds={summary.splitMembers}
               names={names}
               busy={busy}
+              error={error}
               onSave={(shares) => run(() => saveSplit(tripId, shares))}
             />
           </section>
@@ -253,17 +253,48 @@ export default function TripBudget({ embedded = false }) {
 
 // Set once for the whole trip: every new expense is divided by these percentages
 // (the server applies them). Off = split evenly, the default. Past expenses keep their split.
-function SplitShares({ saved, memberIds, names, busy, onSave }) {
+function SplitShares({ saved, memberIds, names, busy, error, onSave }) {
+  const fromSaved = () => Object.fromEntries(memberIds.map((id) => [id, saved?.[id] != null ? String(saved[id]) : ""]));
   const [precise, setPrecise] = useState(Boolean(saved));
-  const [percents, setPercents] = useState(() => Object.fromEntries(memberIds.map((id) => [id, saved?.[id] != null ? String(saved[id]) : ""])));
+  const [percents, setPercents] = useState(fromSaved);
+  const [editing, setEditing] = useState(!saved); // saved shares show read-only until "Change split"
+  const [failed, setFailed] = useState(false);
+  const [note, setNote] = useState(""); // what just happened: saved, reset, or a box was capped
   const used = Math.round(memberIds.reduce((sum, id) => sum + (Number(percents[id]) || 0), 0) * 100) / 100;
-  const full = Math.abs(used - 100) <= 0.01;
+  const left = Math.round((100 - used) * 100) / 100;
+  const full = Math.abs(left) <= 0.01;
+  const label = (id) => names.get(id) || "Member";
+  const summaryText = (shares) => memberIds.map((id) => `${label(id)} ${shares?.[id] ?? 0}%`).join(", ");
+
+  const save = async (shares) => {
+    setFailed(false);
+    setNote("");
+    if (await onSave(shares)) {
+      setEditing(false);
+      setNote(shares ? "Split saved. New expenses will be divided this way." : "Back to splitting evenly. New expenses are divided equally.");
+    } else setFailed(true);
+  };
+
   // cap each box so the total can never pass 100
   const setPercent = (id, raw) => {
+    setFailed(false);
+    setNote("");
     const others = used - (Number(percents[id]) || 0);
-    const value = Math.min(Math.max(Number(raw) || 0, 0), Math.max(0, 100 - others));
+    const room = Math.max(0, 100 - others);
+    const wanted = Math.max(Number(raw) || 0, 0);
+    const value = Math.min(wanted, room);
+    if (wanted > room) setNote(`Only ${Math.round(room * 100) / 100}% was left to give, so ${label(id)} is set to ${Math.round(value * 100) / 100}%.`);
     setPercents({ ...percents, [id]: raw === "" ? "" : String(Math.round(value * 100) / 100) });
   };
+
+  const fillEvenly = () => {
+    const base = Math.floor((10000 / memberIds.length)) / 100;
+    const rest = Math.round((100 - base * memberIds.length) * 100) / 100; // leftover goes to the first person
+    setNote("");
+    setPercents(Object.fromEntries(memberIds.map((id, i) => [id, String(Math.round((base + (i === 0 ? rest : 0)) * 100) / 100)])));
+  };
+
+  const dirty = memberIds.some((id) => (Number(percents[id]) || 0) !== (saved?.[id] ?? 0));
 
   return (
     <>
@@ -274,18 +305,43 @@ function SplitShares({ saved, memberIds, names, busy, onSave }) {
           disabled={busy}
           onChange={(event) => {
             setPrecise(event.target.checked);
-            if (!event.target.checked && saved) onSave(null); // back to an even split
+            setFailed(false);
+            setNote("");
+            setEditing(true);
+            if (!event.target.checked && saved) save(null); // back to an even split
           }}
         />
         Set each person&apos;s share
       </label>
-      {precise ? (
+
+      {!precise && <p className="wizard-help">{note || "Every new expense is divided equally between everyone on the trip."}</p>}
+
+      {precise && saved && !editing && (
         <>
-          <p className="wizard-help">Applies to every new expense. Expenses already recorded keep the split they had.</p>
+          <ul className="trip-hub-list">
+            {memberIds.map((id) => (
+              <li key={id}>
+                <strong>{label(id)}</strong>
+                <span>{saved[id] ?? 0}% of every new expense</span>
+              </li>
+            ))}
+          </ul>
+          <p className="wizard-help" role="status">{note || `Saved: ${summaryText(saved)}.`} Expenses already recorded keep the split they had.</p>
+          <button type="button" className="secondary-button" disabled={busy} onClick={() => { setPercents(fromSaved()); setNote(""); setEditing(true); }}>
+            Change split
+          </button>
+        </>
+      )}
+
+      {precise && (!saved || editing) && (
+        <>
+          <p className="wizard-help">
+            Choose how much of each new expense every person pays. The shares must add up to 100%. Expenses already recorded keep the split they had.
+          </p>
           <div className="field-grid">
             {memberIds.map((id) => (
               <label className="wizard-field" key={id}>
-                {names.get(id) || "Member"} (%)
+                {label(id)} (%)
                 <input
                   type="number"
                   min="0"
@@ -299,18 +355,26 @@ function SplitShares({ saved, memberIds, names, busy, onSave }) {
               </label>
             ))}
           </div>
-          <p className={`wizard-help ${full ? "" : "recommendations-error"}`}>{used}% of 100% assigned</p>
-          <button
-            type="button"
-            className="recommendations-submit"
-            disabled={busy || !full}
-            onClick={() => onSave(Object.fromEntries(memberIds.map((id) => [id, Number(percents[id]) || 0])))}
-          >
-            {busy && <LoaderCircle className="recommendations-spinner" size={15} />} Save split
-          </button>
+          <p className={`wizard-help ${full ? "" : "recommendations-error"}`} role="status">
+            {full ? "100% assigned. Ready to save." : `${used}% assigned, ${left}% still to give out.`}
+          </p>
+          {note && <p className="wizard-help" role="status">{note}</p>}
+          <div className="trip-hub-search">
+            <button
+              type="button"
+              className="recommendations-submit"
+              disabled={busy || !full || (Boolean(saved) && !dirty)}
+              onClick={() => save(Object.fromEntries(memberIds.map((id) => [id, Number(percents[id]) || 0])))}
+            >
+              {busy && <LoaderCircle className="recommendations-spinner" size={15} />} Save split
+            </button>
+            <button type="button" className="secondary-button" disabled={busy} onClick={fillEvenly}>Share equally</button>
+            {saved && <button type="button" className="secondary-button" disabled={busy} onClick={() => { setEditing(false); setNote(""); setFailed(false); }}>Cancel</button>}
+          </div>
+          {!full && <p className="wizard-help">Save unlocks once the shares add up to exactly 100%.</p>}
+          {full && saved && !dirty && <p className="wizard-help">No changes yet. Edit a percentage to save a new split.</p>}
+          {failed && <p className="recommendations-error" role="alert">Couldn&apos;t save the split{error ? `: ${error}` : "."} Your percentages are still here, so you can try again.</p>}
         </>
-      ) : (
-        <p className="wizard-help">Splitting evenly.</p>
       )}
     </>
   );
