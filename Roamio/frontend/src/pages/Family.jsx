@@ -689,7 +689,7 @@ export default function Family() {
         </section>
 
         {/* REAL GROUPS - accounts on the server, shared trips, invites */}
-        <TravelGroups />
+        <TravelGroups tripId={activeTrip?.id} />
 
         {/* REAL UPCOMING TRIPS */}
 

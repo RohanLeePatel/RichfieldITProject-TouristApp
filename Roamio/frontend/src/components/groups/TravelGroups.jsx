@@ -15,7 +15,8 @@ const MANAGERS = ["OWNER", "ADMIN"];
 // well, and the Family page manages them.
 // onGroups(list) runs after every load, so the page's companion list follows
 // groups created or joined here
-export default function TravelGroups({ onGroups }) {
+// tripId (optional) narrows the list to the group(s) that own that trip
+export default function TravelGroups({ onGroups, tripId }) {
   const userId = useAuthStore((state) => state.user?.id);
   const [groups, setGroups] = useState(null);
   const [error, setError] = useState("");
@@ -53,6 +54,8 @@ export default function TravelGroups({ onGroups }) {
     }
   };
 
+  const shown = tripId == null ? groups || [] : (groups || []).filter((group) => group.trips.some((trip) => trip.id === tripId));
+
   return (
     <section className="family-groups-section">
       <div className="family-section-heading-row">
@@ -71,9 +74,11 @@ export default function TravelGroups({ onGroups }) {
         <p className="family-groups-note"><LoaderCircle size={15} className="recommendations-spinner" /> Loading your groups...</p>
       ) : groups.length === 0 ? (
         <p className="family-groups-note">You&apos;re not in a travel group yet. Create one, or join with a code from a friend.</p>
+      ) : shown.length === 0 ? (
+        <p className="family-groups-note">This trip isn&apos;t planned with a travel group.</p>
       ) : (
         <div className="family-groups-grid">
-          {groups.map((group) => (
+          {shown.map((group) => (
             <GroupCard
               key={group.id}
               group={group}
