@@ -1,24 +1,20 @@
 
 import {
   AlertTriangle,
-  ArrowLeft,
   Bell,
   CheckCircle2,
   LifeBuoy,
   Lock,
-  Moon,
-  Plane,
   Settings as SettingsIcon,
   ShieldCheck,
-  Sun,
   User,
   Users,
   X,
 } from "lucide-react";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 
+import PageTopBar from "../components/PageTopBar.jsx";
 import useTheme from "../components/recommendations/useTheme.js";
 import HelpSection from "../components/settings/HelpSection.jsx";
 import NotificationsSection from "../components/settings/NotificationsSection.jsx";
@@ -159,60 +155,23 @@ export default function Settings() {
     >
       {/* ================= HERO / HEADER ================= */}
 
-      <section className="settings-hero">
-        <header className="recommendations-header">
-
-          {/* LEFT: Back to dashboard */}
-          <Link
-            to="/dashboard"
-            className="recommendations-back-link"
-          >
-            <ArrowLeft size={17} />
-            Back to dashboard
-          </Link>
-
-          {/* RIGHT: Theme toggle and Roamio branding */}
-          <div className="rx-header-right">
-
-            <button
-              type="button"
-              className="theme-toggle"
-              aria-label={`Switch to ${
-                theme === "light" ? "dark" : "light"
-              } mode`}
-              onClick={toggleTheme}
-            >
-              {theme === "light" ? (
-                <Moon size={17} />
-              ) : (
-                <Sun size={17} />
-              )}
-            </button>
-
-            <div className="recommendations-brand">
-              <span>
-                <Plane size={18} />
-              </span>
-              Roamio
-            </div>
-
-          </div>
-        </header>
-
-        <div className="settings-hero-body">
-          <p className="settings-eyebrow">
-            <SettingsIcon size={14} />
-            Account settings
-          </p>
-
-          <h1>Settings</h1>
-
-          <p>
-            Your profile, notifications, security, travellers and
-            privacy, all in one place.
-          </p>
-        </div>
-      </section>
+      <PageTopBar
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        hero={
+          <>
+            <p className="page-topbar-eyebrow">
+              <SettingsIcon size={15} />
+              Account settings
+            </p>
+            <h1>Settings</h1>
+            <p className="page-topbar-lede">
+              Your profile, notifications, security, travellers and
+              privacy, all in one place.
+            </p>
+          </>
+        }
+      />
 
       {/* ================= MAIN ================= */}
 
