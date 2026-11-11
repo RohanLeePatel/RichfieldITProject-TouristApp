@@ -5389,3 +5389,18 @@
   outline: none;
   box-shadow: var(--st-ring);
 }
+
+/* Shared top bar: .settings-page is already scaled by --ui-zoom (via
+   .recommendations-page), so the bar's own zoom would shrink it twice. Also
+   keep the headline white in light mode (.recommendations-page h1 sets --ink). */
+.settings-page .page-topbar {
+  zoom: 1;
+}
+
+.settings-page .page-topbar-hero h1 {
+  color: #FFFBF4;
+}
+
+.settings-page .page-topbar-hero h1 span {
+  color: #B5D330;
+}
