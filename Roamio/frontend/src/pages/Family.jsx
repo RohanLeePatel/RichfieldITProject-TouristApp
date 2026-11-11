@@ -139,6 +139,9 @@ export default function Family() {
   const [activeTripId, setActiveTripId] =
     useState(null);
 
+  // loaded by TravelGroups, used for the group trip's traveller counts
+  const [groups, setGroups] = useState([]);
+
   /*
    * Load real trips from the Roamio API.
    */
@@ -266,9 +269,27 @@ export default function Family() {
     overviewTrips[0] ||
     null;
 
-  const activeStats = activeTrip
+  // a group trip counts the group's accounts + saved companions; otherwise
+  // fall back to what the wizard saved
+  const activeGroup = activeTrip
+    ? groups.find((g) => g.trips.some((t) => t.id === activeTrip.id))
+    : null;
+
+  let activeStats = activeTrip
     ? getTravellerStats(activeTrip)
     : null;
+
+  if (activeGroup) {
+    const companions = activeGroup.companions || [];
+    const childAges = companions
+      .filter((c) => c.type === "Child")
+      .map((c) => c.age)
+      .filter((age) => age != null);
+    const children = companions.filter((c) => c.type === "Child").length;
+    const adults = activeGroup.members.length + companions.length - children;
+
+    activeStats = { adults, children, childAges, members: adults + children };
+  }
 
   const renderTripsSection = ({
     sectionTrips,
@@ -689,7 +710,7 @@ export default function Family() {
         </section>
 
         {/* REAL GROUPS - accounts on the server, shared trips, invites */}
-        <TravelGroups tripId={activeTrip?.id} />
+        <TravelGroups onGroups={setGroups} tripId={activeTrip?.id} />
 
         {/* REAL UPCOMING TRIPS */}
 
