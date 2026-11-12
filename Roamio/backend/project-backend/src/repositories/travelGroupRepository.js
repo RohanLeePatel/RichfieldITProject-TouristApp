@@ -35,6 +35,13 @@ const travelGroupRepository = {
     return await prisma.travelGroup.findMany({
       where: {
         deletedAt: null,
+        // Groups with only deleted trips can predate the lifecycle trigger.
+        // Keep groups created before their first trip available for planning.
+        OR: [
+          { inviteCode: null },
+          { trips: { none: {} } },
+          { trips: { some: { deletedAt: null } } },
+        ],
         members: {
           some: { userId: parseInt(userId, 10) },
         },

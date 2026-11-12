@@ -76,7 +76,7 @@ export function endSession() {
 
 async function request(path, { auth = false, retried = false, headers, ...options } = {}) {
   const requestHeaders = { "Content-Type": "application/json", ...headers };
-  const isRead = auth && (!options.method || options.method === "GET");
+  const isRead = auth && options.cache !== "no-store" && (!options.method || options.method === "GET");
 
   if (auth) {
     const token = await ensureToken();

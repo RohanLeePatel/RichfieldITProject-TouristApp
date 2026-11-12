@@ -2,8 +2,8 @@ import { apiFetch, authedFetch } from "./client";
 
 // Shared travel groups only - every user also has a personal group (no invite
 // code) that holds their solo trips, which isn't a group anyone else is in.
-export async function fetchMyGroups() {
-  const data = await authedFetch("/api/groups/me");
+export async function fetchMyGroups({ fresh = false } = {}) {
+  const data = await authedFetch("/api/groups/me", fresh ? { cache: "no-store" } : undefined);
   return (data.groups || []).filter((group) => group.inviteCode !== null);
 }
 

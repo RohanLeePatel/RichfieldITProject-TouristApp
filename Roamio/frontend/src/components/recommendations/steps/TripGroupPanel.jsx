@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { LoaderCircle, Plus, Users } from "lucide-react";
 
 import { createGroup, fetchMyGroups } from "../../../api/groups.js";
@@ -15,15 +15,12 @@ const groupLabel = (group) =>
 // decided before planning rather than on the last step.
 export default function TripGroupPanel({ form, updateForm }) {
   const [groups, setGroups] = useState(null);
-  const [choice, setChoice] = useState(form.travelGroupId ? String(form.travelGroupId) : "");
+  const [creating, setCreating] = useState(false);
+  const choice = creating ? NEW : String(form.travelGroupId ?? "");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [created, setCreated] = useState(null);
-
-  useEffect(() => {
-    fetchMyGroups().then(setGroups).catch(() => setGroups([]));
-  }, []);
 
   // the group's people (members + companions) become the wizard's travellers
   const pick = (group) => {
@@ -35,8 +32,28 @@ export default function TripGroupPanel({ form, updateForm }) {
     updateForm("travelers", travelers);
   };
 
+  const applyGroups = useEffectEvent((list) => {
+    setGroups(list);
+    if (form.travelGroupId && !list.some((group) => String(group.id) === String(form.travelGroupId))) {
+      pick(null);
+      setError("The selected group is no longer available. Choose another group or continue solo.");
+    }
+  });
+
+  useEffect(() => {
+    let active = true;
+    fetchMyGroups({ fresh: true })
+      .then((list) => { if (active) applyGroups(list); })
+      .catch(() => {
+        if (!active) return;
+        setGroups([]);
+        setError("Could not load travel groups. Reopen this step to try again.");
+      });
+    return () => { active = false; };
+  }, []);
+
   const choose = (value) => {
-    setChoice(value);
+    setCreating(value === NEW);
     setError("");
     if (value !== NEW) pick(groups.find((group) => String(group.id) === value) || null);
   };
@@ -52,7 +69,7 @@ export default function TripGroupPanel({ form, updateForm }) {
     try {
       const group = await createGroup(name.trim());
       setGroups((current) => [...current, group]);
-      setChoice(String(group.id));
+      setCreating(false);
       setCreated(group);
       setName("");
       pick(group);
