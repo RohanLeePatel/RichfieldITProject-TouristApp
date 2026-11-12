@@ -15,15 +15,19 @@ const members = new Set(['10:1']); // `${groupId}:${userId}`
 const groupTrips = { 10: [55] };
 const group = { id: 10, name: 'Lima group', deletedAt: null };
 const invites = {};
+const sent = [];
 const invite = (token, extra = {}) => {
   invites[token] = { id: Object.keys(invites).length + 1, token, travelGroupId: 10, travelGroup: group, inviter: { fullName: 'Owner' }, email: 'guest@x.io', role: 'MEMBER', status: 'PENDING', expiresAt: new Date(Date.now() + DAY), ...extra };
 };
 
 const fakeRepo = {
+  findActiveGroup: async (groupId) => groupId === group.id ? group : null,
   findInvitationByToken: async (token) => invites[token] || null,
   findUserById: async (id) => users[id],
-  checkGroupMembership: async (groupId, userId) => (members.has(`${groupId}:${userId}`) ? { role: 'MEMBER' } : null),
-  findGroupTripIds: async (groupId) => groupTrips[groupId] || [],
+  checkGroupMembership: async (groupId, userId) => (members.has(`${groupId}:${userId}`) ? { role: userId === 1 ? 'OWNER' : 'MEMBER' } : null),
+  findGroupTripIds: async (groupId, tripId) => (groupTrips[groupId] || []).filter((id) => tripId === undefined || id === tripId),
+  isEmailGroupMember: async (groupId, email) => Object.values(users).some((user) => user.email === email && members.has(`${groupId}:${user.id}`)),
+  createInvitation: async (data) => invite(data.token, data),
   updateInvitationStatus: async (id, status) => {
     Object.values(invites).find((row) => row.id === id).status = status;
   },
@@ -38,6 +42,15 @@ const fakeRepo = {
 };
 require.cache[path.join(__dirname, '../repositories/invitationRepository.js')] = { exports: fakeRepo };
 require.cache[path.join(__dirname, '../services/groupActivityService.js')] = { exports: { notifyInvite: async () => 0 } };
+require.cache[path.join(__dirname, '../services/emailService.js')] = {
+  exports: {
+    sendNewSignInEmail: async () => false,
+    sendGroupInvite: async (email, details) => {
+      sent.push({ email, ...details });
+      return true;
+    },
+  },
+};
 
 const { generateAccessToken } = require('../auth/tokenService');
 const router = require('./invitation');
@@ -51,7 +64,7 @@ const server = app.listen(0, async () => {
     fetch(base + p, { method: body ? 'POST' : 'GET', headers: { 'content-type': 'application/json', ...headers }, body: body && JSON.stringify(body) })
       .then(async (r) => ({ status: r.status, body: await r.json() }));
   const preview = (token, headers) => call(`/invites/${token}`, headers);
-  const accept = (token, userId) => call('/invites/accept', as(userId), { token });
+  const accept = (token, userId, tripId) => call('/invites/accept', as(userId), { token, tripId });
 
   try {
     // invalid: unknown token, anonymous or signed in, preview or accept
@@ -111,6 +124,22 @@ const server = app.listen(0, async () => {
 
     // accepting still needs sign-in
     assert.equal((await call('/invites/accept', {}, { token: 'dup' })).status, 401);
+
+    // A trip invite opens the selected itinerary even if the group has several.
+    groupTrips[10].push(56);
+    groupTrips[11] = [99];
+    const sendInvite = (tripId) => call('/groups/10/invites', as(1), { email: 'other@x.io', tripId });
+    assert.equal((await sendInvite(99)).status, 400);
+    assert.equal(sent.length, 0);
+    r = await sendInvite(56);
+    assert.equal(r.status, 201);
+    assert.equal(r.body.emailed, true);
+    const { invitationToken } = r.body;
+    assert.equal(sent[0].email, 'other@x.io');
+    assert.match(sent[0].link, new RegExp(`/invite/${invitationToken}\\?trip=56$`));
+    assert.equal((await accept(invitationToken, 3, '56')).body.tripId, 56);
+    assert.equal((await preview(`${invitationToken}?trip=56`, as(3))).body.tripId, 56);
+    assert.equal((await preview(`${invitationToken}?trip=99`, as(3))).body.tripId, null);
 
     console.log('invitation selfcheck: all assertions passed');
   } finally {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import {
   ArrowRight,
   CalendarDays,
@@ -12,7 +12,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import PageShell from "../components/recommendations/PageShell.jsx";
 import DeletedTrips from "../components/trips/DeletedTrips.jsx";
 import TripTemplates from "../components/trips/TripTemplates.jsx";
-import { fetchTrips } from "../api/trips.js";
+import { useTripStore } from "../store/tripStore.js";
 import { formatDate } from "../utils/format.js";
 import "../styles/trips.css";
 
@@ -47,42 +47,16 @@ function isTripCompleted(trip) {
 }
 
 export default function TripsList() {
-  const [trips, setTrips] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [reload, setReload] = useState(0);
+  const { trips, loaded, error, load } = useTripStore();
+  const loading = !loaded && !error;
 
   const [searchParams] = useSearchParams();
   const statusFilter = searchParams.get("status");
 
   useEffect(() => {
-    let active = true;
-
-    fetchTrips()
-      .then((data) => {
-        if (active) {
-          setTrips(Array.isArray(data) ? data : []);
-        }
-      })
-      .catch((requestError) => {
-        if (active) {
-          setError(
-            requestError instanceof Error
-              ? requestError.message
-              : "Could not load your trips."
-          );
-        }
-      })
-      .finally(() => {
-        if (active) {
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [reload]);
+    // Refresh an already loaded list when opening My Trips.
+    load(useTripStore.getState().loaded);
+  }, [load]);
 
   const filteredTrips = useMemo(() => {
     const list =
@@ -214,7 +188,7 @@ export default function TripsList() {
 
       {/* Starting points, shown alongside existing trips - most useful on an
           empty list, but worth offering either way. */}
-      {!showingCompleted && !loading && <DeletedTrips onRestored={() => setReload((count) => count + 1)} />}
+      {!showingCompleted && !loading && <DeletedTrips />}
       {!showingCompleted && !loading && <TripTemplates />}
     </PageShell>
   );

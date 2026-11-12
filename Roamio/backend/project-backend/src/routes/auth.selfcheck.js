@@ -4,8 +4,15 @@
 // node src/routes/auth.selfcheck.js
 const assert = require('node:assert/strict');
 const path = require('node:path');
+const dns = require('node:dns').promises;
 const express = require('express');
 const cookieParser = require('cookie-parser');
+
+dns.resolveMx = async (domain) => {
+  if (domain === 'no-mail.roamio-selfcheck.net') return [{ priority: 0, exchange: '' }];
+  assert.equal(domain, 'roamio-selfcheck.net');
+  return [{ priority: 10, exchange: 'mail.roamio-selfcheck.net' }];
+};
 
 process.env.JWT_ACCESS_SECRET = 'selfcheck-secret';
 process.env.JWT_REFRESH_SECRET = 'selfcheck-refresh';
@@ -106,7 +113,7 @@ const server = app.listen(0, async () => {
   const post = (p, body) =>
     fetch(base + p, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
       .then(async (r) => ({ status: r.status, body: await r.json() }));
-  const account = { email: 'ada@example.com', password: 'Longenough1', fullName: "Zoë O'Brien-Smith Jr.", acceptedTerms: true }; // accents, apostrophe, hyphen, full stop are all fine
+  const account = { email: 'ada@roamio-selfcheck.net', password: 'Longenough1', fullName: "Zoë O'Brien-Smith Jr.", acceptedTerms: true }; // accents, apostrophe, hyphen, full stop are all fine
 
   try {
     // register refuses input that doesn't fit the fields, with the reason
@@ -128,15 +135,24 @@ const server = app.listen(0, async () => {
       assert.match(r.body.error, pattern);
     }
 
+    for (const email of [' Chicken@Chicken.COM ', 'ada@example.com', 'ada@mailinator.com', 'ada@no-mail.roamio-selfcheck.net']) {
+      r = await post('/register', { ...account, email });
+      assert.equal(r.status, 400);
+      assert.equal(r.body.code, 'INVALID_REGISTRATION_EMAIL');
+      assert.match(r.body.error, /receive a verification code/);
+    }
+    assert.equal(users.size, 0);
+    assert.equal(sent.length, 0);
+
     // register: no session yet, a code is "emailed"
     r = await post('/register', account);
     assert.equal(r.status, 201);
-    assert.equal(r.body.email, 'ada@example.com');
+    assert.equal(r.body.email, account.email);
     assert.equal(r.body.token, undefined);
     assert.equal(sent.length, 1);
     // the agreement is recorded with the wording version it was given for
-    assert.ok(users.get('ada@example.com').termsAcceptedAt instanceof Date);
-    assert.equal(users.get('ada@example.com').termsVersion, '2026-10-31');
+    assert.ok(users.get(account.email).termsAcceptedAt instanceof Date);
+    assert.equal(users.get(account.email).termsVersion, '2026-10-31');
 
     // can't log in before verifying
     r = await post('/login', account);
@@ -149,13 +165,13 @@ const server = app.listen(0, async () => {
     assert.equal(r.status, 200);
     assert.equal(typeof r.body.token, 'string');
     assert.equal(r.body.token, r.body.accessToken);
-    assert.deepEqual(r.body.user, { id: 1, email: 'ada@example.com', fullName: "Zoë O'Brien-Smith Jr." });
+    assert.deepEqual(r.body.user, { id: 1, email: account.email, fullName: "Zoë O'Brien-Smith Jr." });
 
     // login returns user + token too (the old API's shape)
     r = await post('/login', account);
     assert.equal(r.status, 200);
     assert.equal(typeof r.body.token, 'string');
-    assert.equal(r.body.user.email, 'ada@example.com');
+    assert.equal(r.body.user.email, account.email);
 
     // wrong password for a real account is recorded; an unknown email has no one to show it to
     assert.equal((await post('/login', { ...account, password: 'not-the-password' })).status, 401);
@@ -166,9 +182,9 @@ const server = app.listen(0, async () => {
     for (let i = 0; i < 4; i += 1) await post('/login', { ...account, password: 'not-the-password' });
     r = await post('/login', account);
     assert.equal(r.status, 429);
-    users.get('ada@example.com').lockedUntil = new Date(Date.now() - 1000); // the lock runs out
+    users.get(account.email).lockedUntil = new Date(Date.now() - 1000); // the lock runs out
     assert.equal((await post('/login', account)).status, 200);
-    assert.equal(users.get('ada@example.com').failedLogins, 0);
+    assert.equal(users.get(account.email).failedLogins, 0);
     failures.length = 0;
     failures.push(1);
 
@@ -229,7 +245,7 @@ const server = app.listen(0, async () => {
     const authed = (p, method = 'GET') =>
       fetch(base + p, { method, headers: { authorization: `Bearer ${r.body.token}` } }).then(async (res) => ({ status: res.status, body: await res.json() }));
     r = await post('/login', account);
-    users.get('ada@example.com').termsVersion = null;
+    users.get(account.email).termsVersion = null;
     let me = await authed('/users/me');
     assert.equal(me.body.currentTermsVersion, '2026-10-31');
     assert.notEqual(me.body.termsVersion, me.body.currentTermsVersion);
@@ -242,10 +258,10 @@ const server = app.listen(0, async () => {
     process.env.NODE_ENV = 'production';
     const realError = console.error;
     console.error = () => {};
-    r = await post('/register', { ...account, email: 'bob@example.com' });
+    r = await post('/register', { ...account, email: 'bob@roamio-selfcheck.net' });
     assert.equal(r.status, 503);
     // resend keeps its uniform answer so it can't be used to probe accounts
-    r = await post('/resend-otp', { email: 'bob@example.com' });
+    r = await post('/resend-otp', { email: 'bob@roamio-selfcheck.net' });
     assert.equal(r.status, 200);
     console.error = realError;
     delete process.env.NODE_ENV;

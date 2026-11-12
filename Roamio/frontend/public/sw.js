@@ -72,9 +72,9 @@ self.addEventListener("fetch", (event) => {
 });
 
 self.addEventListener("push", (event) => {
-  let data = {};
+  let data;
   try {
-    data = event.data ? event.data.json() : {};
+    data = event.data?.json() ?? {};
   } catch {
     data = {};
   }
@@ -84,6 +84,7 @@ self.addEventListener("push", (event) => {
       icon: "/favicon.svg",
       badge: "/favicon.svg",
       tag: data.tag,
+      renotify: data.tag === "roamio-test",
       data: { url: data.url || "/" },
     })
   );

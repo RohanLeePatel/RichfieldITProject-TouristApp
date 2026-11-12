@@ -110,6 +110,7 @@ export default function NotificationsSection({ email, notify }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [sendingTest, setSendingTest] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [permission, setPermission] = useState(() =>
     browserSupported() ? Notification.permission : "unsupported"
@@ -168,10 +169,14 @@ export default function NotificationsSection({ email, notify }) {
     }));
 
   const sendTest = async () => {
+    setSendingTest(true);
     try {
       await sendTestPush();
+      notify("Test notification sent. Check this device’s notifications.");
     } catch (error) {
       notify(error.message || "Couldn't send a test notification.", "error");
+    } finally {
+      setSendingTest(false);
     }
   };
 
@@ -252,8 +257,8 @@ export default function NotificationsSection({ email, notify }) {
                         : "Get pop-up alerts on this device."}
                 </p>
                 {channelOn("browser") && (
-                  <button type="button" className="st-text-button" onClick={sendTest}>
-                    Send a test notification
+                  <button type="button" className="st-text-button" onClick={sendTest} disabled={loading || sendingTest}>
+                    {sendingTest ? "Sending test…" : "Send a test notification"}
                   </button>
                 )}
               </div>
@@ -261,7 +266,7 @@ export default function NotificationsSection({ email, notify }) {
                 checked={channelOn("browser")}
                 onChange={(on) => setChannel("browser", on)}
                 label="Browser notifications"
-                disabled={loading || browserBlocked}
+                disabled={loading || browserBlocked || sendingTest}
               />
             </div>
           </div>

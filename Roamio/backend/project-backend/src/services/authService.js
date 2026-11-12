@@ -41,15 +41,17 @@ const DISPOSABLE_DOMAINS = new Set([
   'maildrop.cc', 'dispostable.com', 'fakeinbox.com',
 ]);
 
-// True when the email's domain can't receive mail (no MX, or no address record).
+// True for disposable domains or domains that cannot receive mail.
 // DNS timeouts/outages return false so a flaky resolver doesn't block sign-ups.
 const hasFakeDomain = async (email) => {
   const domain = email.split('@').pop();
-  if (DISPOSABLE_DOMAINS.has(domain)) return true;
+  if (DISPOSABLE_DOMAINS.has(domain) || /(?:^|\.)example\.(com|net|org)$|\.(example|invalid|localhost|test)$/.test(domain)) return true;
   const dnsP = require('node:dns').promises;
   const missing = (e) => e.code === 'ENOTFOUND' || e.code === 'ENODATA';
   try {
-    return (await dnsP.resolveMx(domain)).length === 0;
+    const records = await dnsP.resolveMx(domain);
+    // A null MX (RFC 7505) explicitly says the domain accepts no mail.
+    if (records.length) return records.every(({ exchange }) => !exchange || exchange === '.');
   } catch (e) {
     if (!missing(e)) return false;
   }
@@ -97,8 +99,10 @@ class AuthService {
     if (!EMAIL_PATTERN.test(normalizedEmail) || normalizedEmail.length > MAX_EMAIL_LENGTH) {
       throw httpError(400, 'A valid email is required.');
     }
-    if (await hasFakeDomain(normalizedEmail)) {
-      throw httpError(400, 'That email address looks fake. Use a real email address that can receive mail.');
+    if (normalizedEmail === 'chicken@chicken.com' || await hasFakeDomain(normalizedEmail)) {
+      throw Object.assign(httpError(400, 'Enter an email address where you can receive a verification code.'), {
+        code: 'INVALID_REGISTRATION_EMAIL',
+      });
     }
     if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
       throw httpError(400, `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);

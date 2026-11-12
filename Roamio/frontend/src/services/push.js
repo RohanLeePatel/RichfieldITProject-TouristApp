@@ -53,4 +53,23 @@ export async function disablePush(token) {
   await subscription.unsubscribe();
 }
 
-export const sendTestPush = () => post("test", "POST");
+export async function sendTestPush() {
+  if (Notification.permission !== "granted") {
+    throw new Error("Allow notifications in your browser settings to send a test.");
+  }
+
+  const reg = await navigator.serviceWorker.getRegistration(SW_URL);
+  const subscription = await reg?.pushManager.getSubscription();
+  if (!subscription) {
+    throw new Error("Turn Browser notifications off and back on to subscribe this device.");
+  }
+
+  const send = () => post("test", "POST", { endpoint: subscription.endpoint });
+  try {
+    return await send();
+  } catch (error) {
+    if (error.status !== 404) throw error;
+    await post("subscribe", "POST", subscription.toJSON());
+    return send();
+  }
+}

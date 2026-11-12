@@ -6,6 +6,8 @@
 const assert = require('node:assert/strict');
 const path = require('node:path');
 
+require('node:dns').promises.resolveMx = async () => [{ priority: 10, exchange: 'mail.roamio-selfcheck.net' }];
+
 const SECRET = 'selfcheck-turnstile-secret';
 const sent = []; // siteverify request bodies
 let reply = { success: true }; // what siteverify answers; a function throws instead
@@ -26,7 +28,7 @@ require.cache[path.join(__dirname, './emailService.js')] = { exports: { sendOtpE
 const { verifyCaptcha } = require('./captchaService');
 const authService = require('./authService');
 
-const account = { email: 'ada@example.com', password: 'correct-horse-9', fullName: 'Ada Lovelace', acceptedTerms: true };
+const account = { email: 'ada@roamio-selfcheck.net', password: 'Correct-horse-9', fullName: 'Ada Lovelace', acceptedTerms: true };
 const rejects = (promise, status, code) =>
   assert.rejects(promise, (error) => (assert.equal(error.statusCode, status), assert.equal(error.code, code), true));
 
@@ -75,7 +77,7 @@ const rejects = (promise, status, code) =>
   // ...and a passed one goes through
   reply = { success: true };
   const result = await authService.register({ ...account, captchaToken: 'good-token' }, { ip: '203.0.113.9' });
-  assert.equal(result.email, 'ada@example.com');
+  assert.equal(result.email, account.email);
   assert.equal(created.length, 1);
   assert.equal(sent.at(-1).response, 'good-token');
 

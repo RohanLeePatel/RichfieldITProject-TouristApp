@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Copy, LoaderCircle, Plane, Plus, UserPlus, Users } from "lucide-react";
+import { Copy, LoaderCircle, Plane, Plus, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import { createGroup, createInvite, fetchMyGroups, inviteLink, joinGroup } from "../../api/groups.js";
+import { createGroup, fetchMyGroups, inviteLink, joinGroup } from "../../api/groups.js";
 import { useAuthStore } from "../../store/authStore.js";
 import { useTripStore } from "../../store/tripStore.js";
-import { emailError, labelError, MAX_EMAIL } from "../../utils/validation.js";
+import { labelError } from "../../utils/validation.js";
+import GroupEmailInvite from "./GroupEmailInvite.jsx";
 
 const MANAGERS = ["OWNER", "ADMIN"];
 
@@ -124,32 +125,6 @@ export default function TravelGroups({ onGroups, tripId }) {
 }
 
 function GroupCard({ group, canManage }) {
-  const [email, setEmail] = useState("");
-  const [link, setLink] = useState("");
-  const [copied, setCopied] = useState(false);
-  const [emailed, setEmailed] = useState(false);
-  const [inviteError, setInviteError] = useState("");
-
-  const invite = async (event) => {
-    event.preventDefault();
-    setInviteError("");
-    setLink("");
-    const problem = emailError(email);
-    if (problem) return setInviteError(problem.replace("your email address", "their email address"));
-    try {
-      const { token, emailed } = await createInvite(group.id, email.trim());
-      setLink(`${window.location.origin}/invite/${token}`);
-      setEmailed(emailed);
-      setEmail("");
-    } catch (requestError) {
-      setInviteError(requestError instanceof Error ? requestError.message : "Could not create the invite.");
-    }
-  };
-
-  const copy = () => {
-    navigator.clipboard?.writeText(link).then(() => setCopied(true)).catch(() => {});
-  };
-
   // anyone with this link can join (no email needed), unlike the invite below
   const [joinCopied, setJoinCopied] = useState(false);
   const copyJoinLink = () => {
@@ -182,27 +157,11 @@ function GroupCard({ group, canManage }) {
       {canManage && (
         <>
           <p className="family-groups-note">
-            Join code: <strong>{group.inviteCode}</strong>{" "}
             <button type="button" className="family-text-button" onClick={copyJoinLink}>
               <Copy size={13} /> {joinCopied ? "Link copied" : "Copy invite link"}
             </button>
           </p>
-          <form className="family-group-invite" onSubmit={invite} noValidate>
-            <input type="email" value={email} onChange={(event) => { setEmail(event.target.value); setInviteError(""); }} placeholder="Their email" aria-label="Email to invite" maxLength={MAX_EMAIL} required />
-            <button type="submit" className="family-button family-button-secondary">
-              <UserPlus size={15} /> Invite
-            </button>
-          </form>
-          {inviteError && <p className="family-groups-error">{inviteError}</p>}
-          {link && (
-            <p className="family-groups-note">
-              {emailed ? "Invite emailed. You can also send them this link (valid 7 days):" : "We couldn't email this invite - send them this link (valid 7 days):"}{" "}
-              <code>{link}</code>{" "}
-              <button type="button" className="family-text-button" onClick={copy}>
-                <Copy size={13} /> {copied ? "Copied" : "Copy"}
-              </button>
-            </p>
-          )}
+          <GroupEmailInvite groupId={group.id} />
         </>
       )}
     </article>

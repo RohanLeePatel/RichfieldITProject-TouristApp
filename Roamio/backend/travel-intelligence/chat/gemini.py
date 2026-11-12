@@ -16,7 +16,7 @@ import re
 import requests
 
 import http_client
-from chat.guard import REFUSAL, WITHHELD, is_probe, leaks_instructions, scrub
+from chat.guard import REFUSAL, RESPECT_WARNING, WITHHELD, is_direct_insult, is_probe, leaks_instructions, scrub
 from config import settings
 from engine.currency import rate_detail
 from translation.live_translation import translate_text
@@ -257,7 +257,10 @@ def reply(messages: list[dict], context: str, can_edit: bool = False) -> tuple[s
     """(text, action). An action is a tool call the Core API carries out; the text is
     then replaced by its own confirmation, so the assistant never claims a change it
     did not make."""
-    if is_probe(messages[-1]["content"]):
+    latest_message = messages[-1]["content"]
+    if is_direct_insult(latest_message):
+        return RESPECT_WARNING, None
+    if is_probe(latest_message):
         return REFUSAL, None
     if not GEMINI_API_KEY:
         raise ChatUnavailable("The assistant is not configured.")
@@ -265,7 +268,15 @@ def reply(messages: list[dict], context: str, can_edit: bool = False) -> tuple[s
     body = {
         "systemInstruction": {"parts": [{"text": f"{SYSTEM_PROMPT}\n\nTRIP FACTS:\n{_facts_block(context)}"}]},
         "contents": [
-            {"role": "model" if m["role"] == "assistant" else "user", "parts": [{"text": scrub(m["content"])}]}
+            {
+                "role": "model" if m["role"] == "assistant" else "user",
+                "parts": [{
+                    "text": (
+                        "[insult removed]" if m["role"] == "user" and is_direct_insult(m["content"])
+                        else scrub(m["content"])
+                    ),
+                }],
+            }
             for m in messages
         ],
         "generationConfig": {"maxOutputTokens": MAX_OUTPUT_TOKENS},

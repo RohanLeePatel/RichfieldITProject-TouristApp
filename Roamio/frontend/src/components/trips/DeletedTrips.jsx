@@ -8,7 +8,7 @@ const DAY_MS = 86_400_000;
 
 // Trips deleted in the last 30 days, with a Restore button. Shows nothing when
 // there are none, or when the server can't list them.
-export default function DeletedTrips({ onRestored }) {
+export default function DeletedTrips() {
   const [trips, setTrips] = useState([]);
   const [busyId, setBusyId] = useState(null);
   const [error, setError] = useState("");
@@ -24,7 +24,6 @@ export default function DeletedTrips({ onRestored }) {
       await restoreTrip(trip.id);
       setTrips((current) => current.filter((item) => item.id !== trip.id));
       useTripStore.getState().load(true);
-      onRestored();
     } catch (requestError) {
       setError(requestError.message);
     } finally {

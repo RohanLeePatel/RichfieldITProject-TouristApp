@@ -3,6 +3,7 @@ import { Activity, CloudSun, Copy, LoaderCircle, MapPinPlus, ShieldAlert, UserPl
 import { Link } from "react-router-dom";
 
 import AskButton from "../chat/AskButton.jsx";
+import GroupEmailInvite from "../groups/GroupEmailInvite.jsx";
 
 import { fetchLandmarks } from "../../api/recommendations.js";
 import { fetchCountrySafety, fetchTripActivity } from "../../api/tripHub.js";
@@ -124,15 +125,16 @@ export function TripSnapshot({ trip }) {
 // the Plan a Trip completion screen, so both hand out the same working link:
 // shareTrip first moves a solo trip into a shareable group of its own, so whoever
 // joins with the code can open the trip.
-export function TripInviteLink({ tripId, onShared }) {
-  const [invite, setInvite] = useState(null);
+export function TripInviteLink({ tripId, onShared, emailInvite = false }) {
+  const [sharedGroup, setSharedGroup] = useState(null);
   const [inviteState, setInviteState] = useState({ busy: false, error: "", copied: false });
+  const invite = sharedGroup ? inviteLink(sharedGroup.inviteCode, tripId) : null;
 
   const createLink = async () => {
     setInviteState({ busy: true, error: "", copied: false });
     try {
       const shared = await shareTrip(tripId);
-      setInvite(inviteLink(shared.inviteCode, tripId));
+      setSharedGroup(shared);
       onShared?.(shared);
       setInviteState({ busy: false, error: "", copied: false });
     } catch (requestError) {
@@ -147,24 +149,27 @@ export function TripInviteLink({ tripId, onShared }) {
       .catch(() => {});
 
   return (
-    <div className="trip-invite">
-      {invite ? (
-        <>
-          <label className="trip-invite-link">
-            <span>Send this link - anyone who opens it can join after signing in:</span>
-            <input value={invite} readOnly onFocus={(event) => event.target.select()} />
-          </label>
-          <button type="button" className="secondary-button" onClick={copy}>
-            <Copy size={14} /> {inviteState.copied ? "Copied" : "Copy link"}
+    <>
+      <div className="trip-invite">
+        {invite ? (
+          <>
+            <label className="trip-invite-link">
+              <span>Send this link - anyone who opens it can join after signing in:</span>
+              <input value={invite} readOnly onFocus={(event) => event.target.select()} />
+            </label>
+            <button type="button" className="secondary-button" onClick={copy}>
+              <Copy size={14} /> {inviteState.copied ? "Copied" : "Copy link"}
+            </button>
+          </>
+        ) : (
+          <button type="button" className="secondary-button" onClick={createLink} disabled={inviteState.busy}>
+            <UserPlus size={14} /> {inviteState.busy ? "Creating link..." : "Invite people"}
           </button>
-        </>
-      ) : (
-        <button type="button" className="secondary-button" onClick={createLink} disabled={inviteState.busy}>
-          <UserPlus size={14} /> {inviteState.busy ? "Creating link..." : "Invite people"}
-        </button>
-      )}
-      {inviteState.error && <p className="recommendations-error">{inviteState.error}</p>}
-    </div>
+        )}
+        {inviteState.error && <p className="recommendations-error" role="alert">{inviteState.error}</p>}
+      </div>
+      {emailInvite && sharedGroup && <GroupEmailInvite groupId={sharedGroup.travelGroupId} tripId={tripId} />}
+    </>
   );
 }
 

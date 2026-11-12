@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { LoaderCircle, Users } from "lucide-react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
-import { acceptInvite, previewInvite } from "../api/groups.js";
+import { acceptInvite, emailInvitePath, previewInvite } from "../api/groups.js";
 import PageShell from "../components/recommendations/PageShell.jsx";
 import { useAuthStore } from "../store/authStore.js";
 import { useTripStore } from "../store/tripStore.js";
@@ -23,6 +23,8 @@ const openPath = ({ tripId, groupId } = {}) => (tripId ? `/trips/${encodeURIComp
 // or up from here comes straight back.
 export default function Invite() {
   const { token } = useParams();
+  const [searchParams] = useSearchParams();
+  const tripId = searchParams.get("trip") || undefined;
   const navigate = useNavigate();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [invite, setInvite] = useState(null);
@@ -37,16 +39,16 @@ export default function Invite() {
   });
 
   useEffect(() => {
-    previewInvite(token, isAuthenticated)
+    previewInvite(token, isAuthenticated, tripId)
       .then(setInvite)
       .catch((requestError) => setProblem(toProblem(requestError, "This invite can't be opened.")));
-  }, [token, isAuthenticated]);
+  }, [token, isAuthenticated, tripId]);
 
   const join = async () => {
     setBusy(true);
     setProblem(null);
     try {
-      const joined = await acceptInvite(token);
+      const joined = await acceptInvite(token, tripId);
       useTripStore.getState().load(true);
       navigate(openPath(joined));
     } catch (requestError) {
@@ -55,7 +57,7 @@ export default function Invite() {
     }
   };
 
-  const back = encodeURIComponent(`/invite/${token}`);
+  const back = encodeURIComponent(emailInvitePath(token, tripId));
   const known = PROBLEMS[problem?.code];
   const accepted = problem?.code === "ALREADY_ACCEPTED";
 

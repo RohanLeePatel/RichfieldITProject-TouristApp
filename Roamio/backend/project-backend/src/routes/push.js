@@ -54,12 +54,13 @@ router.delete('/subscribe', pushLimiter, validate(endpointSchema), async (req, r
   }
 });
 
-router.post('/test', pushLimiter, async (req, res, next) => {
+router.post('/test', pushLimiter, validate(endpointSchema), async (req, res, next) => {
   try {
     if (!pushService.isConfigured()) return res.status(503).json({ message: 'Browser notifications are not set up yet.' });
-    const sent = await pushService.sendTestPush(req.user.id);
-    if (!sent) return res.status(404).json({ message: 'This browser is not subscribed yet.' });
-    res.json({ sent });
+    const sent = await pushService.sendTestPush(req.user.id, req.body.endpoint);
+    if (sent === null) return res.status(404).json({ message: 'This browser is not subscribed yet.' });
+    if (!sent) return res.status(502).json({ message: 'The push service could not accept the test. Try turning Browser notifications off and back on.' });
+    res.json({ sent: 1 });
   } catch (error) {
     next(error);
   }

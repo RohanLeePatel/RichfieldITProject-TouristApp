@@ -748,6 +748,7 @@ button.chip.dealbreaker.selected { background: var(--danger-bg); border-color: v
 .trip-done-invite { display: grid; gap: 4px; width: min(520px, 100%); margin: 6px 0 4px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-tile); background: var(--surface); text-align: left; }
 .trip-done-invite .wizard-help { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--ink); font-weight: 600; }
 .trip-done-invite .trip-invite { margin: 6px 0 0; }
+.trip-done-invite .family-group-invite { margin-top: 8px; }
 
 /* ---------- Responsive ---------- */
 

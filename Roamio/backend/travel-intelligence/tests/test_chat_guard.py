@@ -68,6 +68,35 @@ def test_probe_never_reaches_the_model(client, monkeypatch):
         assert response.json()["reply"] == REFUSAL
 
 
+@pytest.mark.parametrize("message", ["Idiot!", "You're such an idiot.", "FUCK YOU!", "You are useless."])
+def test_direct_insults_get_a_warning_without_calling_gemini(client, monkeypatch, message):
+    monkeypatch.setattr(gemini, "GEMINI_API_KEY", None)
+    monkeypatch.setattr(requests, "post", lambda *args, **kwargs: pytest.fail("model was called"))
+    body = {"messages": [{"role": "user", "content": message}], "can_edit": True}
+    response = client.post("/chat", json=body, headers=SECRET)
+    assert response.status_code == 200
+    assert response.json() == {"reply": gemini.RESPECT_WARNING, "action": None}
+
+
+@pytest.mark.parametrize("message", ['How do I translate "fuck you"?', "Where is my fucking hotel?"])
+def test_profanity_in_a_question_still_reaches_gemini_after_a_warning(client, monkeypatch, message):
+    seen = {}
+    monkeypatch.setattr(
+        requests, "post",
+        lambda url, headers, json, timeout: seen.update(json=json) or _Response(_answer("I can help.")),
+    )
+    body = {"messages": [
+        {"role": "user", "content": "Fuck you!"},
+        {"role": "assistant", "content": gemini.RESPECT_WARNING},
+        {"role": "user", "content": message},
+    ]}
+    response = client.post("/chat", json=body, headers=SECRET)
+    assert response.json() == {"reply": "I can help.", "action": None}
+    assert [m["parts"][0]["text"] for m in seen["json"]["contents"]] == [
+        "[insult removed]", gemini.RESPECT_WARNING, message,
+    ]
+
+
 def test_context_and_messages_are_scrubbed_before_leaving(client, monkeypatch):
     seen = {}
     monkeypatch.setattr(

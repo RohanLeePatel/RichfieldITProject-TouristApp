@@ -27,16 +27,18 @@ async function wantsPush(userId, topic) {
 // Only same-site paths: the click handler opens this, so it must not leave the app
 const safePath = (url) => (typeof url === 'string' && /^\/(?!\/)/.test(url) ? url : '/');
 
-async function sendOne(subscription, payload) {
+async function sendOne(subscription, payload, options) {
   try {
     await webpush.sendNotification(
       { endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } },
-      payload
+      payload,
+      options
     );
     await prisma.pushSubscription.update({
       where: { id: subscription.id },
       data: { lastUsedAt: new Date(), failureCount: 0 },
     });
+    return true;
   } catch (err) {
     if (GONE.includes(err.statusCode) || subscription.failureCount + 1 >= MAX_FAILURES) {
       await prisma.pushSubscription.deleteMany({ where: { id: subscription.id } });
@@ -46,6 +48,7 @@ async function sendOne(subscription, payload) {
         data: { failureCount: { increment: 1 } },
       });
     }
+    return false;
   }
 }
 
@@ -76,14 +79,12 @@ async function notifyUser(userId, { type = 'INFO', topic, title, body, url, trip
   }
 }
 
-// "Send a test" in Settings: goes to this user's browsers whatever their topic
-// settings, and leaves no inbox row. Returns how many were sent to.
-async function sendTestPush(userId) {
-  if (!isConfigured()) return 0;
-  const subscriptions = await prisma.pushSubscription.findMany({ where: { userId } });
-  const payload = JSON.stringify({ title: 'Roamio', body: "Browser notifications are on. We'll alert you here about your trips.", url: '/', tag: 'roamio-test' });
-  await Promise.all(subscriptions.map((s) => sendOne(s, payload)));
-  return subscriptions.length;
+// Settings tests the current browser even if all topics are muted.
+async function sendTestPush(userId, endpoint) {
+  const subscription = await prisma.pushSubscription.findFirst({ where: { userId, endpoint } });
+  if (!subscription) return null;
+  const payload = JSON.stringify({ title: 'Roamio', body: 'This is a test of Roamio browser notifications.', url: '/settings', tag: 'roamio-test' });
+  return sendOne(subscription, payload, { urgency: 'high', TTL: 30, timeout: 5000 });
 }
 
 module.exports = { notifyUser, sendTestPush, isConfigured, safePath, MAX_FAILURES };

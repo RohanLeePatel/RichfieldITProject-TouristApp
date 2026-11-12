@@ -21,7 +21,7 @@ exports.createInvite = async (req, res, next) => {
 
 exports.previewInvite = async (req, res, next) => {
   try {
-    return res.status(200).json(await invitationService.previewInvite(req.params.token, req.user?.id ?? null));
+    return res.status(200).json(await invitationService.previewInvite(req.params.token, req.user?.id ?? null, req.query.trip));
   } catch (error) {
     return sendError(res, next, error);
   }
@@ -29,7 +29,8 @@ exports.previewInvite = async (req, res, next) => {
 
 exports.acceptInvite = async (req, res, next) => {
   try {
-    const result = await invitationService.acceptInvite(req.user.id, (req.body || {}).token);
+    const { token, tripId } = req.body || {};
+    const result = await invitationService.acceptInvite(req.user.id, token, tripId);
     return res.status(200).json({
       message: `Successfully joined ${result.groupName}.`,
       groupId: result.groupId,

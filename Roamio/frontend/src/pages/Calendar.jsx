@@ -257,7 +257,7 @@ export default function Calendar() {
   // optional: which trip a personal event belongs to
   const [formTripId, setFormTripId] = useState("");
 
-  // full trips (with itinerary) for the selected day's stops, fetched on demand
+  // Itineraries for trips selected in the sidebar, fetched on demand.
   const [tripDetails, setTripDetails] = useState({});
 
 
@@ -350,22 +350,24 @@ export default function Calendar() {
       : `${formatShort(toKey(weekDates[0]))} – ${formatShort(toKey(weekDates[6]))} ${weekDates[6].getFullYear()}`;
 
   const selectedTrips = tripsOn(selectedKey);
+  const selectedActiveTrip = pickedTrip && selectedTrips.find((trip) => String(trip.id) === String(pickedTrip.id));
+  const selectedActiveTripId = selectedActiveTrip?.id;
+  const activeTripDetails = tripDetails[selectedActiveTripId];
   const selectedHoliday = holidayOn(selectedKey);
   const selectedEvents = eventsOn(selectedKey);
-  // the selected day's stops for each trip on it, once that trip's itinerary is loaded
-  const selectedTripIds = selectedTrips.map((trip) => trip.id).join(",");
   useEffect(() => {
-    selectedTrips
-      .filter((trip) => !tripDetails[trip.id])
-      .forEach((trip) => {
-        fetchTrip(trip.id)
-          .then((full) => setTripDetails((current) => ({ ...current, [trip.id]: full })))
-          .catch(() => setTripDetails((current) => ({ ...current, [trip.id]: { itinerary: [] } })));
-      });
-  }, [selectedTripIds]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (selectedActiveTripId == null || activeTripDetails) return;
 
-  const stopsOn = (trip, key) =>
-    (tripDetails[trip.id]?.itinerary || []).filter((item) => item.dayNumber === diffDays(trip.startKey, key) + 1);
+    fetchTrip(selectedActiveTripId)
+      .then((full) => setTripDetails((current) => ({ ...current, [selectedActiveTripId]: full })))
+      .catch(() => setTripDetails((current) => ({ ...current, [selectedActiveTripId]: { itinerary: [] } })));
+  }, [selectedActiveTripId, activeTripDetails]);
+
+  const activeStops = selectedActiveTrip
+    ? (activeTripDetails?.itinerary || []).filter(
+        (item) => item.dayNumber === diffDays(selectedActiveTrip.startKey, selectedKey) + 1
+      )
+    : [];
 
   const nextLongWeekend = PUBLIC_HOLIDAYS_SA.find((h) => h.date >= todayKey && isLongWeekend(h.date));
   const getawayLink = nextLongWeekend
@@ -858,16 +860,14 @@ export default function Calendar() {
                   </Link>
                 ))}
 
-                {selectedTrips.map((trip) =>
-                  stopsOn(trip, selectedKey).length > 0 ? (
-                    <ul key={`stops-${trip.id}`} className="cal-day-stops" aria-label={`${trip.title} stops`}>
-                      {stopsOn(trip, selectedKey).map((item) => (
-                        <li key={item.id}>
-                          <span>{item.startTime}</span> {item.title}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null
+                {activeStops.length > 0 && (
+                  <ul className="cal-day-stops" aria-label={`${selectedActiveTrip.title} stops`}>
+                    {activeStops.map((item) => (
+                      <li key={item.id}>
+                        <span>{item.startTime}</span> {item.title}
+                      </li>
+                    ))}
+                  </ul>
                 )}
 
                 {selectedHoliday && (

@@ -21,6 +21,7 @@ import re
 
 REFUSAL = "I can only help with your trip and travel questions."
 WITHHELD = "I can't share that. Ask me about your trip or travelling instead."
+RESPECT_WARNING = "Please keep the conversation respectful. I’m here to help with your trip and travel questions."
 
 # What counts as personal data or a secret in text heading to, or coming back from,
 # the model. Each pattern replaces its match with a placeholder. Order matters:
@@ -47,6 +48,19 @@ _PROBES = [
 ]
 
 _LEAK_MARKERS = ("TRIP FACTS", "<trip_facts>", "Roamio's travel assistant. Answer")
+
+# shortcut: matches common direct English insults, expand if users need broader language coverage.
+_DIRECT_INSULT = re.compile(
+    r"^\s*(?:(?:fuck\s+you|idiot|moron|you\s+suck)(?:\s+(?:bot|chatbot|roamio))?\s*(?=$|[!.,?])"
+    r"|you\s+(?:fucking\s+)?(?:idiot|moron|asshole)\b"
+    r"|(?:you\s+are|you['’]re)\s+(?:such\s+)?(?:an?\s+)?(?:so\s+|fucking\s+)?"
+    r"(?:idiot|moron|asshole|stupid|dumb|useless)\b)",
+    re.IGNORECASE,
+)
+
+
+def is_direct_insult(text: str) -> bool:
+    return bool(_DIRECT_INSULT.match(text))
 
 
 def scrub(text: str) -> str:

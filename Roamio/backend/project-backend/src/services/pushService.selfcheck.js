@@ -17,9 +17,9 @@ let failWith = null;
 require.cache[require.resolve('web-push')] = {
   exports: {
     setVapidDetails: () => {},
-    sendNotification: async (sub, payload) => {
+    sendNotification: async (sub, payload, options) => {
       if (failWith) throw Object.assign(new Error('push failed'), { statusCode: failWith });
-      sent.push({ endpoint: sub.endpoint, payload: JSON.parse(payload) });
+      sent.push({ endpoint: sub.endpoint, payload: JSON.parse(payload), options });
     },
   },
 };
@@ -36,6 +36,7 @@ require.cache[path.join(__dirname, '../config/prisma.js')] = {
     notificationPreference: { findUnique: async () => (prefs ? { prefs } : null) },
     pushSubscription: {
       findMany: async () => subs,
+      findFirst: async ({ where }) => subs.find((s) => s.userId === where.userId && s.endpoint === where.endpoint),
       update: async ({ where, data }) => {
         const row = subs.find((s) => s.id === where.id);
         if (data.failureCount?.increment) row.failureCount += data.failureCount.increment;
@@ -46,9 +47,9 @@ require.cache[path.join(__dirname, '../config/prisma.js')] = {
   },
 };
 
-const { notifyUser, safePath } = require('./pushService');
+const { notifyUser, sendTestPush, safePath } = require('./pushService');
 const alert = { type: 'ALERT', topic: 'safetyAlerts', title: 'Safety alert', body: 'Level 3', url: '/trips/4' };
-const reset = () => { inbox.length = 0; sent.length = 0; failWith = null; subs = [{ id: 1, endpoint: 'e1', p256dh: 'p', auth: 'a', failureCount: 0 }]; };
+const reset = () => { inbox.length = 0; sent.length = 0; failWith = null; subs = [{ id: 1, userId: 1, endpoint: 'e1', p256dh: 'p', auth: 'a', failureCount: 0 }]; };
 
 (async () => {
   assert.equal(safePath('/trips/4'), '/trips/4');
@@ -94,6 +95,18 @@ const reset = () => { inbox.length = 0; sent.length = 0; failWith = null; subs =
   assert.equal(subs[0].failureCount, 4);
   await notifyUser(1, alert);
   assert.equal(subs.length, 0);
+
+  reset(); prefs = null;
+  subs.push({ ...subs[0], id: 2, endpoint: 'e2' });
+  assert.equal(await sendTestPush(2, 'e1'), null);
+  assert.equal(sent.length, 0);
+  assert.equal(await sendTestPush(1, 'e2'), true);
+  assert.deepEqual(sent.map((message) => message.endpoint), ['e2']);
+  assert.deepEqual(sent[0].options, { urgency: 'high', TTL: 30, timeout: 5000 });
+  assert.equal(inbox.length, 0);
+  failWith = 410;
+  assert.equal(await sendTestPush(1, 'e2'), false);
+  assert.deepEqual(subs.map((sub) => sub.endpoint), ['e1']);
 
   console.log('pushService selfcheck passed');
 })();

@@ -29,7 +29,7 @@ export default function TripDone({ cityName, tripId, days }) {
       {canInvite && (
         <div className="trip-done-invite">
           <p className="wizard-help"><Users size={16} /> Invite your travel group</p>
-          <TripInviteLink tripId={tripId} />
+          <TripInviteLink tripId={tripId} emailInvite />
         </div>
       )}
       <div className="wizard-actions">

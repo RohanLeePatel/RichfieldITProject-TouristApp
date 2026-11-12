@@ -59,7 +59,10 @@ export default function Register() {
     mutate: registerUser,
     isPending,
     error,
+    variables,
   } = useRegister();
+  const emailRejected = error?.data?.code === "INVALID_REGISTRATION_EMAIL";
+  const emailMessage = fieldErrors.email || (emailRejected && variables?.email === email.trim() ? error.message : "");
 
   const {
     mutate: verifyEmail,
@@ -425,19 +428,19 @@ export default function Register() {
                   id="register-email"
                   type="email"
                   name="email"
-                  placeholder="you@example.com"
+                  placeholder="Enter your email address"
                   autoComplete="email"
                   value={email}
                   maxLength={MAX_EMAIL}
-                  aria-invalid={Boolean(fieldErrors.email)}
-                  aria-describedby={fieldErrors.email ? "register-email-error" : undefined}
+                  aria-invalid={Boolean(emailMessage)}
+                  aria-describedby={emailMessage ? "register-email-error" : undefined}
                   onChange={(e) =>
                     setEmail(e.target.value)
                   }
                   required
                 />
               </div>
-              <FieldError id="register-email-error" message={fieldErrors.email} />
+              <FieldError id="register-email-error" message={emailMessage} />
             </div>
 
             {/* PASSWORD */}
@@ -569,7 +572,7 @@ export default function Register() {
 
             {/* ERROR */}
 
-            {error && (
+            {error && !emailRejected && (
               <p
                 style={{
                   color: "#e05252",

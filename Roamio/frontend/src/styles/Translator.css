@@ -750,9 +750,8 @@
   align-items: center;
   padding: 0 0.25em;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.65);
-  text-shadow: 0 0 3px #fff;
-  color: var(--tr-ink);
+  background: #102a33;
+  color: #fff;
   font-weight: 700;
   line-height: 1.1;
 }

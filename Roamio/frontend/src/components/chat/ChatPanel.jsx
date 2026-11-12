@@ -538,13 +538,10 @@ export default function ChatPanel({ showHistory = false, prefill = null }) {
               </span>
 
               <div className="chat-msg">
-                <div
-                  className="chat-bubble assistant pending"
-                  role="status"
-                  aria-label="The assistant is typing"
-                >
+                <div className="chat-bubble assistant pending">
+                  Thinking
                   <span className="chat-typing" aria-hidden="true">
-                    <i /><i /><i />
+                    <span /><span /><span />
                   </span>
                 </div>
               </div>

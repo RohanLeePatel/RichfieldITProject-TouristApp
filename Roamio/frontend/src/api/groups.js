@@ -16,12 +16,11 @@ export function joinGroup(inviteCode) {
   return authedFetch("/api/groups/join", { method: "POST", body: JSON.stringify({ inviteCode }) });
 }
 
-// The invite isn't emailed yet - the server returns the token, and the page
-// turns it into a link to send yourself.
-export async function createInvite(groupId, email) {
+// The token also lets the sender copy the invitation if email delivery fails.
+export async function createInvite(groupId, email, tripId) {
   const data = await authedFetch(`/api/groups/${encodeURIComponent(groupId)}/invites`, {
     method: "POST",
-    body: JSON.stringify({ email, role: "MEMBER" }),
+    body: JSON.stringify({ email, role: "MEMBER", tripId }),
   });
   return { token: data.invitationToken, emailed: Boolean(data.emailed) };
 }
@@ -29,12 +28,17 @@ export async function createInvite(groupId, email) {
 // public: { groupName, inviterName, role, expiresAt }. Signed in, the token is
 // sent too, so a link this account already accepted says so (error code
 // ALREADY_ACCEPTED). Errors carry data.code: INVALID, EXPIRED, USED, ...
-export function previewInvite(token, signedIn = false) {
-  return apiFetch(`/api/invites/${encodeURIComponent(token)}`, { auth: signedIn });
+export function previewInvite(token, signedIn = false, tripId) {
+  const query = tripId ? `?trip=${encodeURIComponent(tripId)}` : "";
+  return apiFetch(`/api/invites/${encodeURIComponent(token)}${query}`, { auth: signedIn });
 }
 
-export function acceptInvite(token) {
-  return authedFetch("/api/invites/accept", { method: "POST", body: JSON.stringify({ token }) });
+export function acceptInvite(token, tripId) {
+  return authedFetch("/api/invites/accept", { method: "POST", body: JSON.stringify({ token, tripId }) });
+}
+
+export function emailInvitePath(token, tripId) {
+  return `/invite/${encodeURIComponent(token)}${tripId ? `?trip=${encodeURIComponent(tripId)}` : ""}`;
 }
 
 // Replaces a group's companions - people on its trips without an account.
