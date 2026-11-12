@@ -14,6 +14,7 @@ import DeletedTrips from "../components/trips/DeletedTrips.jsx";
 import TripTemplates from "../components/trips/TripTemplates.jsx";
 import { fetchTrips } from "../api/trips.js";
 import { formatDate } from "../utils/format.js";
+import { getTripStatus, localTripDay } from "../utils/tripStatus.js";
 import "../styles/trips.css";
 
 function tripDateLabel(trip) {
@@ -24,26 +25,6 @@ function tripDateLabel(trip) {
   return trip.endDate
     ? `${format(trip.startDate)} → ${format(trip.endDate)}`
     : format(trip.startDate);
-}
-
-// A trip counts as completed when it is marked so, or when its end date has passed.
-// An unset or unreadable end date never counts as completed.
-function isTripCompleted(trip) {
-  if (String(trip.status || "").toLowerCase() === "completed") {
-    return true;
-  }
-
-  if (!trip.endDate) {
-    return false;
-  }
-
-  const endDate = new Date(trip.endDate);
-
-  if (Number.isNaN(endDate.getTime())) {
-    return false;
-  }
-
-  return new Date() > endDate;
 }
 
 export default function TripsList() {
@@ -84,9 +65,10 @@ export default function TripsList() {
     };
   }, [reload]);
 
+  const today = localTripDay();
   const filteredTrips = useMemo(() => {
     const list =
-      statusFilter === "completed" ? trips.filter(isTripCompleted) : trips;
+      statusFilter === "completed" ? trips.filter((trip) => getTripStatus(trip, today) === "Completed") : trips;
 
     // Earliest start date first; trips without dates go last.
     const time = (t) => {
@@ -99,7 +81,7 @@ export default function TripsList() {
       if (ta === tb) return 0;
       return ta < tb ? -1 : 1;
     });
-  }, [trips, statusFilter]);
+  }, [trips, statusFilter, today]);
 
   const showingCompleted = statusFilter === "completed";
 
@@ -179,7 +161,7 @@ export default function TripsList() {
                 <div className="trips-grid-card-header">
                   <h3>{trip.title}</h3>
 
-                  {isTripCompleted(trip) && (
+                  {getTripStatus(trip, today) === "Completed" && (
                     <span className="trips-completed-badge">
                       <CheckCircle2 size={14} />
                       Completed

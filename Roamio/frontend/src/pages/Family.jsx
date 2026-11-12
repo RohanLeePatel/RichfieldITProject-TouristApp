@@ -17,6 +17,7 @@ import Hint from "../components/onboarding/Hint.jsx";
 import PageShell from "../components/recommendations/PageShell.jsx";
 import { fetchTrips } from "../api/trips";
 import useActiveTrip from "../hooks/useActiveTrip.js";
+import { getTripStatus, localTripDay } from "../utils/tripStatus.js";
 import "../styles/Family.css";
 
 function normalizeTrip(trip) {
@@ -67,38 +68,6 @@ function formatTripDates(startDate, endDate) {
   }
 
   return start || end || "Dates not set";
-}
-
-// Completed once the end date has passed, Ongoing once it has started but not ended,
-// otherwise Planning (still ahead, so the only kind shown as upcoming).
-function getTripStatus(trip) {
-  const start = trip.startDate
-    ? new Date(trip.startDate)
-    : null;
-
-  const end = trip.endDate
-    ? new Date(trip.endDate)
-    : null;
-
-  const now = new Date();
-
-  if (
-    end &&
-    !Number.isNaN(end.getTime()) &&
-    now > end
-  ) {
-    return "Completed";
-  }
-
-  if (
-    start &&
-    !Number.isNaN(start.getTime()) &&
-    now >= start
-  ) {
-    return "Ongoing";
-  }
-
-  return "Planning";
 }
 
 function getTripColor(index) {
@@ -192,82 +161,21 @@ export default function Family() {
     };
   }, []);
 
-  const normalizedTrips = useMemo(
-    () =>
-      trips.map((trip) => ({
-        ...trip,
-        calculatedStatus: getTripStatus(trip),
-      })),
-    [trips]
-  );
-
-  const byStartDate = (a, b) => {
-    const aDate = a.startDate
-      ? new Date(a.startDate).getTime()
-      : Number.MAX_SAFE_INTEGER;
-
-    const bDate = b.startDate
-      ? new Date(b.startDate).getTime()
-      : Number.MAX_SAFE_INTEGER;
-
-    return aDate - bDate;
-  };
-
-  const upcomingTrips = useMemo(
-    () =>
-      normalizedTrips
-        .filter(
-          (trip) =>
-            trip.calculatedStatus ===
-            "Planning"
-        )
-        .sort(byStartDate),
-    [normalizedTrips]
-  );
-
-  const activeTrips = useMemo(
-    () =>
-      normalizedTrips
-        .filter(
-          (trip) =>
-            trip.calculatedStatus === "Ongoing"
-        )
-        .sort(byStartDate),
-    [normalizedTrips]
-  );
-
-  const completedTrips = useMemo(
-    () =>
-      normalizedTrips
-        .filter(
-          (trip) =>
-            trip.calculatedStatus === "Completed"
-        )
-        .sort(byStartDate),
-    [normalizedTrips]
-  );
-
-  // every trip for the overview tabs: under way first, then upcoming, finished ones last
-  const overviewTrips = useMemo(
-    () => [
-      ...normalizedTrips
-        .filter(
-          (trip) =>
-            trip.calculatedStatus ===
-            "Ongoing"
-        )
-        .sort(byStartDate),
-      ...upcomingTrips,
-      ...normalizedTrips
-        .filter(
-          (trip) =>
-            trip.calculatedStatus ===
-            "Completed"
-        )
-        .sort(byStartDate),
-    ],
-    [normalizedTrips, upcomingTrips]
-  );
+  const today = localTripDay();
+  const tripsByStatus = useMemo(() => {
+    const groups = { Ongoing: [], Planning: [], Completed: [], Cancelled: [] };
+    const startTime = (trip) => {
+      const time = Date.parse(trip.startDate);
+      return Number.isNaN(time) ? Number.MAX_SAFE_INTEGER : time;
+    };
+    for (const trip of [...trips].sort((a, b) => startTime(a) - startTime(b))) {
+      const calculatedStatus = getTripStatus(trip, today);
+      groups[calculatedStatus].push({ ...trip, calculatedStatus });
+    }
+    return groups;
+  }, [trips, today]);
+  const { Ongoing: activeTrips, Planning: upcomingTrips, Completed: completedTrips, Cancelled: cancelledTrips } = tripsByStatus;
+  const overviewTrips = [...activeTrips, ...upcomingTrips, ...completedTrips, ...cancelledTrips];
 
   // a tab picked on this page wins, then the trip picked in the sidebar, then the first one
   const activeTrip =
@@ -720,8 +628,6 @@ export default function Family() {
 
         {/* REAL GROUPS - accounts on the server, shared trips, invites */}
         <TravelGroups onGroups={setGroups} tripId={activeTrip?.id} />
-
-        {/* REAL UPCOMING TRIPS */}
 
         {/* REAL ACTIVE TRIPS - only shown once a trip has begun */}
         {!tripsLoading &&
