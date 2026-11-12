@@ -106,7 +106,7 @@ const server = app.listen(0, async () => {
   const post = (p, body) =>
     fetch(base + p, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
       .then(async (r) => ({ status: r.status, body: await r.json() }));
-  const account = { email: 'ada@example.com', password: 'longenough', fullName: "Zoë O'Brien-Smith Jr.", acceptedTerms: true }; // accents, apostrophe, hyphen, full stop are all fine
+  const account = { email: 'ada@example.com', password: 'Longenough1', fullName: "Zoë O'Brien-Smith Jr.", acceptedTerms: true }; // accents, apostrophe, hyphen, full stop are all fine
 
   try {
     // register refuses input that doesn't fit the fields, with the reason
@@ -116,6 +116,8 @@ const server = app.listen(0, async () => {
       [{ fullName: 'A' }, /2-80 characters/],
       [{ fullName: 'x'.repeat(81) }, /2-80 characters/],
       [{ password: 'a'.repeat(73) }, /longer than 72/],
+      [{ password: 'alllowercase' }, /uppercase/],
+      [{ password: 'Password1' }, /too common/],
       [{ email: `${'a'.repeat(250)}@example.com` }, /valid email/],
       [{ acceptedTerms: false }, /Terms and Privacy Policy/],
       [{ acceptedTerms: 'true' }, /Terms and Privacy Policy/],
@@ -218,7 +220,7 @@ const server = app.listen(0, async () => {
 
     // resetting the password signs every device out
     await post('/forgot-password', { email: account.email });
-    r = await post('/reset-password', { email: account.email, otp: sent.at(-1).otp, newPassword: 'another-long-one' });
+    r = await post('/reset-password', { email: account.email, otp: sent.at(-1).otp, newPassword: 'Another-long-1' });
     assert.equal(r.status, 200);
     assert.deepEqual(revokedAll, [1]);
     assert.ok([...sessions.values()].every((s) => !s.open));

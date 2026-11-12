@@ -181,7 +181,29 @@ async function sendAdminAlert(emails, subject, text) {
   }
 }
 
+// Emails a group invite link. Best effort: never throws; false means the inviter should share the link themselves.
+async function sendGroupInvite(email, { inviterName, groupName, link }) {
+  const message = {
+    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    to: email,
+    subject: `${inviterName} invited you to join "${groupName}" on Roamio`,
+    text: `${inviterName} invited you to join the travel group "${groupName}" on Roamio.\n\nSign in with this email address and open the link below to accept (valid 7 days):\n${link}`,
+  };
+  if (!isConfigured()) {
+    if (process.env.NODE_ENV !== 'production') console.log(`[DEV EMAIL] ${message.subject} -> ${email}\n${link}`);
+    else console.error('SMTP_HOST is not set: cannot email group invites.');
+    return false;
+  }
+  try {
+    await getTransporter().sendMail(message);
+    return true;
+  } catch (error) {
+    console.error('Failed to send group invite email:', error.message);
+    return false;
+  }
+}
+
 // Connects and authenticates against the SMTP server without sending anything
 const verifyConnection = () => getTransporter().verify();
 
-module.exports = { sendOtpEmail, sendNewSignInEmail, sendPlaceReportThanks, sendSupportReport, sendAdminAlert, isConfigured, verifyConnection };
+module.exports = { sendOtpEmail, sendNewSignInEmail, sendPlaceReportThanks, sendSupportReport, sendAdminAlert, sendGroupInvite, isConfigured, verifyConnection };

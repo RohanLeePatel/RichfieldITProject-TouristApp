@@ -1831,3 +1831,15 @@ a.logo {
 .captcha-message { margin: 0; color: #b42318; font-size: 0.8rem; line-height: 1.45; }
 .captcha-retry { padding: 0; border: 0; background: none; color: var(--teal-700, #0f766e); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
 .legal-note { margin: 12px 0 0; font-size: 0.78rem; line-height: 1.5; text-align: center; opacity: 0.85; }
+
+/* password strength meter (Register) */
+.pw-meter { margin-top: 8px; font-size: 0.75rem; }
+.pw-bar { display: flex; gap: 4px; }
+.pw-bar span { flex: 1; height: 5px; border-radius: 3px; background: #e2e8f0; transition: background .2s; }
+.pw-bar span.on.s1, .pw-label.s1 { background: #e05252; }
+.pw-bar span.on.s2, .pw-label.s2 { background: #f0a030; }
+.pw-bar span.on.s3, .pw-label.s3 { background: #7bbf3f; }
+.pw-bar span.on.s4, .pw-label.s4 { background: #1a9e6b; }
+.pw-label { display: inline-block; margin-top: 4px; padding: 0 6px; border-radius: 4px; color: #fff; }
+.pw-rules { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 2px 12px; color: #64748b; }
+.pw-rules li.ok { color: #1a9e6b; }

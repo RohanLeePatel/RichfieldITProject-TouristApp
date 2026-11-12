@@ -16,6 +16,14 @@ const INVALID_OTP = 'Invalid or expired OTP.';
 const INVALID_RESET_CODE = 'Invalid or expired reset code.';
 const MIN_PASSWORD_LENGTH = 8;
 const MAX_PASSWORD_LENGTH = 72; // bcrypt ignores everything after 72 bytes
+const COMMON_PASSWORDS = /^(password|passw0rd|qwerty|letmein|welcome|admin|iloveyou|abc123|123456)\d*[!@#$%^&*]*$/i;
+// Returns '' when a new password is acceptable (length is checked by the callers).
+const passwordWeakness = (p) => {
+  if (!/[a-z]/.test(p) || !/[A-Z]/.test(p) || !/\d/.test(p)) {
+    return 'Password needs an uppercase letter, a lowercase letter and a number.';
+  }
+  return COMMON_PASSWORDS.test(p) ? 'That password is too common. Choose something harder to guess.' : '';
+};
 const MAX_EMAIL_LENGTH = 254;
 const MAX_NAME_LENGTH = 80;
 // the wording of the Terms and Privacy Policy users agree to when they sign up;
@@ -69,6 +77,7 @@ class AuthService {
     if (password.length > MAX_PASSWORD_LENGTH) {
       throw httpError(400, `Password can't be longer than ${MAX_PASSWORD_LENGTH} characters.`);
     }
+    if (passwordWeakness(password)) throw httpError(400, passwordWeakness(password));
     if (typeof fullName !== 'string' || !fullName.trim()) throw httpError(400, 'Full name is required.');
     const nameProblem = this.fullNameProblem(fullName);
     if (nameProblem) throw httpError(400, nameProblem);
@@ -179,6 +188,7 @@ class AuthService {
     if (newPassword.length > MAX_PASSWORD_LENGTH) {
       throw httpError(400, `Password can't be longer than ${MAX_PASSWORD_LENGTH} characters.`);
     }
+    if (passwordWeakness(newPassword)) throw httpError(400, passwordWeakness(newPassword));
 
     const user = await userRepository.findByEmail(normalizeEmail(email));
     if (!user || !user.resetPasswordOtpHash || !user.resetPasswordExpiresAt

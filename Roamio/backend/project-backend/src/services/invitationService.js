@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const invitationRepo = require('../repositories/invitationRepository');
 const { httpError } = require('./tripAccessService');
 const groupActivity = require('./groupActivityService');
+const { sendGroupInvite } = require('./emailService');
 
 const INVITE_ROLES = ['ADMIN', 'MEMBER', 'VIEWER'];
 const INVITE_VALID_DAYS = 7;
@@ -66,10 +67,16 @@ class InvitationService {
       token,
     });
 
-    // No email is sent for this invite yet, so the token is returned to the inviter,
-    // who shares the link. Accepting still requires signing in with the invited
-    // address (see acceptInvite), so a leaked link alone is not enough.
-    return { invitationToken: token, role: normalizedRole, expiresAt };
+    // The token is still returned so the inviter can share the link when email
+    // isn't delivered. Accepting requires signing in with the invited address
+    // (see acceptInvite), so a leaked link alone is not enough.
+    const clientUrl = (process.env.CLIENT_URL || 'http://localhost:5173').split(',')[0].trim().replace(/\/$/, '');
+    const emailed = await sendGroupInvite(normalizedEmail, {
+      inviterName: inviter.fullName,
+      groupName: group.name,
+      link: `${clientUrl}/invite/${token}`,
+    });
+    return { invitationToken: token, role: normalizedRole, expiresAt, emailed };
   }
 
   // Where an account that's already in the invite's group should go: the trip

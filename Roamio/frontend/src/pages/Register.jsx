@@ -25,7 +25,7 @@ import {
 
 import FieldError from "../components/FieldError.jsx";
 import TurnstileWidget, { captchaEnabled } from "../components/TurnstileWidget.jsx";
-import { emailError, MAX_EMAIL, MAX_PASSWORD, nameError, passwordError } from "../utils/validation.js";
+import { emailError, MAX_EMAIL, MAX_PASSWORD, nameError, passwordError, passwordStrength } from "../utils/validation.js";
 
 import "../styles/auth.css";
 
@@ -41,6 +41,7 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const strength = passwordStrength(password);
   const [fieldErrors, setFieldErrors] = useState({});
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   // sign-up CAPTCHA (only when configured); resetKey asks the widget for a new token
@@ -490,6 +491,23 @@ export default function Register() {
                   )}
                 </button>
               </div>
+              {password && (
+                <div className="pw-meter" aria-live="polite">
+                  <div className="pw-bar">
+                    {[1, 2, 3, 4].map((n) => (
+                      <span key={n} className={n <= strength.score ? `on s${strength.score}` : ""} />
+                    ))}
+                  </div>
+                  <strong className={`pw-label s${strength.score}`}>
+                    {["", "Weak", "Fair", "Good", "Strong"][strength.score]}
+                  </strong>
+                  <ul className="pw-rules">
+                    {strength.rules.map((r) => (
+                      <li key={r.text} className={r.ok ? "ok" : ""}>{r.ok ? "✓" : "○"} {r.text}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               <FieldError id="register-password-error" message={fieldErrors.password} />
             </div>
 

@@ -50,5 +50,28 @@ export function passwordError(value, label = "password") {
   if (password.length < MIN_PASSWORD) return `The ${label} must be at least ${MIN_PASSWORD} characters.`;
   if (password.length > MAX_PASSWORD) return `The ${label} can't be longer than ${MAX_PASSWORD} characters.`;
   if (!password.trim()) return `The ${label} can't be only spaces.`;
+  if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password)) {
+    return `The ${label} needs an uppercase letter, a lowercase letter and a number.`;
+  }
+  if (COMMON_PASSWORDS.test(password)) return `That ${label} is too common. Choose something harder to guess.`;
   return "";
+}
+
+// keep in step with the same pattern in backend authService.js
+export const COMMON_PASSWORDS = /^(password|passw0rd|qwerty|letmein|welcome|admin|iloveyou|abc123|123456)\d*[!@#$%^&*]*$/i;
+
+// 0-4 for the strength bar; rules are the checklist shown under it
+export function passwordStrength(value) {
+  const p = String(value ?? "");
+  const rules = [
+    { ok: p.length >= MIN_PASSWORD, text: `${MIN_PASSWORD}+ characters` },
+    { ok: /[a-z]/.test(p) && /[A-Z]/.test(p), text: "Upper and lower case" },
+    { ok: /\d/.test(p), text: "A number" },
+    { ok: /[^A-Za-z0-9\s]/.test(p), text: "A symbol (!@#$…)" },
+  ];
+  let score = rules.filter((r) => r.ok).length;
+  if (p.length >= 12 && score >= 3) score = 4;
+  if (!p || COMMON_PASSWORDS.test(p)) score = Math.min(score, 1);
+  if (p.length < MIN_PASSWORD) score = Math.min(score, 1);
+  return { score: p ? Math.max(score, 1) : 0, rules };
 }

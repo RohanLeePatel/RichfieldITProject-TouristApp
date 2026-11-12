@@ -23,7 +23,7 @@ export async function createInvite(groupId, email) {
     method: "POST",
     body: JSON.stringify({ email, role: "MEMBER" }),
   });
-  return data.invitationToken;
+  return { token: data.invitationToken, emailed: Boolean(data.emailed) };
 }
 
 // public: { groupName, inviterName, role, expiresAt }. Signed in, the token is

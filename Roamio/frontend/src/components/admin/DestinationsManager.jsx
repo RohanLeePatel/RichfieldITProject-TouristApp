@@ -55,6 +55,45 @@ const VIEWS = [
 
 const EMPTY_FORM = { name: "", country: "", costIndex: "3", lat: "", lon: "", radiusM: "12000" };
 
+// Same limits as the server (catalogService.js), so mistakes show before the 30-second request.
+function inRange(value, label, min, max, integer) {
+  const n = Number(value);
+  if (String(value).trim() === "" || !Number.isFinite(n) || (integer && !Number.isInteger(n)) || n < min || n > max) {
+    return `${label} must be ${integer ? "a whole number" : "a number"} from ${min} to ${max}.`;
+  }
+  return null;
+}
+
+function validateForm(form, manual) {
+  const errors = {};
+  for (const [field, label] of [["name", "City"], ["country", "Country"]]) {
+    const v = form[field].trim();
+    if (!v) errors[field] = `${label} is required.`;
+    else if (v.length > 120) errors[field] = `${label} must be 120 characters or fewer.`;
+    else if (!/[a-z0-9]/i.test(v)) errors[field] = "Use English letters or numbers.";
+  }
+  if (manual) {
+    const lat = inRange(form.lat, "Latitude", -90, 90);
+    const lon = inRange(form.lon, "Longitude", -180, 180);
+    const radiusM = inRange(form.radiusM, "Search radius", 1000, 30000, true);
+    if (lat) errors.lat = lat;
+    if (lon) errors.lon = lon;
+    if (radiusM) errors.radiusM = radiusM;
+  }
+  return errors;
+}
+
+// "" removes the photo; anything else must be an https address
+function photoUrlError(value) {
+  if (!value) return null;
+  try {
+    if (new URL(value).protocol === "https:" && value.length <= 500) return null;
+  } catch {
+    // falls through to the message
+  }
+  return "Photo must be a web address starting with https:// (500 characters at most).";
+}
+
 // The cities the recommendation engine can suggest. Adding one looks it up on the
 // map and fetches its numbers (points of interest, climate, accessibility), which
 // takes up to half a minute; nothing here needs a code change or a deploy.
@@ -136,7 +175,12 @@ export default function DestinationsManager() {
     (refetchData.isPending && refetchData.variables === id) ||
     (remove.isPending && remove.variables === id);
 
-  const set = (field) => (event) => setForm((f) => ({ ...f, [field]: event.target.value }));
+  const [errors, setErrors] = useState({});
+  const set = (field) => (event) => {
+    setForm((f) => ({ ...f, [field]: event.target.value }));
+    setErrors((e) => ({ ...e, [field]: undefined }));
+  };
+  const fieldError = (field) => errors[field] && <span className="admin-field-error" role="alert">{errors[field]}</span>;
 
   return (
     <section className="admin-card admin-destinations" aria-labelledby="admin-destinations-title">
@@ -187,19 +231,24 @@ export default function DestinationsManager() {
       {adding && (
         <form
           className="admin-dest-form"
+          noValidate
           onSubmit={(event) => {
             event.preventDefault();
             setNotice(null);
-            add.mutate();
+            const found = validateForm(form, manual);
+            setErrors(found);
+            if (Object.keys(found).length === 0) add.mutate();
           }}
         >
           <label>
             City
-            <input value={form.name} onChange={set("name")} placeholder="Kyoto" required maxLength={120} />
+            <input value={form.name} onChange={set("name")} placeholder="Kyoto" required maxLength={120} aria-invalid={!!errors.name} />
+            {fieldError("name")}
           </label>
           <label>
             Country
-            <input value={form.country} onChange={set("country")} placeholder="Japan" required maxLength={120} />
+            <input value={form.country} onChange={set("country")} placeholder="Japan" required maxLength={120} aria-invalid={!!errors.country} />
+            {fieldError("country")}
           </label>
           <label>
             Cost level
@@ -220,15 +269,18 @@ export default function DestinationsManager() {
             <>
               <label>
                 Latitude
-                <input value={form.lat} onChange={set("lat")} inputMode="decimal" placeholder="35.0116" required />
+                <input value={form.lat} onChange={set("lat")} inputMode="decimal" placeholder="35.0116" required aria-invalid={!!errors.lat} />
+                {fieldError("lat")}
               </label>
               <label>
                 Longitude
-                <input value={form.lon} onChange={set("lon")} inputMode="decimal" placeholder="135.7681" required />
+                <input value={form.lon} onChange={set("lon")} inputMode="decimal" placeholder="135.7681" required aria-invalid={!!errors.lon} />
+                {fieldError("lon")}
               </label>
               <label>
                 Search radius (metres)
-                <input value={form.radiusM} onChange={set("radiusM")} inputMode="numeric" placeholder="12000" required />
+                <input value={form.radiusM} onChange={set("radiusM")} inputMode="numeric" placeholder="12000" required aria-invalid={!!errors.radiusM} />
+                {fieldError("radiusM")}
               </label>
             </>
           )}
@@ -366,7 +418,10 @@ export default function DestinationsManager() {
                     disabled={busy}
                     onClick={() => {
                       const url = window.prompt(`Photo address for ${d.name} (https://…). Leave empty to remove it.`, d.imageUrl || "");
-                      if (url !== null) change.mutate({ id: d.id, fields: { imageUrl: url.trim() } });
+                      if (url === null) return;
+                      const problem = photoUrlError(url.trim());
+                      if (problem) setNotice({ tone: "error", text: problem });
+                      else change.mutate({ id: d.id, fields: { imageUrl: url.trim() } });
                     }}
                     aria-label={`Set photo for ${d.name}`}
                     title="Set photo"
