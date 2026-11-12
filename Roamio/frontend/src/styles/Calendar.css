@@ -1049,27 +1049,7 @@
   gap: 10px;
 }
 
-/* the selected day's itinerary stops, under its trip ticket */
-.cal-day-stops {
-  display: grid;
-  gap: 6px;
-  margin: 0;
-  padding: 10px 14px;
-  list-style: none;
-  border: 1px dashed var(--cal-line);
-  border-radius: 12px;
-  color: var(--cal-ink);
-  font-size: 0.8125rem;
-}
-
-.cal-day-stops span {
-  display: inline-block;
-  min-width: 44px;
-  color: var(--cal-primary);
-  font-weight: 700;
-}
-
-/* trip ticket */
+/* stop ticket */
 .cal-ticket {
   --stub: 74px;
   --notch: 7px;
@@ -1144,50 +1124,8 @@
   opacity: 0.35;
 }
 
-.cal-ticket-stub small {
+.cal-ticket-stub time {
   font-size: 0.7rem;
-}
-
-/* holiday stamp */
-.cal-agenda-holiday {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 13px;
-  border: 1px dashed color-mix(in srgb, var(--tone-amber) 45%, transparent);
-  border-radius: 14px;
-  background: var(--tone-amber-soft);
-}
-
-.cal-stamp {
-  width: 42px;
-  height: 42px;
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  border: 2px solid var(--tone-amber);
-  border-radius: 50%;
-  outline: 1px dashed var(--tone-amber);
-  outline-offset: 2px;
-  color: var(--tone-amber);
-  transform: rotate(-10deg);
-}
-
-.cal-agenda-holiday > div {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-}
-
-.cal-agenda-holiday strong {
-  font-size: 0.92rem;
-  font-weight: 800;
-}
-
-.cal-agenda-holiday span {
-  font-size: 0.76rem;
-  color: var(--cal-ink-soft);
 }
 
 .cal-chip {
@@ -1292,59 +1230,6 @@
 
 .cal-event-actions button:last-child:hover {
   color: var(--tone-coral);
-}
-
-/* empty */
-.cal-agenda-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 26px 16px;
-  border: 1px dashed var(--cal-line);
-  border-radius: 16px;
-  text-align: center;
-}
-
-.cal-empty-icon {
-  width: 56px;
-  height: 56px;
-  display: grid;
-  place-items: center;
-  margin-bottom: 4px;
-  border-radius: 50%;
-  color: var(--cal-primary);
-  background: var(--tone-teal-soft);
-}
-
-.cal-agenda-empty strong {
-  font-size: 0.92rem;
-}
-
-.cal-agenda-empty p {
-  margin: 0 0 6px;
-  font-size: 0.8rem;
-  color: var(--cal-ink-soft);
-}
-
-.cal-agenda-empty button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border: 1px solid var(--cal-primary);
-  border-radius: 10px;
-  background: none;
-  color: var(--cal-primary);
-  font-size: 0.8rem;
-  font-weight: 800;
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
-}
-
-.cal-agenda-empty button:hover {
-  background: var(--cal-primary);
-  color: #fff;
 }
 
 /* =========================================================

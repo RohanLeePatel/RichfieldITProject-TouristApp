@@ -53,23 +53,19 @@ export async function disablePush(token) {
   await subscription.unsubscribe();
 }
 
-export async function sendTestPush() {
+export async function showTestNotification() {
   if (Notification.permission !== "granted") {
     throw new Error("Allow notifications in your browser settings to send a test.");
   }
 
-  const reg = await navigator.serviceWorker.getRegistration(SW_URL);
-  const subscription = await reg?.pushManager.getSubscription();
-  if (!subscription) {
-    throw new Error("Turn Browser notifications off and back on to subscribe this device.");
-  }
-
-  const send = () => post("test", "POST", { endpoint: subscription.endpoint });
-  try {
-    return await send();
-  } catch (error) {
-    if (error.status !== 404) throw error;
-    await post("subscribe", "POST", subscription.toJSON());
-    return send();
-  }
+  const existing = await navigator.serviceWorker.getRegistration(SW_URL);
+  const reg = existing?.active ? existing : await registration();
+  await reg.showNotification("Roamio", {
+    body: "This is a test of Roamio browser notifications.",
+    icon: "/favicon.svg",
+    badge: "/favicon.svg",
+    tag: "roamio-test",
+    renotify: true,
+    data: { url: "/settings" },
+  });
 }

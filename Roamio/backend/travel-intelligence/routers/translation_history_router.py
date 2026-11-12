@@ -2,7 +2,7 @@ import logging
 import re
 from typing import Optional
 
-from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
 
 from config.auth import verify_secretKey

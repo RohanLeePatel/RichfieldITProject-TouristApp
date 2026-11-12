@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from services import storage_service
 from services.storage_service import StorageError
 
+
 def _signed(user_id="user-1"):
     import time
 

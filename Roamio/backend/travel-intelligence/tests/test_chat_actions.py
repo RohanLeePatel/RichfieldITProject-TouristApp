@@ -52,7 +52,10 @@ def _spy(monkeypatch, payload):
 def test_the_tool_is_offered_only_when_the_traveller_may_edit(client, monkeypatch):
     seen = _spy(monkeypatch, {"candidates": [{"content": {"parts": [{"text": "ok"}]}}]})
     client.post("/chat", json=ASK, headers=SECRET)
-    names = lambda: {f["name"] for f in seen["json"]["tools"][0]["functionDeclarations"]}
+
+    def names():
+        return {f["name"] for f in seen["json"]["tools"][0]["functionDeclarations"]}
+
     assert names() == {"get_weather", "translate_text", "get_exchange_rate"}  # read-only, offered to everyone
     client.post("/chat", json={**ASK, "can_edit": True}, headers=SECRET)
     assert names() == {"get_weather", "translate_text", "get_exchange_rate", "add_itinerary_item", "remove_itinerary_item", "log_expense"}
@@ -113,7 +116,9 @@ def test_translate_and_rate_tools_return_results(client, monkeypatch):
 
 
 def test_tool_arguments_are_validated_and_errors_come_back_as_words(client, monkeypatch):
-    boom = lambda *a, **k: (_ for _ in ()).throw(AssertionError("must not be called"))
+    def boom(*args, **kwargs):
+        raise AssertionError("must not be called")
+
     for call, snippet in [
         (_call(name="get_exchange_rate", base="US", target="ZAR"), "3 letters"),
         (_call(name="get_exchange_rate", base="USD; DROP", target="ZAR"), "3 letters"),
@@ -126,7 +131,9 @@ def test_tool_arguments_are_validated_and_errors_come_back_as_words(client, monk
 
 
 def test_a_failing_tool_does_not_take_the_chat_down(client, monkeypatch):
-    boom = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("secret url"))
+    def boom(*args, **kwargs):
+        raise RuntimeError("secret url")
+
     got = _tool_answer(monkeypatch, client, _call(name="get_exchange_rate", base="USD", target="ZAR"), rate_detail=boom)
     assert got == {"error": "That lookup failed. Try again in a moment."}
 

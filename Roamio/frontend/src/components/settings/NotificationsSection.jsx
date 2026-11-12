@@ -14,7 +14,7 @@ import {
   Users,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { disablePush, enablePush, pushSupported, sendTestPush } from "../../services/push.js";
+import { disablePush, enablePush, pushSupported, showTestNotification } from "../../services/push.js";
 
 import {
   DEFAULT_NOTIFICATIONS,
@@ -171,8 +171,8 @@ export default function NotificationsSection({ email, notify }) {
   const sendTest = async () => {
     setSendingTest(true);
     try {
-      await sendTestPush();
-      notify("Test notification sent. Check this device’s notifications.");
+      await showTestNotification();
+      notify("Check this device’s notification center for the Roamio test.");
     } catch (error) {
       notify(error.message || "Couldn't send a test notification.", "error");
     } finally {

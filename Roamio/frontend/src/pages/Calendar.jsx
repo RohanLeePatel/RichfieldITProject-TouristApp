@@ -257,7 +257,7 @@ export default function Calendar() {
   // optional: which trip a personal event belongs to
   const [formTripId, setFormTripId] = useState("");
 
-  // Itineraries for trips selected in the sidebar, fetched on demand.
+  // Itineraries for active trips, fetched on demand.
   const [tripDetails, setTripDetails] = useState({});
 
 
@@ -350,17 +350,20 @@ export default function Calendar() {
       : `${formatShort(toKey(weekDates[0]))} – ${formatShort(toKey(weekDates[6]))} ${weekDates[6].getFullYear()}`;
 
   const selectedTrips = tripsOn(selectedKey);
-  const selectedActiveTrip = pickedTrip && selectedTrips.find((trip) => String(trip.id) === String(pickedTrip.id));
+  const selectedActiveTrip = trips.find((trip) =>
+    String(trip.id) === String(pickedTrip?.id) &&
+    selectedKey >= trip.startKey &&
+    selectedKey <= trip.endKey
+  );
   const selectedActiveTripId = selectedActiveTrip?.id;
   const activeTripDetails = tripDetails[selectedActiveTripId];
-  const selectedHoliday = holidayOn(selectedKey);
   const selectedEvents = eventsOn(selectedKey);
   useEffect(() => {
     if (selectedActiveTripId == null || activeTripDetails) return;
 
     fetchTrip(selectedActiveTripId)
       .then((full) => setTripDetails((current) => ({ ...current, [selectedActiveTripId]: full })))
-      .catch(() => setTripDetails((current) => ({ ...current, [selectedActiveTripId]: { itinerary: [] } })));
+      .catch(() => setTripDetails((current) => ({ ...current, [selectedActiveTripId]: { error: true } })));
   }, [selectedActiveTripId, activeTripDetails]);
 
   const activeStops = selectedActiveTrip
@@ -373,10 +376,6 @@ export default function Calendar() {
   const getawayLink = nextLongWeekend
     ? `/recommendations?start=${longWeekendRange(nextLongWeekend.date).start}&end=${longWeekendRange(nextLongWeekend.date).end}`
     : "/recommendations";
-
-  const selectedIsEmpty =
-    selectedTrips.length === 0 && !selectedHoliday && selectedEvents.length === 0;
-
 
   // ---------- navigation ----------
 
@@ -834,57 +833,52 @@ export default function Calendar() {
                     })}
                   </h3>
                 </div>
-
-                <button type="button" className="cal-add-btn" onClick={openAddModal} aria-label="Add event" title="Add event">
-                  <Plus size={18} />
-                </button>
               </div>
 
               <div className="cal-agenda-list">
-                {selectedTrips.map((trip) => (
-                  <Link key={trip.id} to={`/trips/${trip.id}`} className={`cal-ticket tone-${trip.tone}`}>
+                {activeStops.map((stop, index) => (
+                  <Link
+                    key={stop.id}
+                    to={`/trips/${selectedActiveTripId}`}
+                    className={`cal-ticket tone-${TRIP_TONES[index % TRIP_TONES.length]}`}
+                  >
                     <div className="cal-ticket-main">
                       <span className="cal-ticket-label">
-                        <Plane size={12} /> {tripDayLabel(trip, selectedKey)}
+                        <Plane size={12} /> {tripDayLabel(selectedActiveTrip, selectedKey)}
                       </span>
-                      <strong>{trip.title}</strong>
-                      <span className="cal-ticket-dest">
-                        <MapPin size={12} /> {trip.destination}
-                      </span>
+                      <strong>{stop.title}</strong>
+                      {stop.location && (
+                        <span className="cal-ticket-dest">
+                          <MapPin size={12} /> {stop.location}
+                        </span>
+                      )}
                     </div>
                     <div className="cal-ticket-stub">
-                      <small>{formatShort(trip.startKey)}</small>
-                      <ArrowRight size={12} />
-                      <small>{formatShort(trip.endKey)}</small>
+                      {stop.startTime && <time dateTime={stop.startTime}>{stop.startTime}</time>}
                     </div>
                   </Link>
                 ))}
 
-                {activeStops.length > 0 && (
-                  <ul className="cal-day-stops" aria-label={`${selectedActiveTrip.title} stops`}>
-                    {activeStops.map((item) => (
-                      <li key={item.id}>
-                        <span>{item.startTime}</span> {item.title}
-                      </li>
-                    ))}
-                  </ul>
+                {activeStops.length === 0 && (
+                  <p className="cal-muted" role="status">
+                    {tripsError || activeTripDetails?.error
+                      ? "Couldn't load itinerary stops."
+                      : !tripsLoaded || (selectedActiveTrip && !activeTripDetails)
+                        ? "Loading itinerary stops…"
+                        : "No stops scheduled for this date."}
+                  </p>
                 )}
+              </div>
+            </section>
 
-                {selectedHoliday && (
-                  <div className="cal-agenda-holiday">
-                    <span className="cal-stamp">
-                      <Flag size={16} />
-                    </span>
-                    <div>
-                      <strong>{selectedHoliday.name}</strong>
-                      <span>Public holiday</span>
-                      {isLongWeekend(selectedHoliday.date) && (
-                        <em className="cal-chip">Long weekend</em>
-                      )}
-                    </div>
-                  </div>
-                )}
-
+            <section className="cal-card cal-agenda">
+              <div className="cal-agenda-header">
+                <h3>Events &amp; reminders</h3>
+                <button type="button" className="cal-add-btn" onClick={openAddModal} aria-label="Add event" title="Add event">
+                  <Plus size={18} />
+                </button>
+              </div>
+              <div className="cal-agenda-list">
                 {selectedEvents.map((ev) => {
                   const { icon: Icon, tone } = categoryOf(ev);
 
@@ -917,19 +911,6 @@ export default function Calendar() {
                     </div>
                   );
                 })}
-
-                {selectedIsEmpty && (
-                  <div className="cal-agenda-empty">
-                    <span className="cal-empty-icon">
-                      <Luggage size={26} />
-                    </span>
-                    <strong>Nothing packed for this day</strong>
-                    <p>Add a reminder, a booking or a flight time.</p>
-                    <button type="button" onClick={openAddModal}>
-                      <Plus size={15} /> Add event
-                    </button>
-                  </div>
-                )}
               </div>
             </section>
 
