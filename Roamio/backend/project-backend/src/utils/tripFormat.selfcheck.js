@@ -46,4 +46,22 @@ assert.equal(packMeta({ destination: 'A' }), '{"destination":"A","budget":null,"
 const plain = formatTrip({ id: 5, title: 'e', description: packMeta({ destination: 'A' }) });
 assert.deepEqual([plain.currency, plain.travellers, plain.interests], [null, null, []]);
 
+// moving a stop to another day: it gets a new last slot there (no clash with a time
+// already in use), and the day it left keeps its earliest slot
+{
+  const { planReorder } = require('./tripFormat');
+  const at = (day, time) => itemStartDate('2027-03-10', day, time);
+  const stops = [
+    { id: 1, dayNumber: 1, startTime: at(1, '09:00') },
+    { id: 2, dayNumber: 1, startTime: at(1, '10:40') },
+    { id: 3, dayNumber: 2, startTime: at(2, '09:00') },
+    { id: 4, dayNumber: 2, startTime: at(2, '10:40') },
+  ];
+  const moved = planReorder(stops, '2027-03-10', [{ dayNumber: 1, itemIds: [2] }, { dayNumber: 2, itemIds: [3, 4, 1] }]);
+  assert.deepEqual(moved.map((u) => [u.id, u.dayNumber, formatTime(u.startTime)]), [[2, 1, '09:00'], [3, 2, '09:00'], [4, 2, '10:40'], [1, 2, '12:20']]);
+  const swapped = planReorder(stops, '2027-03-10', [{ dayNumber: 1, itemIds: [2, 1] }]);
+  assert.deepEqual(swapped.map((u) => [u.id, formatTime(u.startTime)]), [[2, '09:00'], [1, '10:40']]);
+  assert.equal(planReorder(stops, '2027-03-10', [{ dayNumber: 1, itemIds: [1, 1] }]), null);
+}
+
 console.log('tripFormat selfcheck: all assertions passed');

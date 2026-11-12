@@ -185,7 +185,8 @@ const server = app.listen(0, async () => {
     assert.equal(r.status, 200);
     assert.deepEqual(
       calls.slice(before).filter(([n]) => n === 'itineraryItem.update').map(([, a]) => [a.where.id, a.data.dayNumber, a.data.startTime.toISOString()]),
-      [['b', 1, '2026-10-01T10:00:00.000Z'], ['c', 1, '2026-10-01T14:00:00.000Z'], ['a', 2, '2026-10-02T09:00:00.000Z']]
+      // each day hands out its own slots (09:00 and 14:00; 10:00), not the times the incoming stops had
+      [['b', 1, '2026-10-01T09:00:00.000Z'], ['c', 1, '2026-10-01T14:00:00.000Z'], ['a', 2, '2026-10-02T10:00:00.000Z']]
     );
     assert.equal((await call('/5/itinerary/order', { method: 'PUT', body: JSON.stringify({ days: [{ dayNumber: 1, itemIds: ['zzz'] }] }) })).status, 400);
     assert.equal((await call('/5/itinerary/order', { method: 'PUT', body: JSON.stringify({ days: [{ dayNumber: 1, itemIds: ['a', 'a'] }] }) })).status, 400);

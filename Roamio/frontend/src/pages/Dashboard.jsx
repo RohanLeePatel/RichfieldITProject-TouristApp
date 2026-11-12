@@ -53,9 +53,6 @@ import heroPhoto from "../assets/dashboard/hero-alps.jpg";
 // CONSTANTS
 // =========================================================
 
-// how many group members the dashboard card lists before "+N more"
-const GROUP_PREVIEW_LIMIT = 4;
-
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 // =========================================================
@@ -537,12 +534,6 @@ export default function Dashboard() {
   const displayedTrips =
     relevantTrips.slice(0, 4);
 
-  const shownMembers =
-    groupMembers.slice(0, GROUP_PREVIEW_LIMIT);
-
-  const hiddenMemberCount =
-    groupMembers.length - shownMembers.length;
-
   const stats = [
     {
       to: "/trips",
@@ -588,10 +579,6 @@ export default function Dashboard() {
 
   const handleCreateTrip = () => {
     navigate("/recommendations");
-  };
-
-  const handleOpenGroup = () => {
-    navigate(tripGroup ? `/family?group=${tripGroup.id}` : "/family");
   };
 
   // =========================================================
@@ -1218,86 +1205,6 @@ export default function Dashboard() {
                 </div>
 
                 {renderWeather()}
-
-              </section>
-
-              {/* TRAVEL GROUP */}
-
-              <section className="dashboard-card group-card">
-
-                <div className="card-heading">
-
-                  <div>
-                    <h2>{tripGroup ? tripGroup.name : "Travel group"}</h2>
-
-                    <p className="section-sub">
-                      {groupMembers.length}{" "}
-                      {groupMembers.length === 1 ? "member" : "members"}
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="icon-button"
-                    aria-label="Add group member"
-                    title="Add group member"
-                    onClick={handleOpenGroup}
-                  >
-                    <Plus size={16} />
-                  </button>
-
-                </div>
-
-                <ul className="group-list">
-
-                  {shownMembers.map((member, index) => (
-                    <li
-                      className="group-member"
-                      key={member.id}
-                    >
-
-                      <div
-                        className={`group-avatar tone-${index % 4}`}
-                      >
-                        {member.initials}
-                      </div>
-
-                      <div className="group-member-info">
-                        <strong>{member.name}</strong>
-
-                        <span>
-                          {member.role ||
-                            member.relationship ||
-                            "Group member"}
-                        </span>
-                      </div>
-
-                      {member.status === "Organizer" && (
-                        <span className="organizer-badge">
-                          You
-                        </span>
-                      )}
-
-                    </li>
-                  ))}
-
-                </ul>
-
-                {hiddenMemberCount > 0 && (
-                  <p className="group-more">
-                    +{hiddenMemberCount} more
-                  </p>
-                )}
-
-                <Link
-                  to={tripGroup ? `/family?group=${tripGroup.id}` : "/family"}
-                  className="card-footer-link"
-                >
-                  {groupMembers.length > 1
-                    ? "Manage group"
-                    : "Invite your travel group"}
-                  <ArrowRight size={15} />
-                </Link>
 
               </section>
 

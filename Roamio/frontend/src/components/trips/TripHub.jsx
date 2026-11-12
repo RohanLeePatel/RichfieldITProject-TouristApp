@@ -238,6 +238,12 @@ export function TripPeople({ trip }) {
 // A new stop is added at 10:00 on the chosen day, a time that's easy to change later.
 export function AddLandmark({ trip, onAdded }) {
   const dayCount = Math.max(1, ...(trip.itinerary || []).map((item) => item.dayNumber || 1));
+  // With dates set, offer the trip's own days and no day after it ends; without, one new day past the last
+  const tripLength =
+    trip.startDate && trip.endDate
+      ? Math.round((new Date(trip.endDate) - new Date(trip.startDate)) / 86_400_000) + 1
+      : null;
+  const dayOptions = tripLength ? Math.max(tripLength, dayCount) : dayCount + 1;
   const [interest, setInterest] = useState(INTEREST_TAGS[0].id);
   const [results, setResults] = useState(null);
   const [day, setDay] = useState(1);
@@ -298,7 +304,7 @@ export function AddLandmark({ trip, onAdded }) {
           ))}
         </select>
         <select value={day} onChange={(event) => setDay(Number(event.target.value))} aria-label="Day">
-          {Array.from({ length: dayCount + 1 }, (_, index) => (
+          {Array.from({ length: dayOptions }, (_, index) => (
             <option key={index + 1} value={index + 1}>
               Day {index + 1}{index + 1 > dayCount ? " (new)" : ""}
             </option>

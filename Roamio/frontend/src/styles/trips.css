@@ -38,6 +38,15 @@
   font-size: 0.875rem;
 }
 
+.trips-completed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink-soft);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
 .trips-grid-destination svg,
 .trips-grid-dates svg {
   color: var(--primary);
@@ -535,6 +544,8 @@
 
 .trip-day h3 { margin: 0; color: var(--ink); font-size: 1.0625rem; }
 .trip-day header span { color: var(--ink-soft); font-size: 0.8125rem; font-weight: 600; }
+
+.trip-day-late { margin: 0 0 10px; color: var(--ink-soft); font-size: 0.75rem; line-height: 1.4; }
 
 .trip-stops { margin: 0; padding: 0; list-style: none; }
 

@@ -45,7 +45,8 @@ export default function DeletedTrips({ onRestored }) {
       {error && <p className="recommendations-error">{error}</p>}
       <ul>
         {trips.map((trip) => {
-          const left = Math.max(1, 30 - Math.floor((Date.now() - new Date(trip.deletedAt)) / DAY_MS));
+          // capped at 30: a device clock slightly behind the server's would otherwise show 31
+          const left = Math.min(30, Math.max(1, 30 - Math.floor((Date.now() - new Date(trip.deletedAt)) / DAY_MS)));
           return (
             <li key={trip.id}>
               <div>

@@ -134,6 +134,7 @@ export default function TripBudget({ embedded = false }) {
           <BudgetOverview
             summary={summary}
             defaultCurrency={budgetCurrency}
+            suggested={trip?.budget}
             busy={busy}
             onSave={(totalAmount, currency) => run(() => saveBudget(tripId, { totalAmount, currency }))}
           />
@@ -391,8 +392,9 @@ function SplitShares({ saved, memberIds, names, busy, error, onSave }) {
   );
 }
 
-function BudgetOverview({ summary, defaultCurrency, busy, onSave }) {
-  const [amount, setAmount] = useState(summary.totalBudget ?? "");
+// suggested: the budget planned in the wizard, offered as the starting amount until one is saved here
+function BudgetOverview({ summary, defaultCurrency, suggested, busy, onSave }) {
+  const [amount, setAmount] = useState(summary.totalBudget ?? suggested ?? "");
   const [currency, setCurrency] = useState(defaultCurrency);
   const [editing, setEditing] = useState(summary.totalBudget === null);
   const [formError, setFormError] = useState("");
@@ -454,6 +456,8 @@ function ExpenseForm({ trip, budgetCurrency, busy, onAdd }) {
   const [date, setDate] = useState(today);
   const [preview, setPreview] = useState("");
   const [formError, setFormError] = useState("");
+  // `busy` is shared by every form on the page; only this form's own save says "Adding..."
+  const [adding, setAdding] = useState(false);
 
   // allow bookings made up to a year ahead of the trip, nothing after it ends
   const minDate = trip?.startDate ? shiftDays(trip.startDate, -365) : undefined;
@@ -498,10 +502,12 @@ function ExpenseForm({ trip, budgetCurrency, busy, onAdd }) {
           setFormError(problem);
           if (problem) return;
           // keep what was typed if the save fails
+          setAdding(true);
           if (await onAdd({ title: title.trim(), amount: Number(amount).toFixed(2), currency, category, date })) {
             setTitle("");
             setAmount("");
           }
+          setAdding(false);
         }}
       >
         <label className="wizard-field">
@@ -529,7 +535,7 @@ function ExpenseForm({ trip, budgetCurrency, busy, onAdd }) {
           <input type="date" min={minDate} max={maxDate} value={date} onChange={(event) => setDate(event.target.value)} required />
         </label>
         <button type="submit" className="recommendations-submit" disabled={busy}>
-          {busy && <LoaderCircle className="recommendations-spinner" size={15} />} {busy ? "Adding..." : "Add"}
+          {adding && <LoaderCircle className="recommendations-spinner" size={15} />} {adding ? "Adding..." : "Add"}
         </button>
       </form>
       {formError && <p className="recommendations-error" role="alert">{formError}</p>}

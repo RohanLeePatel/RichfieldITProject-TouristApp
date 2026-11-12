@@ -211,6 +211,22 @@
   transform: translateY(-1px);
 }
 
+.chat-history-empty {
+  display: grid;
+  gap: 2px;
+  margin: 14px 4px;
+  color: var(--chat-muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.chat-note {
+  margin: 8px 4px 0;
+  color: var(--chat-muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
 .chat-history-search {
   display: flex;
   align-items: center;

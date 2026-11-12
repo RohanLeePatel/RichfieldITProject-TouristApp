@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 import { fetchTrips } from "../api/trips";
+import { useAuthStore } from "./authStore.js";
 
 // The trip the whole app is "about" right now. Weather, the translator, the
 // calendar and the trip hub all read it, so a destination and dates typed once
@@ -30,7 +31,13 @@ export const useTripStore = create((set) => ({
     if (!force && useTripStore.getState().loaded) return Promise.resolve();
     loading = fetchTrips()
       .then((trips) => set({ trips, loaded: true, error: "" }))
-      .catch((error) => set({ loaded: true, error: error instanceof Error ? error.message : "Could not load trips." }))
+      // A failed load stays "not loaded": pages keep their loading state instead of
+      // telling someone with trips that they have none, and it is tried again.
+      .catch((error) => {
+        set({ error: error instanceof Error ? error.message : "Could not load trips." });
+        // ponytail: fixed 5s retry while the tab is open; back off if this ever hammers the API
+        setTimeout(() => useAuthStore.getState().isAuthenticated && useTripStore.getState().load(), 5000);
+      })
       .finally(() => {
         loading = null;
       });

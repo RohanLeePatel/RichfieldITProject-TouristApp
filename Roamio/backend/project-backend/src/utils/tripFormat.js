@@ -65,23 +65,32 @@ function itemStartDate(tripStartDate, dayNumber, startTime) {
 }
 
 // Reordering a saved itinerary. Order is by start time, so each day keeps the
-// set of times it had and hands them out in the new order (move a stop up and
-// it takes the earlier slot). days: [{ dayNumber, itemIds }]. Returns the
-// rows to update, or null if an id isn't one of the items or is listed twice.
+// times it already had and hands them out, earliest first, in the new order
+// (move a stop up and it takes the earlier slot). A stop arriving from another
+// day gets a new slot after the day's last one instead of bringing its old time,
+// which could collide; the day it left keeps its earliest slots.
+// days: [{ dayNumber, itemIds }]. Returns the rows to update, or null if an id
+// isn't one of the items or is listed twice.
+const NEW_SLOT_GAP_MIN = 100; // the wizard's usual spacing: a 90-minute stop and a short hop
+const toMinutes = (time) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3));
+const toTime = (minutes) => `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 function planReorder(items, tripStartDate, days) {
   const byId = new Map(items.map((item) => [item.id, item]));
   const seen = new Set();
   const updates = [];
   for (const { dayNumber, itemIds } of days) {
-    const times = [];
     for (const id of itemIds) {
       if (!byId.has(id) || seen.has(id)) return null;
       seen.add(id);
-      times.push(formatTime(byId.get(id).startTime));
     }
-    times.sort();
+    const slots = items
+      .filter((item) => (item.dayNumber || 1) === dayNumber)
+      .map((item) => toMinutes(formatTime(item.startTime)))
+      .sort((a, b) => a - b);
+    // ponytail: late slots stop at 23:30 so they stay on this day; they pile up there past ~10 added stops
+    while (slots.length < itemIds.length) slots.push(slots.length ? Math.min(slots[slots.length - 1] + NEW_SLOT_GAP_MIN, 23 * 60 + 30) : 9 * 60);
     itemIds.forEach((id, index) => {
-      updates.push({ id, dayNumber, startTime: itemStartDate(tripStartDate, dayNumber, times[index]) });
+      updates.push({ id, dayNumber, startTime: itemStartDate(tripStartDate, dayNumber, toTime(slots[index])) });
     });
   }
   return updates;

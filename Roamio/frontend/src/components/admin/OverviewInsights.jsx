@@ -134,7 +134,7 @@ function Funnel({ steps }) {
             <span>{step.label}</span>
             <strong>
               {number(step.count)}
-              {i > 0 && <small> {steps[i - 1].count ? Math.round((step.count / steps[i - 1].count) * 100) : 0}% of previous step</small>}
+              {i > 0 && steps[i - 1].count > 0 && <small> {Math.round((step.count / steps[i - 1].count) * 100)}% of previous step</small>}
             </strong>
           </div>
           <div className="admin-ins-track" aria-hidden="true">

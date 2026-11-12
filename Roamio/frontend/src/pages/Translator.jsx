@@ -26,6 +26,7 @@ import { useSearchParams } from "react-router-dom";
 import Hint from "../components/onboarding/Hint.jsx";
 import PageTopBar from "../components/PageTopBar.jsx";
 import useTheme from "../components/recommendations/useTheme.js";
+import useDefaultLanguage from "../components/recommendations/useDefaultLanguage.js";
 import {
   LANGUAGES,
   SOURCE_LANGUAGES,
@@ -90,7 +91,10 @@ function Translator() {
   const [params] = useSearchParams();
   const linkedText = (params.get("text") || "").slice(0, MAX_TEXT_CHARS);
   const linkedLanguage = LANGUAGES.find((l) => l.code === (params.get("to") || "").toUpperCase())?.code;
-  const [targetLanguage, setTargetLanguage] = useState(linkedLanguage || "EN-US");
+  // a link's ?to= or the user's own pick wins; otherwise the "Translate into" setting
+  const defaultLanguage = useDefaultLanguage();
+  const [pickedLanguage, setTargetLanguage] = useState(linkedLanguage || null);
+  const targetLanguage = pickedLanguage || defaultLanguage.code;
   const [cameraOpen, setCameraOpen] = useState(false);
   const [translationResult, setTranslationResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -961,7 +965,7 @@ function Translator() {
 
         <div className="translator-footer-message">
           <MapPin size={17} />
-          <span>Wherever your family travels, understand the world around you.</span>
+          <span>Wherever your group travels, understand the world around you.</span>
           <Plane size={18} />
         </div>
       </main>

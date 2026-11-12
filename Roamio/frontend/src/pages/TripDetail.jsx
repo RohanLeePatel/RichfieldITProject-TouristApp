@@ -204,6 +204,12 @@ export default function TripDetail() {
 
   // The calendar date of day N, when the trip has dates: "Mon 16 Dec". It is formatted
   // in UTC to match how the start date was stored, so a viewer's timezone can't shift it by a day.
+  // Days in the trip's dates, so a day numbered past them can be called out
+  const tripLength =
+    trip?.startDate && trip?.endDate
+      ? Math.round((new Date(trip.endDate) - new Date(trip.startDate)) / DAY_MS) + 1
+      : null;
+
   const dayDate = (dayNumber) =>
     trip?.startDate && dayNumber
       ? new Date(new Date(trip.startDate).getTime() + (dayNumber - 1) * DAY_MS)
@@ -273,6 +279,8 @@ export default function TripDetail() {
                   onSaved={() => {
                     setEditing(false);
                     load();
+                    // the sidebar switcher and other pages read the name and dates from the store
+                    useTripStore.getState().load(true);
                   }}
                 />
               )}
@@ -294,6 +302,11 @@ export default function TripDetail() {
                         <h3>{group.dayNumber ? `Day ${group.dayNumber}` : "Unscheduled"}</h3>
                         {dayDate(group.dayNumber) && <span>{dayDate(group.dayNumber)}</span>}
                       </header>
+                      {tripLength && group.dayNumber > tripLength && (
+                        <p className="trip-day-late">
+                          After the trip ends. Move these stops to an earlier day, or change the trip dates.
+                        </p>
+                      )}
                       <ol className="trip-stops">
                         {group.items.map((item, position) => (
                           <li key={item.id} className="trip-stop">

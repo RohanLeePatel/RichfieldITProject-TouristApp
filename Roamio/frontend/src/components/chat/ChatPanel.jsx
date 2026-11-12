@@ -82,6 +82,8 @@ export default function ChatPanel({ showHistory = false, prefill = null }) {
   const [messages, setMessages] = useState([]);
   const [conversationId, setConversationId] = useState(null);
   const [conversations, setConversations] = useState([]);
+  // until the first load returns, an empty list means "not known yet", not "none"
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -124,6 +126,7 @@ export default function ChatPanel({ showHistory = false, prefill = null }) {
     } catch (err) {
       console.error("Unable to load chat history:", err);
     }
+    setHistoryLoaded(true);
   };
 
   useEffect(() => {
@@ -131,7 +134,8 @@ export default function ChatPanel({ showHistory = false, prefill = null }) {
   }, [showHistory]);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView?.({ block: "end" });
+    // nothing to follow in an empty chat, and scrolling then drags the whole page down
+    if (messages.length || sending) endRef.current?.scrollIntoView?.({ block: "end" });
   }, [messages, sending]);
 
   const copyReply = async (message) => {
@@ -375,6 +379,10 @@ export default function ChatPanel({ showHistory = false, prefill = null }) {
                 </div>
               ));
             })()
+          ) : !historyLoaded ? (
+            <div className="chat-history-empty" role="status">
+              <span>Loading conversations...</span>
+            </div>
           ) : (
             <div className="chat-history-empty">
               <span>No conversations yet.</span>
