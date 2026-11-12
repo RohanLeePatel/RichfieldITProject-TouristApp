@@ -160,7 +160,13 @@ class AuthService {
     const otp = generateOtp();
     await userRepository.setResetPasswordOtp(user.id, hashOtp(otp), otpExpiry());
     // logged, not returned: an error only for real accounts would reveal which emails exist
-    await sendOtpEmail(normalizedEmail, otp, 'reset').catch(() => {});
+    try {
+      await sendOtpEmail(normalizedEmail, otp, 'reset');
+    } catch {
+      // undeliverable: drop the code so the 60s cooldown doesn't block the user's retry
+      await userRepository.setResetPasswordOtp(user.id, null, null);
+      return { otp: null };
+    }
     return { otp };
   }
 
