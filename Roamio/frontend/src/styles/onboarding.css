@@ -20,6 +20,12 @@
 /* the wizard card below is pulled up 44px over the hero, so leave room for it */
 .recommendations-content > .tip { margin: 16px 0 60px; }
 
+/* some pages define no --surface/--ink of their own, so the light fallbacks showed in dark mode */
+:root[data-theme="dark"] .tip {
+  background: color-mix(in srgb, var(--tip-brand) 16%, #0f2a38);
+  color: #e6f0f4;
+}
+
 .tip > svg { flex: none; margin-top: 2px; color: var(--tip-brand); }
 .tip p { flex: 1; min-width: 0; margin: 0; }
 

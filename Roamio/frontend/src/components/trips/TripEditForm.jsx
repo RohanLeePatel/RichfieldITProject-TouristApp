@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { LoaderCircle } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import { updateTrip } from "../../api/trips.js";
 
@@ -14,7 +15,6 @@ export default function TripEditForm({ trip, onSaved, onCancel }) {
     destination: trip.destination || "",
     startDate: dateValue(trip.startDate),
     endDate: dateValue(trip.endDate),
-    budget: trip.budget ?? "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -28,10 +28,6 @@ export default function TripEditForm({ trip, onSaved, onCancel }) {
     if (!form.destination.trim()) return setError("Add a destination.");
     if (!form.startDate !== !form.endDate) return setError("Set both dates, or clear both.");
     if (form.startDate && form.endDate < form.startDate) return setError("The trip can't end before it starts.");
-    if (form.budget !== "" && !(Number(form.budget) >= 0 && Number(form.budget) <= 10_000_000)) {
-      return setError("Enter a budget between R0 and R10,000,000, or leave it empty.");
-    }
-
     setSaving(true);
     try {
       await updateTrip(trip.id, {
@@ -39,7 +35,6 @@ export default function TripEditForm({ trip, onSaved, onCancel }) {
         destination: form.destination.trim(),
         startDate: form.startDate || null,
         endDate: form.endDate || null,
-        budget: form.budget === "" ? null : Number(form.budget),
       });
       onSaved();
     } catch (requestError) {
@@ -71,10 +66,9 @@ export default function TripEditForm({ trip, onSaved, onCancel }) {
         End date
         <input type="date" value={form.endDate} min={form.startDate} onChange={set("endDate")} />
       </label>
-      <label className="wizard-field">
-        Budget
-        <input type="number" min="0" step="any" value={form.budget} onChange={set("budget")} />
-      </label>
+      <p className="wizard-help">
+        The budget and purchases live on the <Link to={`/trips/${trip.id}?tab=money`}>Budget tab</Link>.
+      </p>
       {error && <p className="recommendations-error trip-edit-error">{error}</p>}
       <div className="trip-detail-actions trip-edit-actions">
         <button type="submit" className="recommendations-submit" disabled={saving}>

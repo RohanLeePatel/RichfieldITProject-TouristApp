@@ -238,7 +238,7 @@ function TravellerForm({ traveller, deviceOnly, onCancel, onSaved }) {
 
         {deviceOnly && (
           <Notice tone="info">
-            For their security, document numbers can't be saved yet. You'll be asked for it when you book.
+            For their security, document numbers can't be saved yet. You'll need to enter it yourself when you use it.
           </Notice>
         )}
 
@@ -257,7 +257,7 @@ function TravellerForm({ traveller, deviceOnly, onCancel, onSaved }) {
             label="Document number"
             optional
             error={errors.documentNumber}
-            hint={editing && savedLast4 ? `Leave blank to keep •••• ${savedLast4}` : "Optional. We keep only the last 4 characters, so you will need the full number when you book."}
+            hint={editing && savedLast4 ? `Leave blank to keep •••• ${savedLast4}` : "Optional. We keep only the last 4 characters, so you will need the full number when you use it."}
           >
             <div className={`st-input${errors.documentNumber ? " is-invalid" : ""}`}>
               <Lock size={17} aria-hidden="true" />
@@ -462,7 +462,7 @@ export default function TravellersSection({ email, notify }) {
       id="travellers"
       icon={Users}
       title="Other travellers"
-      description="Save the people you travel with so their details are ready when you book."
+      description="Save the people you travel with so their details are ready when you plan a trip."
       aside={
         travellers.length > 0 && (
           <button type="button" className="st-btn st-btn--primary st-btn--sm" onClick={() => setEditing({})}>

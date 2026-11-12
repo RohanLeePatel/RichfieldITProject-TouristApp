@@ -36,6 +36,8 @@ export const useTripStore = create((set) => ({
       .catch((error) => {
         set({ error: error instanceof Error ? error.message : "Could not load trips." });
         // ponytail: fixed 5s retry while the tab is open; back off if this ever hammers the API
+        // and only while online (the "online" listener below covers coming back)
+        if (typeof navigator !== "undefined" && navigator.onLine === false) return;
         setTimeout(() => useAuthStore.getState().isAuthenticated && useTripStore.getState().load(), 5000);
       })
       .finally(() => {
@@ -55,6 +57,14 @@ export const useTripStore = create((set) => ({
     set({ activeTripId: value });
   },
 }));
+
+// A load that failed while offline is not retried on a timer; try again when the connection returns.
+if (typeof window !== "undefined") {
+  window.addEventListener("online", () => {
+    const { loaded, error, load } = useTripStore.getState();
+    if (!loaded && error && useAuthStore.getState().isAuthenticated) load();
+  });
+}
 
 // The trip to show when none is chosen: the soonest one that hasn't ended,
 // else the most recently created.

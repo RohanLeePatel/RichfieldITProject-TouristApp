@@ -16,6 +16,7 @@ import TravelGroups from "../components/groups/TravelGroups.jsx";
 import Hint from "../components/onboarding/Hint.jsx";
 import PageShell from "../components/recommendations/PageShell.jsx";
 import { fetchTrips } from "../api/trips";
+import useActiveTrip from "../hooks/useActiveTrip.js";
 import "../styles/Family.css";
 
 function normalizeTrip(trip) {
@@ -49,10 +50,12 @@ function formatTripDates(startDate, endDate) {
       return null;
     }
 
-    return date.toLocaleDateString(undefined, {
+    // "9 Nov 2026" like the other pages; UTC because trip dates are stored as UTC midnight
+    return date.toLocaleDateString("en-GB", {
       day: "numeric",
       month: "short",
       year: "numeric",
+      timeZone: "UTC",
     });
   };
 
@@ -125,8 +128,12 @@ function getTravellerStats(trip) {
   };
 }
 
+// the status shown to people: a trip that has started is "In progress" on every other page too
+const statusLabel = (status) => (status === "Ongoing" ? "In progress" : status);
+
 export default function Family() {
   const navigate = useNavigate();
+  const { trip: sidebarTrip } = useActiveTrip();
 
   const [trips, setTrips] = useState([]);
 
@@ -262,9 +269,13 @@ export default function Family() {
     [normalizedTrips, upcomingTrips]
   );
 
+  // a tab picked on this page wins, then the trip picked in the sidebar, then the first one
   const activeTrip =
     overviewTrips.find(
       (trip) => trip.id === activeTripId
+    ) ||
+    overviewTrips.find(
+      (trip) => String(trip.id) === String(sidebarTrip?.id)
     ) ||
     overviewTrips[0] ||
     null;
@@ -410,9 +421,7 @@ export default function Family() {
                         </div>
 
                         <span className="family-trip-status">
-                          {
-                            trip.calculatedStatus
-                          }
+                          {statusLabel(trip.calculatedStatus)}
                         </span>
 
                       </div>
@@ -618,7 +627,7 @@ export default function Family() {
                       </span>
 
                       <span className="family-trip-panel-status">
-                        {activeTrip.calculatedStatus}
+                        {statusLabel(activeTrip.calculatedStatus)}
                       </span>
                     </p>
                   </div>

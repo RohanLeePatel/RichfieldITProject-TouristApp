@@ -39,8 +39,17 @@ function crossedThresholds(beforeCents, afterCents, limitCents) {
 // The warning for where spend stands now against a limit, or null under 80%.
 function warningFor(label, spentCents, limitCents, currency) {
   if (!(limitCents > 0)) return null;
-  // same format as the budget page (en-ZA: "1 727,76 ZAR")
-  const amount = (cents) => `${(cents / 100).toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
+  // same format as the budget page's formatMoney(): "R1,727.76", "€12.00"
+  const amount = (cents) => {
+    const n = cents / 100;
+    const fixed = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
+    if (currency === 'ZAR') return `R${n.toLocaleString('en-GB', fixed)}`;
+    try {
+      return new Intl.NumberFormat('en-GB', { style: 'currency', currency }).format(n);
+    } catch {
+      return `${currency} ${n.toFixed(2)}`;
+    }
+  };
   if (spentCents > limitCents) return `${label} exceeded by ${amount(spentCents - limitCents)}`;
   if (spentCents >= 0.8 * limitCents) {
     return `${label}: ${Math.floor((spentCents / limitCents) * 100)}% used (${amount(spentCents)} of ${amount(limitCents)})`;

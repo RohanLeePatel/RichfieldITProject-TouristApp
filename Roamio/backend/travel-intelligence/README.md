@@ -8,7 +8,7 @@ destination data up to date, see [MAINTAINING.md](MAINTAINING.md).
 ## Run it
 
 ```bash
-cd Roamio/backend/ai-features
+cd Roamio/backend/travel-intelligence
 python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt                    # or: uv pip install -r requirements-dev.txt
 cp .env.example .env                                   # then fill in at least superSecretKey

@@ -484,7 +484,7 @@ function Translator() {
 
       <main className="translator-content">
         <Hint id="translator">
-          Photo mode reads the text in a picture of a sign or menu. Type or speak mode translates phrases. Choose the language you are travelling to first.
+          Photo mode reads the text in a picture of a sign or menu. Type or speak mode translates phrases. Pick the language to translate into first.
         </Hint>
 
         {/* UNIFIED SINGLE WORKSPACE CARD */}
@@ -876,6 +876,11 @@ function Translator() {
                         {copied ? "Copied" : "Copy"}
                       </button>
                     </div>
+                    {baseCode(translationResult.detected_lang || sourceLanguage) === baseCode(targetLanguage) && (
+                      <p className="translator-same-language" role="status">
+                        This is already in {getLanguageName(targetLanguage)}. Pick a different language in "To" to translate it.
+                      </p>
+                    )}
                     <p>
                       {translationResult.translation ||
                         translationResult.message ||

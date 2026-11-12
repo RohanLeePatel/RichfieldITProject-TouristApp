@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Bell, CalendarDays, CircleHelp, CloudSun, Compass, Home, Languages, LogOut, Map, MessageCircle, Plane, Settings, ShieldCheck, Users, X,
@@ -56,6 +56,14 @@ export default function AppSidebar({ open, onClose }) {
 
   const [inbox, setInbox] = useState({ notifications: [], unreadCount: 0 });
   const [inboxOpen, setInboxOpen] = useState(false);
+  const inboxRef = useRef(null);
+
+  // The list opens at the bottom of a scrolling sidebar; scroll the sidebar itself
+  // (not the page, which scrollIntoView can also move) so the whole list shows.
+  useEffect(() => {
+    const panel = inboxRef.current?.closest("aside");
+    if (inboxOpen && panel) panel.scrollTop = panel.scrollHeight;
+  }, [inboxOpen]);
 
   useEffect(() => {
     fetchNotifications()
@@ -167,7 +175,7 @@ export default function AppSidebar({ open, onClose }) {
           </button>
 
           {inboxOpen && (
-            <ul className="sidebar-inbox" aria-label="Notifications">
+            <ul className="sidebar-inbox" aria-label="Notifications" ref={inboxRef}>
               {inbox.notifications.length === 0 ? (
                 <li className="sidebar-inbox-empty">Nothing new.</li>
               ) : (

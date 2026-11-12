@@ -72,12 +72,43 @@ function ProtectedRoute({ children }) {
 // APP
 // =========================================================
 
+// Browser-tab names, so open tabs and history entries say which page they are
+const DEFAULT_TITLE = document.title;
+const PAGE_TITLES = {
+  "/login": "Log in",
+  "/register": "Create account",
+  "/forgot-password": "Reset password",
+  "/reset-password": "Reset password",
+  "/dashboard": "Dashboard",
+  "/trips": "My trips",
+  "/calendar": "Calendar",
+  "/weather": "Weather",
+  "/translator": "Travel translator",
+  "/chat": "Trip assistant",
+  "/recommendations": "Plan a trip",
+  "/family": "Travel groups",
+  "/settings": "Settings",
+  "/admin": "Admin dashboard",
+  "/terms": "Terms and conditions",
+  "/privacy": "Privacy policy",
+};
+function titleFor(pathname) {
+  if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname];
+  if (pathname.startsWith("/trips/")) return pathname.endsWith("/budget") ? "Trip budget" : "Trip";
+  if (pathname.startsWith("/invite/") || pathname.startsWith("/join/")) return "Invite";
+  return null;
+}
+
 // Reports each route change to GA4 (the first load is reported here too)
 function RouteTracker() {
   const { pathname, search } = useLocation();
   useEffect(() => {
     trackPageView(pathname, search);
   }, [pathname, search]);
+  useEffect(() => {
+    const title = titleFor(pathname);
+    document.title = title ? `${title} - Roamio` : DEFAULT_TITLE;
+  }, [pathname]);
   return null;
 }
 

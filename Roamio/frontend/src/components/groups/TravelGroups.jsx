@@ -68,8 +68,6 @@ export default function TravelGroups({ onGroups, tripId }) {
         </div>
       </div>
 
-      {error && <p className="family-groups-error" role="alert">{error}</p>}
-
       {groups === null ? (
         <p className="family-groups-note"><LoaderCircle size={15} className="recommendations-spinner" /> Loading your groups...</p>
       ) : groups.length === 0 ? (
@@ -118,6 +116,9 @@ export default function TravelGroups({ onGroups, tripId }) {
           </button>
         </form>
       </div>
+
+      {/* under the Create and Join fields, where the person who caused it is looking */}
+      {error && <p className="family-groups-error" role="alert">{error}</p>}
     </section>
   );
 }

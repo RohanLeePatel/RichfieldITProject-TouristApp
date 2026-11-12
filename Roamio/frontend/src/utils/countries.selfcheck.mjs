@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 
 import { COUNTRIES, splitDestination } from "./countries.js";
 
-const seed = JSON.parse(readFileSync(new URL("../../../backend/ai-features/data/destinations_seed.json", import.meta.url)));
+const seed = JSON.parse(readFileSync(new URL("../../../backend/travel-intelligence/data/destinations_seed.json", import.meta.url)));
 for (const country of new Set(seed.map((d) => d.country))) assert.ok(COUNTRIES[country], `missing ${country}`);
 for (const { iso3 } of Object.values(COUNTRIES)) assert.match(iso3, /^[A-Z]{3}$/);
 

@@ -27,6 +27,7 @@ import { Link } from "react-router-dom";
 import useTheme from "../components/recommendations/useTheme.js";
 import PageTopBar from "../components/PageTopBar.jsx";
 import { fetchTrip, fetchTrips } from "../api/trips";
+import useActiveTrip from "../hooks/useActiveTrip.js";
 import "../styles/Calendar.css";
 
 
@@ -240,6 +241,8 @@ export default function Calendar() {
   const [events, setEvents] = useState(loadEvents);
   const [trips, setTrips] = useState([]);
   const [tripsError, setTripsError] = useState("");
+  const [tripsLoaded, setTripsLoaded] = useState(false);
+  const { trip: pickedTrip } = useActiveTrip();
 
   // Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -273,7 +276,9 @@ export default function Calendar() {
 
     fetchTrips()
       .then((data) => {
-        if (active) setTrips(normalizeTrips(data));
+        if (!active) return;
+        setTrips(normalizeTrips(data));
+        setTripsLoaded(true);
       })
       .catch(() => {
         if (active) setTripsError("Couldn't load your trips — showing holidays and events only.");
@@ -328,7 +333,9 @@ export default function Calendar() {
   );
   const monthLongWeekends = monthHolidays.filter((h) => isLongWeekend(h.date));
 
-  const activeTrip = trips.find((t) => todayKey >= t.startKey && todayKey <= t.endKey);
+  // the trip picked in the sidebar leads when it is under way; else the first one that is
+  const underWay = trips.filter((t) => todayKey >= t.startKey && todayKey <= t.endKey);
+  const activeTrip = underWay.find((t) => String(t.id) === String(pickedTrip?.id)) || underWay[0];
   const nextTrip = trips.find((t) => t.startKey > todayKey);
   const passTrip = activeTrip || nextTrip;
 
@@ -609,8 +616,14 @@ export default function Calendar() {
             <span className="cal-pass-label">
               <Ticket size={13} /> NEXT DEPARTURE
             </span>
-            <strong className="cal-pass-empty-title">No trips booked yet</strong>
-            <p>Your next boarding pass shows up here once a trip has dates.</p>
+            <strong className="cal-pass-empty-title">
+              {tripsError ? "Couldn't load your trips" : tripsLoaded ? "No trips booked yet" : "Loading your trips..."}
+            </strong>
+            <p>
+              {tripsError || !tripsLoaded
+                ? "Your next boarding pass shows up here as soon as your trips load."
+                : "Your next boarding pass shows up here once a trip has dates."}
+            </p>
             <Link to="/recommendations" className="cal-pass-link">
               Plan a getaway <ArrowRight size={14} />
             </Link>
@@ -704,7 +717,7 @@ export default function Calendar() {
               <p className="page-topbar-lede">Trips, long weekends and reminders, mapped across your month.</p>
 
               <div className="cal-hero-stats">
-                <span><Plane size={14} /> {plural(monthTrips.length, "trip")}</span>
+                <span><Plane size={14} /> {tripsError ? "Trips unavailable" : tripsLoaded ? plural(monthTrips.length, "trip") : "Loading trips..."}</span>
                 <span><Flag size={14} /> {plural(monthHolidays.length, "holiday")}</span>
                 <span><Luggage size={14} /> {plural(monthLongWeekends.length, "long weekend")}</span>
               </div>

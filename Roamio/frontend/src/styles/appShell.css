@@ -50,6 +50,13 @@
   min-width: 0;
 }
 
+/* the sidebar already shows the logo; on a phone the sidebar is hidden, so the page's own stays */
+@media (min-width: 901px) {
+  .app-shell-main .page-topbar-brand {
+    display: none;
+  }
+}
+
 .app-shell-menu {
   display: none;
 }
@@ -122,6 +129,8 @@
 @media (max-width: 900px) {
   .app-shell-main {
     margin-left: 0;
+    /* room below the last line for the floating menu and assistant buttons */
+    padding-bottom: 76px;
   }
 
   /* bottom-left so it never sits on a page's own header links */

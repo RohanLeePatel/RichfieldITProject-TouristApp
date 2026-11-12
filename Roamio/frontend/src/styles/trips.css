@@ -340,6 +340,16 @@
   margin-bottom: 14px;
 }
 
+/* buttons keep their own height and sit level with the inputs instead of stretching to the label + input */
+.trip-hub-search {
+  align-items: flex-end;
+}
+
+.trip-hub-search > button {
+  min-height: 40px;
+  border-radius: 12px;
+}
+
 .trip-hub-search select {
   min-height: 40px;
   padding: 0 12px;

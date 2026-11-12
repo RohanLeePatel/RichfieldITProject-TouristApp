@@ -422,7 +422,7 @@ export default function ChatPanel({ showHistory = false, prefill = null }) {
                 Ask about your itinerary, the safety advisory, the weather or
                 travelling in general. You can also tell me to add a stop or
                 log what you paid, and I'll check with you first. Tap one to
-                start:
+                copy it into the box, then send it:
               </p>
 
               <div className="chat-suggestions">

@@ -791,8 +791,17 @@ function Planner({ draft }) {
     let savedTrip = trip;
     if (!savedTrip) {
       try {
+        // a second trip to the same place says which one it is: "Seoul Trip (Mar 2027)"
+        const taken = new Set(useTripStore.getState().trips.map((t) => String(t.title).toLowerCase()));
+        let title = `${selectedCity.name} Trip`;
+        if (taken.has(title.toLowerCase())) {
+          const when = form.startDate ? new Date(form.startDate).toLocaleDateString("en-GB", { month: "short", year: "numeric", timeZone: "UTC" }) : "";
+          const base = when ? `${title} (${when})` : title;
+          title = base;
+          for (let n = 2; taken.has(title.toLowerCase()); n += 1) title = `${base} ${n}`;
+        }
         savedTrip = await createTrip({
-          title: `${selectedCity.name} Trip`,
+          title,
           destination: destinationLabelFor(selectedCity),
           budget: Number(form.budget) * tripLengthDays(form),
           startDate: form.startDate || undefined,

@@ -827,7 +827,7 @@ export default function Dashboard() {
               </h1>
 
               <p className="hero-subtitle">
-                {nextTrip
+                {nextTrip || tripsLoading || tripsError
                   ? "Here's where your group's plans stand today."
                   : "Ready to plan your next group adventure? Everything you need is in one place."}
               </p>
@@ -874,7 +874,7 @@ export default function Dashboard() {
                     </strong>
                   ) : nextTripDays <= 0 ? (
                     <strong className="spotlight-word">
-                      {nextTripDays === 0 ? "Today" : hasEnded(nextTrip) ? "Finished" : "Underway"}
+                      {nextTripDays === 0 ? "Today" : hasEnded(nextTrip) ? "Finished" : "In progress"}
                     </strong>
                   ) : (
                     <>
@@ -927,11 +927,14 @@ export default function Dashboard() {
                 </span>
 
                 <div className="spotlight-trip">
-                  <strong>Nothing booked yet</strong>
+                  <strong>
+                    {tripsLoading ? "Loading your trips..." : tripsError ? "Couldn't load your trips" : "Nothing booked yet"}
+                  </strong>
 
                   <span>
-                    Answer a few questions and Roamio suggests destinations
-                    your whole group will enjoy.
+                    {tripsLoading || tripsError
+                      ? "Your next trip will show here as soon as it loads."
+                      : "Answer a few questions and Roamio suggests destinations your whole group will enjoy."}
                   </span>
                 </div>
 

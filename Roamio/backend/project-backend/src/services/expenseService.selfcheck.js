@@ -58,7 +58,7 @@ const expenseService = require('./expenseService');
   r = await expenseService.createExpense(1, 7, { title: 'Taxi', amount: 20, currency: 'usd', category: 'TRANSPORT' });
   assert.equal(r.expense.exchangeRate, 18.2);
   assert.equal(r.expense.amount, 20); // kept as paid
-  assert.deepEqual(r.warnings, ['Trip budget: 86% used (864,00 ZAR of 1 000,00 ZAR)']);
+  assert.deepEqual(r.warnings, ['Trip budget: 86% used (R864.00 of R1,000.00)']);
   assert.deepEqual(notifications.map((n) => n.userId), [7, 8]);
   assert.equal(notifications[0].title, 'Budget alert for "Durban Trip"');
 

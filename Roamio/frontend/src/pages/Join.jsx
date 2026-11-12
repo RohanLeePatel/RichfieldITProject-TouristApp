@@ -57,7 +57,7 @@ export default function Join() {
       hero={
         <>
           <p className="recommendations-eyebrow"><Users size={15} /> Trip invite</p>
-          <h1>{group ? `Join ${group.name}` : "You've been invited to a trip"}</h1>
+          <h1>{group ? `Join ${group.name}` : error && isAuthenticated ? "This invite link can't be opened" : "You've been invited to a trip"}</h1>
           <p>Plan it together on Roamio: the itinerary, budget and documents in one place.</p>
         </>
       }

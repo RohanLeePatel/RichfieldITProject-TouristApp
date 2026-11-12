@@ -101,7 +101,13 @@
   gap: 6px;
   padding: 6px;
   overflow-x: auto;
-  background: var(--surface);
+  /* a soft edge on whichever side has more tabs to scroll to */
+  background:
+    linear-gradient(to right, var(--surface) 30%, transparent) left center / 40px 100% no-repeat local,
+    linear-gradient(to left, var(--surface) 30%, transparent) right center / 40px 100% no-repeat local,
+    linear-gradient(to right, rgba(0, 0, 0, .14), transparent) left center / 14px 100% no-repeat scroll,
+    linear-gradient(to left, rgba(0, 0, 0, .14), transparent) right center / 14px 100% no-repeat scroll,
+    var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
