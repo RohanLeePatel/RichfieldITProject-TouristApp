@@ -15,7 +15,7 @@ import {
   FileText,
   Route,
   SlidersHorizontal,
-  Scale,
+  MessageCircle,
   Menu,
   X,
 } from "lucide-react";
@@ -45,7 +45,7 @@ import rioImage from "../assets/landing/rio.jpg";
 import howBgImage from "../assets/landing/bg-how-friends.jpg";
 import faqBgImage from "../assets/landing/bg-faq-pool.jpg";
 import recommendImage from "../assets/landing/feat-recommend.jpg";
-import compareImage from "../assets/landing/feat-compare.jpg";
+import assistantImage from "../assets/landing/feat-ai-assistant.jpg";
 import itineraryImage from "../assets/landing/feat-itinerary.jpg";
 import vaultImage from "../assets/landing/feat-vault.jpg";
 import weatherImage from "../assets/landing/feat-weather.jpg";
@@ -54,8 +54,8 @@ import translatorImage from "../assets/landing/feat-translator.jpg";
 import useTheme from "../components/recommendations/useTheme.js";
 import "../styles/landing.css";
 
-// Photos: Unsplash (free to use under the Unsplash License). Each photo and
-// each place is used once on the page - keep it that way when adding more.
+// Photos: Unsplash (free to use under the Unsplash License), except for the
+// generated AI Assistant image. Use each photo and place once on the page.
 
 // =========================================================
 // CONTENT
@@ -112,10 +112,10 @@ const FEATURES = [
     text: "Destinations ranked against your group's budget, interests, pace and accessibility.",
   },
   {
-    icon: Scale,
-    image: compareImage,
-    title: "Side-by-side compare",
-    text: "Put your favourite options next to each other and decide together.",
+    icon: MessageCircle,
+    image: assistantImage,
+    title: "AI Assistant",
+    text: "Ask travel questions and get suggestions for what to see, what to pack and how to get around.",
   },
   {
     icon: Route,

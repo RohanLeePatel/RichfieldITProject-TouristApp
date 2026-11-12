@@ -58,6 +58,11 @@ export const REPORT_CATEGORIES = [
   "Other",
 ];
 
+export const REPORT_CATEGORY_LABELS = {
+  "Booking or trip": "Trip",
+  "Payments and expenses": "Expenses",
+};
+
 export const PRIVACY_POLICY = [
   {
     heading: "Who we are",

@@ -17,6 +17,15 @@ const users = new Map([
   [1, { id: 1, isActive: true }],
   [2, { id: 2, isActive: true }],
 ]);
+const groupRows = [
+  { id: 1, inviteCode: 'RECENT', deletedAt: null, createdAt: ago(2), members: 1 },
+  { id: 2, inviteCode: 'OLDER', deletedAt: null, createdAt: ago(45), members: 2 },
+  { id: 3, inviteCode: null, deletedAt: null, createdAt: ago(2), members: 1 },
+  { id: 4, inviteCode: 'DELETED', deletedAt: ago(1), createdAt: ago(2), members: 1 },
+  ...[5, 6, 7].map((id) => ({ id, inviteCode: `EMPTY${id}`, deletedAt: null, createdAt: ago(2), members: 0 })),
+];
+const matchesGroup = (group, where) =>
+  group.deletedAt === where.deletedAt && (where.inviteCode?.not !== null || group.inviteCode !== null);
 
 // current-period rows are within 30 days, previous-period rows are 31-60 days back
 const prisma = {
@@ -78,8 +87,18 @@ const prisma = {
     count: async () => 2,
   },
   activityLog: { create: async ({ data }) => audits.push(data) },
-  travelGroup: { count: async () => 4 },
-  travelGroupMember: { count: async () => 10 },
+  travelGroup: {
+    count: async ({ where }) => groupRows.filter((group) =>
+      matchesGroup(group, where) && (!where.members?.some || group.members > 0)
+      && (!where.createdAt?.gte || group.createdAt >= where.createdAt.gte)).length,
+  },
+  travelGroupMember: {
+    groupBy: async ({ by, where }) => {
+      assert.deepEqual(by, ['travelGroupId']);
+      return groupRows.filter((group) => group.members > 0 && matchesGroup(group, where.travelGroup))
+        .map((group) => ({ travelGroupId: group.id, _count: { _all: group.members } }));
+    },
+  },
   catalogDestination: {
     findMany: async () => [
       { id: 'france-paris', name: 'Paris', country: 'France', imageUrl: null, enrichedAt: ago(1), enrichError: null, active: true },
@@ -135,7 +154,9 @@ const fails = async (promise, status, pattern) => {
   assert.deepEqual(data.retention, { newUsers: 3, returned: 1, rate: 33 });
 
   assert.deepEqual(data.features.find((f) => f.key === 'chat'), { key: 'chat', label: 'Assistant questions', count: 7, previous: 1 });
-  assert.deepEqual(data.collaboration, { groups: 4, invitesSent: 6, invitesAccepted: 3, acceptRate: 50, avgGroupSize: 2.5 });
+  assert.deepEqual(data.collaboration, { groups: 1, invitesSent: 6, invitesAccepted: 3, acceptRate: 50, avgGroupSize: 1.5 });
+  groupRows.splice(0, 2);
+  assert.equal((await getInsights({ days: 30, now })).collaboration.avgGroupSize, null);
 
   // CSV cells that a spreadsheet would run as a formula are neutralised
   assert.equal(userService.csvCell('=1+1'), "'=1+1");

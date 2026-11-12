@@ -1,6 +1,6 @@
 const prisma = require('../config/prisma');
 const { httpError } = require('./tripAccessService');
-const { unpackMeta } = require('../utils/tripFormat');
+const { formatTime, scheduledItemStart, unpackMeta } = require('../utils/tripFormat');
 const { sendPlaceReportThanks } = require('./emailService');
 
 const REASONS = ['CLOSED', 'UNSAFE', 'WRONG_INFO', 'SCAM', 'OTHER'];
@@ -28,10 +28,10 @@ async function assertCanPost(userId) {
 // The user's trip to this place (direct TripMember rows only), or null.
 // A review needs a finished trip (marked COMPLETED, or its end date has passed);
 // a report may come from any trip that isn't cancelled.
-async function tripToPlace(userId, key, finishedOnly) {
+async function tripToPlace(userId, key, finishedOnly, tripId) {
   const trips = await prisma.trip.findMany({
-    where: { deletedAt: null, status: { not: 'CANCELLED' }, members: { some: { userId } } },
-    select: { id: true, status: true, endDate: true, description: true },
+    where: { ...(tripId !== undefined && { id: tripId }), deletedAt: null, status: { not: 'CANCELLED' }, members: { some: { userId } } },
+    select: { id: true, status: true, startDate: true, endDate: true, description: true },
   });
   const now = new Date();
   return trips.find((trip) => {
@@ -52,13 +52,15 @@ async function review(userId, body) {
   const trip = await tripToPlace(userId, place.placeKey, true);
   if (!trip) throw httpError(403, 'You can rate a place after a finished trip there.');
 
-  const data = { ...place, rating, comment: comment || null, tripId: trip.id, updatedAt: new Date() };
-  return prisma.placeReview.upsert({
-    where: { userId_placeKey: { userId, placeKey: place.placeKey } },
-    update: data,
-    create: { userId, ...data },
-    select: { id: true, rating: true, comment: true },
-  });
+  try {
+    return await prisma.placeReview.create({
+      data: { userId, ...place, rating, comment: comment || null, tripId: trip.id },
+      select: { id: true, rating: true, comment: true },
+    });
+  } catch (err) {
+    if (err.code === 'P2002') throw httpError(409, 'You already submitted a rating for this place.');
+    throw err;
+  }
 }
 
 async function report(userId, body) {
@@ -68,10 +70,33 @@ async function report(userId, body) {
   const note = text(body?.note);
   if (note.length > 300) throw httpError(400, 'Keep the note under 300 characters.');
 
+  const { tripId, itineraryItemId } = body;
+  if (tripId !== undefined && (!Number.isSafeInteger(tripId) || tripId < 1 || tripId > 2147483647)) {
+    throw httpError(400, 'Choose a valid trip.');
+  }
+  if (itineraryItemId !== undefined && (!tripId || typeof itineraryItemId !== 'string' || !itineraryItemId.trim() || itineraryItemId.length > 128)) {
+    throw httpError(400, 'Choose a valid itinerary stop.');
+  }
+
   const user = await assertCanPost(userId);
-  if (!(await tripToPlace(userId, place.placeKey, false))) throw httpError(403, 'You can report places on your own trips.');
+  const trip = await tripToPlace(userId, place.placeKey, false, tripId);
+  if (!trip) throw httpError(403, 'You can report places on your own trips.');
+
+  let itineraryStop = null;
+  if (itineraryItemId !== undefined) {
+    const item = await prisma.itineraryItem.findFirst({
+      where: { id: itineraryItemId, tripId: trip.id },
+      select: { title: true, dayNumber: true, startTime: true },
+    });
+    if (!item) throw httpError(400, 'Choose an itinerary stop from this trip.');
+    const scheduledAt = scheduledItemStart(item, trip.startDate);
+    if (!scheduledAt || scheduledAt.getTime() > Date.now()) {
+      throw httpError(400, 'You can report a stop once its scheduled start time has passed.');
+    }
+    itineraryStop = `Day ${item.dayNumber} · ${formatTime(scheduledAt)} · ${item.title}`;
+  }
   try {
-    await prisma.placeReport.create({ data: { userId, ...place, reason, note: note || null } });
+    await prisma.placeReport.create({ data: { userId, ...place, reason, note: note || null, itineraryStop } });
   } catch (err) {
     if (err.code === 'P2002') throw httpError(409, 'You already reported this place.');
     throw err;
@@ -98,7 +123,7 @@ async function summary(userId, rawPlace) {
 async function openReports() {
   const [groups, reports] = await Promise.all([
     prisma.placeReport.groupBy({ by: ['placeKey', 'placeName'], where: { status: 'OPEN' }, _count: { _all: true }, _max: { createdAt: true } }),
-    prisma.placeReport.findMany({ where: { status: 'OPEN' }, select: { placeKey: true, reason: true, note: true, createdAt: true }, orderBy: { createdAt: 'desc' } }),
+    prisma.placeReport.findMany({ where: { status: 'OPEN' }, select: { placeKey: true, reason: true, note: true, itineraryStop: true, createdAt: true }, orderBy: { createdAt: 'desc' } }),
   ]);
   return groups
     .map((g) => ({

@@ -16,8 +16,7 @@ export function joinGroup(inviteCode) {
   return authedFetch("/api/groups/join", { method: "POST", body: JSON.stringify({ inviteCode }) });
 }
 
-// The invite isn't emailed yet - the server returns the token, and the page
-// turns it into a link to send yourself.
+// The server attempts email delivery and returns the token for sharing the link.
 export async function createInvite(groupId, email) {
   const data = await authedFetch(`/api/groups/${encodeURIComponent(groupId)}/invites`, {
     method: "POST",

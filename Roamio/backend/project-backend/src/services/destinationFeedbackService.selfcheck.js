@@ -8,23 +8,29 @@ const users = { 1: { isVerified: true, isActive: true, deletedAt: null }, 2: { i
 const past = new Date(Date.now() - 86400000);
 const future = new Date(Date.now() + 86400000);
 const meta = (destination) => JSON.stringify({ destination, budget: null, notes: null });
-// user 1 has a finished trip to Cape Town, a COMPLETED-by-date-not-yet trip to Durban, and a cancelled one to Lima
+// User 1 has a finished trip to Cape Town and an unfinished trip to Durban.
 const trips = [
-  { id: 7, status: 'PLANNING', endDate: past, description: meta('Cape Town,  South Africa') },
-  { id: 8, status: 'PLANNING', endDate: future, description: meta('Durban, South Africa') },
+  { id: 7, status: 'PLANNING', startDate: past, endDate: past, description: meta('Cape Town,  South Africa') },
+  { id: 8, status: 'PLANNING', startDate: past, endDate: future, description: meta('Durban, South Africa') },
+];
+const itinerary = [
+  { id: 'old', tripId: 8, title: 'Market', dayNumber: 1, startTime: new Date('2026-01-01T09:00Z') },
+  { id: 'future', tripId: 8, title: 'Museum', dayNumber: 3, startTime: new Date('2026-01-03T09:00Z') },
+  { id: 'elsewhere', tripId: 7, title: 'Beach', dayNumber: 1, startTime: past },
+  { id: 'unscheduled', tripId: 8, title: 'Walk', dayNumber: null, startTime: past },
 ];
 const reviews = [];
 const reports = [];
 
 const fakePrisma = {
   user: { findUnique: async ({ where }) => users[where.id] || null },
-  trip: { findMany: async ({ where }) => (where.members.some.userId === 1 ? trips : []) },
+  trip: { findMany: async ({ where }) => (where.members.some.userId === 1 ? trips.filter((trip) => !where.id || trip.id === where.id) : []) },
+  itineraryItem: { findFirst: async ({ where }) => itinerary.find((item) => item.id === where.id && item.tripId === where.tripId) },
   placeReview: {
-    upsert: async ({ where, update, create }) => {
-      const { userId, placeKey } = where.userId_placeKey;
-      let row = reviews.find((r) => r.userId === userId && r.placeKey === placeKey);
-      if (row) Object.assign(row, update);
-      else reviews.push((row = { id: reviews.length + 1, ...create }));
+    create: async ({ data }) => {
+      if (reviews.some((r) => r.userId === data.userId && r.placeKey === data.placeKey)) throw Object.assign(new Error('dup'), { code: 'P2002' });
+      const row = { id: reviews.length + 1, ...data };
+      reviews.push(row);
       return { id: row.id, rating: row.rating, comment: row.comment };
     },
   },
@@ -65,19 +71,25 @@ const rejects = (promise, status) =>
   await rejects(service.review(1, { place: 'Durban, South Africa', rating: 4 }), 403); // trip not finished yet
   await rejects(service.review(1, { place: 'Lima, Peru', rating: 4 }), 403); // never went
   assert.equal((await service.review(1, { place: 'cape town, south africa', rating: 4, comment: ' lovely ' })).comment, 'lovely'); // wording and spacing don't matter
-  await service.review(1, { place: 'Cape Town, South Africa', rating: 2 });
-  assert.equal(reviews.length, 1, 're-posting edits, never duplicates');
-  assert.equal(reviews[0].rating, 2);
+  await rejects(service.review(1, { place: 'Cape Town, South Africa', rating: 2 }), 409);
+  assert.equal(reviews.length, 1);
+  assert.equal(reviews[0].rating, 4);
 
   // reports: reason checked, an unfinished trip counts, once per traveller
   await rejects(service.report(1, { place: 'Durban, South Africa', reason: 'RUDE' }), 400);
   await rejects(service.report(1, { place: 'Lima, Peru', reason: 'CLOSED' }), 403);
-  await service.report(1, { place: 'Durban, South Africa', reason: 'CLOSED', note: 'shut for repairs' });
+  const stopReport = { tripId: 8, place: 'Durban, South Africa', reason: 'CLOSED', note: 'shut for repairs' };
+  for (const itineraryItemId of ['future', 'elsewhere', 'unscheduled']) {
+    await rejects(service.report(1, { ...stopReport, itineraryItemId }), 400);
+  }
+  await rejects(service.report(1, { ...stopReport, tripId: 7, itineraryItemId: 'elsewhere' }), 403);
+  await service.report(1, { ...stopReport, itineraryItemId: 'old' });
   await rejects(service.report(1, { place: 'DURBAN, South Africa', reason: 'SCAM' }), 409);
 
   // flagged only once 3 different travellers report
   let [row] = await service.openReports();
   assert.equal(row.reportCount, 1);
+  assert.equal(row.reports[0].itineraryStop, 'Day 1 · 09:00 · Market');
   assert.equal(row.flagged, false);
   for (const userId of [3, 4]) reports.push({ userId, placeKey: 'durban, south africa', placeName: 'Durban, South Africa', reason: 'UNSAFE', status: 'OPEN', createdAt: new Date() });
   [row] = await service.openReports();

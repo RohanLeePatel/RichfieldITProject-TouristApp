@@ -382,7 +382,7 @@ export default function TripDetail() {
             )}
 
             <AddLandmark trip={trip} onAdded={refresh} />
-            {trip.destination && <PlaceFeedback trip={trip} />}
+            {trip.destination && <PlaceFeedback key={`${trip.id}:${trip.destination}`} trip={trip} />}
             </>
             )}
 

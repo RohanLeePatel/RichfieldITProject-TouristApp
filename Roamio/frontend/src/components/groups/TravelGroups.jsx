@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { Copy, LoaderCircle, Plane, Plus, UserPlus, Users } from "lucide-react";
+import { Copy, LoaderCircle, Plane, UserPlus, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import { createGroup, createInvite, fetchMyGroups, inviteLink, joinGroup } from "../../api/groups.js";
+import { createInvite, fetchMyGroups, inviteLink } from "../../api/groups.js";
 import { useAuthStore } from "../../store/authStore.js";
-import { useTripStore } from "../../store/tripStore.js";
-import { emailError, labelError, MAX_EMAIL } from "../../utils/validation.js";
+import { emailError, MAX_EMAIL } from "../../utils/validation.js";
 
 const MANAGERS = ["OWNER", "ADMIN"];
 
@@ -13,16 +12,12 @@ const MANAGERS = ["OWNER", "ADMIN"];
 // and invites. Trips planned "for" a group in the wizard land here and every
 // member can open them. Companions without an account are saved on the group as
 // well, and the Family page manages them.
-// onGroups(list) runs after every load, so the page's companion list follows
-// groups created or joined here
+// onGroups(list) gives the Family page the loaded groups for its companion list.
 // tripId (optional) narrows the list to the group(s) that own that trip
 export default function TravelGroups({ onGroups, tripId }) {
   const userId = useAuthStore((state) => state.user?.id);
   const [groups, setGroups] = useState(null);
   const [error, setError] = useState("");
-  const [newName, setNewName] = useState("");
-  const [code, setCode] = useState("");
-  const [busy, setBusy] = useState(false);
 
   const load = () =>
     fetchMyGroups()
@@ -38,21 +33,6 @@ export default function TravelGroups({ onGroups, tripId }) {
   useEffect(() => {
     load();
   }, []);
-
-  const run = async (action) => {
-    setBusy(true);
-    setError("");
-    try {
-      await action();
-      await load();
-      // a joined group's trips now show in the trip switcher
-      useTripStore.getState().load(true);
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Something went wrong.");
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const shown = tripId == null ? groups || [] : (groups || []).filter((group) => group.trips.some((trip) => trip.id === tripId));
 
@@ -71,7 +51,7 @@ export default function TravelGroups({ onGroups, tripId }) {
       {groups === null ? (
         <p className="family-groups-note"><LoaderCircle size={15} className="recommendations-spinner" /> Loading your groups...</p>
       ) : groups.length === 0 ? (
-        <p className="family-groups-note">You&apos;re not in a travel group yet. Create one, or join with a code from a friend.</p>
+        <p className="family-groups-note">You&apos;re not in a travel group yet.</p>
       ) : shown.length === 0 ? (
         <p className="family-groups-note">This trip isn&apos;t planned with a travel group.</p>
       ) : (
@@ -86,45 +66,15 @@ export default function TravelGroups({ onGroups, tripId }) {
         </div>
       )}
 
-      <div className="family-groups-actions">
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            const problem = labelError(newName, "the group name");
-            if (problem) return setError(problem);
-            run(() => createGroup(newName.trim()).then(() => setNewName("")));
-          }}
-        >
-          <input value={newName} onChange={(event) => { setNewName(event.target.value); setError(""); }} placeholder="New group name" aria-label="New group name" maxLength={60} />
-          <button type="submit" className="family-button family-button-primary" disabled={busy || !newName.trim()}>
-            <Plus size={15} /> Create group
-          </button>
-        </form>
-
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!/^[A-Za-z0-9]{4,16}$/.test(code.trim())) {
-              return setError("Join codes are 4-16 letters and numbers, like 9F2A1B8C - no spaces or symbols.");
-            }
-            run(() => joinGroup(code.trim()).then(() => setCode("")));
-          }}
-        >
-          <input value={code} onChange={(event) => { setCode(event.target.value); setError(""); }} placeholder="Join code, e.g. 9F2A1B8C" aria-label="Group join code" maxLength={16} />
-          <button type="submit" className="family-button family-button-secondary" disabled={busy || !code.trim()}>
-            Join
-          </button>
-        </form>
-      </div>
-
-      {/* under the Create and Join fields, where the person who caused it is looking */}
       {error && <p className="family-groups-error" role="alert">{error}</p>}
     </section>
   );
 }
 
 function GroupCard({ group, canManage }) {
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [email, setEmail] = useState("");
+  const [sending, setSending] = useState(false);
   const [link, setLink] = useState("");
   const [copied, setCopied] = useState(false);
   const [emailed, setEmailed] = useState(false);
@@ -132,10 +82,13 @@ function GroupCard({ group, canManage }) {
 
   const invite = async (event) => {
     event.preventDefault();
+    if (sending) return;
     setInviteError("");
     setLink("");
+    setCopied(false);
     const problem = emailError(email);
     if (problem) return setInviteError(problem.replace("your email address", "their email address"));
+    setSending(true);
     try {
       const { token, emailed } = await createInvite(group.id, email.trim());
       setLink(`${window.location.origin}/invite/${token}`);
@@ -143,6 +96,8 @@ function GroupCard({ group, canManage }) {
       setEmail("");
     } catch (requestError) {
       setInviteError(requestError instanceof Error ? requestError.message : "Could not create the invite.");
+    } finally {
+      setSending(false);
     }
   };
 
@@ -187,21 +142,47 @@ function GroupCard({ group, canManage }) {
               <Copy size={13} /> {joinCopied ? "Link copied" : "Copy invite link"}
             </button>
           </p>
-          <form className="family-group-invite" onSubmit={invite} noValidate>
-            <input type="email" value={email} onChange={(event) => { setEmail(event.target.value); setInviteError(""); }} placeholder="Their email" aria-label="Email to invite" maxLength={MAX_EMAIL} required />
-            <button type="submit" className="family-button family-button-secondary">
+          <div>
+            <button
+              type="button"
+              className="family-button family-button-secondary"
+              aria-expanded={inviteOpen}
+              onClick={() => setInviteOpen(!inviteOpen)}
+            >
               <UserPlus size={15} /> Invite
             </button>
-          </form>
-          {inviteError && <p className="family-groups-error">{inviteError}</p>}
-          {link && (
-            <p className="family-groups-note">
-              {emailed ? "Invite emailed. You can also send them this link (valid 7 days):" : "We couldn't email this invite - send them this link (valid 7 days):"}{" "}
-              <code>{link}</code>{" "}
-              <button type="button" className="family-text-button" onClick={copy}>
-                <Copy size={13} /> {copied ? "Copied" : "Copy"}
-              </button>
-            </p>
+          </div>
+          {inviteOpen && (
+            <>
+              <p className="family-groups-note">Enter the email address of a verified Roamio account.</p>
+              <form className="family-group-invite" onSubmit={invite} noValidate>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(event) => { setEmail(event.target.value); setInviteError(""); }}
+                  placeholder="Their email"
+                  aria-label="Email to invite"
+                  maxLength={MAX_EMAIL}
+                  disabled={sending}
+                  required
+                />
+                <button type="submit" className="family-button family-button-primary" disabled={sending}>
+                  {sending ? "Sending…" : "Send invitation"}
+                </button>
+              </form>
+              {inviteError && <p className="family-groups-error" role="alert">{inviteError}</p>}
+              {link && (
+                <div className="family-groups-note">
+                  <span role="status">
+                    {emailed ? "Invitation emailed. You can also share this link (valid for 7 days)." : "Email delivery failed. You can share this link (valid for 7 days)."}
+                  </span>{" "}
+                  <code>{link}</code>{" "}
+                  <button type="button" className="family-text-button" onClick={copy}>
+                    <Copy size={13} /> {copied ? "Copied" : "Copy"}
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </>
       )}

@@ -18,7 +18,8 @@ require.cache[require.resolve('web-push')] = {
   exports: {
     setVapidDetails: () => {},
     sendNotification: async (sub, payload) => {
-      if (failWith) throw Object.assign(new Error('push failed'), { statusCode: failWith });
+      const statusCode = typeof failWith === 'function' ? failWith(sub) : failWith;
+      if (statusCode) throw Object.assign(new Error('push failed'), { statusCode });
       sent.push({ endpoint: sub.endpoint, payload: JSON.parse(payload) });
     },
   },
@@ -46,7 +47,7 @@ require.cache[path.join(__dirname, '../config/prisma.js')] = {
   },
 };
 
-const { notifyUser, safePath } = require('./pushService');
+const { notifyUser, sendTestPush, safePath } = require('./pushService');
 const alert = { type: 'ALERT', topic: 'safetyAlerts', title: 'Safety alert', body: 'Level 3', url: '/trips/4' };
 const reset = () => { inbox.length = 0; sent.length = 0; failWith = null; subs = [{ id: 1, endpoint: 'e1', p256dh: 'p', auth: 'a', failureCount: 0 }]; };
 
@@ -85,8 +86,23 @@ const reset = () => { inbox.length = 0; sent.length = 0; failWith = null; subs =
 
   // an unsubscribed browser (410) is dropped at once
   reset(); failWith = 410;
-  await notifyUser(1, alert);
+  assert.equal((await notifyUser(1, alert)).pushed, 0);
   assert.equal(subs.length, 0);
+
+  reset();
+  assert.deepEqual(await sendTestPush(1), { attempted: 1, sent: 1 });
+  assert.equal(inbox.length, 0);
+
+  reset(); failWith = 500;
+  assert.deepEqual(await sendTestPush(1), { attempted: 1, sent: 0 });
+
+  reset(); failWith = (sub) => sub.endpoint === 'e1' ? 410 : null;
+  subs.push({ id: 2, endpoint: 'e2', p256dh: 'p', auth: 'a', failureCount: 0 });
+  assert.deepEqual(await sendTestPush(1), { attempted: 2, sent: 1 });
+  assert.deepEqual(sent.map((entry) => entry.endpoint), ['e2']);
+
+  subs = [];
+  assert.deepEqual(await sendTestPush(1), { attempted: 0, sent: 0 });
 
   // other failures count up, and the subscription goes at five
   reset(); failWith = 500;

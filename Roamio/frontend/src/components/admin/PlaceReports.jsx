@@ -74,6 +74,7 @@ export default function PlaceReports({ onOpenContent }) {
                 {place.reports.map((report, index) => (
                   <li key={index}>
                     {reasonLabel(report.reason)}{report.note ? `: ${report.note}` : ""}{" "}
+                    {report.itineraryStop && <div>Itinerary stop · {report.itineraryStop}</div>}
                     <small>{formatDate(report.createdAt)}</small>
                   </li>
                 ))}

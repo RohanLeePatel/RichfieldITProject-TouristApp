@@ -3,35 +3,34 @@ import { Flag, Star } from "lucide-react";
 
 import { REPORT_REASONS, fetchPlaceRating, ratePlace, reportPlace } from "../../api/places.js";
 
-// "How was it?" for a trip's destination: a 1-5 rating once the trip is over, and
-// "Report a problem" at any time. The API enforces both rules; this only hides the
-// form that would be refused.
+// A destination rating after the trip and reports about the destination or its stops.
 export default function PlaceFeedback({ trip }) {
   const place = trip.destination;
   const finished = trip.status === "COMPLETED" || (trip.endDate && new Date(trip.endDate) < new Date());
 
   const [summary, setSummary] = useState(null);
+  const [ratingLoadFailed, setRatingLoadFailed] = useState(false);
+  const [submittedReview, setSubmittedReview] = useState(null);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [reason, setReason] = useState("");
+  const [stopId, setStopId] = useState("");
   const [note, setNote] = useState("");
-  const [reporting, setReporting] = useState(false);
+  const [reportOpenedAt, setReportOpenedAt] = useState(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const savedReview = submittedReview ?? summary?.mine;
+  const eligibleStops = (trip.itinerary ?? []).filter((stop) => stop.scheduledAt && Date.parse(stop.scheduledAt) <= reportOpenedAt);
 
   useEffect(() => {
     let cancelled = false;
     fetchPlaceRating(place)
       .then((data) => {
-        if (cancelled) return;
-        setSummary(data);
-        if (data.mine) {
-          setRating(data.mine.rating);
-          setComment(data.mine.comment || "");
-        }
+        if (!cancelled) setSummary(data);
       })
-      .catch(() => {}); // the rating is a nicety; the page works without it
+      .catch(() => { if (!cancelled) setRatingLoadFailed(true); });
     return () => { cancelled = true; };
   }, [place]);
 
@@ -53,19 +52,26 @@ export default function PlaceFeedback({ trip }) {
 
   const submitRating = async (event) => {
     event.preventDefault();
+    if (busy || savedReview) return;
     if (!rating) return setError("Pick a star rating first.");
-    if (await run(() => ratePlace(place, rating, comment.trim()), "Thanks, your rating is saved.")) {
-      fetchPlaceRating(place).then(setSummary).catch(() => {});
-    }
+    await run(async () => {
+      const { review } = await ratePlace(place, rating, comment.trim());
+      setSubmittedReview(review);
+    }, "Rating submitted successfully!");
+    fetchPlaceRating(place).then(setSummary).catch(() => {});
   };
 
   const submitReport = async (event) => {
     event.preventDefault();
+    if (busy) return;
     if (!reason) return setError("Choose what is wrong.");
-    if (await run(() => reportPlace(place, reason, note.trim()), "Thanks, we will look into it.")) {
-      setReporting(false);
+    if (stopId && !eligibleStops.some((stop) => stop.id === stopId)) return setError("Choose a stop whose scheduled start time has passed.");
+    const report = { place, reason, note: note.trim(), tripId: trip.id, itineraryItemId: stopId || undefined };
+    if (await run(() => reportPlace(report), "Thanks, we will look into it.")) {
+      setReportOpenedAt(null);
       setReason("");
       setNote("");
+      setStopId("");
     }
   };
 
@@ -77,12 +83,23 @@ export default function PlaceFeedback({ trip }) {
           <p>
             {summary?.reviewCount
               ? `${summary.avgRating} out of 5 from ${summary.reviewCount} traveller${summary.reviewCount === 1 ? "" : "s"}.`
-              : "No ratings yet."}
+              : summary ? "No ratings yet." : ""}
           </p>
         </div>
       </div>
 
-      {finished ? (
+      {savedReview ? (
+        <div className="place-feedback-form">
+          <p><strong>Your rating</strong> · {savedReview.rating} out of 5</p>
+          {savedReview.comment && <p>{savedReview.comment}</p>}
+        </div>
+      ) : !finished ? (
+        <p className="wizard-help">You can rate this place once your trip has finished.</p>
+      ) : ratingLoadFailed ? (
+        <p className="recommendations-error" role="alert">Could not load your rating. Reload the page to try again.</p>
+      ) : !summary ? (
+        <p className="wizard-help" role="status">Loading ratings…</p>
+      ) : (
         <form className="place-feedback-form" onSubmit={submitRating}>
           <div className="place-stars" role="radiogroup" aria-label="Your rating">
             {[1, 2, 3, 4, 5].map((value) => (
@@ -94,6 +111,7 @@ export default function PlaceFeedback({ trip }) {
                 aria-label={`${value} star${value === 1 ? "" : "s"}`}
                 className={value <= rating ? "on" : ""}
                 onClick={() => setRating(value)}
+                disabled={busy}
               >
                 <Star size={22} fill={value <= rating ? "currentColor" : "none"} />
               </button>
@@ -106,21 +124,32 @@ export default function PlaceFeedback({ trip }) {
             rows={2}
             placeholder="Anything other travellers should know? (optional)"
             aria-label="Comment"
+            disabled={busy}
           />
           <button type="submit" className="recommendations-submit" disabled={busy}>
-            {summary?.mine ? "Update rating" : "Save rating"}
+            Submit rating
           </button>
         </form>
-      ) : (
-        <p className="wizard-help">You can rate this place once your trip has finished.</p>
       )}
 
-      {reporting ? (
+      {reportOpenedAt !== null ? (
         <form className="place-feedback-form" onSubmit={submitReport}>
           <select value={reason} onChange={(event) => setReason(event.target.value)} aria-label="What is wrong">
             <option value="">What is wrong?</option>
             {REPORT_REASONS.map(({ id, label }) => <option key={id} value={id}>{label}</option>)}
           </select>
+          <label>
+            Itinerary stop (optional)
+            <select value={stopId} onChange={(event) => setStopId(event.target.value)} disabled={busy}>
+              <option value="">General destination issue</option>
+              {eligibleStops.map((stop) => (
+                <option key={stop.id} value={stop.id}>Day {stop.dayNumber} · {stop.startTime} · {stop.title}</option>
+              ))}
+            </select>
+          </label>
+          <p className="wizard-help">
+            {eligibleStops.length ? "Choose a stop to include it in your report." : "Stops are available once their scheduled start time has passed."}
+          </p>
           <textarea
             value={note}
             onChange={(event) => setNote(event.target.value)}
@@ -131,11 +160,11 @@ export default function PlaceFeedback({ trip }) {
           />
           <div className="place-feedback-row">
             <button type="submit" className="recommendations-submit" disabled={busy}>Send report</button>
-            <button type="button" className="secondary-button" onClick={() => setReporting(false)}>Cancel</button>
+            <button type="button" className="secondary-button" onClick={() => setReportOpenedAt(null)} disabled={busy}>Cancel</button>
           </div>
         </form>
       ) : (
-        <button type="button" className="secondary-button place-report-link" onClick={() => { setReporting(true); setMessage(""); setError(""); }}>
+        <button type="button" className="secondary-button place-report-link" onClick={() => { setReportOpenedAt(Date.now()); setMessage(""); setError(""); }} disabled={busy}>
           <Flag size={14} /> Report a problem with this place
         </button>
       )}

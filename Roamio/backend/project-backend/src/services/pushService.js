@@ -33,10 +33,6 @@ async function sendOne(subscription, payload) {
       { endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } },
       payload
     );
-    await prisma.pushSubscription.update({
-      where: { id: subscription.id },
-      data: { lastUsedAt: new Date(), failureCount: 0 },
-    });
   } catch (err) {
     if (GONE.includes(err.statusCode) || subscription.failureCount + 1 >= MAX_FAILURES) {
       await prisma.pushSubscription.deleteMany({ where: { id: subscription.id } });
@@ -46,7 +42,18 @@ async function sendOne(subscription, payload) {
         data: { failureCount: { increment: 1 } },
       });
     }
+    return false;
   }
+  await prisma.pushSubscription.update({
+    where: { id: subscription.id },
+    data: { lastUsedAt: new Date(), failureCount: 0 },
+  });
+  return true;
+}
+
+async function sendToSubscriptions(subscriptions, payload) {
+  const results = await Promise.all(subscriptions.map((subscription) => sendOne(subscription, payload)));
+  return results.filter(Boolean).length;
 }
 
 // Writes the inbox notification, then pushes it to the user's browsers when
@@ -68,8 +75,8 @@ async function notifyUser(userId, { type = 'INFO', topic, title, body, url, trip
 
     const subscriptions = await prisma.pushSubscription.findMany({ where: { userId } });
     const payload = JSON.stringify({ title, body, url: safePath(url), tag: dedupeKey || undefined });
-    await Promise.all(subscriptions.map((s) => sendOne(s, payload)));
-    return { duplicate: false, pushed: subscriptions.length };
+    const pushed = await sendToSubscriptions(subscriptions, payload);
+    return { duplicate: false, pushed };
   } catch (err) {
     console.error('Notification failed:', err.message);
     return { duplicate: false, pushed: 0, error: true };
@@ -77,13 +84,13 @@ async function notifyUser(userId, { type = 'INFO', topic, title, body, url, trip
 }
 
 // "Send a test" in Settings: goes to this user's browsers whatever their topic
-// settings, and leaves no inbox row. Returns how many were sent to.
+// settings, and leaves no inbox row.
 async function sendTestPush(userId) {
-  if (!isConfigured()) return 0;
+  if (!isConfigured()) return { attempted: 0, sent: 0 };
   const subscriptions = await prisma.pushSubscription.findMany({ where: { userId } });
   const payload = JSON.stringify({ title: 'Roamio', body: "Browser notifications are on. We'll alert you here about your trips.", url: '/', tag: 'roamio-test' });
-  await Promise.all(subscriptions.map((s) => sendOne(s, payload)));
-  return subscriptions.length;
+  const sent = await sendToSubscriptions(subscriptions, payload);
+  return { attempted: subscriptions.length, sent };
 }
 
 module.exports = { notifyUser, sendTestPush, isConfigured, safePath, MAX_FAILURES };

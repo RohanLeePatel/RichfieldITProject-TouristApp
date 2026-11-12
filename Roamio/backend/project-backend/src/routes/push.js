@@ -57,8 +57,9 @@ router.delete('/subscribe', pushLimiter, validate(endpointSchema), async (req, r
 router.post('/test', pushLimiter, async (req, res, next) => {
   try {
     if (!pushService.isConfigured()) return res.status(503).json({ message: 'Browser notifications are not set up yet.' });
-    const sent = await pushService.sendTestPush(req.user.id);
-    if (!sent) return res.status(404).json({ message: 'This browser is not subscribed yet.' });
+    const { attempted, sent } = await pushService.sendTestPush(req.user.id);
+    if (!attempted) return res.status(404).json({ message: 'This browser is not subscribed yet.' });
+    if (!sent) return res.status(502).json({ message: 'The push provider could not send the test notification. Try enabling browser notifications again.' });
     res.json({ sent });
   } catch (error) {
     next(error);

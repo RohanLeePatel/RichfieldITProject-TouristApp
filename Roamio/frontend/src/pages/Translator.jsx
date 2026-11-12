@@ -15,7 +15,6 @@ import {
   Plane,
   RefreshCw,
   Sparkles,
-  Star,
   Type,
   Upload,
   Volume2,
@@ -112,6 +111,7 @@ function Translator() {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
+  const workspaceRef = useRef(null);
 
   useEffect(() => {
     return () => {
@@ -145,13 +145,11 @@ function Translator() {
       if (cancelled || items.length === 0) return;
       const saved = items.map((item) => ({
         id: item.id,
-        original: item.source_text || "Photo translation",
+        original: item.source_text || "",
         translation: item.translated_text || "",
-        from: getLanguageName(
-          item.source_lang && item.source_lang !== "auto" ? item.source_lang : item.detected_lang
-        ),
-        to: getLanguageName(item.target_lang),
-        isFavorite: false,
+        source: item.source_lang,
+        detected: item.detected_lang,
+        target: item.target_lang,
       }));
       setHistory((prev) => {
         const ids = new Set(prev.map((entry) => entry.id));
@@ -360,11 +358,11 @@ function Translator() {
       if (data.translation) {
         const newEntry = {
           id: data.history_id || Date.now(),
-          original: isPhoto ? data.text || "Photo translation" : inputText,
+          original: isPhoto ? data.text || "" : inputText,
           translation: data.translation,
-          from: getLanguageName(data.detected_lang || sourceLanguage),
-          to: getLanguageName(targetLanguage),
-          isFavorite: false,
+          source: sourceLanguage,
+          detected: data.detected_lang,
+          target: targetLanguage,
         };
         setHistory((prev) => [newEntry, ...prev.slice(0, 19)]);
       }
@@ -451,12 +449,24 @@ function Translator() {
     setTranslationResult(null);
   };
 
-  const toggleFavorite = (id) => {
-    setHistory((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, isFavorite: !item.isFavorite } : item
-      )
-    );
+  const openHistoryEntry = (item) => {
+    if (loading) return;
+    const source = baseCode(item.source);
+    const target = item.target?.toUpperCase();
+    recognitionRef.current?.abort();
+    if (canSpeak) window.speechSynthesis.cancel();
+    clearImage();
+    setMode("text");
+    setSourceLanguage(SOURCE_LANGUAGES.some((lang) => lang.code === source) ? source : "auto");
+    setTargetLanguage(LANGUAGES.find((lang) => lang.code === target)?.code || targetForBase(target));
+    setInputText(item.original.slice(0, MAX_TEXT_CHARS));
+    setTranslationResult({
+      text: item.original,
+      translation: item.translation,
+      detected_lang: item.detected,
+    });
+    workspaceRef.current?.focus({ preventScroll: true });
+    workspaceRef.current?.scrollIntoView({ block: "start" });
   };
 
   return (
@@ -488,7 +498,7 @@ function Translator() {
         </Hint>
 
         {/* UNIFIED SINGLE WORKSPACE CARD */}
-        <section className="translator-card-unified">
+        <section className="translator-card-unified" ref={workspaceRef} tabIndex={-1} aria-label="Translator">
           {/* TOP INTEGRATED TOOLBAR */}
           <div className="translator-top-bar">
             <div className="mode-tabs" role="tablist">
@@ -898,29 +908,28 @@ function Translator() {
               <summary>
                 <div className="history-summary-title">
                   <History size={16} />
-                  <span>Recent Translations & Favorites ({history.length})</span>
+                  <span>Translation history ({history.length})</span>
                 </div>
                 <ChevronDown size={16} className="accordion-chevron" />
               </summary>
               <div className="history-list">
                 {history.map((item) => (
-                  <div key={item.id} className="history-card">
-                    <div className="history-details">
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="history-card"
+                    onClick={() => openHistoryEntry(item)}
+                    disabled={loading}
+                  >
+                    <span className="history-details">
                       <span className="history-meta">
-                        {item.from} → {item.to}
+                        {getLanguageName(item.source && item.source.toLowerCase() !== "auto" ? item.source : item.detected)} → {getLanguageName(item.target)}
                       </span>
                       <span className="history-text">{item.translation}</span>
-                      <span className="history-subtext">{item.original}</span>
-                    </div>
-                    <button
-                      type="button"
-                      className={`favorite-star-btn ${item.isFavorite ? "active" : ""}`}
-                      onClick={() => toggleFavorite(item.id)}
-                      aria-label="Toggle favorite"
-                    >
-                      <Star size={16} fill={item.isFavorite ? "currentColor" : "none"} />
-                    </button>
-                  </div>
+                      <span className="history-subtext">{item.original || "Photo translation"}</span>
+                    </span>
+                    <ArrowRight size={16} aria-hidden="true" />
+                  </button>
                 ))}
               </div>
             </details>

@@ -91,6 +91,7 @@ model TravelGroup {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
+  deletedWithTrips Boolean @default(false)
 
   members     TravelGroupMember[]
   invitations Invitation[]
@@ -645,6 +646,7 @@ model PlaceReport {
   placeName String   @db.VarChar(160)
   reason    String   @db.VarChar(20)
   note      String?  @db.VarChar(300)
+  itineraryStop String?
   status    String   @default("OPEN") @db.VarChar(20)
   createdAt DateTime @default(now()) @db.Timestamptz(6)
 

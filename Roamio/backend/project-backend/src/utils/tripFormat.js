@@ -101,6 +101,11 @@ function formatTime(date) {
   return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
 }
 
+function scheduledItemStart(item, tripStartDate) {
+  if (!tripStartDate || !item.dayNumber) return null;
+  return itemStartDate(tripStartDate, item.dayNumber, formatTime(item.startTime));
+}
+
 function formatItem(item) {
   const { notes, lat, lon } = unpackItemMeta(item.description);
   return {
@@ -134,7 +139,10 @@ function formatTrip(trip) {
     status: trip.status,
     travelGroupId: trip.travelGroupId,
     createdAt: trip.createdAt,
-    ...(items ? { itinerary: items.map(formatItem) } : {}),
+    ...(items ? { itinerary: items.map((item) => ({
+      ...formatItem(item),
+      scheduledAt: scheduledItemStart(item, trip.startDate),
+    })) } : {}),
     ...(itemCount !== undefined ? { _count: { itinerary: itemCount } } : {}),
     // group-trip detail (GET /api/trips/:id), same shape the src/ trip API returned
     ...(trip.members ? { members: trip.members } : {}),
@@ -149,4 +157,4 @@ const accessibleTrips = (userId, extra = {}) => ({
   ...extra,
 });
 
-module.exports = { planReorder, packMeta, unpackMeta, packItemMeta, unpackItemMeta, itemStartDate, formatTime, formatItem, formatTrip, accessibleTrips };
+module.exports = { planReorder, packMeta, unpackMeta, packItemMeta, unpackItemMeta, itemStartDate, scheduledItemStart, formatTime, formatItem, formatTrip, accessibleTrips };
