@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const { httpError } = require('./tripAccessService');
 
 // Who did what in the admin dashboard. Entries go in ActivityLog with no tripId, so
 // no traveller's activity feed ever shows them; every action starts with ADMIN_.
@@ -19,12 +20,17 @@ async function log(adminId, action, { entityType = 'USER', entityId = null, deta
 // Filters: action (exact code), adminId, targetId (the user it was done to), from / to (YYYY-MM-DD)
 function whereFor({ action, adminId, targetId, from, to } = {}) {
   const id = (v) => (/^\d{1,9}$/.test(String(v ?? '')) ? Number(v) : null);
-  const date = (v, end) => {
-    const d = /^\d{4}-\d{2}-\d{2}$/.test(String(v ?? '')) ? new Date(`${v}T${end ? '23:59:59.999' : '00:00:00'}Z`) : null;
-    return d && !Number.isNaN(d.getTime()) ? d : null;
+  const date = (value, label, time) => {
+    if (value === undefined || value === '') return null;
+    const error = () => httpError(400, `Enter a valid ${label} date (YYYY-MM-DD).`);
+    if (typeof value !== 'string' || !/^(?!0000)\d{4}-\d{2}-\d{2}$/.test(value)) throw error();
+    const parsed = new Date(`${value}T${time}Z`);
+    if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) throw error();
+    return parsed;
   };
-  const gte = date(from);
-  const lte = date(to, true);
+  const gte = date(from, 'start', '00:00:00.000');
+  const lte = date(to, 'end', '23:59:59.999');
+  if (gte && lte && gte > lte) throw httpError(400, 'The start date must be on or before the end date.');
   return {
     action: typeof action === 'string' && action.startsWith(PREFIX) ? action : { startsWith: PREFIX },
     ...(id(adminId) && { userId: id(adminId) }),
@@ -67,7 +73,8 @@ const csvCell = (v) => {
   return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
 };
 async function exportCsv(filters = {}) {
-  const rows = await prisma.activityLog.findMany({ where: whereFor(filters), orderBy: { createdAt: 'desc' }, take: 5000, select: SELECT });
+  const where = whereFor(filters);
+  const rows = await prisma.activityLog.findMany({ where, orderBy: { createdAt: 'desc' }, take: 5000, select: SELECT });
   const lines = [['when', 'admin', 'action', 'target_type', 'target_id', 'target_name', 'details'].join(',')];
   for (const e of await shape(rows)) {
     lines.push([e.at.toISOString(), e.admin.name, e.action, e.target.type, e.target.id, e.target.name, e.details].map(csvCell).join(','));

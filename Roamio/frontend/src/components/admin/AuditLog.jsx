@@ -23,6 +23,13 @@ const ACTIONS = {
 
 const label = (action) => ACTIONS[action] ?? action.replace(/^ADMIN_/, "").replace(/_/g, " ").toLowerCase();
 
+function validDate(value) {
+  if (!value) return true;
+  if (!/^(?!0000)\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
 // Who the action was done to or on: a person's name, else the details the admin screen recorded
 function subject({ target, details }) {
   if (target.type === "USER") return target.name ?? `User #${target.id} (no longer exists)`;
@@ -34,13 +41,22 @@ export default function AuditLog({ initialFilters = {} }) {
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState(initialFilters); // { action, targetId, from, to }
   const [exportError, setExportError] = useState(null);
-  const { data, isPending, error, refetch, isFetching } = useQuery({ ...adminAuditQuery(page, filters), retry: retryUnlessForbidden });
+  const validFrom = validDate(filters.from);
+  const validTo = validDate(filters.to);
+  const reversed = validFrom && validTo && filters.from && filters.to && filters.from > filters.to;
+  const rangeError = !validFrom ? "Enter a valid start date."
+    : !validTo ? "Enter a valid end date."
+    : reversed ? "The start date must be on or before the end date." : null;
+  const { data, isPending, error, refetch, isFetching } = useQuery({ ...adminAuditQuery(page, filters), enabled: !rangeError, retry: retryUnlessForbidden });
   const { data: known } = useQuery({ ...adminAuditActionsQuery, retry: retryUnlessForbidden });
   const set = (key) => (event) => {
-    setFilters((f) => ({ ...f, [key]: event.target.value }));
+    const { value } = event.target;
+    setFilters((f) => ({ ...f, [key]: value }));
     setPage(1);
+    setExportError(null);
   };
   const download = async () => {
+    if (rangeError) return;
     try {
       setExportError(null);
       downloadText("roamio-audit-log.csv", await exportAuditCsv(filters));
@@ -58,13 +74,13 @@ export default function AuditLog({ initialFilters = {} }) {
           <h2 id="admin-audit-title">
             <ClipboardList size={18} /> Audit log
           </h2>
-          <p>{data ? `${total} admin ${total === 1 ? "action" : "actions"} recorded` : "Loading…"}</p>
+          <p>{rangeError ? "Adjust the date range to view the audit log." : data ? `${total} admin ${total === 1 ? "action" : "actions"} recorded` : "Loading…"}</p>
         </div>
         <div className="admin-card-actions">
-          <button type="button" className="admin-icon-button" onClick={() => refetch()} disabled={isFetching} aria-label="Refresh audit log" title="Refresh">
+          <button type="button" className="admin-icon-button" onClick={() => refetch()} disabled={isFetching || Boolean(rangeError)} aria-label="Refresh audit log" title="Refresh">
             <RefreshCw size={16} className={isFetching ? "admin-spin" : ""} />
           </button>
-          <button type="button" className="admin-icon-button" onClick={download} aria-label="Download the audit log as a spreadsheet" title="Download (CSV)">
+          <button type="button" className="admin-icon-button" onClick={download} disabled={Boolean(rangeError)} aria-label="Download the audit log as a spreadsheet" title="Download (CSV)">
             <Download size={16} />
           </button>
         </div>
@@ -81,10 +97,28 @@ export default function AuditLog({ initialFilters = {} }) {
         </select>
         <input className="admin-select" type="text" inputMode="numeric" placeholder="User ID" value={filters.targetId ?? ""} onChange={set("targetId")} aria-label="Done to user ID" size={8} />
         <label className="admin-filter-date">
-          From <input className="admin-select" type="date" value={filters.from ?? ""} onChange={set("from")} />
+          From
+          <input
+            className="admin-select"
+            type="date"
+            value={filters.from ?? ""}
+            max={validTo ? filters.to || undefined : undefined}
+            onChange={set("from")}
+            aria-invalid={Boolean(!validFrom || reversed)}
+            aria-describedby={rangeError ? "audit-date-error" : undefined}
+          />
         </label>
         <label className="admin-filter-date">
-          To <input className="admin-select" type="date" value={filters.to ?? ""} onChange={set("to")} />
+          To
+          <input
+            className="admin-select"
+            type="date"
+            value={filters.to ?? ""}
+            min={validFrom ? filters.from || undefined : undefined}
+            onChange={set("to")}
+            aria-invalid={Boolean(!validTo || reversed)}
+            aria-describedby={rangeError ? "audit-date-error" : undefined}
+          />
         </label>
       </div>
       {exportError && (
@@ -93,7 +127,9 @@ export default function AuditLog({ initialFilters = {} }) {
         </p>
       )}
 
-      {error && !data ? (
+      {rangeError ? (
+        <p id="audit-date-error" className="admin-notice error" role="alert">{rangeError}</p>
+      ) : error && !data ? (
         <div className="admin-error" role="alert">
           <AlertTriangle size={18} />
           <span>{error.message}</span>
@@ -117,7 +153,7 @@ export default function AuditLog({ initialFilters = {} }) {
         </ul>
       )}
 
-      {total > AUDIT_PAGE_SIZE && (
+      {!rangeError && total > AUDIT_PAGE_SIZE && (
         <nav className="admin-pager" aria-label="Audit log pages">
           <button type="button" className="admin-icon-button" onClick={() => setPage((p) => p - 1)} disabled={page <= 1 || isFetching} aria-label="Previous page">
             <ChevronLeft size={16} />
