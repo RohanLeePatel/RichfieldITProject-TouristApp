@@ -2,6 +2,7 @@ const express = require('express');
 const { userHeaders } = require('../utils/userAssertion');
 const { verifyAccessToken } = require('../auth/tokenService');
 const authenticateToken = require('../middleware/authMiddleware');
+const sessionService = require('../services/sessionService');
 const { translateLimiter } = require('../middleware/rateLimiter');
 const { aiApiUrl } = require('../utils/aiService');
 
@@ -20,14 +21,15 @@ router.use(translateLimiter);
 // never come from anything the browser can set. No valid token is not an
 // error - the translation still happens, it just isn't saved anywhere.
 // Looks for the token in the same places as authMiddleware.
-function verifiedUserId(req) {
+async function verifiedUserId(req) {
   const header = req.headers.authorization;
   const token = header?.startsWith('Bearer ')
     ? header.split(' ')[1]
     : req.signedCookies?.accessToken;
   if (!token) return null;
   try {
-    const { userId } = verifyAccessToken(token);
+    const { userId, sid } = verifyAccessToken(token);
+    if (sid && !(await sessionService.isLive(sid, userId))) return null;
     return userId == null ? null : String(userId);
   } catch {
     return null;
@@ -68,7 +70,7 @@ async function forward(res, path, init, userId = null) {
 // ai-features re-checks the real bytes and the file's magic number.
 // Known limit: Vercel caps request bodies at about 4.5 MB. Larger photos would need a
 // direct-to-storage upload, which this route doesn't do.
-router.post('/ocr', (req, res) => {
+router.post('/ocr', async (req, res) => {
   const type = req.headers['content-type'] || '';
   const length = Number(req.headers['content-length']);
 
@@ -83,12 +85,12 @@ router.post('/ocr', (req, res) => {
     res,
     '/api/translate/camera',
     { headers: { 'content-type': type }, body: req, duplex: 'half' },
-    verifiedUserId(req)
+    await verifiedUserId(req)
   );
 });
 
 // Typed / spoken text translation.
-router.post('/text', (req, res) => {
+router.post('/text', async (req, res) => {
   const { text, target_lang, source_lang } = req.body || {};
 
   if (typeof text !== 'string' || !text.trim()) {
@@ -105,7 +107,7 @@ router.post('/text', (req, res) => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ text, target_lang, source_lang }),
     },
-    verifiedUserId(req)
+    await verifiedUserId(req)
   );
 });
 

@@ -36,10 +36,10 @@ def delete_record(user_id: str, record_id: str) -> dict | None:
     return rows[0] if rows else None
 
 
-def delete_all(user_id: str) -> list[dict]:
-    """Deletes every row for user_id (account deletion) and returns them, so the
-    caller can remove the stored photographs too."""
-    return get_client().table(TABLE).delete().eq("user_id", user_id).execute().data or []
+def delete_all(user_id: str) -> int:
+    """Deletes every row for user_id and returns the exact count."""
+    result = get_client().table(TABLE).delete(count="exact", returning="minimal").eq("user_id", user_id).execute()
+    return result.count or 0
 
 
 def prune_photos(user_id: str) -> list[str]:

@@ -100,3 +100,18 @@ def delete_translation_image(image_url: str) -> None:
         get_client().storage.from_(bucket_name()).remove([path])
     except Exception:
         logger.exception("could not delete stored image %s", path)
+
+
+def delete_translation_images(user_id: str) -> None:
+    """Remove all photos in the traveller's upload folder, including orphaned files."""
+    folder = _safe_segment(user_id)
+    bucket = get_client().storage.from_(bucket_name())
+    page_size = 100
+    paths = []
+    while True:
+        files = bucket.list(folder, {"limit": page_size, "offset": len(paths), "sortBy": {"column": "name", "order": "asc"}})
+        paths.extend(f"{folder}/{file['name']}" for file in files)
+        if len(files) < page_size:
+            break
+    for start in range(0, len(paths), page_size):
+        bucket.remove(paths[start:start + page_size])

@@ -63,12 +63,14 @@ function DeleteAccountModal({ open, email, onClose, onDeleted }) {
           <ul>
             <li>Your profile, photo and preferences</li>
             <li>Saved travellers and their details</li>
-            <li>Trips you own, including itineraries and expenses</li>
+            <li>Trips you organized, including shared trips, itineraries, budgets and documents</li>
+            <li>Your uploaded documents, expenses and expense shares on other trips</li>
+            <li>Your assistant chats, translations and translation photos</li>
             <li>Your notification settings and sign-in history</li>
           </ul>
           <p>
-            You'll be removed from trips other people own. Records we must keep by law, such as
-            payments, are kept only as long as required.
+            Trips organized by someone else stay available to their members. If you own a
+            shared group, another member takes over. We keep records the law requires.
           </p>
         </div>
 
@@ -176,7 +178,7 @@ export default function PrivacySection({ notify }) {
   const handleDeleted = () => {
     setDeleteOpen(false);
     try {
-      if (typeof logout === "function") logout();
+      if (typeof logout === "function") logout({ accountDeleted: true });
       else useAuthStore.setState?.({ user: null, token: null });
     } catch {
       // already signed out

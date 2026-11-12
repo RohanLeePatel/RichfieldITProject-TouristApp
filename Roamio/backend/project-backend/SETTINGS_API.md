@@ -94,12 +94,14 @@ Errors: `{ "message": "..." }` with a 4xx/5xx status; the page shows that messag
   (names and sizes, not the files), notifications, assistant chats, translation history
   (text, with photograph links; left `null` if the translation service can't be reached) and
   sign-in history. Never the password hash or one-time codes.
-- **Delete** (design P-17): needs the typed word and the password. The translation service is
-  asked to erase the history and photographs first; if it can't, nothing is deleted and the
-  traveller can try again. Then, in one transaction: a group they are alone in is deleted (with
-  its trips); in a shared group where they were the only owner, the longest-standing other member
-  becomes owner; documents they uploaded are removed; the user row is deleted, which cascades
-  to memberships, expense splits, notifications, chats, sessions and saved travellers.
+- **Delete** (design P-17) requires the typed word and the password. The translation service
+  erases stored photographs and history first. The account stays open if that step fails, so
+  the traveller can retry. One database transaction then deletes their organized trips,
+  including trips in shared groups, and any groups where they were the sole member.
+  The longest-standing remaining member takes over a shared group if needed. The transaction
+  deletes the user's uploads and incoming invitations and resets saved split percentages
+  that included them. Deleting the user cascades to their memberships, expenses, expense shares,
+  outgoing invitations, notifications, chats, sessions and saved travellers.
 - **Reports** are emailed to `SUPPORT_EMAIL` (default `support.roamiio.live@gmail.com`) through the
   same SMTP settings as the verification codes, with the traveller's address as the reply-to.
   Limited to 5 per 15 minutes per IP address.

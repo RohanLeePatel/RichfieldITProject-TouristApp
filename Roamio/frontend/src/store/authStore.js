@@ -89,13 +89,18 @@ export const useAuthStore = create((set, get) => ({
     set({ user });
   },
 
-  logout: () => {
+  logout: ({ accountDeleted = false } = {}) => {
     disablePush(getToken()).catch(() => {}); // a signed-out browser must not keep receiving this user's alerts
     endSession(); // drop the 7-day refresh cookie too: a signed-out browser keeps no session
     localStorage.removeItem(USER_KEY);
     clearAllDrafts();
     // per-user data a shared device must not keep after sign-out
     try {
+      if (accountDeleted) {
+        const profiles = loadProfiles();
+        delete profiles[profileId(get().user)];
+        localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
+      }
       for (const key of Object.keys(localStorage)) {
         if (key.startsWith("roamio-settings:") || key === "roamio_standalone_calendar_events" || key === "roamio_active_trip") {
           localStorage.removeItem(key);

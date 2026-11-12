@@ -115,23 +115,40 @@ async function deleteAccount(userId, { confirmation, password } = {}) {
   if (confirmation !== 'DELETE') throw httpError(400, 'Type DELETE to confirm.');
   if (typeof password !== 'string' || !password) throw httpError(400, 'Enter your password to confirm.');
 
-  const user = await prisma.user.findFirst({ where: { id: userId, deletedAt: null }, select: { id: true, passwordHash: true } });
+  const user = await prisma.user.findFirst({ where: { id: userId, deletedAt: null }, select: { email: true, passwordHash: true } });
   if (!user) throw httpError(404, 'Account not found.');
   if (!(await comparePassword(password, user.passwordHash))) throw httpError(401, 'Password is incorrect.');
 
-  // First, and fatal: if the translation history (and its photographs) can't be
-  // erased now, nothing is deleted and the traveller can simply try again.
   let erased;
   try {
     erased = await expert('/api/translate/history', userId, { method: 'DELETE' });
   } catch {
     erased = { ok: false };
   }
-  if (erased && !erased.ok && erased.status !== 404) {
-    throw httpError(502, "We couldn't erase your translation history just now, so nothing was deleted. Please try again in a minute.");
+  if (!erased?.ok) {
+    throw httpError(502, "We couldn't finish erasing your translations and photos. Your account is still open. Please try again in a minute.");
   }
 
   await prisma.$transaction(async (tx) => {
+    const trips = await tx.trip.findMany({
+      where: {
+        OR: [
+          { members: { some: { userId, role: 'ORGANIZER' } } },
+          { travelGroup: { members: { some: { userId }, every: { userId } } } },
+        ],
+      },
+      select: { id: true },
+    });
+    const tripIds = trips.map(({ id }) => id);
+    if (tripIds.length) {
+      const where = { tripId: { in: tripIds } };
+      await tx.notification.deleteMany({ where });
+      await tx.activityLog.deleteMany({ where });
+      await tx.chatConversation.deleteMany({ where });
+      await tx.placeReview.deleteMany({ where });
+      await tx.trip.deleteMany({ where: { id: { in: tripIds } } });
+    }
+
     const memberships = await tx.travelGroupMember.findMany({ where: { userId }, select: { travelGroupId: true, role: true } });
     for (const { travelGroupId, role } of memberships) {
       const others = await tx.travelGroupMember.findMany({
@@ -141,19 +158,19 @@ async function deleteAccount(userId, { confirmation, password } = {}) {
       });
       if (others.length === 0) {
         await tx.travelGroup.delete({ where: { id: travelGroupId } }); // trips, itinerary, expenses, documents go with it
-      } else {
-        // expenses this person paid stay on the trip: the cascade would delete them and change
-        // everyone else's balances, so the next member is recorded as the payer instead
-        await tx.expense.updateMany({ where: { paidById: userId, trip: { travelGroupId } }, data: { paidById: others[0].userId } });
-        if (role === 'OWNER' && !others.some((member) => member.role === 'OWNER')) {
-          await tx.travelGroupMember.update({ where: { id: others[0].id }, data: { role: 'OWNER' } });
-        }
+      } else if (role === 'OWNER' && !others.some((member) => member.role === 'OWNER')) {
+        await tx.travelGroupMember.update({ where: { id: others[0].id }, data: { role: 'OWNER' } });
       }
     }
-    // the one relation that doesn't cascade: documents this person put on trips that stay
+    // Saved percentages only work when they cover the full membership and add up to 100.
+    await tx.trip.updateMany({
+      where: { splitShares: { path: [String(userId)], gte: 0 } },
+      data: { splitShares: {} },
+    });
+    await tx.invitation.deleteMany({ where: { email: user.email } });
     await tx.tripDocument.deleteMany({ where: { uploadedById: userId } });
-    await tx.user.delete({ where: { id: userId } }); // memberships, splits, notifications, sessions, travellers...
-  });
+    await tx.user.delete({ where: { id: userId }, select: { id: true } });
+  }, { isolationLevel: 'Serializable' });
 }
 
 module.exports = { exportData, deleteAccount };

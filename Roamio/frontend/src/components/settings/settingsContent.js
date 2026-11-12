@@ -40,7 +40,7 @@ export const FAQS = [
   },
   {
     q: "What happens when I delete my account?",
-    a: "Go to Settings, then Privacy & data, then Delete account, and enter your password. Your profile, preferences, saved travellers, sign-in history, chat and translation history are deleted straight away, along with trips that only you were part of. In groups with other people the trips stay for them. Records we must keep by law are kept only for as long as required. This can't be undone.",
+    a: "Go to Settings, then Privacy & data, then Delete account, and enter your password. Your account data and trips you organized are permanently deleted, including trips you organized in shared groups. On other trips, your membership, uploads, expenses and expense shares are removed. We keep records the law requires for as long as required.",
   },
   {
     q: "How do I change my home currency or translation language?",
@@ -117,7 +117,7 @@ export const PRIVACY_POLICY = [
   {
     heading: "How long we keep it",
     body: [
-      "We keep your information while your account is open. You can delete your account yourself in Settings (you will need your password), or email us from the address on your account and we will do it within 30 days. Your profile, preferences, saved travellers, sign-in history, chat history and translation history are deleted, along with trips that only you were part of. In a group with other people, the trips stay for them, and if you were its owner another member takes over. We keep only records the law requires us to keep, and only for as long as required.",
+      "We keep your information while your account is open. You can delete your account yourself in Settings (you will need your password), or email us from the address on your account and we will do it within 30 days. We delete your profile, preferences, saved travellers, sign-in history, chats, translations and photos. Trips you organized are deleted, including trips in shared groups. On other trips, your membership, uploads, expenses and expense shares are removed. Another member takes over any shared group you owned. We keep records the law requires for as long as required.",
     ],
   },
   {

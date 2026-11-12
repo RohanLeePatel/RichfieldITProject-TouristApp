@@ -147,23 +147,27 @@ def test_delete_removes_stored_image(app, monkeypatch):
 
 
 def test_delete_all_removes_rows_and_stored_images(app, monkeypatch):
-    removed = []
-    monkeypatch.setattr(app.router.history_service, "delete_all", lambda u: [{"image_url": "http://x/a.jpg"}, {"image_url": None}])
-    monkeypatch.setattr(app.router.storage_service, "delete_translation_image", removed.append)
+    calls = []
+    monkeypatch.setattr(app.router.history_service, "delete_all", lambda u: calls.append(("history", u)) or 2)
+    monkeypatch.setattr(app.router.storage_service, "delete_translation_images", lambda u: calls.append(("photos", u)))
     r = app.client.delete("/api/translate/history", headers=_signed())
-    assert r.status_code == 200 and r.json() == {"deleted": 2} and removed == ["http://x/a.jpg"]
+    assert r.status_code == 200 and r.json() == {"deleted": 2}
+    assert calls == [("photos", "user-1"), ("history", "user-1")]
 
 
 def test_delete_all_requires_user(app):
     assert app.client.delete("/api/translate/history", headers={"node-secretkey": "test-secret"}).status_code == 401
 
 
-def test_delete_all_reports_unavailable_history(app, monkeypatch):
+def test_delete_all_preserves_history_when_storage_fails(app, monkeypatch):
     def boom(user_id):
         raise RuntimeError("down")
 
-    monkeypatch.setattr(app.router.history_service, "delete_all", boom)
+    removed = []
+    monkeypatch.setattr(app.router.history_service, "delete_all", removed.append)
+    monkeypatch.setattr(app.router.storage_service, "delete_translation_images", boom)
     assert app.client.delete("/api/translate/history", headers=_signed()).status_code == 503
+    assert not removed
 
 
 def test_delete_all_only_touches_that_user(monkeypatch):
@@ -172,14 +176,31 @@ def test_delete_all_only_touches_that_user(monkeypatch):
     calls = []
 
     class Query:
-        data = [{"image_url": "u1"}]
+        count = 2
 
         def __getattr__(self, name):
             return lambda *a, **k: calls.append((name, a)) or self
 
     monkeypatch.setattr(history_service, "get_client", lambda: SimpleNamespace(table=lambda t: Query()))
-    assert history_service.delete_all("user-1") == [{"image_url": "u1"}]
+    assert history_service.delete_all("user-1") == 2
     assert ("eq", ("user_id", "user-1")) in calls
+
+
+def test_delete_translation_images_paginates_and_stays_in_user_folder(monkeypatch):
+    removed = []
+    offsets = []
+
+    def list_files(folder, options):
+        assert folder == "user-1"
+        offset = options["offset"]
+        offsets.append(offset)
+        return [{"name": f"{i}.jpg"} for i in range(offset, min(offset + options["limit"], 102))]
+
+    bucket = SimpleNamespace(list=list_files, remove=removed.extend)
+    monkeypatch.setattr(storage_service, "get_client", lambda: SimpleNamespace(storage=SimpleNamespace(from_=lambda _: bucket)))
+    storage_service.delete_translation_images("user-1")
+    assert offsets == [0, 100]
+    assert removed == [f"user-1/{i}.jpg" for i in range(102)]
 
 
 def test_upload_validation():

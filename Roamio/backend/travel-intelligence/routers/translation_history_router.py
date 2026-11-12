@@ -176,14 +176,12 @@ def delete_all_history(x_user_id: str | None = Depends(signed_user_id)):
     """Every saved translation and stored photograph of one traveller (they deleted their account)."""
     user_id = _require_user(x_user_id)
     try:
-        rows = history_service.delete_all(user_id)
+        storage_service.delete_translation_images(user_id)
+        deleted = history_service.delete_all(user_id)
     except Exception:
         logger.exception("could not delete translation history")
         raise HTTPException(status_code=503, detail="Translation history is unavailable right now.")
-    for row in rows:
-        if row.get("image_url"):
-            storage_service.delete_translation_image(row["image_url"])
-    return {"deleted": len(rows)}
+    return {"deleted": deleted}
 
 
 @router.delete("/history/{record_id}")

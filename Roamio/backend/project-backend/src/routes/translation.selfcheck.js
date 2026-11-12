@@ -10,6 +10,9 @@ const jwt = require('jsonwebtoken');
 process.env.JWT_ACCESS_SECRET = 'selfcheck-secret';
 process.env.superSecretKey = 'selfcheck-service-key';
 
+const sessionService = require('../services/sessionService');
+sessionService.isLive = async (sid, userId) => sid === 'live' && userId === 7;
+
 let lastHeaders;
 const echo = http.createServer((req, res) => {
   lastHeaders = req.headers;
@@ -23,7 +26,7 @@ echo.listen(0, async () => {
   const app = express().use(express.json()).use(require('cookie-parser')()).use('/api/translate', router);
   const server = app.listen(0);
   const base = `http://127.0.0.1:${server.address().port}/api/translate`;
-  const token = (userId) => `Bearer ${jwt.sign({ userId }, process.env.JWT_ACCESS_SECRET)}`;
+  const token = (userId, sid) => `Bearer ${jwt.sign({ userId, sid }, process.env.JWT_ACCESS_SECRET)}`;
   const post = (headers) =>
     fetch(`${base}/text`, {
       method: 'POST',
@@ -50,6 +53,10 @@ echo.listen(0, async () => {
     got = await post({ authorization: token(7), 'x-user-id': '99' });
     assert.strictEqual(got.userId, '7');
     got = await post({ 'x-user-id': '99' });
+    assert.strictEqual(got.userId, null);
+    got = await post({ authorization: token(7, 'live') });
+    assert.strictEqual(got.userId, '7');
+    got = await post({ authorization: token(7, 'deleted-session') });
     assert.strictEqual(got.userId, null);
 
     // a forged token is a guest, not an error - translation still works

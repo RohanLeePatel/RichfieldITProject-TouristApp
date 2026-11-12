@@ -26,6 +26,13 @@ const db = {
   travellers: [],
   members: [], // { id, travelGroupId, userId, role, joinedAt }
   groups: [], // { id, description }
+  trips: [],
+  expenses: [],
+  invitations: [],
+  notifications: [],
+  logs: [],
+  chats: [],
+  reviews: [],
   documents: [], // { id, uploadedById }
 };
 let nextId = 100;
@@ -35,6 +42,7 @@ const matches = (row, where = {}) =>
     const have = row[key];
     if (want && typeof want === 'object' && !(want instanceof Date)) {
       if ('not' in want) return have !== want.not;
+      if ('in' in want) return want.in.includes(have);
       if ('gte' in want) return have >= want.gte;
       if ('lt' in want) return have < want.lt;
       return false;
@@ -57,7 +65,11 @@ const prisma = {
       if (!user || !select) return user || null;
       return Object.fromEntries(Object.keys(select).filter((key) => select[key]).map((key) => [key, user[key]]));
     },
-    delete: async ({ where }) => { removeWhere(db.users, { id: where.id }); removeWhere(db.sessions, { userId: where.id }); removeWhere(db.travellers, { userId: where.id }); removeWhere(db.members, { userId: where.id }); },
+    delete: async ({ where }) => {
+      removeWhere(db.users, { id: where.id });
+      for (const table of [db.sessions, db.travellers, db.members]) removeWhere(table, { userId: where.id });
+      removeWhere(db.expenses, { paidById: where.id });
+    },
   },
   plannerDraft: {
     findUnique: async ({ where }) => db.drafts.find((d) => d.userId === where.userId) || null,
@@ -106,8 +118,22 @@ const prisma = {
     },
     update: async ({ where, data }) => Object.assign(db.members.find((m) => m.id === where.id), data),
   },
-  expense: {
-    updateMany: async ({ where, data }) => { (db.reassigned ||= []).push({ where, data }); return { count: 0 }; },
+  trip: {
+    findMany: async ({ where: { OR: [{ members: { some } }, { travelGroup }] } }) =>
+      db.trips.filter((trip) => {
+        const members = db.members.filter((member) => member.travelGroupId === trip.travelGroupId);
+        return trip.members.some((member) => matches(member, some)) ||
+          (members.some((member) => matches(member, travelGroup.members.some)) &&
+            members.every((member) => matches(member, travelGroup.members.every)));
+      }),
+    deleteMany: async ({ where }) => {
+      const tripIds = select(db.trips, where).map(({ id }) => id);
+      removeWhere(db.trips, where);
+      for (const table of [db.documents, db.expenses]) removeWhere(table, { tripId: { in: tripIds } });
+    },
+    updateMany: async ({ where: { splitShares: { path: [id], gte } }, data }) => {
+      db.trips.filter((trip) => trip.splitShares?.[id] >= gte).forEach((trip) => Object.assign(trip, data));
+    },
   },
   travelGroup: {
     delete: async ({ where }) => { removeWhere(db.groups, { id: where.id }); removeWhere(db.members, { travelGroupId: where.id }); },
@@ -116,8 +142,11 @@ const prisma = {
     findMany: async () => [],
     deleteMany: async ({ where }) => removeWhere(db.documents, where),
   },
-  notification: { findMany: async () => [] },
-  chatConversation: { findMany: async () => [] },
+  invitation: { deleteMany: async ({ where }) => removeWhere(db.invitations, where) },
+  notification: { findMany: async () => [], deleteMany: async ({ where }) => removeWhere(db.notifications, where) },
+  chatConversation: { findMany: async () => [], deleteMany: async ({ where }) => removeWhere(db.chats, where) },
+  activityLog: { deleteMany: async ({ where }) => removeWhere(db.logs, where) },
+  placeReview: { deleteMany: async ({ where }) => removeWhere(db.reviews, where) },
 };
 prisma.$transaction = async (fn) => {
   const snapshot = JSON.stringify(db);
@@ -317,7 +346,22 @@ const server = app.listen(0, async () => {
       { id: 4, travelGroupId: 12, userId: 2, role: 'OWNER', joinedAt: joined(8) },
       { id: 5, travelGroupId: 12, userId: 1, role: 'MEMBER', joinedAt: joined(2) }
     );
-    db.documents.push({ id: 'd1', uploadedById: 1 }, { id: 'd2', uploadedById: 2 });
+    db.trips.push(
+      { id: 20, travelGroupId: 10, members: [] }, // legacy personal trip
+      { id: 21, travelGroupId: 11, deletedAt: joined(1), members: [{ userId: 1, role: 'ORGANIZER' }] },
+      { id: 22, travelGroupId: 11, members: [{ userId: 2, role: 'ORGANIZER' }], splitShares: { 1: 0, 2: 100 } },
+      { id: 23, travelGroupId: 12, members: [{ userId: 1, role: 'ORGANIZER' }, { userId: 2, role: 'COLLABORATOR' }] }
+    );
+    db.documents.push(
+      { id: 'd1', tripId: 22, uploadedById: 1 },
+      { id: 'd2', tripId: 22, uploadedById: 2 },
+      { id: 'd3', tripId: 23, uploadedById: 2 }
+    );
+    db.expenses.push({ tripId: 22, paidById: 1 }, { tripId: 22, paidById: 2 }, { tripId: 23, paidById: 2 });
+    db.invitations.push({ email: 'ada@example.com' }, { email: 'bob@example.com' });
+    for (const table of [db.notifications, db.chats, db.logs, db.reviews]) {
+      table.push({ tripId: 21, userId: 2 }, { tripId: 22, userId: 2 });
+    }
 
     for (const [body, status, pattern] of [
       [undefined, 400, /DELETE/],
@@ -331,20 +375,25 @@ const server = app.listen(0, async () => {
       assert.equal(db.users.length, 2); // nothing was deleted
     }
 
-    // the translation service can't be reached: nothing is deleted
+    // A missing configuration, route or service must leave the account intact.
+    const deletion = { body: { confirmation: 'DELETE', password: 'correct-horse' } };
+    r = await call('DELETE', '/api/users/me', deletion);
+    assert.equal(r.status, 502);
     process.env.superSecretKey = 'service-key';
     const realFetch = global.fetch;
-    global.fetch = async (url, init) => (String(url).includes('/api/translate/history') ? { ok: false, status: 503 } : realFetch(url, init));
-    r = await call('DELETE', '/api/users/me', { body: { confirmation: 'DELETE', password: 'correct-horse' } });
-    assert.equal(r.status, 502);
-    assert.equal(db.users.length, 2);
+    for (const status of [404, 503]) {
+      global.fetch = async (url, init) => (String(url).includes('/api/translate/history') ? { ok: false, status } : realFetch(url, init));
+      r = await call('DELETE', '/api/users/me', deletion);
+      assert.equal(r.status, 502);
+      assert.equal(db.users.length, 2);
+      assert.equal(db.trips.length, 4);
+    }
     // ...and when it answers, it was asked for this traveller only
     let asked;
     global.fetch = async (url, init) => (String(url).includes('/api/translate/history') ? ((asked = { url: String(url), init }), { ok: true, status: 200 }) : realFetch(url, init));
 
-    r = await call('DELETE', '/api/users/me', { body: { confirmation: 'DELETE', password: 'correct-horse' } });
+    r = await call('DELETE', '/api/users/me', deletion);
     assert.equal(r.status, 204);
-    assert.deepEqual(db.reassigned?.map((x) => x.data.paidById), [2, 2]); // one per shared group // what they paid stays on the trip, now under the next member
     assert.equal(asked.init.method, 'DELETE');
     assert.equal(asked.init.headers['x-user-id'], '1');
     global.fetch = realFetch;
@@ -355,7 +404,15 @@ const server = app.listen(0, async () => {
     assert.equal(db.members.find((m) => m.travelGroupId === 11 && m.userId === 2).role, 'OWNER'); // Bob inherits the group Ada owned
     assert.equal(db.members.find((m) => m.travelGroupId === 12 && m.userId === 2).role, 'OWNER');
     assert.deepEqual(db.documents.map((d) => d.id), ['d2']);
+    assert.deepEqual(db.trips.map((trip) => trip.id), [22]);
+    assert.deepEqual(db.trips[0].splitShares, {});
+    assert.deepEqual(db.expenses, [{ tripId: 22, paidById: 2 }]);
+    assert.deepEqual(db.invitations, [{ email: 'bob@example.com' }]);
+    for (const table of [db.notifications, db.chats, db.logs, db.reviews]) {
+      assert.deepEqual(table, [{ tripId: 22, userId: 2 }]);
+    }
     assert.equal(db.sessions.some((s) => s.userId === 1), false);
+    assert.equal((await call('GET', '/api/users/me/sessions')).status, 401);
     assert.match(r.headers.get('set-cookie') || '', /refreshToken=;/); // signed out too
 
     /* ---- report a problem ---- */
