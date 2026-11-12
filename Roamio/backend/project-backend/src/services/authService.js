@@ -34,6 +34,32 @@ const NAME_PATTERN = /^[\p{L}\p{M}][\p{L}\p{M} .'’-]*$/u;
 
 const normalizeEmail = (email) => (typeof email === 'string' ? email.trim().toLowerCase() : '');
 
+// ponytail: short disposable-domain list; swap for a maintained package if abuse continues
+const DISPOSABLE_DOMAINS = new Set([
+  'mailinator.com', 'guerrillamail.com', '10minutemail.com', 'tempmail.com', 'temp-mail.org',
+  'yopmail.com', 'trashmail.com', 'throwawaymail.com', 'sharklasers.com', 'getnada.com',
+  'maildrop.cc', 'dispostable.com', 'fakeinbox.com',
+]);
+
+// True when the email's domain can't receive mail (no MX, or no address record).
+// DNS timeouts/outages return false so a flaky resolver doesn't block sign-ups.
+const hasFakeDomain = async (email) => {
+  const domain = email.split('@').pop();
+  if (DISPOSABLE_DOMAINS.has(domain)) return true;
+  const dnsP = require('node:dns').promises;
+  const missing = (e) => e.code === 'ENOTFOUND' || e.code === 'ENODATA';
+  try {
+    return (await dnsP.resolveMx(domain)).length === 0;
+  } catch (e) {
+    if (!missing(e)) return false;
+  }
+  try {
+    return (await dnsP.resolve4(domain)).length === 0; // no MX: mail falls back to the A record
+  } catch (e) {
+    return missing(e);
+  }
+};
+
 // Issues a new code, stores only its hash, and returns the plain code for delivery
 const issueOtp = async (userId, extra = {}) => {
   const otp = generateOtp();
@@ -70,6 +96,9 @@ class AuthService {
     const normalizedEmail = normalizeEmail(email);
     if (!EMAIL_PATTERN.test(normalizedEmail) || normalizedEmail.length > MAX_EMAIL_LENGTH) {
       throw httpError(400, 'A valid email is required.');
+    }
+    if (await hasFakeDomain(normalizedEmail)) {
+      throw httpError(400, 'That email address looks fake. Use a real email address that can receive mail.');
     }
     if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
       throw httpError(400, `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);

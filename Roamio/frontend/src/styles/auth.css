@@ -1047,7 +1047,7 @@ input {
   border-radius:
     var(--radius-sm);
 
-  background: #fbfcfd;
+  background: white;
 
   color: #9aa5ac;
 
@@ -1098,6 +1098,15 @@ input {
   background: transparent;
 
   font-size: 0.8438rem;
+}
+
+/* browsers paint autofilled fields grey/blue; keep them white */
+.input-box input:-webkit-autofill,
+.input-box input:-webkit-autofill:hover,
+.input-box input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px white inset;
+  -webkit-text-fill-color: var(--ink-800);
+  caret-color: var(--ink-800);
 }
 
 .input-box input::placeholder {
