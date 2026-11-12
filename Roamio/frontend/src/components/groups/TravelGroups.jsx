@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
-import { Copy, LoaderCircle, Plane, Plus, Users } from "lucide-react";
+import { Copy, LoaderCircle, Plane, UserPlus, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import { createGroup, fetchMyGroups, inviteLink, joinGroup } from "../../api/groups.js";
+import { fetchMyGroups, inviteLink } from "../../api/groups.js";
 import { useAuthStore } from "../../store/authStore.js";
-import { useTripStore } from "../../store/tripStore.js";
-import { labelError } from "../../utils/validation.js";
 import GroupEmailInvite from "./GroupEmailInvite.jsx";
 
 const MANAGERS = ["OWNER", "ADMIN"];
@@ -14,16 +12,12 @@ const MANAGERS = ["OWNER", "ADMIN"];
 // and invites. Trips planned "for" a group in the wizard land here and every
 // member can open them. Companions without an account are saved on the group as
 // well, and the Family page manages them.
-// onGroups(list) runs after every load, so the page's companion list follows
-// groups created or joined here
+// onGroups(list) gives the Family page the loaded groups for its companion list.
 // tripId (optional) narrows the list to the group(s) that own that trip
 export default function TravelGroups({ onGroups, tripId }) {
   const userId = useAuthStore((state) => state.user?.id);
   const [groups, setGroups] = useState(null);
   const [error, setError] = useState("");
-  const [newName, setNewName] = useState("");
-  const [code, setCode] = useState("");
-  const [busy, setBusy] = useState(false);
 
   const load = () =>
     fetchMyGroups()
@@ -39,21 +33,6 @@ export default function TravelGroups({ onGroups, tripId }) {
   useEffect(() => {
     load();
   }, []);
-
-  const run = async (action) => {
-    setBusy(true);
-    setError("");
-    try {
-      await action();
-      await load();
-      // a joined group's trips now show in the trip switcher
-      useTripStore.getState().load(true);
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Something went wrong.");
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const shown = tripId == null ? groups || [] : (groups || []).filter((group) => group.trips.some((trip) => trip.id === tripId));
 
@@ -72,7 +51,7 @@ export default function TravelGroups({ onGroups, tripId }) {
       {groups === null ? (
         <p className="family-groups-note"><LoaderCircle size={15} className="recommendations-spinner" /> Loading your groups...</p>
       ) : groups.length === 0 ? (
-        <p className="family-groups-note">You&apos;re not in a travel group yet. Create one, or join with a code from a friend.</p>
+        <p className="family-groups-note">You&apos;re not in a travel group yet.</p>
       ) : shown.length === 0 ? (
         <p className="family-groups-note">This trip isn&apos;t planned with a travel group.</p>
       ) : (
@@ -87,44 +66,13 @@ export default function TravelGroups({ onGroups, tripId }) {
         </div>
       )}
 
-      <div className="family-groups-actions">
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            const problem = labelError(newName, "the group name");
-            if (problem) return setError(problem);
-            run(() => createGroup(newName.trim()).then(() => setNewName("")));
-          }}
-        >
-          <input value={newName} onChange={(event) => { setNewName(event.target.value); setError(""); }} placeholder="New group name" aria-label="New group name" maxLength={60} />
-          <button type="submit" className="family-button family-button-primary" disabled={busy || !newName.trim()}>
-            <Plus size={15} /> Create group
-          </button>
-        </form>
-
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!/^[A-Za-z0-9]{4,16}$/.test(code.trim())) {
-              return setError("Join codes are 4-16 letters and numbers, like 9F2A1B8C - no spaces or symbols.");
-            }
-            run(() => joinGroup(code.trim()).then(() => setCode("")));
-          }}
-        >
-          <input value={code} onChange={(event) => { setCode(event.target.value); setError(""); }} placeholder="Join code, e.g. 9F2A1B8C" aria-label="Group join code" maxLength={16} />
-          <button type="submit" className="family-button family-button-secondary" disabled={busy || !code.trim()}>
-            Join
-          </button>
-        </form>
-      </div>
-
-      {/* under the Create and Join fields, where the person who caused it is looking */}
       {error && <p className="family-groups-error" role="alert">{error}</p>}
     </section>
   );
 }
 
 function GroupCard({ group, canManage }) {
+  const [inviteOpen, setInviteOpen] = useState(false);
   // anyone with this link can join (no email needed), unlike the invite below
   const [joinCopied, setJoinCopied] = useState(false);
   const copyJoinLink = () => {
@@ -161,7 +109,22 @@ function GroupCard({ group, canManage }) {
               <Copy size={13} /> {joinCopied ? "Link copied" : "Copy invite link"}
             </button>
           </p>
-          <GroupEmailInvite groupId={group.id} />
+          <div>
+            <button
+              type="button"
+              className="family-button family-button-secondary"
+              aria-expanded={inviteOpen}
+              onClick={() => setInviteOpen(!inviteOpen)}
+            >
+              <UserPlus size={15} /> Invite
+            </button>
+          </div>
+          {inviteOpen && (
+            <>
+              <p className="family-groups-note">Enter the email address of a verified Roamio account.</p>
+              <GroupEmailInvite groupId={group.id} />
+            </>
+          )}
         </>
       )}
     </article>

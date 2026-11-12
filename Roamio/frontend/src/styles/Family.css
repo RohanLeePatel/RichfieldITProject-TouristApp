@@ -1863,19 +1863,12 @@
   font-weight: 600;
 }
 
-.family-groups-actions,
-.family-groups-actions form,
 .family-group-invite {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
 
-.family-groups-actions {
-  gap: 18px;
-}
-
-.family-groups-actions input,
 .family-group-invite input {
   min-width: 0;
   flex: 1 1 180px;

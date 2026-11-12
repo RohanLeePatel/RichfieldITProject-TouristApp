@@ -41,6 +41,14 @@ const fakeRepo = {
   },
 };
 require.cache[path.join(__dirname, '../repositories/invitationRepository.js')] = { exports: fakeRepo };
+require.cache[path.join(__dirname, '../repositories/userRepository.js')] = {
+  exports: {
+    findByEmail: async (email) => {
+      const user = Object.values(users).find((entry) => entry.email === email);
+      return user && { ...user, isVerified: true, isActive: true };
+    },
+  },
+};
 require.cache[path.join(__dirname, '../services/groupActivityService.js')] = { exports: { notifyInvite: async () => 0 } };
 require.cache[path.join(__dirname, '../services/emailService.js')] = {
   exports: {
@@ -128,8 +136,9 @@ const server = app.listen(0, async () => {
     // A trip invite opens the selected itinerary even if the group has several.
     groupTrips[10].push(56);
     groupTrips[11] = [99];
-    const sendInvite = (tripId) => call('/groups/10/invites', as(1), { email: 'other@x.io', tripId });
+    const sendInvite = (tripId, email = 'other@x.io') => call('/groups/10/invites', as(1), { email, tripId });
     assert.equal((await sendInvite(99)).status, 400);
+    assert.equal((await sendInvite(56, 'missing@x.io')).status, 400);
     assert.equal(sent.length, 0);
     r = await sendInvite(56);
     assert.equal(r.status, 201);

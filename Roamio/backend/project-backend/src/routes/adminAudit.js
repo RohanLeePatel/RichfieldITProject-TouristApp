@@ -8,7 +8,8 @@ router.get('/', async (req, res) => res.json(await list(req.query)));
 
 // GET /api/admin/audit/export.csv - the same filters, as a spreadsheet
 router.get('/export.csv', async (req, res) => {
-  res.type('text/csv').set('Content-Disposition', 'attachment; filename="roamio-audit-log.csv"').send(await exportCsv(req.query));
+  const csv = await exportCsv(req.query);
+  res.type('text/csv').set('Content-Disposition', 'attachment; filename="roamio-audit-log.csv"').send(csv);
 });
 
 // GET /api/admin/audit/actions - action codes seen so far

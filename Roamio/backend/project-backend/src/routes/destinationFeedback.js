@@ -15,12 +15,12 @@ router.get('/rating', async (req, res, next) => {
   try { res.json(await service.summary(req.user.userId, req.query.place)); } catch (err) { fail(res, next, err); }
 });
 
-// POST /api/places/review { place, rating 1-5, comment? } - a member of a finished trip there; re-posting edits
+// POST /api/places/review { place, rating 1-5, comment? } - one review per traveller and place
 router.post('/review', async (req, res, next) => {
   try { res.status(201).json({ review: await service.review(req.user.userId, req.body) }); } catch (err) { fail(res, next, err); }
 });
 
-// POST /api/places/report { place, reason, note? } - a member of any trip there; once per place
+// POST /api/places/report { place, reason, note?, tripId?, itineraryItemId? } - once per traveller and place
 router.post('/report', async (req, res, next) => {
   try { res.status(201).json(await service.report(req.user.userId, req.body)); } catch (err) { fail(res, next, err); }
 });

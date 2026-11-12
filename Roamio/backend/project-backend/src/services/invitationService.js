@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const invitationRepo = require('../repositories/invitationRepository');
+const userRepo = require('../repositories/userRepository');
 const { httpError } = require('./tripAccessService');
 const groupActivity = require('./groupActivityService');
 const { sendGroupInvite } = require('./emailService');
@@ -58,6 +59,11 @@ class InvitationService {
     }
     if (await invitationRepo.isEmailGroupMember(groupId, normalizedEmail)) {
       throw httpError(400, 'This person is already a member of the group.');
+    }
+
+    const invitee = await userRepo.findByEmail(normalizedEmail);
+    if (!invitee?.isVerified || !invitee.isActive) {
+      throw httpError(400, 'Enter the email address of an active, verified Roamio account.');
     }
 
     const token = crypto.randomBytes(32).toString('hex');

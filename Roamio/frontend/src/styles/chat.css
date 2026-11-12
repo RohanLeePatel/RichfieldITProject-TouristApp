@@ -16,7 +16,7 @@
   --chat-primary: #16849a;
   --chat-primary-hover: #1c8f97;
   --chat-teal-2: #23a89e;
-  --chat-blue: #3b82f6;
+  --chat-blue: #1d4ed8;
   --chat-mint: #3ddbc4;
   --chat-danger: #bd4949;
   --chat-ring: 0 0 0 4px rgba(22, 132, 154, 0.12);
@@ -211,6 +211,10 @@
   transform: translateY(-1px);
 }
 
+.chat-page-root[data-theme="dark"] .chat-new {
+  background: linear-gradient(120deg, #126776, #14776f);
+}
+
 .chat-history-empty {
   display: grid;
   gap: 2px;
@@ -317,6 +321,10 @@
 .chat-history li.active .chat-history-open {
   color: var(--chat-primary);
   font-weight: 750;
+}
+
+.chat-page-root[data-theme="dark"] .chat-history li.active .chat-history-open {
+  color: var(--chat-primary-hover);
 }
 
 .chat-delete {
@@ -503,6 +511,21 @@
   30% { transform: translateY(-4px); }
 }
 
+.chat-bubble.assistant .chat-inline-link {
+  color: var(--chat-blue, #1d4ed8);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.chat-bubble.assistant .chat-inline-link:hover {
+  text-decoration-thickness: 2px;
+}
+
+.chat-bubble.assistant .chat-inline-link:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
 .chat-avatar {
   display: grid;
   flex: none;
@@ -652,6 +675,7 @@
 }
 
 .chat-widget[data-theme="dark"] {
+  --chat-blue: #7ab0ff;
   --surface: #103c46;
   --surface-2: #0d3540;
   --ink: #f3f8ff;

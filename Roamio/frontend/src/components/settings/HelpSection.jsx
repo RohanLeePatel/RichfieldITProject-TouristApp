@@ -15,7 +15,7 @@ import { useId, useMemo, useState } from "react";
 
 import { reportProblem, SUPPORT_EMAIL } from "../../api/settings.js";
 import useTips from "../../store/tipsStore.js";
-import { FAQS, LEGAL_LAST_UPDATED, REPORT_CATEGORIES, TERMS } from "./settingsContent.js";
+import { FAQS, LEGAL_LAST_UPDATED, REPORT_CATEGORIES, REPORT_CATEGORY_LABELS, TERMS } from "./settingsContent.js";
 import { CardHead, Field, LegalDocument, Modal, Notice, SettingsSection, Spinner } from "./SettingsUI.jsx";
 import { describeDevice, formatDate } from "./settingsUtils.js";
 
@@ -186,7 +186,7 @@ function ReportCard({ email, notify }) {
             <select value={form.category} onChange={set("category")}>
               <option value="">Choose a topic…</option>
               {REPORT_CATEGORIES.map((category) => (
-                <option key={category}>{category}</option>
+                <option key={category} value={category}>{REPORT_CATEGORY_LABELS[category] ?? category}</option>
               ))}
             </select>
           </div>

@@ -18,7 +18,8 @@ require.cache[require.resolve('web-push')] = {
   exports: {
     setVapidDetails: () => {},
     sendNotification: async (sub, payload, options) => {
-      if (failWith) throw Object.assign(new Error('push failed'), { statusCode: failWith });
+      const statusCode = typeof failWith === 'function' ? failWith(sub) : failWith;
+      if (statusCode) throw Object.assign(new Error('push failed'), { statusCode });
       sent.push({ endpoint: sub.endpoint, payload: JSON.parse(payload), options });
     },
   },
@@ -86,8 +87,15 @@ const reset = () => { inbox.length = 0; sent.length = 0; failWith = null; subs =
 
   // an unsubscribed browser (410) is dropped at once
   reset(); failWith = 410;
-  await notifyUser(1, alert);
+  assert.equal((await notifyUser(1, alert)).pushed, 0);
   assert.equal(subs.length, 0);
+
+  // Regular notifications still fan out when one browser has unsubscribed.
+  reset(); failWith = (sub) => sub.endpoint === 'e1' ? 410 : null;
+  subs.push({ ...subs[0], id: 2, endpoint: 'e2' });
+  assert.equal((await notifyUser(1, alert)).pushed, 1);
+  assert.deepEqual(sent.map((entry) => entry.endpoint), ['e2']);
+  assert.deepEqual(subs.map((sub) => sub.endpoint), ['e2']);
 
   // other failures count up, and the subscription goes at five
   reset(); failWith = 500;

@@ -8,7 +8,6 @@ import {
   Settings as SettingsIcon,
   ShieldCheck,
   User,
-  Users,
   X,
 } from "lucide-react";
 
@@ -21,16 +20,15 @@ import NotificationsSection from "../components/settings/NotificationsSection.js
 import PrivacySection from "../components/settings/PrivacySection.jsx";
 import ProfileSection from "../components/settings/ProfileSection.jsx";
 import SecuritySection from "../components/settings/SecuritySection.jsx";
-import TravellersSection from "../components/settings/TravellersSection.jsx";
 import { initialsOf } from "../components/settings/settingsUtils.js";
 import { useAuthStore } from "../store/authStore.js";
+import "../styles/recommendations.css";
 import "../styles/Settings.css";
 
 const SECTIONS = [
   { id: "profile", label: "Profile", icon: User },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "security", label: "Security", icon: ShieldCheck },
-  { id: "travellers", label: "Travellers", icon: Users },
   { id: "privacy", label: "Privacy & data", icon: Lock },
   { id: "help", label: "Help & support", icon: LifeBuoy },
 ];
@@ -166,8 +164,7 @@ export default function Settings() {
             </p>
             <h1>Settings</h1>
             <p className="page-topbar-lede">
-              Your profile, notifications, security, travellers and
-              privacy, all in one place.
+              Your profile, notifications, security and privacy, all in one place.
             </p>
           </>
         }
@@ -246,11 +243,6 @@ export default function Settings() {
             />
 
             <SecuritySection
-              email={email}
-              notify={notify}
-            />
-
-            <TravellersSection
               email={email}
               notify={notify}
             />

@@ -34,11 +34,6 @@ async function sendOne(subscription, payload, options) {
       payload,
       options
     );
-    await prisma.pushSubscription.update({
-      where: { id: subscription.id },
-      data: { lastUsedAt: new Date(), failureCount: 0 },
-    });
-    return true;
   } catch (err) {
     if (GONE.includes(err.statusCode) || subscription.failureCount + 1 >= MAX_FAILURES) {
       await prisma.pushSubscription.deleteMany({ where: { id: subscription.id } });
@@ -50,6 +45,16 @@ async function sendOne(subscription, payload, options) {
     }
     return false;
   }
+  await prisma.pushSubscription.update({
+    where: { id: subscription.id },
+    data: { lastUsedAt: new Date(), failureCount: 0 },
+  });
+  return true;
+}
+
+async function sendToSubscriptions(subscriptions, payload) {
+  const results = await Promise.all(subscriptions.map((subscription) => sendOne(subscription, payload)));
+  return results.filter(Boolean).length;
 }
 
 // Writes the inbox notification, then pushes it to the user's browsers when
@@ -71,8 +76,8 @@ async function notifyUser(userId, { type = 'INFO', topic, title, body, url, trip
 
     const subscriptions = await prisma.pushSubscription.findMany({ where: { userId } });
     const payload = JSON.stringify({ title, body, url: safePath(url), tag: dedupeKey || undefined });
-    await Promise.all(subscriptions.map((s) => sendOne(s, payload)));
-    return { duplicate: false, pushed: subscriptions.length };
+    const pushed = await sendToSubscriptions(subscriptions, payload);
+    return { duplicate: false, pushed };
   } catch (err) {
     console.error('Notification failed:', err.message);
     return { duplicate: false, pushed: 0, error: true };

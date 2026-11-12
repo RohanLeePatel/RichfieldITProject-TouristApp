@@ -180,19 +180,24 @@ async function getInsights({ days, now = Date.now() } = {}) {
   );
 
   // Groups and invitations
-  const [groups, invitesSent, invitesAccepted, memberships, groupTotal] = await Promise.all([
-    prisma.travelGroup.count({ where: { deletedAt: null, createdAt: { gte: from } } }),
+  const sharedGroups = { deletedAt: null, inviteCode: { not: null } };
+  const [groups, invitesSent, invitesAccepted, groupSizes] = await Promise.all([
+    prisma.travelGroup.count({ where: { ...sharedGroups, members: { some: {} }, createdAt: { gte: from } } }),
     prisma.invitation.count({ where: { createdAt: { gte: from } } }),
     prisma.invitation.count({ where: { createdAt: { gte: from }, status: 'ACCEPTED' } }),
-    prisma.travelGroupMember.count(),
-    prisma.travelGroup.count({ where: { deletedAt: null } }),
+    prisma.travelGroupMember.groupBy({
+      by: ['travelGroupId'],
+      where: { travelGroup: sharedGroups },
+      _count: { _all: true },
+    }),
   ]);
+  const memberTotal = groupSizes.reduce((sum, group) => sum + group._count._all, 0);
   const collaboration = {
     groups,
     invitesSent,
     invitesAccepted,
     acceptRate: percent(invitesAccepted, invitesSent),
-    avgGroupSize: groupTotal ? Math.round((memberships / groupTotal) * 10) / 10 : null,
+    avgGroupSize: groupSizes.length ? Math.round((memberTotal / groupSizes.length) * 10) / 10 : null,
   };
 
   return { days: range, generatedAt: new Date(now).toISOString(), kpis, topDestinations, funnel, wizardFunnel, retention, features, collaboration };

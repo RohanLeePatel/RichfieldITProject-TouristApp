@@ -68,6 +68,7 @@ async function canWrite(req, res, tripId, denied) {
 const deletedTrips = (userId, extra = {}) => ({
   ...accessibleTrips(userId, extra),
   deletedAt: { gte: new Date(Date.now() - RESTORE_WINDOW_DAYS * DAY_MS) },
+  travelGroup: { OR: [{ deletedAt: null }, { deletedWithTrips: true }] },
 });
 
 // ==========================================
@@ -297,7 +298,7 @@ router.post('/:id/restore', async (req, res) => {
     const userId = req.user.userId;
 
     const trip = await prisma.trip.findFirst({
-      where: deletedTrips(userId, { id: tripId, travelGroup: { deletedAt: null } }),
+      where: deletedTrips(userId, { id: tripId }),
       include: {
         members: { where: { userId }, select: { role: true } },
         travelGroup: { include: { members: { where: { userId }, select: { role: true } } } },
