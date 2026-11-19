@@ -92,10 +92,6 @@ cd Roamio/frontend && npm run lint && npm run build
 
 Frontend and backends are deployed on Vercel (`vercel.json` in each). GitHub Actions run the travel-intelligence checks, a dependency audit and a scheduled Supabase backup (`.github/workflows`).
 
-## Documentation
-
-Project documents, phase reports, demo run sheet and marker Q&A are in [documentation](documentation).
-
 ## Team
 
 Rohan Patel (AI/integration service), Yatheen (Prisma schema, backend flows), Jordan (authentication), Duran (landing, dashboard, chat page), Savaan (settings, calendar).
