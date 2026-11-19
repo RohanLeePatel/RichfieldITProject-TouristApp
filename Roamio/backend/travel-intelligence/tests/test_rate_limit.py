@@ -103,6 +103,15 @@ def test_expired_callers_are_pruned_so_the_table_stays_bounded(monkeypatch):
     assert len(rate_limit._hits) == 1
 
 
+def test_active_callers_cannot_grow_the_table_beyond_its_limit(monkeypatch):
+    monkeypatch.setattr(rate_limit, "MAX_TRACKED_CALLERS", 3)
+    for i in range(3):
+        assert check_rate_limit(fake_request(key=f"synthetic-{i}"), now=100.0) is None
+    for i in range(3, 30):
+        assert check_rate_limit(fake_request(key=f"synthetic-{i}"), now=100.0) == rate_limit.WINDOW_SECONDS
+    assert len(rate_limit._hits) == 3
+
+
 def test_a_throttled_request_gets_429_with_the_header(monkeypatch):
     monkeypatch.setenv("superSecretKey", "test-secret")
     import config.auth as auth_module

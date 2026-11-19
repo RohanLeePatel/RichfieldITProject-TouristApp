@@ -29,7 +29,7 @@ def ocr_and_translate(
     try:
         # .file.read() rather than await .read(): the handler is sync so FastAPI
         # runs it in the threadpool, which keeps a slow OCR call off the event loop
-        image_bytes = image.file.read()
+        image_bytes = image.file.read(MAX_IMAGE_BYTES + 1)
     except Exception:
         raise HTTPException(status_code=400, detail="Could not read the upload.")
 

@@ -29,7 +29,7 @@ async function verifiedUserId(req) {
   if (!token) return null;
   try {
     const { userId, sid } = verifyAccessToken(token);
-    if (sid && !(await sessionService.isLive(sid, userId))) return null;
+    if (!sid || !(await sessionService.isLive(sid, userId))) return null;
     return userId == null ? null : String(userId);
   } catch {
     return null;
@@ -55,6 +55,7 @@ async function forward(res, path, init, userId = null) {
         'node-secretkey': nodeSecretKey,
         ...(userId ? userHeaders(userId) : {}),
       },
+      signal: AbortSignal.timeout(30000),
     });
     const data = await response.json().catch(() => null);
     return res.status(response.status).json(data ?? { detail: 'Invalid response from translation service.' });

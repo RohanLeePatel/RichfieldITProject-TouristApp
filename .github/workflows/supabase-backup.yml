@@ -31,11 +31,19 @@ jobs:
           BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
           set -euo pipefail
+          umask 077
+          : "${DB_URL:?Database backup URL is required}"
+          : "${BACKUP_PASSPHRASE:?Backup encryption passphrase is required}"
+          if [ "${#BACKUP_PASSPHRASE}" -lt 32 ]; then
+            echo "Backup encryption requires a passphrase of at least 32 characters." >&2
+            exit 1
+          fi
           # The runner ships client 16 earlier on PATH; use 17 to match the server.
           export PATH=/usr/lib/postgresql/17/bin:$PATH
           pg_dump --version
           STAMP=$(date -u +%Y%m%dT%H%M%SZ)
-          DUMP="roamio-$STAMP.dump"
+          DUMP="$RUNNER_TEMP/roamio-$STAMP.dump"
+          trap 'rm -f -- "$DUMP"' EXIT
           pg_dump "$DB_URL" --format=custom --no-owner --no-privileges --schema=public --file="$DUMP"
           test -s "$DUMP"
           pg_restore --list "$DUMP" > /dev/null
@@ -44,7 +52,7 @@ jobs:
           rm "$DUMP"
           echo "FILE=$DUMP.gpg" >> "$GITHUB_ENV"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: roamio-db-backup
           path: ${{ env.FILE }}

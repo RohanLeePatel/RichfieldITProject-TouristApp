@@ -29,6 +29,18 @@ dist-ssr
 secrets.json
 service-account*.json
 cookies.txt
+google-credentials.json
+*credentials*.json
+*.sqlite
+*.sqlite3
+*.db
+*.bak
+
+# Local academic submissions and extracted review work need privacy review.
+# Tracked phase reports still require owner action; ignore rules do not untrack them.
+/documentation/*Phase5*
+/documentation/phase5-review/
+/documentation/phase5-review.zip
 
 # IDE & API tools
 .vscode/

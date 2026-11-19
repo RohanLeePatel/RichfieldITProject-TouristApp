@@ -7,6 +7,9 @@ const assert = require('node:assert/strict');
 const path = require('node:path');
 
 process.env.superSecretKey = 'service-key';
+// The fetch stub below intercepts this reserved hostname. Never inherit a
+// developer's service URL, and keep it distinct from the local HTTP test server.
+process.env.AI_FEATURES_URL = 'https://expert.invalid';
 let catalog = [];
 require.cache[path.join(__dirname, '../services/catalogService.js')] = {
   exports: {

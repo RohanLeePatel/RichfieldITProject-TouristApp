@@ -50,13 +50,20 @@ require.cache[path.join(__dirname, '../config/prisma.js')] = {
 
 const { notifyUser, sendTestPush, safePath } = require('./pushService');
 const alert = { type: 'ALERT', topic: 'safetyAlerts', title: 'Safety alert', body: 'Level 3', url: '/trips/4' };
-const reset = () => { inbox.length = 0; sent.length = 0; failWith = null; subs = [{ id: 1, userId: 1, endpoint: 'e1', p256dh: 'p', auth: 'a', failureCount: 0 }]; };
+const reset = () => { inbox.length = 0; sent.length = 0; failWith = null; subs = [{ id: 1, userId: 1, endpoint: 'https://fcm.googleapis.com/fcm/send/synthetic-one', p256dh: 'p', auth: 'a', failureCount: 0 }]; };
 
 (async () => {
   assert.equal(safePath('/trips/4'), '/trips/4');
   assert.equal(safePath('//evil.com'), '/');
   assert.equal(safePath('https://evil.com'), '/');
   assert.equal(safePath(undefined), '/');
+
+  // Previously stored arbitrary endpoints must never trigger an outbound send.
+  reset(); prefs = { channels: { browser: true }, topics: {} };
+  subs[0].endpoint = 'https://127.0.0.1/private';
+  assert.equal((await notifyUser(1, alert)).pushed, 0);
+  assert.equal(sent.length, 0);
+  assert.equal(subs.length, 0);
 
   // no preference row: the browser channel was never switched on, so inbox only
   reset(); prefs = null;
@@ -91,11 +98,11 @@ const reset = () => { inbox.length = 0; sent.length = 0; failWith = null; subs =
   assert.equal(subs.length, 0);
 
   // Regular notifications still fan out when one browser has unsubscribed.
-  reset(); failWith = (sub) => sub.endpoint === 'e1' ? 410 : null;
-  subs.push({ ...subs[0], id: 2, endpoint: 'e2' });
+  reset(); failWith = (sub) => sub.endpoint === 'https://fcm.googleapis.com/fcm/send/synthetic-one' ? 410 : null;
+  subs.push({ ...subs[0], id: 2, endpoint: 'https://fcm.googleapis.com/fcm/send/synthetic-two' });
   assert.equal((await notifyUser(1, alert)).pushed, 1);
-  assert.deepEqual(sent.map((entry) => entry.endpoint), ['e2']);
-  assert.deepEqual(subs.map((sub) => sub.endpoint), ['e2']);
+  assert.deepEqual(sent.map((entry) => entry.endpoint), ['https://fcm.googleapis.com/fcm/send/synthetic-two']);
+  assert.deepEqual(subs.map((sub) => sub.endpoint), ['https://fcm.googleapis.com/fcm/send/synthetic-two']);
 
   // other failures count up, and the subscription goes at five
   reset(); failWith = 500;
@@ -105,16 +112,16 @@ const reset = () => { inbox.length = 0; sent.length = 0; failWith = null; subs =
   assert.equal(subs.length, 0);
 
   reset(); prefs = null;
-  subs.push({ ...subs[0], id: 2, endpoint: 'e2' });
-  assert.equal(await sendTestPush(2, 'e1'), null);
+  subs.push({ ...subs[0], id: 2, endpoint: 'https://fcm.googleapis.com/fcm/send/synthetic-two' });
+  assert.equal(await sendTestPush(2, 'https://fcm.googleapis.com/fcm/send/synthetic-one'), null);
   assert.equal(sent.length, 0);
-  assert.equal(await sendTestPush(1, 'e2'), true);
-  assert.deepEqual(sent.map((message) => message.endpoint), ['e2']);
+  assert.equal(await sendTestPush(1, 'https://fcm.googleapis.com/fcm/send/synthetic-two'), true);
+  assert.deepEqual(sent.map((message) => message.endpoint), ['https://fcm.googleapis.com/fcm/send/synthetic-two']);
   assert.deepEqual(sent[0].options, { urgency: 'high', TTL: 30, timeout: 5000 });
   assert.equal(inbox.length, 0);
   failWith = 410;
-  assert.equal(await sendTestPush(1, 'e2'), false);
-  assert.deepEqual(subs.map((sub) => sub.endpoint), ['e1']);
+  assert.equal(await sendTestPush(1, 'https://fcm.googleapis.com/fcm/send/synthetic-two'), false);
+  assert.deepEqual(subs.map((sub) => sub.endpoint), ['https://fcm.googleapis.com/fcm/send/synthetic-one']);
 
   console.log('pushService selfcheck passed');
 })();

@@ -60,11 +60,12 @@ require.cache[path.join(__dirname, '../services/emailService.js')] = {
   },
 };
 
+require.cache[path.join(__dirname, '../services/sessionService.js')] = { exports: { isLive: async (sid) => sid === 'synthetic-session' } };
 const { generateAccessToken } = require('../auth/tokenService');
 const router = require('./invitation');
 
 const app = express().use(express.json()).use('/api', router);
-const as = (id) => ({ authorization: `Bearer ${generateAccessToken({ id, email: users[id].email })}` });
+const as = (id) => ({ authorization: `Bearer ${generateAccessToken({ id, email: users[id].email }, 'synthetic-session')}` });
 
 const server = app.listen(0, async () => {
   const base = `http://127.0.0.1:${server.address().port}/api`;

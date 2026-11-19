@@ -52,21 +52,34 @@ export async function ensureToken() {
 // Offline read-only: the last good response of each signed-in GET is kept so the
 // app can still show it with no connection. Dropped on every sign-out.
 const CACHE_PREFIX = "roamio_cache:";
-const cacheKey = (path) => CACHE_PREFIX + path;
+const cacheKey = (path) => {
+  try {
+    const userId = JSON.parse(localStorage.getItem('user'))?.id;
+    return userId == null ? null : `${CACHE_PREFIX}${userId}:${path}`;
+  } catch {
+    return null;
+  }
+};
+let cacheGeneration = 0;
 
 // When the oldest copy shown from the cache was saved; the offline banner reads it.
 let staleSince = null;
 export const getStaleSince = () => staleSince;
 
 export function clearApiCache() {
+  cacheGeneration += 1;
   // saved document files (tripDocuments.js) are personal too
   if ("caches" in window) caches.delete("roamio-docs").catch(() => {});
+  if ("caches" in window) caches.delete("roamio-tiles-v1").catch(() => {});
   try {
     for (const key of Object.keys(localStorage)) if (key.startsWith(CACHE_PREFIX)) localStorage.removeItem(key);
   } catch {
     // blocked storage - nothing to clear
   }
 }
+
+// Discard older, unscoped API/document caches when this privacy fix first loads.
+clearApiCache();
 
 // Tells the API to drop the refresh cookie on sign-out; best effort.
 export function endSession() {
@@ -77,6 +90,9 @@ export function endSession() {
 async function request(path, { auth = false, retried = false, headers, ...options } = {}) {
   const requestHeaders = { "Content-Type": "application/json", ...headers };
   const isRead = auth && options.cache !== "no-store" && (!options.method || options.method === "GET");
+  const persistentRead = isRead && !/^\/api\/(?:admin|users|auth|chat|translate)(?:\/|$)/.test(path);
+  const savedKey = persistentRead ? cacheKey(path) : null;
+  const generation = cacheGeneration;
 
   if (auth) {
     const token = await ensureToken();
@@ -90,9 +106,9 @@ async function request(path, { auth = false, retried = false, headers, ...option
   try {
     response = await fetch(apiUrl(path), { ...options, headers: requestHeaders, credentials: "include" });
   } catch {
-    if (isRead) {
+    if (savedKey && generation === cacheGeneration) {
       try {
-        const cached = localStorage.getItem(cacheKey(path));
+        const cached = localStorage.getItem(savedKey);
         if (cached) {
           const { t, d } = JSON.parse(cached);
           staleSince = staleSince ? Math.min(staleSince, t) : t;
@@ -145,9 +161,9 @@ async function request(path, { auth = false, retried = false, headers, ...option
     );
   }
 
-  if (isRead && data !== null) {
+  if (savedKey && generation === cacheGeneration && data !== null && !/\bno-store\b/i.test(response.headers.get('cache-control') || '')) {
     try {
-      localStorage.setItem(cacheKey(path), JSON.stringify({ t: Date.now(), d: data }));
+      localStorage.setItem(savedKey, JSON.stringify({ t: Date.now(), d: data }));
     } catch {
       // storage full or blocked - just no offline copy of this one
     }

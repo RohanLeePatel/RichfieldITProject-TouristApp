@@ -43,9 +43,9 @@ const requireAuth = async (req, res, next) => {
 
   // A signed token is only as good as its session: signing out, suspending the account
   // or resetting the password revokes the session, which must stop the token working
-  // now rather than when it expires. Tokens from before sessions existed carry no sid.
+  // now rather than when it expires. Legacy tokens without sid require a new sign-in.
   try {
-    if (req.user.sid && !(await sessionService.isLive(req.user.sid, req.user.id))) {
+    if (!req.user.sid || !(await sessionService.isLive(req.user.sid, req.user.id))) {
       return res.status(401).json({ message: 'This session was signed out. Please log in again.' });
     }
   } catch (error) {

@@ -173,7 +173,7 @@ router.get('/export', handle(async (req, res) => {
 router.delete('/', handle(async (req, res) => {
   await accountService.deleteAccount(req.user.userId, req.body);
   tokenService.clearRefreshTokenCookie(res);
-  res.clearCookie('accessToken');
+  tokenService.clearAccessTokenCookie(res);
   res.status(204).end();
 }));
 

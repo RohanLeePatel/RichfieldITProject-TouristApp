@@ -1,5 +1,6 @@
 const webpush = require('web-push');
 const prisma = require('../config/prisma');
+const { isPushEndpoint } = require('../utils/pushEndpoint');
 
 const MAX_FAILURES = 5; // consecutive failed sends before a subscription is dropped
 const GONE = [404, 410]; // the browser has unsubscribed: the endpoint is dead for good
@@ -28,11 +29,16 @@ async function wantsPush(userId, topic) {
 const safePath = (url) => (typeof url === 'string' && /^\/(?!\/)/.test(url) ? url : '/');
 
 async function sendOne(subscription, payload, options) {
+  // Recheck stored rows too: subscriptions saved before validation may be unsafe.
+  if (!isPushEndpoint(subscription.endpoint)) {
+    await prisma.pushSubscription.deleteMany({ where: { id: subscription.id } });
+    return false;
+  }
   try {
     await webpush.sendNotification(
       { endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } },
       payload,
-      options
+      { timeout: 5000, ...options }
     );
   } catch (err) {
     if (GONE.includes(err.statusCode) || subscription.failureCount + 1 >= MAX_FAILURES) {

@@ -6,9 +6,8 @@ import { clearAllDrafts } from "../utils/plannerDraft.js";
 
 const USER_KEY = "user";
 
-// Profile edits made in Settings (name, photo). Kept apart from USER_KEY,
-// which logout deletes and login overwrites with the server's user - storing
-// the photo there meant it vanished on every sign-out.
+// Profile edits made in Settings (name, photo), kept during this signed-in
+// session. Logout clears these personal details along with USER_KEY.
 const PROFILES_KEY = "roamio_profiles_v1";
 
 function profileId(user) {
@@ -72,7 +71,7 @@ export const useAuthStore = create((set, get) => ({
 
   register: (userData, token) => startSession(set, userData, token),
 
-  // Saves Settings edits so they survive signing out and back in.
+  // Saves Settings edits during the current session, including page reloads.
   // Throws if storage is full - the caller shows the error.
   updateProfile: ({ name, email, photo }) => {
     const current =
@@ -96,11 +95,9 @@ export const useAuthStore = create((set, get) => ({
     clearAllDrafts();
     // per-user data a shared device must not keep after sign-out
     try {
-      if (accountDeleted) {
-        const profiles = loadProfiles();
-        delete profiles[profileId(get().user)];
-        localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
-      }
+      // Names, email addresses and photos must not survive sign-out on a shared device.
+      void accountDeleted;
+      localStorage.removeItem(PROFILES_KEY);
       for (const key of Object.keys(localStorage)) {
         if (key.startsWith("roamio-settings:") || key === "roamio_standalone_calendar_events" || key === "roamio_active_trip") {
           localStorage.removeItem(key);

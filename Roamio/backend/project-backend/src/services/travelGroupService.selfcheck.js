@@ -42,6 +42,12 @@ const { formatGroup } = require('../utils/groupMeta');
   // a group whose description was never JSON has no companions
   assert.deepEqual(formatGroup({ description: 'plain' }).companions, []);
   assert.deepEqual(formatGroup({ description: null }).companions, []);
+  // A list response must apply the same manager-only join-code rule as details.
+  const shared = { ...group(), inviteCode: 'SYNTHETIC', members: [{ userId: 7, role: 'OWNER' }, { userId: 8, role: 'MEMBER' }, { userId: 9, role: 'VIEWER' }] };
+  assert.equal(formatGroup(shared, 7).inviteCode, 'SYNTHETIC');
+  assert.equal(formatGroup(shared, 8).inviteCode, undefined);
+  assert.equal(formatGroup(shared, 9).inviteCode, undefined);
+  assert.equal(formatGroup(shared).inviteCode, undefined);
 
   // the join link's preview
   assert.deepEqual(await service.previewByCode('AB12CD34', 9), { id: 4, name: 'Crew', memberCount: 2, alreadyMember: false });

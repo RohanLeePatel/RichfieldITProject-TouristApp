@@ -68,6 +68,16 @@ const clearRefreshTokenCookie = (res) => {
   res.clearCookie('refreshToken', refreshCookieOptions());
 };
 
+const setAccessTokenCookie = (res, token) => {
+  res.cookie('accessToken', token, {
+    ...refreshCookieOptions(),
+    signed: true,
+    maxAge: 15 * 60 * 1000,
+  });
+};
+
+const clearAccessTokenCookie = (res) => res.clearCookie('accessToken', refreshCookieOptions());
+
 module.exports = {
   hashPassword,
   comparePassword,
@@ -77,4 +87,6 @@ module.exports = {
   verifyRefreshToken,
   setRefreshTokenCookie,
   clearRefreshTokenCookie,
+  setAccessTokenCookie,
+  clearAccessTokenCookie,
 };

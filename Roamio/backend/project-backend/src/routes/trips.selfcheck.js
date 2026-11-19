@@ -44,6 +44,7 @@ const fakePrisma = {
 require.cache[path.join(__dirname, '../config/prisma.js')] = { exports: fakePrisma };
 require.cache[path.join(__dirname, '../services/groupActivityService.js')] = { exports: { notifyTripChange: async () => 0 } }; // tested in its own selfcheck
 
+require.cache[path.join(__dirname, '../services/sessionService.js')] = { exports: { isLive: async (sid) => sid === 'synthetic-session' } };
 const { generateAccessToken } = require('../auth/tokenService');
 const router = require('./trips');
 
@@ -52,7 +53,7 @@ app.use((req, res) => res.status(418).json({ fellThrough: true })); // stands in
 
 const server = app.listen(0, async () => {
   const base = `http://127.0.0.1:${server.address().port}/api/trips`;
-  const auth = { authorization: `Bearer ${generateAccessToken({ id: 7, email: 'a@b.c' })}` };
+  const auth = { authorization: `Bearer ${generateAccessToken({ id: 7, email: 'a@b.c' }, 'synthetic-session')}` };
   const json = { 'content-type': 'application/json' };
   const call = (p, init = {}) =>
     fetch(base + p, { ...init, headers: { ...auth, ...json, ...init.headers } }).then(async (r) => ({ status: r.status, body: await r.json() }));

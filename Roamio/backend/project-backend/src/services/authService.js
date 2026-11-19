@@ -270,8 +270,7 @@ class AuthService {
   }
 
   // Issues a fresh access and refresh token pair, provided the session is still live.
-  // Tokens minted before sessions existed have no `sid`. They are given one here so
-  // they appear in Settings and can be signed out like any other.
+  // Legacy tokens without a session cannot be revoked, so require a fresh sign-in.
   async refreshTokens(refreshToken, req) {
     if (!refreshToken) throw httpError(401, 'Refresh token missing');
 
@@ -281,6 +280,7 @@ class AuthService {
     } catch {
       throw httpError(403, 'Invalid or expired refresh token');
     }
+    if (!payload.sid) throw httpError(401, 'Please sign in again to start a secure session.');
 
     const user = await userRepository.findById(payload.userId);
     if (!user) throw httpError(404, 'User not found');
@@ -295,9 +295,6 @@ class AuthService {
       const outcome = await sessionService.rotate(sid, user.id, payload.jti, jti);
       if (outcome === 'replay') throw httpError(401, 'This refresh token was already used. Please sign in again.');
       if (outcome !== 'ok') throw httpError(401, 'This session was signed out. Please sign in again.');
-    } else {
-      // a token from before sessions existed: give it one, so it shows up and can be signed out
-      sid = await sessionService.start(user.id, req, { record: false });
     }
 
     return {

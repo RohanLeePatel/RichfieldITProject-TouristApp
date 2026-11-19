@@ -39,6 +39,14 @@ function packGroupMeta(description, companions) {
 }
 
 // a group as the API returns it: description unpacked, companions alongside
-const formatGroup = (group) => ({ ...group, ...unpackGroupMeta(group.description) });
+const formatGroup = (group, userId) => {
+  const { inviteCode, ...visible } = group;
+  const role = group.members?.find((member) => member.userId === userId)?.role;
+  return {
+    ...visible,
+    ...unpackGroupMeta(group.description),
+    ...(['OWNER', 'ADMIN'].includes(role) && { inviteCode }),
+  };
+};
 
 module.exports = { companionsSchema, unpackGroupMeta, packGroupMeta, formatGroup };

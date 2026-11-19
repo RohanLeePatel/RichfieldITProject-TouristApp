@@ -64,6 +64,12 @@ app.use(cors({
   origin: allowedOrigins,
   credentials: true // Crucial for sending/receiving secure cookies
 }));
+app.use('/api', require('./src/middleware/originGuard')(allowedOrigins));
+// Authenticated JSON and document responses must not enter browser/proxy caches.
+app.use('/api', (req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
 
 // Parse incoming JSON payloads and URL-encoded data. Trip documents arrive as
 // base64 in JSON, so that one path gets a 2 MB limit (a 1 MB file, kept under

@@ -11,13 +11,7 @@ const fail = (res, next, err) => {
 
 const setSession = (res, accessToken, refreshToken) => {
   tokenService.setRefreshTokenCookie(res, refreshToken);
-  res.cookie('accessToken', accessToken, {
-    httpOnly: true,
-    signed: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // SPA is on another origin
-    maxAge: 15 * 60 * 1000 // 15 minutes
-  });
+  tokenService.setAccessTokenCookie(res, accessToken);
 };
 
 class AuthController {
@@ -104,11 +98,7 @@ class AuthController {
       
       tokenService.setRefreshTokenCookie(res, newRefreshToken);
       // The access token cookie is refreshed alongside the refresh token
-      res.cookie('accessToken', accessToken, {
-        httpOnly: true,
-        signed: true,
-        maxAge: 15 * 60 * 1000
-      });
+      tokenService.setAccessTokenCookie(res, accessToken);
 
       res.json({ accessToken });
     } catch (err) {
@@ -119,7 +109,7 @@ class AuthController {
   async logout(req, res) {
     await authService.signOut(req.cookies?.refreshToken || req.signedCookies?.refreshToken);
     tokenService.clearRefreshTokenCookie(res);
-    res.clearCookie('accessToken'); // Clear the access token too
+    tokenService.clearAccessTokenCookie(res);
     res.json({ message: 'Logged out successfully' });
   }
 

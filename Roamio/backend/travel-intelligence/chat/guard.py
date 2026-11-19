@@ -2,9 +2,9 @@
 Guard rails around the trip assistant (FR-37), applied at the one place text
 crosses to or from the model, so nothing depends on every caller remembering.
 
-- scrub: personal data and secrets never leave this service for Gemini, and
-  never come back to the traveller, even if one slipped into a trip note or the
-  model repeats it.
+- scrub: removes common personal-data and secret patterns before text goes to
+  Gemini or returns to the traveller. This cannot identify every sensitive
+  detail a traveller may include in free text.
 - is_probe: a request to reveal the instructions or drop the rules is answered
   with a fixed line and never reaches the model (no quota spent).
 - leaks_instructions: a reply that quotes the instructions or the fact block is

@@ -98,6 +98,7 @@ global.fetch = ((realFetch) => async (url, init) => {
   return { ok: aiAnswer.ok, status: aiAnswer.status, json: async () => aiAnswer.body };
 })(global.fetch);
 
+require.cache[path.join(__dirname, '../services/sessionService.js')] = { exports: { isLive: async (sid) => sid === 'synthetic-session' } };
 const { generateAccessToken } = require('../auth/tokenService');
 const router = require('./chat');
 const { buildContext } = require('../services/chatContext');
@@ -161,7 +162,7 @@ assert.match(
 const app = express().use(express.json()).use('/api/chat', router);
 const server = app.listen(0, async () => {
   const base = `http://127.0.0.1:${server.address().port}/api/chat`;
-  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${generateAccessToken({ id: 7, email: 'a@b.test' })}` };
+  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${generateAccessToken({ id: 7, email: 'a@b.test' }, 'synthetic-session')}` };
   const call = async (p, init = {}) => {
     const r = await fetch(base + p, { headers, ...init });
     return { status: r.status, headers: r.headers, body: r.status === 204 ? null : await r.json() };

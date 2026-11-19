@@ -43,6 +43,11 @@ express.application.listen = function (port, cb) {
       assert.equal(r.headers.get('access-control-allow-origin'), 'http://localhost:5173');
       r = await req('/api/trips', { headers: { origin: 'https://evil.example' } });
       assert.equal(r.headers.get('access-control-allow-origin'), null);
+      // CORS alone does not stop a cross-site form POST from changing state.
+      r = await req('/api/auth/logout', { method: 'POST', headers: { origin: 'https://evil.example', 'content-type': 'application/x-www-form-urlencoded', cookie: 'refreshToken=synthetic' }, body: '' });
+      assert.equal(r.status, 403);
+      assert.equal((await req('/api/auth/logout', { method: 'POST', headers: { cookie: 'refreshToken=synthetic' } })).status, 403);
+      assert.equal((await req('/api/auth/logout', { method: 'POST', headers: { origin: 'http://localhost:5173' } })).status, 200);
       // security headers on every answer, and the cron route shut unless it has the secret
       r = await req('/api/trips');
       assert.equal(r.headers.get('x-content-type-options'), 'nosniff');

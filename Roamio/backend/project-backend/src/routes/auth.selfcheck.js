@@ -225,14 +225,14 @@ const server = app.listen(0, async () => {
     assert.equal(sessions.get(second).open, false);
     assert.equal((await renew(cookieTwo)).status, 401);
 
-    // a token from before sessions existed still renews, and is given one (without a sign-in entry)
+    // Legacy tokens must not bypass password-reset/logout revocation by opening a new session.
     const tokenService = require('../auth/tokenService');
     const count = sessions.size;
     renewed = await renew(`refreshToken=${tokenService.generateRefreshToken({ id: 1 })}`);
-    assert.equal(renewed.status, 200);
-    assert.equal(sessions.size, count + 1);
-    assert.equal([...sessions.values()].at(-1).record, false);
-    assert.ok(jwt.decode((await renewed.json()).accessToken).sid);
+    assert.equal(renewed.status, 401);
+    assert.equal(sessions.size, count);
+    const legacyAccess = tokenService.generateAccessToken({ id: 1 });
+    assert.equal((await fetch(base + '/users/me', { headers: { authorization: `Bearer ${legacyAccess}` } })).status, 401);
 
     // resetting the password signs every device out
     await post('/forgot-password', { email: account.email });

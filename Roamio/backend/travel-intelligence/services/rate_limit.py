@@ -47,8 +47,8 @@ ROUTE_LIMITS: dict[str, int] = {
 # the public uptime check must answer even while a caller is being throttled
 EXEMPT_PATHS = {"/"}
 
-# a caller that stops calling is forgotten once its window expires; this only
-# bounds the dictionary if a flood of distinct callers arrives at once
+# Expired callers are pruned at capacity; new callers are throttled while the
+# table is full, so a flood cannot grow the dictionary beyond this bound.
 MAX_TRACKED_CALLERS = 5000
 
 # (caller, path bucket) -> (count, window_reset_at_monotonic)
@@ -100,6 +100,10 @@ def check_rate_limit(request: Request, now: float | None = None) -> int | None:
         count, reset_at = 0, now + WINDOW_SECONDS
         if len(_hits) >= MAX_TRACKED_CALLERS:
             _prune(now)
+            if entry_key not in _hits and len(_hits) >= MAX_TRACKED_CALLERS:
+                # Arbitrary keys/forwarded addresses must not grow the table
+                # without bound while all existing windows are still active.
+                return WINDOW_SECONDS
 
     count += 1
     _hits[entry_key] = (count, reset_at)

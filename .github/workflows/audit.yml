@@ -1,16 +1,14 @@
-# Known-vulnerability check on the dependencies (4.8.2 supply chain): npm audit
-# for the Core API and the SPA, pip-audit for the Expert service. Runs on every
-# pull request that changes a dependency list, and weekly, because advisories
-# are published against code that has not changed. Only what ships is checked
-# (--omit=dev); a high or critical finding fails the run.
+# Dependency advisories include build/development tools and every package root.
 name: audit
 
 on:
   pull_request:
     paths:
       - "Roamio/backend/project-backend/package*.json"
+      - "Roamio/backend/package*.json"
       - "Roamio/frontend/package*.json"
       - "Roamio/backend/travel-intelligence/requirements*.txt"
+      - "Roamio/backend/travel-intelligence/requirements.lock"
       - ".github/workflows/audit.yml"
   schedule:
     - cron: "0 5 * * 1" # Mondays, 07:00 SAST
@@ -24,25 +22,29 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dir: [Roamio/backend/project-backend, Roamio/frontend]
+        dir: [Roamio/backend, Roamio/backend/project-backend, Roamio/frontend]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
       - name: npm audit
         working-directory: ${{ matrix.dir }}
-        run: npm audit --omit=dev --audit-level=high
+        run: npm audit --audit-level=moderate --ignore-scripts
 
   pip:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.14"
       - name: pip-audit
         working-directory: Roamio/backend/travel-intelligence
         run: |
-          pip install pip-audit
-          pip-audit -r requirements.lock
+          pip install pip-audit==2.10.1 -r requirements.lock -r requirements-dev.txt
+          pip-audit

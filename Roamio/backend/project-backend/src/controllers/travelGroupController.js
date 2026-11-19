@@ -25,7 +25,7 @@ exports.getMyGroups = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const groups = await travelGroupRepository.getUserGroups(userId);
-    return res.status(200).json({ groups: groups.map(formatGroup) });
+    return res.status(200).json({ groups: groups.map((group) => formatGroup(group, userId)) });
   } catch (error) {
     next(error);
   }

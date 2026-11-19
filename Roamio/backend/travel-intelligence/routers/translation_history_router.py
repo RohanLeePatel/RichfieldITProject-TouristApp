@@ -87,7 +87,7 @@ def translate_camera_with_history(
     user_id = _user(x_user_id)
     save_history = save_history.strip().lower() not in ("false", "0", "no", "off")
     try:
-        image_bytes = image.file.read()
+        image_bytes = image.file.read(MAX_IMAGE_BYTES + 1)
     except Exception:
         raise HTTPException(status_code=400, detail="Could not read the upload.")
 

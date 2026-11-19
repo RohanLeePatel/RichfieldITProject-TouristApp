@@ -183,6 +183,7 @@ router.post('/', async (req, res) => {
         context: facts?.context || '',
         can_edit: Boolean(facts?.canEdit && facts.near),
       }),
+      signal: AbortSignal.timeout(30000),
     });
     const data = await response.json().catch(() => null);
     if (!response.ok || !data || (!data.reply && !data.action)) {

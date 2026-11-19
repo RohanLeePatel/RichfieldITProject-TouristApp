@@ -80,7 +80,7 @@ export async function cacheDocument(tripId, documentId) {
   if (await cache.match(url)) return;
   const token = await ensureToken();
   const response = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-  if (response.ok) await cache.put(url, response);
+  if (response.ok && !/\bno-store\b/i.test(response.headers.get('cache-control') || '')) await cache.put(url, response);
 }
 
 // Opens the file in a new tab. The endpoint needs the bearer token, so the
@@ -93,7 +93,7 @@ export async function openDocument(tripId, documentId) {
     const token = await ensureToken();
     const response = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
     if (!response.ok) throw new Error("Could not open that document.");
-    if ("caches" in window) caches.open(DOCS_CACHE).then((c) => c.put(url, response.clone())).catch(() => {});
+    if ("caches" in window && !/\bno-store\b/i.test(response.headers.get('cache-control') || '')) caches.open(DOCS_CACHE).then((c) => c.put(url, response.clone())).catch(() => {});
     blob = await response.blob();
   } catch (error) {
     // offline: the copy saved while online, if there is one

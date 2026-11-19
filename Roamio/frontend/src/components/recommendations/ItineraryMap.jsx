@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { createMapTooltip } from "../../utils/mapTooltip.js";
 
 export const dayColor = (dayNumber) => `var(--day-${((dayNumber - 1) % 6) + 1})`;
 const dayClass = (dayNumber) => `day-${((dayNumber - 1) % 6) + 1}`;
@@ -61,7 +62,7 @@ export default function ItineraryMap({ itineraryDays }) {
           }),
           title: `Day ${day.dayNumber}, stop ${index + 1}: ${stop.landmark.name}`,
         })
-          .bindTooltip(`Day ${day.dayNumber} · ${stop.startTime} · ${stop.landmark.name}`)
+          .bindTooltip(createMapTooltip(day, stop))
           .addTo(layer);
       });
     });

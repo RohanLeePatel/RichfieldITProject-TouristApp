@@ -5,6 +5,7 @@ const requireAuth = require('../middleware/authMiddleware');
 const validate = require('../middleware/validate');
 const { pushLimiter } = require('../middleware/rateLimiter');
 const pushService = require('../services/pushService');
+const { isPushEndpoint } = require('../utils/pushEndpoint');
 
 // Browser push subscriptions, mounted at /api/notifications/push. A
 // subscription's endpoint is a bearer capability to message that browser, so
@@ -13,7 +14,7 @@ const router = express.Router();
 router.use(requireAuth);
 
 const subscriptionSchema = z.object({
-  endpoint: z.string().url().max(2048).refine((url) => url.startsWith('https://'), 'Endpoint must be https.'),
+  endpoint: z.string().url().max(2048).refine(isPushEndpoint, 'Use a supported browser push service.'),
   keys: z.object({ p256dh: z.string().min(1).max(256), auth: z.string().min(1).max(256) }),
 });
 const endpointSchema = z.object({ endpoint: z.string().url().max(2048) });
